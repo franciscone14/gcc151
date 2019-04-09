@@ -1,0 +1,1012 @@
+Devido a a evolução das tecnologias submicrônicas, hoje é possível o desenvolvimento de sistemas cada vez mais complexos dentro de um chip.
+Entretanto, esta evolução está inviabilizando algumas práticas de projeto tradicionais.
+O uso de comunicação intrachip multiponto, exemplificada por arquiteturas de barramento, e o desenvolvimento de sistemas completamente síncronos são exemplos destas práticas.
+Adicionalmente, a dissipação de potência está se tornando uma das principais restrições de projeto devido, por exemplo, ao aumento do uso e relevância de produtos baseados em baterias como PDAs, telefones celulares e computadores portáteis.
+Uma alternativa para superar estas práticas de projeto que estão perdendo viabilidade é a utilização de redes de comunicação intrachip que dêem suporte ao desenvolvimento de sistemas globalmente assíncronos e localmente síncronos (GALS).
+Este trabalho tem como principal alvo o desenvolvimento de suporte para o projeto utilizando o paradigma GALS em FPGAs.
+FPGAs foram selecionados como arquitetura alvo porque dispositivos comerciais atuais já possuem parte da infra-estrutura para dar suporte a sistemas GALS, incluindo múltiplos domínios de relógio num único dispositivo.
+Também, FPGAs são dispositivos essenciais na etapa de verificação de projetos complexos que serão mais tarde sintetizados como circuitos integrados dedicados.
+Ao longo de o trabalho, três eixos de viabilização de projeto GALS em FPGAs foram abordados, cada um gerando resultados práticos.
+Primeiro, foi proposta e desenvolvida uma biblioteca de macro blocos para dar suporte ao projeto de dispositivos assíncronos em FPGAs de forma compacta e eficiente.
+Segundo, após uma fase de comparação de interfaces assíncronas sugeridas na literatura para FPGAs e ASICs, foi proposta e validada SCAFFI, uma família de interfaces assíncronas para comunicação de módulos síncronos com relógios distintos.
+Terceiro, dois tipos de roteadores de redes intrachip com suporte para o projeto de sistemas GALS foram propostos e validados:
+Hermes GALS (Hermes-G) e Hermes GALS Low Power (Hermes-GLP).
+O roteador Hermes-GLP, além de dar suporte ao desenvolvimento de sistemas GALS, aproveita as características desse estilo de projeto para reduzir a dissipação de potência nos roteadores.
+Isto se dá através do emprego de mecanismos de chaveamento de freqüência internamente ao roteador.
+Alguns circuitos foram usados como estudos de caso para validar as duas primeiras estruturas propostas, exemplos sendo um núcleo de criptografia RSA e multiplicadores combinacionais e pipeline.
+A contribuição mais importante deste trabalho foi a geração de uma infra-estrutura básica para projeto de sistemas GALS em FPGAs.
+Palavras Chave: Projeto GALS, interfaces assíncronas, redes intrachip, NoCs, FPGAs.
+O desenvolvimento de SoCs até recentemente era quase que totalmente realizado partindo do pressuposto da discretização do tempo.
+Este pressuposto é implementado submetendo todas as entradas do sistema à temporização de um único sinal de controle, gerado externamente.
+Este sinal é normalmente denominado relógio, do inglês clock.
+Para que o sistema funcione corretamente, todas as entradas devem permanecer estáveis em torno de o instante em que o sinal de relógio muda de estado, permitindo a amostragem de seus valores instantâneos.
+Desta forma, o funcionamento do sistema se dá como uma seqüência de estados definidos a cada transição do sinal de relógio.
+O tempo transcorrido entre transições do sinal de relógio permite que os valores de entrada amostrados sejam usados na computação de novos resultados.
+Este tempo garante a estabilização dos valores nas entradas e saídas de elementos de armazenamento, bem como a ocorrência e descarte de valores transitórios no interior do circuito.
+A estrutura de um sistema síncrono é exemplificada na Figura 1.
+O pressuposto da discretização do tempo por o uso de um sinal de relógio global no projeto de sistemas digitais é a característica principal do estilo síncrono de projeto.
+O uso maciço desse estilo de projeto não acontece por acaso.
+Esta simplificação torna o projeto de sistemas digitais muito mais simples.
+Projetos síncronos tornaram- se comuns a ponto de a maioria dos projetistas de sistemas digitais não possuir conhecimento de estilos de projeto que não utilizem este pressuposto.
+A adoção de um único relógio para controlar todo o sistema digital não traz apenas benefícios.
+Problemas de distribuição, escorregamento e consumo de potência do sinal relógio, que até meados da década de 80 eram desprezíveis ou facilmente tratáveis, começaram a se tornar difíceis de resolver, conforme a miniaturização dos dispositivos VLSI se acentuou.
+Segundo o International Technology Roadmap for Semiconductors, a complexidade de sistemas VLSI coloca em risco paradigmas consolidados.
+Entre estes se pode citar o uso do estilo síncrono, pois os circuitos resultantes tendem a se tornar menos confiáveis, devido a os limites de potência e ao custo para manter sua robustez, em relação a o esforço de projeto exigido.
+O consumo de potência do sinal de relógio pode tornar sistemas síncronos complexos menos atraentes para futuros sistemas embarcados móveis.
+Processadores de alto desempenho apresentam um consumo dominado por o sinal de relógio, atingindo hoje um valor médio de 45% do total da potência consumida.
+Com o objetivo de superar as limitações do projeto síncrono, diversos grupos de pesquisa estão retomando o interesse no desenvolvimento de circuitos não-síncronos.
+Para facilitar a distinção entre os estilos de projeto, este trabalho utiliza o termo não-síncrono para englobar a classe dos circuitos totalmente assíncronos adicionada da classe dos sistemas globalmente assíncronos localmente síncronos (GALS).
+Circuitos assíncronos são circuitos que assumem sinais binários mas não assumem o pressuposto de discretização do tempo, isto é, em circuitos assíncronos o tempo é tratado como uma variável contínua.
+Este tipo de circuito elimina os problemas de escorregamento e de dissipação de potência do sinal de relógio.
+Entretanto, o desenvolvimento de sistemas puramente assíncronos esbarra na falta de ferramentas adequadas para a automatização do processo de desenvolvimento.
+Tendo em vistas as limitações do estilo síncrono de projeto, a falta de ferramentas para dar suporte a circuitos totalmente assíncronos, e a grande popularidade do estilo síncrono de projeto, alguns trabalhos de pesquisa propõe soluções intermediárias entre o projeto síncrono e o projeto assíncrono.
+O objetivo principal é manter as ferramentas do projeto síncrono e eliminar ou reduzir o uso de sincronização através do sinal de relógio.
+Entre essas propostas pode- se destacar o uso de sistemas globalmente assíncronos e localmente síncronos e o uso da dessincronização.
+A dessincronização, do inglês desynchronization, é uma técnica de geração de circuitos assíncronos a partir de o estilo síncrono.
+A única alteração do estilo síncrono é a substituição da etapa de geração da árvore de relógio por uma etapa de inserção de circuitos de handshake, um para o controle de cada etapa do circuito síncrono.
+O período do sinal de relógio é substituído por um elemento de atraso que deve possuir atraso maior que o atraso de propagação de pior caso da lógica combinacional a qual está associado.
+A estrutura geral de um circuito que utiliza a estratégia de dessincronização é mostrada na Figura 2.
+Uma segunda alternativa que pode potencialmente preencher a lacuna entre sistemas síncronos e assíncronos é a decomposição de um sistema síncrono em diversos módulos que não trabalham globalmente sincronizados, ou seja, onde cada módulo possua um domínio de relógio distinto.
+Este estilo de projeto é conhecido como Globalmente Assíncrono e Localmente Síncrono (do inglês, Globally Asynchronous, Locally Synchronous ou GALS).
+Em sistemas GALS, cada módulo trabalha sincronamente.
+Porém, a interação entre módulos utiliza uma interface de comunicação assíncrona, responsável por efetuar a transferência de informações entre os módulos.
+Observando as alternativas apresentadas, dessincronização e GALS, observa- se que mesmo utilizando um estilo síncrono é possível, empregando etapas adicionais de projeto, obter como resultado um circuito não-síncrono.
+A Tabela 1 resume a discussão acima com uma visão limitada da relação entre estilos de projeto, recursos de projeto adicionais e o tipo de circuito resultante segundo a estratégia de sincronização interna das operações deste.
+A última linha da Tabela 1 é em si uma simplificação bastante grosseira da realidade de projeto de sistemas digitais.
+A o assumir que um dado sistema digital não parte do pressuposto de tempo discretizado, uma grande restrição aos métodos de projeto é eliminada.
+O conseqüente aumento do número de graus de liberdade para implementar o sistema digital torna o espaço de soluções por demais amplo.
+Logo, costuma- se adicionar outras restrições para assim definir um estilo de projeto.
+Como não é consenso quais restrições aplicar neste caso, o termo estilo assíncrono engloba uma família de estilos de projeto, nominalmente um para cada conjunto de restrições impostas, em substituição ao tempo discreto.
+Pode- se categoricamente afirmar que nenhum destes alcançou até hoje o grau de desenvolvimento do estilo síncrono de projeto, mas vários estilos assíncronos são hoje empregados em aplicações específicas.
+O leitor interessado por o estilo assíncrono pode referir- se a obras como a de Sparsø e Furber e a de Myers, que tratam o tema em maior profundidade.
+Este trabalho adota o estilo síncrono combinado com a utilização de interfaces assíncronas de comunicação para o desenvolvimento de sistemas GALS.
+Desta forma, os circuitos resultantes podem ser vistos como um sistema composto por um conjunto de módulos, cada qual com um domínio distinto de relógio, não existindo nenhuma relação de freqüência e/ ou fase pré-estabelecida entre os módulos.
+Caso algum pressuposto seja assumido sobre a relação entre diferentes sinais de relógio, o problema de implementar sistemas GALS é simplificado.
+As restrições de tempo impostas para o lançamento de um produto no mercado estão tornando cada vez mais importante a adoção do reuso de núcleos de propriedade intelectual (do inglês, Intellectual Property Cores, IP Cores ou núcleos IP), dentro de as equipes de projeto.
+Segundo, a chave para o reuso e a integração de núcleos IP heterogêneos é a comunicação, desde o nível físico até o nível de sistema e conceitual.
+Keutzer Afirmam que uma das principais medidas que devem ser adotadas para promover o reuso é separar a computação da comunicação.
+Conseqüentemente, arquiteturas, plataformas e métodos centrados na comunicação têm sido amplamente investigados em pesquisas atuais.
+A adoção do reuso remete a sistemas modulares, onde cada módulo possui suas próprias restrições, como a freqüência de operação, por exemplo.
+Desta forma, a composição de um projeto complexo por diversos módulos restringe os problemas de sincronização, complexidade de projeto e verificação da comunicação entre os módulos.
+A forma mais difundida de comunicação em SoCs é através de barramentos.
+Porém, este meio de comunicação apresenta escalabilidade limitada, e o seu uso pode comprometer o desempenho de SoCs compostos por quantidades significativas de módulos com fluxo de dados ser mais adequado.
+Redes intrachip são estruturas de comunicação potencialmente capazes de atender melhor às necessidades de modularidade, escalabilidade, reuso e paralelismo na comunicação quando comparadas à barramentos.
+Uma rede intrachip é composta por elementos de chaveamento que realizam a transferência de mensagens entre módulos de processamento externos à rede por interconexões entre elementos de chaveamento.
+Diversas propostas de NoCs são encontradas na literatura, mas apenas um pequeno conjunto destas dá suporte à comunicação de módulos operando com sinais de relógio distintos.
+Procurando atender às necessidades de futuros SoCs, algumas propostas de NoCs para sistemas GALS têm sido apresentadas.
+Em estas propostas, SoCs são implementados como um conjunto de elementos síncronos interligados por uma NoC com estrutura de comunicação não-síncrona.
+Este trabalho apresenta propostas de dois roteadores capazes de oferecer suporte ao desenvolvimento de sistemas GALS baseados em NoCs.
+A implementação de um roteador de NoC GALS pode utilizar duas abordagens diferentes.
+Em a primeira, o roteador é um circuito totalmente assíncrono e as portas de comunicação com o módulo síncrono possuem interfaces responsáveis por a sincronização e por a conversão de comunicação assíncrona­síncrona e síncrona­assíncrona.
+Uma segunda abordagem consiste em implementar o roteador da NoC como um circuito síncrono que pode ou não trabalhar sincronizado com o núcleo IP conectado a ele.
+Em este caso, as portas que realizam a comunicação entre roteadores e as portas responsáveis por a comunicação roteador-núcleo IP também podem possuir uma interface responsável por a sincronização e conversão dos protocolos.
+As interfaces assíncronas estão presentes nas duas abordagens de implementação dos roteadores e a escolha da interface adotada pode ter um impacto significativo no desempenho do sistema como um todo.
+O desenvolvimento de tais interfaces deve obedecer a um conjunto de restrições temporais intrínsecas de circuitos assíncronos.
+A especificação e o desenvolvimento de circuitos que respeitem tais restrições não é uma tarefa trivial, e se torna ainda mais árdua quando o dispositivo alvo em questão é um FPGA.
+O uso de FPGAs na implementação de sistemas GALS é dificultado devido a o fato de sua estrutura ser desenvolvida para servir de base a sistemas projetados segundo o estilo síncrono.
+Alguns modelos de FPGAs foram propostos para dar suporte ao desenvolvimento de circuitos assíncronos, mas todos estes têm características que remetem a um estilo particular de circuito assíncrono.
+Recentemente, alguns trabalhos propuseram desenvolver circuitos assíncronos e GALS em FPGAs comerciais.
+Entretanto, nenhum dos métodos propostos consegue garantir que as restrições temporais sejam realmente atendidas em todos os casos, sendo que todas as restrições devem ser verificadas após a etapa de posicionamento e roteamento do circuito.
+O presente trabalho apresenta um estudo comparativo de interfaces assíncronas de comunicação intrachip para FPGAs em função de área e desempenho.
+Os resultados do estudo servem de suporte para a decisão de que interface utilizar para as portas das redes intrachip propostas.
+Além disso, este trabalho propõe um método de desenvolvimento de circuitos básicos necessários para o desenvolvimento de tais interfaces em FPGAs.
+Dado o conjunto de motivações apresentado nas Seções anteriores deste Capítulo procede- se aqui ao estabelecimento de objetivos que determinam o escopo deste trabalho.
+Primeiro, são três os objetivos estratégicos:
+Contribuir para a pesquisa em NoCs em geral.
+Dado que o assunto é vasto e mantido em constante evolução por a comunidade de pesquisa atuando em sistemas VLSI, considera- se relevante procurar contribuir em alguns aspectos ainda pouco explorados de redes intrachip.
+Um destes aspectos é a implementação de NoCs não-síncronas.
+Algumas propostas de NoCs não-síncronas e assíncronas são revisadas no Capítulo 3, que representa um apanhado razoável do que se pode encontrar na literatura atual.
+Disponibilizar ao grupo de pesquisa do Autor, um conjunto coerente de conhecimentos sobre o desenvolvimento de sistemas GALS e circuitos assíncronos em geral, em particular sobre NoCs elaboradas usando princípios desses sistemas.
+Disponibilizar métodos e ferramentas que dêem suporte ao desenvolvimento de sistemas GALS, bem como um conjunto de quantificações que possam justificar o emprego desta abordagem.
+Por outro lado, divisa- se um conjunto de objetivos específicos para viabilizar e atingir os objetivos estratégicos:
+O primeiro objetivo é desenvolver recursos habilitadores para o projeto de circuitos não32 síncronos em FPGAs.
+O segundo objetivo é o estudo, prototipação, verificação e medição de desempenho de interfaces de comunicação assíncronas.
+Os resultados dessa etapa são a base para o objetivo apresentado a seguir.
+O terceiro objetivo é disponibilizar um conjunto de implementações de NoCs não-síncronas, validadas, empregando o estilo GALS de projeto.
+A implementação das NoCs não-síncronas utiliza como ponto de partida a NoC Hermes, desenvolvida por o grupo de pesquisa GAPH.
+Para permitir que estas dêem suporte a comunicação assíncrona, adiciona- se interfaces assíncronas às portas de comunicação.
+As principais contribuições desse trabalho são:
+A disponibilização de uma biblioteca de macros para FPGAs que dá suporte ao desenvolvimento de circuitos assíncronos.
+A especificação, desenvolvimento, prototipação, validação e avaliação de uma interface de comunicação ponto a ponto intrachip para FPGAs.
+O desenvolvimento e validação de duas redes intrachip, Hermes GALS (Hermes-G) e Hermes GALS Low Power (Hermes-GLP), capazes de suportar o desenvolvimento de sistemas GALS.
+Os roteadores da rede intrachip Hermes-GLP, além de permitir o desenvolvimento de sistemas GALS, ainda aproveitam as características de sistemas GALS para prover mecanismos de redução de potência.
+O restante desse documento está organizado como descrito a seguir:
+Apresenta o levantamento do estado da arte de redes intrachip que dão suporte ao desenvolvimento de sistemas GALS.
+Esse Capítulo apresenta uma classificação das redes intrachip baseada no critério de implementação dos roteadores, síncronos ou assíncronos.
+O desenvolvimento de uma biblioteca de circuitos assíncronos para FPGAs é apresentado no exemplos de desenvolvimento de alguns de seus componentes.
+A o final do Capítulo os componentes que formam a biblioteca são listados, para dar uma idéia do estado atual da biblioteca ainda em expansão no momento da escrita desse texto.
+FPGAs. A o final de Capítulo são mostradas a implementação e avaliação de um estudo de caso de aplicação utilizando a interface proposta.
+Essa revisão foi separada do Capítulo 3 devido a o fato do controle de potência não ser o principal objetivo desse trabalho, embora a NoC Hermes-GLP seja uma das contribuições originais desse trabalho.
+A o final do Capítulo, são mostrados dados quantitativos obtidos de simulação que demonstram a capacidade de redução de potência dinâmica da rede Hermes-GLP.
+Este Capítulo apresenta alguns conceitos básicos relacionados ao desenvolvimento desse trabalho.
+Conceitos sobre circuitos não-síncronos são abordados na Seção 2.1.
+A Seção 2.2 aborda conceitos relacionados a redes intra-chip.
+Durante a evolução da eletrônica, alguns pressupostos foram criados para simplificar o desenvolvimento de circuitos.
+Um pressuposto fundamental da eletrônica consiste na discretização de valores de grandezas elétricas tais como a tensão.
+A eletrônica digital e toda a sua difusão nas tecnologias atuais decorrem da adoção desse pressuposto.
+Em ele, dois níveis distintos de tensão são associados aos valores lógicos e números binários.
+As técnicas matemáticas derivadas das álgebras Booleanas podem assim ser usadas para sistematizar o tratamento de informações.
+Um segundo pressuposto criado foi a discretização do tempo, implementada utilizando o sinal de relógio para cadenciar as operações do circuito.
+O estilo de projeto síncrono assume esses dois pressupostos.
+Estilos de projeto assíncronos mantêm o pressuposto de discretização dos níveis de tensão, mas não adotam nenhum pressuposto quanto a o tempo.
+De essa forma, o tempo é tratado como uma variável contínua, o que torna tais circuitos mais sensíveis a fenômenos temporais que ocorrem em circuitos digitais.
+A seguir serão descritos alguns conceitos sobre fenômenos temporais, protocolos de comunicação, codificação de dados extraídos na sua maioria do trabalho de Sparsø e Furber.
+A o final dessa Seção é apresentada uma classificação dos circuitos assíncronos segundo esse Autor.
+Transitórios (em inglês hazards) são exemplos de fenômenos temporais que podem afetar o funcionamento de circuitos assíncronos.
+Em sistemas síncronos, valores transitórios podem ocorrer sem problemas, desde que no instante de amostragem todos os valores estejam estáveis.
+Em sistemas assíncronos, um valor transitório pode levar o circuito a um estado inválido ou indesejado.
+Transitórios podem ser classificados da seguinte forma:
+Estáticos: Quando alterações dos sinais de entrada deveriam manter algum sinal de saída estável, mas alteram este um número par de vezes antes de estabilizar.
+Dinâmicos: Quando um sinal de saída de um circuito deveria fazer uma transição, mas ao invés de isso, apresenta um número ímpar, maior que 1, de alterações.
+A existência de transitórios acontece devido a a ocorrência de atrasos diferenciados entre portas e fios ao longo de o circuito.
+Entretanto, existem algumas técnicas que podem garantir o desenvolvimento de circuitos combinacionais com comportamento livre de transitórios Outro fenômeno temporal que pode prejudicar o funcionamento de circuitos digitais é a metaestabilidade.
+Este fenômeno é mais difícil de tratar quando técnicas assíncronas de projeto são adotadas.
+A metaestabilidade é um fenômeno que pode ocorrer em dispositivos de armazenamento.
+Quando um dado a ser registrado num elemento de armazenamento altera o seu valor simultaneamente ou muito próximo a a transição do sinal que habilita a amostragem, pode ocorrer da saída apresentar problemas.
+Isto provavelmente ocorre se não forem respeitadas as restrições de tempos de setup e hold do elementos de memória.
+Algumas falhas possíveis são a saída apresentar um valor indeterminado entre 0 e 1, ou haver uma demora arbitrariamente longa para que a transição de valor surja na saída.
+Quando este fenômeno ocorre, ele pode produzir uma falha de sincronização, isto é, o valor de saída do elemento de armazenamento pode ser interpretado como distinto do valor correto por o estágio seguinte do circuito.
+Durante o desenvolvimento de circuitos assíncronos a imposição de restrições à interação entre o circuito e seu ambiente é uma etapa fundamental para determinar qual estilo de projeto assíncrono adotar.
+Quanto menor o conjunto de restrições impostas a essa interação, mais complexo é o processo de projeto.
+Tradicionalmente, a interação do circuito com o seu ambiente é classificada em três categorias:
+Modo Fundamental:
+Em este modo, quando um circuito parte de um estado estável, ou seja, um estado onde todos os sinais de entrada, saída e sinais internos estão estáveis, é permitida a mudança de um único sinal de entrada.
+Após esta mudança, é necessário que todos os sinais alcancem novamente um estado estável antes que o ambiente possa realizar outra mudança unitária de alguma entrada do circuito.
+O modo rajada (do inglês, burst mode), é uma extensão do modo fundamental.
+Ele é uma forma restrita de permitir múltiplas alterações de entradas e múltiplas alterações de saídas.
+Quando um circuito operando nesse modo se encontra num estado estável, ele aguarda por um conjunto definido de alterações na suas entradas.
+As alterações desse conjunto podem acontecer em ordem arbitrária.
+Uma vez que o conjunto de alterações na entrada é observado, esse computa um conjunto de saídas.
+O ambiente não pode gerar nenhuma nova alteração na sua entrada até que o circuito se estabilize, isso é, gere o conjunto de saídas e estabilize seus sinais internos.
+Para funcionar de acordo com as restrições de ambiente, tanto circuitos operando no modo fundamental quanto circuitos operando no modo rajada utilizam elementos de atraso em seus sinais de realimentação.
+Isso ocorre por que esses sinais são vistos como novas entradas e devem obedecer ao tempo de estabilização do circuito.
+Modo Entrada e Saída: Em este modo é permitida a alteração de mais de um sinal simultaneamente.
+O circuito opera sobre essas entradas e pode gerar ou não sinais de saída correspondentes.
+Assim que o ambiente observa que a saída correspondente foi definida, esse pode gerar novas entradas.
+Uma forma do circuito interagir com o ambiente no modo entrada e saída é utilizando um protocolo de handshake, onde cada conjunto de entradas gerado por o ambiente é assinalado com um sinal de requisição.
+Uma vez que estas entradas são processadas, o circuito responde com um sinal de reconhecimento, o qual é usado por o ambiente como sinalização para geração de novos dados.
+O protocolo de handshake pode ser implementado de diversas maneiras, a Seção a seguir caracteriza este protocolo.
+O protocolo de comunicação assíncrono mais simples e mais comum é conhecido como handshake.
+Este protocolo utiliza dois sinais, geralmente denominados de request e acknowledge, para controlar um processo de transmissão de dados ou de sincronização.
+A Figura 4 mostra um esquema básico de canal de comunicação utilizando handshake.
+O canal de dados é opcional, uma vez que o protocolo pode ser utilizado apenas para sincronização entre os módulos, sem troca de dados.
+No caso de troca de dados, a Figura 4 ilustra um canal do tipo push channel, isso é, um canal onde a fonte de dados é o mestre do protocolo de handshake.
+Uma forma alternativa desse protocolo é a utilização de pull channels, onde o destino dos dados atua como mestre.
+De acordo com o número de sinalizações envolvidas no protocolo handshake tem- se duas versões de este:
+Protocolo de quatro fases e protocolo de duas fases.
+O protocolo de quatro fases, ilustrado na Figura 5, inicia uma transmissão com a requisição de transmissão (Req+) (e eventual disponibilização do dado).
+Quando o receptor recebe esta requisição, ele a processa e sinaliza para o transmissor a finalização da recepção através de um reconhecimento (Ack+).
+O transmissor então retira a requisição (Req-) que, quando percebida por o receptor, faz com que este retire o reconhecimento (Ack--..
+O protocolo de duas fases ilustrado na Figura 6, elimina metade das transições do protocolo de quatro fases.
+O transmissor sinaliza o início de uma comunicação invertendo o valor do sinal de requisição (Req+/).
+O receptor, após processar o pedido, responde com a inversão do sinal de reconhecimento (Ack+/).
+Em circuitos assíncronos, cada sinalização pode ser abstraída como a movimentação de um token.
+Em esta abstração uma transmissão do protocolo de quatro fases é caracterizada como a movimentação de quatro tokens (Req+, Ack+, Req-, Ack-), sendo que os tokens (Req+) e (Req-) fluem num sentido enquanto os tokens (Ack+) e (Ack--. fluem em sentido oposto.
+Em o protocolo de duas fases cada transmissão caracteriza- se por a movimentação de dois tokens (Req+, Ack+) ou (Req-, Ack-).
+Os tokens nos sinais (Req) e (Ack) fluem em sentidos opostos como no protocolo de quatro fases.
+A codificação de dados num circuito digital pode ser feita de diversas formas.
+A codificação mais comumente empregada é conhecida como trilha única (em inglês single-rail).
+Em circuitos assíncronos, a utilização do protocolo de handshake associado a dados codificados em trilha única é chamada de bundled data.
+Em esse tipo de comunicação o sinal de requisição é responsável por sinalizar a validade dos dados transmitidos.
+Para o funcionamento do protocolo bundled data é necessário que o atraso do sinal de requisição seja maior que o atraso de todos os sinais de dados.
+Dito de outra forma, a máquina de estados responsável por produzir o sinal de requisição deve ser projetada de forma que a geração do sinal de requisição só aconteça após os dados estabilizarem na entrada do receptor.
+Para eliminar a restrição de temporização imposta ao sinal de requisição num canal bundled data, projetistas de circuitos assíncronos exploram possibilidades de codificação capazes de carregar o dado juntamente com a sua validade.
+Este tipo de codificação permite o desenvolvimento de protocolos de comunicação onde não é necessária a imposição de restrições temporais na troca de dados.
+Esta codificação é conhecida como insensível a atrasos (do inglês delay insensitive codes ou Di Codes).
+Em uma codificação dita Di o sinal de requisição, Req é parte dos dados, mas o sinal de reconhecimento (Ack) é mantido.
+Assim, é necessário um circuito capaz de verificar a validade dos dados, bem como sua presença ou ausência.
+Códigos especiais são reservados para indicar a ausência de dados, os ditos códigos neutros.
+Outro nome para códigos neutros é espaçadores.
+Existem várias formas de codificação Di, mas as duas formas mais utilizadas são o código trilha dupla (em inglês dual-rail) e o código m-de-N.
+Em a codificação trilha dupla, dois sinais são utilizados para cada bit de dados da representação binária.
+Uma forma de representar um bit de dados utilizando trilha dupla associada a um protocolo de quatro fases é mostrada na Tabela 2.
+Quando uma transmissão de dados Di utiliza o protocolo handshake de quatro fases, sempre entre dois dados válidos deve haver um espaçador.
+A Figura 7 mostra a troca de 1 bit de dados utilizando a codificação de trilha dupla e handshake de quatro fases.
+Figura 7 ­ Transmissão de dados utilizando codificação de trilha dupla e protocolo handshake de quatro fases.
+A codificação de trilha dupla pode ser associada também a handshake de duas fases.
+Em esse caso não são inseridos espaçadores entre dados válidos.
+O funcionamento dessa abordagem requer que para mudar de um dado válido A para um dado válido B não se alcance nenhum valor intermediário que represente outro dado válido.
+Para alcançar essa condição, a transmissão de dados utilizando trilha dupla de duas fases utiliza a noção de fases.
+A cada transmissão, a fase é alternada entre duas possíveis, par e ímpar, como mostra a Tabela 3.
+Cada fase indica qual a paridade do bit de trilha dupla.
+Em esta codificação, um fio codifica o valor dos dados, em azul na Tabela 3, enquanto o segundo codifica a paridade da trilha dupla, em vermelho na Tabela 3.
+A Figura 8 mostra uma transmissão de 1 bit de dados trilha dupla usando protocolo de duas fases.
+Figura 8 ­ Transmissão de dados utilizando codificação de trilha dupla e protocolo handshake de duas fases.
+A codificação trilha dupla de quatro fases é uma codificação 1-de-2, um caso particular da codificação m-de-N. Em a codificação m-de-N para um dado ser considerado válido m dos N fios devem estar em valor 1, enquanto que o espaçador possui todos os fios com valor 0.
+No caso de a codificação 1-de-N, também conhecida com one-hot, apenas um fio deve ter o valor igual a 1 para representar um dado válido.
+De essa forma, cada sinal codifica um valor.
+A Tabela 4 mostra um exemplo de codificação 1-de-4.
+A codificação de trilha dupla usando protocolo de quatro fases é outro caso especial de m-de-N, onde:
+M $= 1 e N $= 4.
+As codificações Di têm chamado a atenção de desenvolvedores de circuitos para aplicações de criptografia, como em smart cards.
+O motivo é que estas codificações possuem características que aumentam a tolerância destes sistemas a ataques e apresentam consumo de potência menos correlacionado com os dados que a codificação trilha única.
+Isto ocorre porque o número de transições para passar de um espaçador para um dado válido é sempre fixo.
+A implementação de dispositivos e circuitos assíncronos pode ser feita tanto sobre dados codificados usando trilha única, através de circuitos combinacionais semelhantes aos utilizados em lógica síncrona, quanto sobre dados utilizando codificação Di.
+A seguir serão exploradas essas formas de implementação de circuitos assíncronos.
+Antes, contudo será apresentada a forma de implementação do C-element de Muller, um componente básico em circuitos assíncronos, usado em vários pontos neste trabalho.
+Um componente de importância em circuitos assíncronos é o C-element de Muller.
+O C-element funciona como um sincronizador de eventos, produzindo um evento na sua saída quando todas as suas entradas recebem eventos específicos.
+A Tabela 5 é uma especificação de comportamento de um C-element de 2 entradas, onde a e b são os sinais de entrada e Zi é o sinal de saída.
+O C-element gera 0 na sua saída quando ambas as entradas são 0, 1 na saída quando ambas as entradas são 1 e mantém o valor anterior para qualquer outra configuração de entradas.
+Para FPGAs, a maneira mais simples de implementar um C-Element é apresentada na Figura entradas pode ser implementado numa LUT de 4 entradas (o que representa apenas metade das LUTs disponíveis num slice nas famílias Virtex II e Spartan 3, por exemplo).
+C-elements são na realidade uma família de componentes onde outros tipos de C-element podem ser obtidos variando o número de entradas ou a polaridade de entradas.
+O sinal de realimentação de um C-element constitui uma derivação que deve ser isócrona assimétrica, ou seja, o fio de realimentação deve possuir atraso menor que o fio de saída.
+Essa restrição é necessária para garantir que o ambiente não gere um novo sinal antes da estabilização do circuito.
+A implementação de circuitos assíncronos pode optar ou não por o uso de protocolos handshake.
+Entretanto, circuitos que não utilizam protocolo de handshake possuem um conjunto maior de restrições e são utilizados na maioria das vezes apenas como circuitos de controle de pequenas dimensões ou como circuitos de controle de fluxo.
+Tais circuitos são conhecidos como circuitos seqüenciais, e sua principal característica é que seus tokens fluem em apenas uma direção dentro de o circuito.
+A definição de circuitos de controle de fluxo e alguns exemplos destes são apresentados a seguir.
+Circuitos assíncronos que realizam computação em vetores de dados, tais como circuitos aritméticos, são implementados em lógica assíncrona como pipelines e anéis.
+Em estes, os sinais do protocolo handshake são responsáveis por cadenciar o fluxo dos dados dentro de o pipeline ou anel.
+Tanto circuitos assíncronos que operam sobre dados usando protocolo bundled data quanto circuitos assíncronos que utilizam codificação Di são formados por três tipos de componentes:
+Registradores são responsáveis por armazenar valores temporários e dar suporte ao controle de tokens com os registradores vizinhos através de um protocolo handshake.
+Um registrador é classificado, entre outros, por a quantidade de tokens que pode registrar.
+Um registrador que é capaz de armazenar apenas um token, seja esse um dado válido ou espaçador, é chamado de half buffer, enquanto um registrador capaz de armazenar um dado válido e um espaçador é chamado de full buffer.
+Entre as etapas de armazenamento podem ser inseridos blocos funcionais, conforme ilustrado na Figura 12.
+Esses blocos são equivalentes à lógica combinacional em circuitos síncronos.
+Blocos funcionais devem ser transparentes aos sinais de handshake.
+Isso quer dizer que uma seqüência de tokens observada na entrada de um bloco funcional é também observada na saída com um atraso.
+Esse atraso se deve ao tempo de propagação do bloco funcional.
+Um bloco funcional pode ser classificado de acordo com a forma como este reage às transições dos sinais de entrada.
+Blocos funcionais com indicação forte (em inglês strongly indicating) aguardam que todas as suas entradas estejam válidas para então iniciar a computar e gerar saídas.
+De a mesma forma, para gerar um espaçador na sua saída um bloco funcional com indicação forte espera até que todas as suas entradas sejam espaçadores.
+Blocos funcionais com indicação fraca (em inglês weakly indicating) reagem às alterações na suas entradas antes que essas estejam todas válidas ou todas sejam espaçadores.
+Entretanto, para que esses blocos funcionais funcionem corretamente, somente é gerada uma saída com valor válido após todas as suas entradas apresentarem valores válidos.
+Tipicamente, indicação forte gera circuitos mais robustos e de mais baixo desempenho, enquanto indicação fraca tem características duais a estas.
+Blocos funcionais bundled data são acompanhados por elementos de atraso chamados de atrasos casados (em inglês matched delays).
+A Figura 13 mostra um exemplo desse tipo de bloco funcional.
+O atraso de tais elementos deve cobrir o atraso do caminho crítico do bloco funcional.
+Isso garante que o bloco funcional subseqüente só irá amostrar os dados de saída depois que estes estejam estáveis.
+Assim, os circuitos assíncronos bundled data, da mesma forma que os circuitos síncronos, apresentam comportamento que acompanha o pior caso.
+Entretanto, os crcuitos bundled data eliminam a necessidade de uma árvore global de relógio.
+Procurando reduzir a limitação de caso médio em circuitos bundled data, Nowick apresenta uma abordagem de seleção dinâmica de elementos de atraso em tempo de execução.
+Essa seleção é feita ou com base nos valores das entradas do bloco funcional ou com base em um sinal interno.
+Essa abordagem é capaz de fazer com que um circuito usando matched delays apresente desempenho próximo a o de caso médio.
+Existem diversas técnicas de implementação de blocos funcionais para codificação trilha dupla.
+Um exemplo de técnica empregada para construir blocos funcionais é Delay Insensitive Minterm Synthesis (DIMS).
+Essa técnica utiliza um conjunto de Celements para gerar todos os mintermos das variáveis de entrada.
+Uma porta OR é usada para somar ao estado de reset.
+A Figura 14 mostra um exemplo de porta XOR DIMS de dois bits que pode ser usada para construção de blocos funcionais.
+Além de registradores e blocos funcionais, circuitos assíncronos também são compostos por circuitos de controle responsáveis por o controle de fluxo de tokens dentro de o pipeline ou anel.
+Esses circuitos podem ser de controle de fluxo incondicional (join, fork e merge) ou condicional (mux e demux).
+A título de exemplo, a Figura 15 mostra o símbolo e a implementação bundled data do circuito de controle de fluxo merge.
+Além de os componentes citados, os árbitros e elementos de exclusão mútua também podem ser considerados como circuitos de controle de fluxo.
+A principal tarefa desses é sequencializar e controlar o acesso a recursos compartilhados.
+Estilos assíncronos de projeto possuem diversas variações e diversas classificações podem ser geradas para estes, sob diferentes critérios.
+A classificação mais tradicional desses estilos é em função de os pressupostos de atraso adotados.
+Quanto menor o número de pressupostos adotados mais robusta e restrita é a classe de circuitos.
+A classe mais robusta e restrita de circuitos assíncronos é chamada de insensível ao atrasos (do inglês delay insensitive, Di).
+Os circuitos que se enquadram nessa classe possuem a característica de funcionar corretamente independente dos atrasos de fios e das portas lógicas.
+Entretanto, essa classe de circuitos é muito restrita.
+A adição de um pressuposto de temporização referente a o atraso dos fios gera uma classe mais abrangente de circuitos assíncronos.
+Essa classe é chamada de quase insensível ao atraso, do inglês quasi delay insensitive (QDI).
+O pressuposto de temporização adicionado consiste na restrição dos atrasos de sinais que geram derivações, do inglês forks.
+Essas derivações devem ser isócronas, isso é, a diferença do tempo de propagação para que uma transição chegue a todas as extremidades da derivação deve ser limitada, de forma que essa diferença possa ser considerada nula.
+Os circuitos independentes de velocidade (do inglês speed independent, Si) formam outra classe de circuitos assíncronos.
+Para que esses circuitos funcionem corretamente adiciona- se um pressuposto que impõe que atrasos de fio possam ser considerados nulos.
+Esses circuitos mantêm a necessidade das derivações isócronas, uma vez que se atrasos de fios são considerados nulos, a diferença de atraso entre as derivações também deve ser nula.
+O pressuposto de atraso nulo nos fios vai contra o a tendência apresentada na evolução de tecnologias VLSI, que apresentam um aumento relativo de atrasos de fios significativo quando comparados a atrasos de portas.
+Entretanto, esse tipo de circuito é muito aplicado para circuitos de controle.
+Eles podem ter tamanho reduzido e são associados a restrições de posicionamento que permitem a construção de áreas equipotenciais, onde os fios possuem comprimento reduzido e podem ser considerados nulos.
+A quarta classe de circuitos é conhecida como circuitos de Huffman.
+Enquanto as classes de circuitos descritos anteriormente funcionam no modo entrada e saída, os circuitos pertencentes à classe dos circuitos de Huffman funcionam sob o modo fundamental.
+O modo fundamental restringe as possibilidades de geração de entradas do circuito.
+Para que os circuitos pertencentes a essa classe funcionem de forma correta, é permitida a alteração de um único sinal de entrada a cada instante.
+Alterada uma entrada o ambiente deve esperar que o circuito estabilize- se, somente então podendo ser gerada outra variação de entrada.
+O pressuposto de variação de um sinal a cada instante vale para os sinais de realimentação que armazenam o estado do sistema.
+Essa classe de circuitos é utilizada em circuitos de controle.
+Outra classe de circuitos assíncronos é a classe dos circuitos auto temporizados (do inglês self timed, Si).
+Esses circuitos geralmente possuem elementos de atraso associados, chamados de matched delays, conforme ilustrado na Figura 13.
+Esses elementos devem possuir atrasos superiores ao atraso da lógica combinacional a qual estão associadas.
+Uma rede intrachip é uma arquitetura de comunicação normalmente composta de canais de comunicação ponto a ponto que interligam elementos de transporte de mensagens, os roteadores.
+Redes intrachip podem dar suporte ao requisito de escalabilidade necessário ao desenvolvimento de sistemas complexos em único chip.
+Além de a escalabilidade, uma estrutura baseada em ligações ponto a ponto entre roteadores permite que as redes intrachip se adaptem facilmente ao paradigma GALS, outra tendência no desenvolvimento de SoCs.
+Esta Seção introduz alguns dos princípios básicos subjacentes a redes intrachip.
+A Figura 16 mostra a estrutura genérica de um SoC composto por uma rede intrachip direta, onde cada roteador possui exatamente um núcleo IP associado.
+A Figura 17 mostra a estrutura de um roteador composto por cinco portas (Norte, Sul, Leste, Oeste, Local) para comunicação entre roteadores e uma porta para a comunicação entre roteador e núcleo IP (Local).
+Em este modelo, cada porta de entrada do roteador possui uma fila associada.
+Hermes. A topologia de uma rede intrachip é a forma como os roteadores estão conectados entre si.
+Uma rede intrachip pode apresentar uma topologia regular ou irregular.
+Segundo Scherer, a topologia de uma rede intrachip pode ser definida como um conjunto de nodos N, onde cada elemento de N está conectado a um conjunto de canais C. Um canal pode ser formalmente definido como o par ordenado como mostrado na Equação 1: Onde o nodo origem e o nodo destino pertencem a N. A Figura 18 apresenta algumas topologias regulares já propostas para uso em redes intrachip.
+O algoritmo de roteamento define o caminho que será tomado por um pacote entre transitando entre uma fonte e um destino, ou seja, define a seqüência de canais e roteadores a serem percorridos por o pacote entre os nodos fonte e destino.
+Em função de o local onde é definido o roteamento pode ser classificado em duas categorias:
+Roteamento na origem:
+O remetente conhece a topologia da rede, determina qual caminho o pacote deverá seguir, e insere este no cabeçalho do pacote.
+Roteamento distribuído:
+Cada roteador que recebe o pacote define, em função de o endereço do destino, qual o próximo roteador para onde este pacote deve ser enviado.
+O modo de chaveamento de uma rede intrachip define a forma como os recursos da rede são alocados para a transmissão de um pacote.
+Uma primeira classificação dos modos de chaveamento distingue uma transmissão por comutação de circuito de uma transmissão por comutação de pacotes.
+A comutação de circuito é sempre orientada a conexão, isto é, o caminho dos dados é alocado antes de iniciar a transmissão e permanece alocado enquanto durar a conexão, havendo ou não transmissão de dados através deste caminho.
+Em a comutação de pacotes, um enlace entre dois roteadores é ocupado somente no instante da transmissão de um pacote entre estes roteadores, permitindo assim um melhor compartilhamento dos recursos da rede.
+Redes intrachip que optam pelo modo de comutação de pacotes necessitam de armazenamento temporário (em inglês buffers), uma vez que é possível que nem todos os enlaces estejam disponíveis durante a transmissão do pacote.
+A alocação dos recursos de armazenamento temporário pode ser realizada de três maneiras (chamados modos de chaveamento na comutação de pacotes):
+Store and forward:
+O pacote é recebido e armazenado por completo no buffer do roteador antes de ser repassado para outro roteador.
+Esta abordagem necessita obrigatoriamente de buffers de armazenamento com capacidade pelo menos igual ao maior tamanho de pacote.
+O fato do pacote ser armazenado antes de iniciar a transmissão para outro roteador pode inserir latências importantes na comunicação.
+Virtual cut-through:
+Um roteador pode enviar um pacote adiante assim que o roteador seguinte der uma garantia que o pacote poderá ser aceito completamente Wormhole:
+Em esta abordagem, o pacote é dividido em pequenas unidades, denominadas flits.
+Aqui, a transmissão do pacote não requer o armazenamento completo deste num roteador.
+Isto diminui a latência na transmissão uma vez que cada roteador pode ser visto por um flit como um estágio de um pipeline.
+Além de a latência, o tamanho dos buffers pode ser reduzido, uma vez que não existe a necessidade de armazenar um pacote inteiro.
+Ao mesmo tempo, desacopla- se nesta estratégia o tamanho máximo de um pacote dos requisitos de armazenamento nos roteadores da rede.
+Como desvantagem deste método, a rede fica mais propensa a congestionamento, pois cada pacote circulando nesta pode alocar simultaneamente buffers de vários roteadores e múltiplos canais durante sua transmissão.
+Os roteadores de uma rede intrachip são interligados através de canais.
+Quando um pacote chega a um roteador pode ficar bloqueado quando o seu canal de destino está alocado para outro pacote.
+Quando isto ocorre numa rede intrachip que utiliza o modo de chaveamento wormhole, o pacote pode estar distribuído por vários roteadores.
+Quando os buffers dos roteadores que hospedam este pacote enchem, este pacote, além de os buffers, também ocupará os canais intermediários que foram alocados para este pacote.
+Desta forma, a ocorrência do bloqueio de um pacote pode acarretar o bloqueio de diversos outros pacotes dentro de a rede.
+Uma das formas de atenuar este efeito é através da utilização de canais virtuais.
+A adoção de canais virtuais permite que o canal físico seja compartilhado por diversos canais virtuais.
+Cada canal virtual possui o seu próprio buffer e na transmissão deve se determinar qual dos canais virtuais deve ser utilizado para a alocação do pacote.
+Esta idéia é ilustrada na Figura 19.
+Quando uma rede intrachip não é capaz de prover garantias de serviço diz- se que esta oferece um serviço de transmissão de pacotes do tipo melhor esforço (do inglês, best effort).
+Este tipo de serviço não oferece nenhuma garantia temporal na transmissão do pacote.
+Pode- se projetar redes que ofereçam alguma garantia de serviço (do inglês, guaranteed services).
+Para alcançar garantias de serviço, existem dois métodos fundamentais:
+O uso de comutação por circuitos, ou a associação de níveis de prioridade aos pacotes que trafegam na rede.
+A associação de prioridade a canais virtuais, juntamente com mecanismos de escalonamento pode oferecer serviços garantidos, tais como vazão garantida ou latência máxima.
+Existem diversos conceitos e técnicas que influenciam no processo de desenvolvimento de uma rede intrachip, alguns de os quais foram mostrados na Seção 2.2.
+Entre as considerações que devem ser feitas antes do desenvolvimento de uma NoC pode- se citar como importantes:
+A escolha da topologia, do algoritmo de roteamento, do formato do pacote, do tipo de chaveamento dos pacotes e do controle de fluxo.
+Outra decisão importante no projeto de redes intrachip é a escolha do estilo de projeto que será adotado para os módulos componentes de esta:
+Síncrono, assíncrono, GALS ou dessincronizante.
+Uma NoC pode ser um sistema totalmente assíncrono, onde todos os roteadores são implementados como circuitos assíncronos e a comunicação com os núcleos IP síncronos é dotada de interfaces de comunicação responsáveis por a sincronização dos dados.
+Esse modelo equivale à última linha da Tabela 6.
+Note- se que ainda assim o SoC gerado é GALS, pois os núcleos IP sozinhos constituem um conjunto de ilhas síncronas e a NoC representa o conjunto de interfaces entre as ilhas síncronas assim constituídas.
+Alternativamente uma NoC pode ser totalmente síncrona.
+Em este caso, existem ainda duas possíveis abordagens de sincronismo:
+A rede intrachip e os núcleos IP funcionam com o mesmo sinal de relógio, o que resulta num SoC totalmente síncrono, primeira linha da Tabela 6.
+A maioria das primeiras propostas de NoC e.
+g assumiam este tipo de implementação.
+A rede intrachip possui um sinal de relógio que não possui necessariamente relação de freqüência ou fase com o sinal de relógio dos núcleos IP segunda linha da Tabela de comunicação.
+Esta abordagem é adotada no trabalho de e apresenta um problema de escalabilidade.
+Tal problema deriva do fato que roteadores devem estar espalhados no chip ao lado de cada núcleo IP.
+Então, ainda é necessária uma árvore de distribuição de relógio para os roteadores, que no pior caso será tão extensa como aquela usada em sistemas totalmente síncronos.
+Outra abordagem é o desenvolvimento de roteadores síncronos, mas sem estabelecer uma relação de fase ou freqüência entre os roteadores.
+O uso dessa abordagem deriva mais duas possibilidades de implementação de SoCs:
+O roteador e o módulo IP conectado a ele formam um par síncrono, mas a comunicação entre roteadores é assíncrona, terceira linha da Tabela 6.
+Em este caso, devem existir interfaces assíncronas de comunicação entre os roteadores.
+Esta abordagem possui o inconveniente de aumentar a dependência entre a comunicação e a computação, indo contra a tendência moderna apontada e.
+g por Keutzer De separar estas preocupações durante o projeto de sistemas complexos, visando promover o reuso maciço de IPs.
+Cada roteador possui sinal de relógio independente, quarta linha da Tabela 6.
+A comunicação entre roteadores e a comunicação entre roteador e módulo IP são assíncronas.
+Em este modelo de rede intrachip, devem existir interfaces entre roteadores e entre roteador e núcleo IP.
+Esta é a forma mais flexível de sistema GALS com o mínimo emprego de estilos assíncronos de projeto e a adotada neste trabalho.
+O restante deste Capítulo descreve algumas propostas de implementação de NoCs encontradas na literatura que dão suporte ao estilo GALS de projeto, bem como as alternativas adotadas para o desenvolvimento destas NoCs.
+Bainbridge e Furber propõem uma NoC composta de roteadores totalmente assíncronos.
+O enlace entre roteadores e entre roteador e núcleo IP é totalmente assíncrono e a etapa de sincronização dos dados provenientes do roteador no núcleo IP deve ser tratada no desenvolvimento do módulo IP.
+Os dados são representados utilizando codificação 1-de-4 para transportar dados e um bit sinaliza o fim do pacote.
+Utilizando os bits de fim de pacote os Autores afirmam que pacotes de tamanho variável e arbitrário podem trafegar por a rede.
+O roteamento dos pacotes através da rede é de responsabilidade do transmissor, caracterizando o uso de roteamento na origem.
+Desta forma, o transmissor deve conhecer a topologia da rede.
+O uso de roteamento especificado na origem elimina o módulo de controle para realizar roteamento e desta forma, simplifica o projeto do roteador em NoCs totalmente assíncronas, sendo uma das justificativas para o uso desse tipo de roteamento.
+Estes trabalhos propõem uma NoC dotada de interfaces capazes de dar suporte à comunicação interna ao chip, bem como à comunicação com circuitos externos ao chip.
+O roteador da NoC proposta é implementado de forma totalmente assíncrona.
+O roteador possui dois canais virtuais, visando prover garantia de serviço.
+O enlace responsável por prover comunicação entre a NoC e o mundo externo pode ser configurado para trabalhar de forma síncrona ou assíncrona.
+A comunicação entre roteadores utiliza a codificação insensível a atrasos 1-de-4, enquanto que a comunicação entre o roteador e o módulo IP é realizada através de uma fila bi-síncrona proposta em Bjerregaard e Sparsø apresentam a rede intrachip Mango (Message-passing Asynchronous Network-on-chip providing Guaranteed services through OCP interfaces).
+A NoC Mango possui canais virtuais que proporcionam serviços garantidos (em inglês, Guaranteed Services ou Gs), orientados à conexão e roteamento sem conexão com algoritmo de melhor esforço (em inglês, Best-effort ou Be).
+A arquitetura da rede Mango consiste de adaptadores de rede para dar suporte a transações OCP, roteadores e enlaces.
+O roteador da NoC Mango é implementado através de circuitos assíncronos.
+Este utiliza internamente um protocolo de quatro fases bundled data.
+Os enlaces entre roteadores utilizam codificação trilha dupla e protocolo de duas fases.
+A conexão entre o roteador assíncrono e o módulo IP síncrono é feita através de um adaptador de rede, o qual é responsável por sincronizar os sinais provenientes do roteador e fornecer os serviços por o padrão OCP 2.
+0. Quartana Apresentam uma NoC cuja implementação tem como tecnologia alvo FPGAs.
+A proposta inclui o projeto de um roteador totalmente assíncrono.
+O desenvolvimento dos módulos assíncronos que compõem a NoC utilizou a ferramenta TAST, que gera circuitos QDI a partir de uma descrição em CHP, uma linguagem baseada em CSP.
+A interface assíncrona-síncrona foi desenvolvida utilizando sincronizadores em série.
+Este surge como o principal inconveniente desta abordagem, pois a sincronização através de latches em série aumenta a latência significativamente, prejudicando o desempenho da NoC Em a proposta de Rostislav É apresentada a estrutura de uma versão totalmente assíncrona da QNoC, que os Autores alegam poder garantir qualidade de serviço.
+A rede QNoC é baseada numa arquitetura de roteador que suporta múltiplos níveis de serviço.
+Também é proposto nesta rede o uso de roteamento preemptivo, de acordo com a prioridade dos pacotes.
+Os pacotes são particionados em flits, que são enviados através da rede utilizando o modo de chaveamento wormhole.
+O roteamento é especificado na origem e incluído nos pacotes.
+Desta forma, o transmissor define o caminho que o pacote deve percorrer até o destino, o que simplifica o desenvolvimento do roteador.
+O controlador assíncrono utilizado no roteador foi desenvolvido utilizando a ferramenta Petrify, voltada para a geração automatizada de circuitos independentes de velocidade.
+Zipf Propõem uma rede intrachip com roteadores síncronos dotados de interfaces assíncronas e mecanismos de sincronização baseados em relógio pausável.
+Os serviços oferecidos por o roteador são:
+Sincronização de sinais de entrada, armazenamento temporário, envio de dados e conexão de unidades funcionais na rede.
+O uso do mecanismo de relógio pausável garante a eliminação da possibilidade de metaestabilidade, se corretamente empregado.
+A idéia do trabalho envolve utilizar relógios pausáveis com geradores de relógio em anel nos canais de comunicação, sendo um gerador por roteador.
+No entanto, este mecanismo apresenta uma desvantagem importante quando utilizado para implementar roteadores em NoCs.
+Quando ocorre uma solicitação de transmissão por um canal no roteador a suspensão do sinal de relógio congela todo o roteador, se este for implementado como um circuito síncrono.
+Isto elimina a principal vantagem de uma rede intrachip:
+O paralelismo na comunicação, que possibilita que um roteador trate simultaneamente várias comunicações entre portas de entrada e saída.
+O roteador proposto por Kim Utiliza filas bi-síncronas como interface entre os roteadores.
+A estrutura utilizada na fila é a mesma proposta em, porém neste trabalho os Autores propõem um mecanismo adicional para o controle de estouro da fila.
+O roteador proposto por Kim Utiliza uma fila bi-síncrona em cada porta de entrada e de saída.
+O roteador possui quatro canais de comunicação bidirecionais, em cada canal são inseridas duas filas assíncronas, uma para a porta de entrada e outra para a porta de saída.
+Em este trabalho, Wang Apresentam a versão assíncrona da NoC Proteo para FPGAs.
+O roteador proposto é implementado de maneira híbrida, ou seja, possui módulos síncronos e módulos assíncronos.
+A referência não especifica qual o mecanismo de sincronização adotado nas interfaces assíncrona-síncrona.
+A NoC possui adaptadores de rede que a tornam capaz de se comunicar com núcleos IP desenvolvidos em conformidade com o padrão de interfaces VCI e OCP.
+A transmissão de dados entre roteadores utiliza a codificação trilha dupla de quatro fases e a rede é prototipada em FPGAs comerciais.
+A rede intrachip DSPIN é composta por duas sub-redes, uma para requisições e outra para respostas, para evitar deadlock na comunicação.
+A topologia da rede intrachip é organizada numa os pacotes de requisição e Y--first para os pacotes de resposta (garantindo que o pacote de resposta utiliza o mesmo caminho do pacote de requisição).
+A interface assíncrona utilizada é chamada de fila bi-síncrona e permite a escrita e a leitura utilizando freqüências distintas.
+A NoC consiste num sistema mesócrono, isto é, um sistema onde todos os roteadores possuem o sinal de relógio com mesma freqüência, mas com relações de fase distintas.
+Desta forma a rede intrachip utiliza o mesmo relógio, mas a distribuição deste não necessita de uma árvore de relógio balanceada.
+Segundo os Autores, isto é suficiente para reduzir o consumo de potência da rede intrachip.
+A freqüência de operação dos núcleos IP pode ser distinta e totalmente independente da freqüência de operação do roteador.
+Para sincronização também são inseridas filas bi-síncronas na interface entre roteador e a interface de rede (entre IP e o roteador).
+Essa fila possibilita a transmissão de dados com relógios distintos, mas acrescenta uma latência maior se comparada à fila operando na interface mesócrona.
+Segundo os Autores, a fila apresenta latência de 1 a 2 ciclos de relógio entre módulos mesócronos e 2 a 3 ciclos entre relógios totalmente distintos.
+A rede intrachip dá suporte a dois tipos de tráfego:
+Melhor esforço e serviços garantidos, através do uso de dois canais virtuais, associados a um mecanismo de multiplexação por divisão do tempo (em inglês, time division multiplexing, ou TDM).
+Os Autores apresentam a arquitetura de uma rede intrachip mesócrona.
+O sistema apresenta comportamento globalmente síncrono uma vez que todos os roteadores e núcleos IP utilizam o mesmo sinal de relógio.
+Entretanto não existe sincronização entre os roteadores, uma vez que o escorregamento de relógio entre os roteadores não é controlado.
+Isso garante um sistema modular, uma vez que a sincronização é requerida apenas dentro de a ilha síncrona que engloba roteador e núcleo IP.
+Com essa abordagem são evitados os buffers do sinal de relógio utilizados para controlar o escorregamento de relógio.
+Isso colabora para a redução de potência uma vez que tais buffers posuem consumo elevado.
+A topologia empregada na rede intrachip é a de árvore.
+Segundo os Autores essa topologia reduz a dissipação de potência que as redes com topologia malha.
+Em a rede intrachip proposta cada roteador pode se comunicar com um nodo pai e dois nodos filhos (árvore binária).
+Assim cada roteador folha possui dois módulos IP conectados.
+A comunicação usa um protocolo de handshake de quatro fases.
+O controle do protocolo é realizado utilizando as duas bordas do sinal de relógio, o que segundo os Autores permite a transmissão de um dado a cada dois ciclos de relógio.
+A distribuição do sinal de relógio segue o sentido da árvore.
+Assim um nodo pai recebe o sinal de relógio antes dos seus dois filhos.
+Desta forma o escorregamento nos enlaces é determinado e elementos de atraso são inseridos nos sinais de dados conforme o escorregamento do enlace para que os tempos de hold e setup não sejam violados.
+Os Autores mostram o processo de determinação do valor desses atrasos para a tecnologia de 90 nm.
+O principal problema dessa abordagem é a dependência a tecnologia, ao place and route, do SoC e a variações de temperatura, tensão e processo.
+Isso implica num esforço de projeto para todo desenvolvimento de SoC que opte por utilizar esse sistema de comunicação para determinar os valores de atraso e inserir elementos de atraso equivalentes nos sinais de dados.
+O funcionamento do sistema foi validado através da construção de um MPSoC composto de 32 núcleos, onde cada núcleo compreende um processador e uma memória local.
+O sistema foi desenvolvido utilizando a tecnologia de 90 nm.
+A Tabela 7 apresenta um resumo das características das abordagens apresentadas.
+A Tabela apresenta a estratégia de implementação do roteador, a codificação utilizada para o enlace entre roteadores e o método de sincronização adotado por as abordagens.
+Além de as redes intrachip revisadas nesse Capítulo a Tabela 7 apresenta também as NoCs Hermes-G e Hermes-GLP, que são contribuições desse trabalho a serem descritas no Capítulo 7.
+Aqui, optou- se por a utilização de roteadores síncronos, podendo assim manter a utilização das ferramentas tradicionais de CAD, e filas bi-síncronas, devido a maior vazão de dados permitida por essa interface.
+Existem algumas funcionalidades necessárias à implementação de muitos circuitos não síncronos que são trivialmente implementadas ou irrelevantes ao se adotar o estilo síncrono de projeto.
+Exemplos são a arbitragem de acesso a recursos e a sincronização de dois fluxos de eventos.
+Quando se abre mão do projeto síncrono, deve- se criar componentes especiais que implementem tais funcionalidades e/ ou que apóiem a implementação das mesmas.
+Dispositivos do tipo FPGA comerciais não possuem tais componentes, mas alguns de eles dispõem de recursos de projeto que podem ser usados para implementar esses componentes de forma eficiente.
+Essa Seção apresenta o desenvolvimento, projeto e validação de uma biblioteca de componentes não síncronos para uso em FPGAs da Xilinx.
+Componentes não-síncronos possuem restrições temporais associadas as suas funcionalidades.
+A natureza destas restrições está relacionada ao estilo de projeto em uso.
+Desta forma, embora seja possível desenvolver componentes não-síncronos utilizando linguagens de descrição de hardware e restrições temporais, como proposto em, a implementação destes pode ser realizada com vantagens caso se utilize estratégias de projeto de mais baixo nível de abstração.
+Entre as vantagens de usar um nível de abstração mais baixo para o projeto de dispositivos assíncronos, pode- se citar que em FPGAs é possível obter implementações com alto grau de eficiência em temporização e área de componentes não-síncronos.
+Além de isto, é possível controlar melhor os atrasos de componentes e de fios.
+O sistema ISE de desenvolvimento de projeto para FPGAs da Xilinx habilita o projeto de componentes possuindo restrições temporais ou de posicionamento através do uso de macros.
+Esse trabalho aproveita essa funcionalidade das ferramentas da Xilinx para projetar componentes nãosíncronos.
+Uma macro é um módulo implementado com componentes primitivos do FPGA, tais como look-up tables (LUTs), flip-flops, e latches.
+Macros podem ser de três tipos:
+Soft, com posicionamento relativo definido (em inglês, Relationally Placed, ou Rpm) ou hard.
+Uma soft macro consiste na instanciação de componentes fornecidos por a Xilinx.
+Este tipo de macro permite a manipulação dos recursos de hardware para o desenvolvimento de circuitos que possuem restrições de área e desempenho.
+Entretanto, não é possível controlar a distribuição de fios através desse tipo de macro, o que dificulta o desenvolvimento de circuitos assíncronos, uma vez que algumas restrições temporais importantes em circuitos assíncronos são relacionadas aos atrasos de fio.
+A Figura 20 mostra um código VHDL que descreve um C-Element.
+A implementação utiliza uma LUT de quatro entradas.
+A LUT é o elemento básico em FPGAs da Xilinx, e tais elementos são disponibilizados por a Xilinx na biblioteca UNISIM.
+Além de a instanciação da soft macro, o código VHDL possui também uma restrição temporal MAXDELAY associada ao sinal de realimentação, para indicar às ferramentas de place and route que se deve tentar garantir que o atraso deste sinal seja limitado, nesse caso, menor que o tempo de propagação de uma LUT.
+Essa restrição é aplicada ao C-element devido a o estilo independente de velocidade de implementação adotado.
+Desta forma os fios devem possuir atraso que possa ser considerado nulo.
+Macros do tipo Rpm são soft macros com restrições de posicionamento relativo.
+Assim é possível determinar não só a funcionalidade, mas também a conformação do circuito no FPGA.
+Este tipo de macro também não possibilita controlar a distribuição dos fios no interior do circuito.
+O uso de RPMs, aliado a restrições temporais, para o desenvolvimento de circuitos assíncronos é proposto por.
+Entretanto o uso de tais macros não garante a satisfação de todas as restrições temporais.
+A Figura 21 mostra o código de uma porta OR DIMS utilizando soft macros e restrições temporais para controlar o escorregamento nas derivações da porta.
+O processo de criação de uma Rpm pode ser feito utilizando a ferramenta de planejamento de planta baixa da Xilinx, o FloorPlanner.
+A Figura 22 mostra as restrições de posicionamento relativo, RLOC, que posicionam as LUTs que compõem a porta OR DIMS relativamente dentro de a matriz de elementos do FPGA, transformando a soft macro numa Rpm.
+Essa porta foi prototipada num FPGA XC2 V1000.
+XC2 V1000 da família Virtex II da Xilinx.
+Usou- se a ferramenta XST da Xilinx para realizar a síntese.
+Macros do tipo hard são geradas a partir de um editor gráfico de layout, no caso de a Xilinx a ferramenta FPGAEditor.
+Tais macros podem ser colocadas numa de várias posições possíveis na planta baixa do projeto de um dado FPGA por as ferramentas de síntese ou manualmente por o projetista.
+Hard macros podem ser instanciadas em código VHDL como componentes de projeto quaisquer.
+A implementação de hard macros em FPGAs possibilita que os atrasos de fios e de elementos lógicos sejam verificados durante a construção dos componentes.
+A implementação de circuitos usando hard macros garante ainda que todas as instâncias de um módulo apresentem atrasos e comportamento previsíveis, o que é mais difícil de controlar utilizando restrições temporais sobre código HDL, soft macros e até mesmo nas RPMs.
+A falta de flexibilidade de hard macros é um ponto negativo do seu uso em relação a os outros tipos de macros.
+Uma hard macro é desenvolvida exclusivamente para um FPGA específico (um dispositivo específico de uma dada família), e não pode ser reaproveitada para outros FPGAs.
+Devido a esta limitação, imposta ao uso de hard macros, este trabalho propõe uma biblioteca de dispositivos para facilitar o desenvolvimento de circuitos assíncronos eficientes e que respeitem os requisitos de desempenho de aplicações com facilidade.
+O Processo de Projeto de Hard Macros O processo de projeto de uma hard macro é similar a um trabalho de edição de esquemáticos sobre um editor gráfico.
+Os passos de criação de uma hard macro são:
+A o entrar na ferramenta FPGAEditor, escolhe- se criar uma nova hard macro para um dispositivo de uma dada família.
+A ferramenta mostra então o layout do FPGA escolhido.
+Escolhe- se aleatoriamente uma região do FPGA e um bloco lógico configurável (em inglês, configurable logic block ou CLB), que vai servir de base para a implementação da hard macro.
+Isto pode ser feito porque o FPGA é constituído por uma grande matriz bidimensional quase totalmente regular de CLBs e outros blocos (blocos de memória, multiplicadores, pinos configuráveis de E/ S, etc).
+Cada CLB é formado por um conjunto de fatias (em inglês, slices) contendo várias tabelasverdade configuráveis (em inglês, look-up tables ou LUTs), elementos de memórias configuráveis como latches ou flip-flops e várias conexões configuráveis entre estes elementos.
+O projeto se faz especificando a interconexão entre elementos de um CLB;
+Escolhem- se dois ou mais pinos de elementos e solicita- se a criação de uma conexão entre os mesmos.
+Os elementos configuráveis tais como LUTs, devem ter sua função especificada via equações Booleanas.
+Depois de estabelecida a interconexão dos componentes e a função das LUTs define- se a interface externa da hard macro, especificando nome para pinos de entrada e saída da mesma.
+Os nomes dados serão mais tarde usados como nomes de portas de uma entidade VHDL usada em mais alto nível ao instanciar a macro.
+A o final do processo de definição da hard macro, deve- se escolher um slice de referência da macro, uma espécie de ponto de aplicação da macro, usado como referência para operações de posicionamento físico (manual ou automático) da macro.
+Depois de concluída a macro, se salva essa como um arquivo binário.
+Este arquivo pode ser então adicionado a projetos em linguagem HDL (VHDL ou Verilog).
+O desenvolvimento de circuitos assíncronos através de hard macros necessita utilizar algum grau de tentativa e erro.
+Durante cada passo da implementação do circuito é feita a verificação das restrições temporais.
+Diferentes conformações são testadas e destas se escolhe a que melhor atende as restrições.
+Exemplos de Projeto de Hard Macros A biblioteca proposta dispõe de portas para construção de blocos funcionais trilha dupla.
+Portas DIMS com n entradas possuem 2n C-elements com n entradas cada.
+Todos os CElements devem possuir derivações isócronas assimétricas em suas saídas, isto é, o sinal de saída deve retornar ao C-element antes de chegar à porta OR.
+Essa restrição se deve ao estilo de implementação do C-Element, que é um circuito independente de velocidade, e não à porta DIMS que é QDI.
+A Figura 23 apresenta a temporização encontrada no desenvolvimento da macro desta porta para o FPGA XC3 S200 da família Spartan 3.
+Esta hard macro ocupa seis das oito LUTs (4 slices) de um CLB e seu desenvolvimento requer várias tentativas na busca de uma conformação de fios que obedeça todas as restrições.
+Um elemento de exclusão mútua (Me) é um circuito que possui tipicamente duas entradas e duas saídas.
+Cada entrada corresponde a uma requisição de acesso a um recurso.
+Cada entrada está associada a uma saída.
+A função principal de um Me é seqüencializar os acessos a recursos controlados por suas saídas.
+Note que se ambas saídas controlam o acesso a um mesmo recurso, este acesso é concedido ora a uma ou a outra das entradas (requisições) do Me, nunca a ambas ao mesmo tempo.
+A Figura 24 ilustra a interface de entrada e saída de um Me.
+MEs são componentes de uso geral em sistemas não-síncronos.
+Em circuitos assíncronos toda acesso concorrente a um determinado recurso deve ser seqüenciado através de um Me para evitar corridas.
+Em sistemas GALS é usado, por exemplo, em geradores de relógio pausável para controlar se e quando o sinal de saída de relógio oscila.
+Uma implementação comum de um Me é através de um latch RS.
+Porém a utilização de apenas um latch como Me é propensa a metaestabilidade.
+Implementações em ASICs utilizam um filtro associado às saídas do latch para evitar esse fenômeno.
+A estrutura de um Me implementado através de um latch associado a um filtro de saída é mostrado na Figura 25.
+Os filtros garantem que enquanto não se resolver a metaestabilidade na saída do latch os sinais de saída serão mantidos em nível baixo.
+A biblioteca de macros conta com um Me composto por um latch RS sem filtro.
+Esse tipo de Me é utilizado no desenvolvimento de um sistema GALS em FPGA no trabalho de.
+A análise estatística do tempo entre falhas do Me, utilizando os valores característicos fornecidos por a Xilinx, por os Autores aponta para um tempo entre falhas de 240 anos.
+Esta abordagem é muito mais adequada para FPGAs que a abordagem utilizando um latch RS ao custo de maior área devido a o gerador de relógio introduzido para cada Me adicionado.
+Este Me foi implementado através de hard macros e ocupa dois Slices, um para os registradores de entrada e outro para a lógica combinacional e para os registradores de saída.
+A Figura 27 mostra a estrutura do Slice contendo dois flip-flops de entrada do Me proposto por Moore.
+Conclusões do Capítulo Esse Capítulo apresentou uma biblioteca de componentes assíncronos para FPGAs comerciais.
+Esta biblioteca de componentes permite a construção de circuitos assíncronos codificados em trilha dupla e bundled data.
+Essa biblioteca serve como base para projetos de circuitos assíncronos desenvolvidos dentro de o grupo GAPH.
+Trabalhos futuros prevêem a expansão da biblioteca, inserindo novos componentes e portando os componentes pra outros FPGAs e a ligação de uma ferramenta de desenvolvimento de circuitos assíncronos como balsa, para a geração automática de circuitos assíncronos a partir de uma descrição de mais alto nível.
+A Tabela 9 mostra todos os dispositivos que compõem a biblioteca proposta e o número de LUTs de cada uma ocupa.
+Diversas abordagens foram propostas na literatura para tentar solucionar o problema de comunicação entre módulos síncronos trabalhando em freqüências diferentes.
+As abordagens variam significativamente em função de a forma de representação dos dados, da estratégia de sincronização utilizada, do protocolo de comunicação adotado e do estilo de circuito assíncrono adotado para as interfaces.
+Este Capítulo compara três destas propostas.
+As interfaces implementadas aqui foram escolhidas de forma a apresentar métodos com grau razoável de distinção na escolha da comunicação assíncrona.
+A implementação utilizada para o projeto e avaliação de interfaces assíncronas consiste num sistema produtor-consumidor com comunicação ponto a ponto, cujo diagrama de blocos é mostrado na Figura 29.
+O módulo produtor consiste de um contador que a cada novo valor de contagem produzido transmite este para o módulo consumidor.
+O módulo consumidor consiste de um decodificador que recebe o valor de contagem e o converte para então exibir o valor num mostrador de sete segmentos de uma plataforma de prototipação baseada em FPGAs.
+Embora trivial, o sistema produtor-consumidor proposto permite a avaliação das interfaces de forma simples, e a velocidade de comunicação entre o produtor e o consumidor pode ser facilmente controlada através da máquina de estados do produtor e da freqüência de operação dos módulos.
+Todas as simulações deste Capítulo mostram os resultados gerados a partir de a simulação com temporização usando valores de tempo de pior caso.
+Os arquivos gerados para a simulação SDF possuem para cada elemento de atraso três valores:
+O valor máximo (opção ­sdfmax do Modelsim), típico (opção ­sdftyp do Modelsim) e o mínimo (opção ­sdfmin do Modelsim).
+A Figura 30 mostra a representação em SDF de um buffer de um IOB, com os tempos mínimo, típico, e máximo.
+O modelo proposto em para a implementação de um sistema GALS utiliza a estratégia de extensão do relógio para a sincronização entre domínios distintos de relógio.
+Os dados são representados em codificação de trilha simples e o protocolo de comunicação utiliza handshake de duas fases.
+O árbitro proposto por Moore e Robinson, já apresentado no Capítulo 4, foi uma contribuição importante para que sistemas GALS desse tipo sejam prototipáveis em FPGAs.
+Os circuitos de controle das portas de comunicação propostas por Moore Possuem também um diferencial importante.
+Enquanto abordagens anteriores, tais como a proposta existente em, pausavam o sinal de relógio durante todo o protocolo de comunicação a abordagem de Moore tenta evitar que a extensão do relógio ocorra, sempre que possível.
+O circuito da porta de entrada é mostrado na Figura 31, enquanto que o da porta de saída aparece na Figura 32.
+Nota- se que cada uma das portas pode ser usada para conectar um domínio síncrono e um domínio assíncrono.
+Por outro lado, a conexão de uma porta de saída a uma porta de entrada permite interconectar dois domínio de relógio de forma unidirecional.
+Duplicando esses circuitos pode- se criar uma interface bidirecional entre dois domínios distintos de relógio.
+Embora o circuito da porta de entrada se assemelhe a um sincronizador, por possuir dois flip-flops em série, ele não se encaixa nesta classe de dispositivos.
+Apenas o segundo flip-flop é controlado por o sinal de relógio pausável.
+O primeiro flip-flop é acionado por o sinal de reconhecimento do árbitro, que ocorre quando uma requisição de transmissão foi atendida e o sinal de relógio foi pausado.
+A Figura 31 mostra o circuito de interface entre um produtor assíncrono e um consumidor síncrono.
+Para iniciar o protocolo de transmissão o sinal de requisição deve ter o seu valor invertido, req ou req.
+Quando isto ocorre, a porta XOR alimentada por o sinal de requisição terá as suas entradas com valores distintos, uma vez que uma de suas entradas contém o valor antigo, de antes da transição da requisição.
+Isto ocorre devido a o registro do valor no flip-flop A. A outra entrada contém o valor atual.
+Com isso, a saída da porta XOR tem na sua saída uma transição S, gerando uma requisição de extensão do relógio.
+Se esta requisição acontece quando o sinal de relógio se encontra em nível alto, a requisição é atendida.
+Se o sinal de relógio se encontra em nível baixo, a requisição terá que esperar até a próxima borda de subida.
+Quando atendida a requisição, o árbitro gera um sinal de reconhecimento, o qual é responsável por controlar a amostragem dos sinais de requisição e os dados no flip-flop A. Esta amostragem pode ocasionar metaestabilidade na saída do flip-flop A. A ocorrência de metaestabilidade neste estágio é pouco provável, contudo, uma vez que a geração do sinal de reconhecimento do árbitro, responsável por disparar a amostragem, acontece no mínimo tp1 após o sinal de requisição chegar à entrada do flip-flop A. Aqui, tp1 representa o tempo de propagação da porta XOR, somado ao tempo de propagação do árbitro.
+Quando a requisição não chega dentro de o período em que o relógio está em nível alto, este tempo é acrescido do tempo que a requisição aguarda para ser atendida.
+A metaestabilidade neste estágio pode ocorrer tanto no sinal de requisição quanto nos sinais do barramento de dados.
+Caso a metaestabilidade ocorra no sinal de requisição, pode acontecer uma falha de sincronização na saída do flip-flop A. Em este caso, este erro de sincronização não acarretará erro no funcionamento do circuito.
+O erro de sincronização mantém a porta XOR com suas entradas com valores complementares, uma em nível alto e outra em nível baixo, e a sua saída irá permanecer em nível alto, fazendo com que a requisição de pausa do relógio persista.
+Desta forma o sinal de relógio só será liberado quando a metaestabilidade for resolvida.
+Entretanto, não existe nenhuma garantia de que a metaestabilidade nos sinais de dados estará resolvida ao mesmo tempo em que a metaestabilidade do sinal de requisição.
+Para resolver este problema é necessário que a máquina de estados do circuito de controle responsável de gerar o sinal de requisição, gere- o somente após os dados estarem estáveis, ou seja, depois de um tempo maior que o tempo de setup do flip-flop A. O sinal sync_ accept_ new funciona como um mecanismo de créditos.
+Enquanto este sinal estiver em nível alto, a interface gera sinais de requisição síncronos para o circuito consumidor, e gera também os sinais de reconhecimento ack para o produtor assíncrono.
+O circuito de interface entre um produtor assíncrono e um consumidor síncrono, mostrado na Figura 32, possui funcionamento semelhante ao circuito descrito acima.
+Em este circuito, o sinal que é assíncrono é o sinal de ack.
+Este sinal é responsável por gerar a requisição de extensão do sinal de relógio, e a resolução da metaestabilidade acontece da mesma forma que no circuito anterior.
+Entretanto a recomendação de gerar os sinais do barramentos de dados antes do sinal de requisição não é necessária nesta interface.
+O sinal sync_ new_ data funciona de forma similar ao sinal sync_ accept_ new da interface descrita anteriormente, não permitindo que nenhuma requisição seja gerada se o circuito produtor síncrono não desejar transmitir.
+A Figura 34 mostra a simulação SDF, gerada através do pior caso para os atrasos (sdfmax), da abordagem proposta por Moore.
+Em esta simulação é possível observar, a partir de os sinais de requisição e reconhecimento dos árbitros, que a abordagem proposta por Moore raramente provoca o alongamento do sinal de relógio.
+Verificando os sinais do C-element pode- se verificar a forma com que é realizada a sincronização do sinal que sai do elemento de atraso (Entrada B) e o sinal que sai do árbitro (Entrada A).
+Os sinais referentes ao Árbitro mostram os sinais de requisição, reconhecimento e o sinal de relógio na entrada do árbitro, que é a negação do sinal de relógio do circuito síncrono.
+Analisando o desempenho do circuito em função de o sinal de relógio do circuito produtor, pode- se verificar que menos de dois ciclos depois de ter gerado o sinal de requisição, este já recebeu o sinal de reconhecimento.
+O consumo de área desta abordagem é dependente da freqüência do relógio que a ilha assíncrona deve trabalhar.
+Quanto menor a freqüência, maior o número de elementos necessários para compor a linha de atraso.
+O árbitro proposto por Moore para FPGAs também consome uma quantia considerável de área, devido a o gerador de relógio pausável necessário ao seu funcionamento.
+Informações quantitativas são mostradas adiante, na Seção 5.1.4.
+Este tipo de interface não garante a eliminação da metaestabilidade, mas fornece uma medida probabilística que pode ser usada para determinar o tempo médio entre ocorrências de metaestabilidade na interface.
+De posse deste valor, pode- se dimensionar a interface para garantir que este tempo ultrapasse largamente a vida média dos componentes escolhidos.
+As interfaces mostradas podem ser controladas por qualquer uma das bordas do sinal de relógio.
+Uma forma de diminuir a latência na interface é utilizar flip-flops alternando a borda de sensibilidade.
+Assim, o primeiro flip-flop da cadeia seria sensível à borda de subida, e o segundo à borda de descida.
+Essa abordagem diminui a latência, mas também a robustez do circuito, visto que o tempo entre a amostragem dos flip-flops é utilizado para resolver a metaestabilidade.
+Uma vantagem deste modelo é que ele pode ser totalmente implementado em HDLs.
+A Figura 36 e a Figura 37 mostram simulações dos sinais da interface de comunicação entre o produtor e consumidor.
+Procede- se aqui a uma análise do desempenho da interface em função de o sinal de relógio do produtor.
+Quando o sinal de relógio do produtor é maior que o do consumidor (Figura 36), verifica- se que a latência entre gerar o sinal de requisição (req) e obter o reconhecimento depois de sincronizado no produtor é muito grande.
+Ela é de sete ciclos de relógio, podendo variar para mais ou para menos, dependendo se a requisição é gerada imediatamente antes ou imediatamente depois do sinal de relógio do consumidor.
+Quando o sinal de relógio do produtor é menor que o do consumidor (Figura 37), a latência é reduzida para apenas quatro ciclos de relógio do produtor.
+Esta abordagem não adiciona muita área, percentualmente falando, assumindo que cada módulo síncrono associado à interface possui um alto grau de complexidade.
+Uma fila bi-síncrona consiste numa fila onde a escrita na fila utiliza um sinal de relógio diferente do utilizado durante o processo de leitura da fila.
+A principal dificuldade de projeto de filas assíncronas reside na geração consistente dos sinais de fila cheia e fila vazia.
+A implementação de uma fila necessita dois ponteiros, um para apontar a próxima escrita e outro para apontar a próxima leitura.
+Uma fila está cheia ou vazia quando os dois ponteiros apontam para o mesmo local.
+Em função de esta condição para a geração dos sinais de fila cheia e vazia, observa- se a necessidade de realizar uma comparação entre os ponteiros.
+Este procedimento é trivial em sistemas síncronos, mas numa fila bi-síncrona é problemático, uma vez que os ponteiros são controlados por relógios diferentes, o ponteiro de escrita sendo controlado por o relógio do produtor e o de leitura por o relógio do consumidor.
+A estratégia natural para resolver este problema é transferir o ponteiro de escrita para o domínio de relógio do consumidor onde será gerado o sinal de fila vazia, e transferir o ponteiro de leitura para o domínio de relógio do sinal de escrita onde é gerado o sinal de fila cheia.
+A transferência dos ponteiros pode ser feita utilizando o método de sincronizadores ou o de relógio pausável.
+Porém, inserir um protocolo de handshake para controlar a transferência insere latência adicional no sistema.
+Uma solução melhor é proposta em é transferir os endereços através de sincronizadores, mas sem a inserção de um protocolo de handshake, passando os endereços diretamente por dois latches, como pode ser visualizado na Figura 38.
+Em esta, os sinais wptr e rptr correspondem respectivamente aos ponteiros de escrita e leitura e são sincronizados através de dois latches.
+O principal problema desta abordagem é que quanto maior o número de bits que são sincronizados, maior é a probabilidade de ocorrência de metaestabilidade num desses bits.
+Para atenuar este problema os Autores propõem o uso de endereçamento baseados em código Gray.
+A codificação Gray possui a propriedade de que palavras consecutivas apresentam distância de Hamming igual a um, isto é, todos os bits de duas palavras consecutivas possuem o mesmo valor, com a exceção de um de eles.
+Convertendo codificação binária para Gray reduz o risco de metaestabilidade na etapa de sincronização, uma vez que o endereço de escrita e leitura a cada nova operação tem seu valor incrementado, e somente um bit do endereço poderá causar riscos à sincronização.
+A geração do sinalizador de fila cheia é realizada comparando o código Gray do endereço de escrita wrptr e o código Gray do endereço de leitura, obtido do sincronizador wq2_ rptr.
+De a mesma forma, o sinalizador de fila vazia compara o endereço de leitura rptr com o endereço de escrita sincronizado rq2_ wptr para verificar se estes são iguais.
+Tanto para a geração da sinalização de fila cheia quanto para a de fila vazia os endereços devem ser iguais.
+Para diferenciar os estados de fila cheia e fila vazia, é necessário acrescentar mais um bit ao endereço.
+Este bit deve ser invertido toda vez que o ponteiro da fila passar da última posição do buffer para a primeira.
+Denomina- se este bit aqui de marcador de página.
+Utilizando este bit, pode- se diferenciar o estado de fila cheia do estado de fila vazia.
+Porém, para que isto ocorra de forma consistente, o bit marcador de página deve passar por o estágio de sincronização juntamente com os apontadores.
+Utilizando o bit marcador de página e o endereço da fila estado da fila é definido da seguinte forma:
+A fila se encontra no estado cheia quando os endereços são iguais e o bit marcador de página de escrita é diferente do bit marcador do bit de leitura sincronizado.
+A fila se encontra no estado vazio quando os endereços são iguais e o bit marcador de página de leitura é igual ao bit marcador do bit de escrita sincronizado.
+Adicionando- se o bit marcador de página insere- se a possibilidade de dois bits alterarem o seu valor ao mesmo tempo.
+Isto acontece quando o apontador passa do topo da fila para o seu início.
+Em este caso, além de a variação de um bit do apontador Gray o bit marcador de página também irá alterar seu valor.
+Como a abordagem de sincronização entre os dois domínios de relógio é realizada através de sincronizadores, o sistema é passível de ocorrência de metaestabilidade nos apontadores Gray.
+A metaestabilidade pode ocorrer num bit do apontador, o bit que teve seu valor alterado na última escrita ou leitura, ou no bit marcador de página.
+A ocorrência de metaestabilidade no apontador não causa erros no funcionamento do circuito.
+A única conseqüência da ocorrência de falha de sincronização no apontador seria a geração prematura da sinalização de fila cheia ou fila vazia.
+A ocorrência de metaestabilidade no bit marcador de falha pode levar a fila a um estado em que esta fica travada enquanto a metaestabilidade não se resolve.
+Em este estado, a fila não permite nem escritas e nem leituras pois sinaliza ao mesmo tempo que está cheia e vazia.
+Considere- se uma fila de profundidade igual a oito.
+Quando inicializada, o apontador de leitura, o apontador de escrita e os dois marcadores de página estão zerados, e como tanto os apontadores como os marcadores de página possuem valores iguais a fila está vazia.
+Considere- se agora que a partir deste estado foram realizadas oito escritas na fila e nenhuma leitura, o apontador de escrita saiu da posição zero e, após as escritas, encontra- se na posição sete.
+Acontecendo uma nova escrita, o apontador é zerado e o marcador de página de escrita é invertido tendo seu valor alterado para` 1'.
+Considere- se que neste momento ocorre uma falha de sincronização que afeta o valor do bit marcador de página.
+O módulo de leitura receberá dois ciclos de relógio de leitura, seguido do apontador com valor zero e do marcador de página com valor também zero, pois ocorreu uma falha de sincronização, e seu valor foi invertido no sincronizador.
+Quando o módulo de leitura compara os valores recebidos do sincronizador com o apontador de leitura e o marcador de página de leitura observa que são iguais e sinaliza fila vazia.
+Ao mesmo tempo, o módulo de escrita estará sinalizando fila cheia, pois possui apontadores iguais e marcadores de página invertidos.
+Esta situação é restabelecida quando a metaestabilidade for resolvida na etapa de sincronização do sinal de escrita.
+Para evitar que sejam realizadas escritas enquanto a fila esta cheia ou leituras enquanto a fila esta vazia os Autores dos trabalhos citados propõem que o ponteiro Gray seja gerado uma posição à frente da real posição da fila.
+Isto faz com que a abordagem seja mais robusta ao custo de uma posição da fila.
+A principal vantagem da utilização da fila é a sua capacidade de permitir a realização de escrita e leitura em cada ciclo de relógio.
+Esta afirmação é verdadeira desde que a fila não se encontre num estado onde ela está cheia ou vazia.
+Quando a fila está cheia e é realizada uma operação de leitura, a fila só deixará o estado de cheia dois ciclos de relógio depois da leitura.
+Isto ocorre porque o novo endereço de leitura passa por o estágio de sincronização.
+O mesmo acontece quando a fila está vazia e ocorrer uma escrita.
+Desta forma, a fila não é vantajosa quando a velocidade de uma das operações é muito maior que a outra, pois quando isso acontece a fila freqüentemente estará cheia ou vazia e a latência na comunicação neste caso seria de no mínimo dois ciclos de relógio.
+A fila implementada neste trabalho possui um buffer de oito posições.
+A maior desvantagem da fila é a área que esta consome.
+Os contadores e o buffer de armazenamento dos dados são os principais responsáveis por a grande demanda de área.
+Como citado anteriormente, para a fila ser vantajosa em termos de latência, deve- se evitar que esta entre em estados de Fila Cheia e Fila Vazia.
+Para alcançar este objetivo com módulos trabalhando em velocidades de comunicação muito diferentes pode ser necessário um buffer proporcional à diferença entre as velocidades.
+A Figura 39 mostra as formas de onda para a simulação com temporização da fila bisíncrona quando o produtor opera com um sinal de relógio de menor freqüência que o consumidor.
+Em a Figura é possível observar os endereços de escrita no produtor e de leitura no consumidor.
+Além disso, no módulo consumidor é possível notar a geração do sinal de fila vazia, o qual provoca o atraso de leitura no endereço 3.
+Esta Seção apresenta comparações quantitativas entre as abordagens estudadas em termos de área e desempenho.
+Os dados apresentados a seguir foram obtidos para o circuito de teste descrito na Seção 5.1.
+A comunicação entre o produtor e o consumidor se dá através da troca de dados de 16 bits.
+Em a abordagem utilizando fila bi-síncrona, o buffer utilizado tem tamanho de 8 palavras de 16 bits.
+Tabela 10 ­ Comparação entre as áreas consumidas.
+Dados obtidos para o dispositivo XC3 S200, Família Spartan 3 da Xilinx.
+Número de Número Total de LUTs usados de LUT Número de portas para lógica RAMs hard macros equivalentes Abordagem Número de Flip Flops Relógio Pausável Sincronizadores Fila Bi-síncrona(*) Não inclui as hard macros.
+A Tabela 11 e a Tabela 12 buscam avaliar o desempenho das interfaces.
+Para medir o desempenho de forma a possibilitar um estudo comparativo entre estas, foi adotado um método onde o tempo entre 48 transmissões de dados entre produtor e consumidor foi verificado através dos resultados obtidos das simulações com atraso.
+Em a Tabela 11 são apresentados os tempos referentes às medidas onde o sinal do relógio do consumidor é mantido com período constante e altera- se o valor do período do sinal de relógio do produtor.
+O mesmo método é utilizado na Tabela 12, onde o período do relógio do produtor foi mantido constante e o período do consumidor foi variado.
+A Figura 40 e a Figura 41 apresentam gráficos contendo as curvas de transmissão em função de o período do produtor e do consumidor, respectivamente.
+Em a abordagem utilizando sincronizadores é interessante notar que o sistema funcionando com os dois módulos com período de 30 ns possui tempo maior que quando um o produtor possui período de 40 ns e o consumidor é mantido funcionando com 30 ns.
+Isto acontece devido a o fato que quando os dois circuitos foram simulados com mesmo período, ambos possuíam a mesma fase nos respectivos sinais de relógio.
+Em este caso, o sinal de requisição, produzido na borda de subida do relógio do produtor chega ao produtor logo após a borda de subida do receptor.
+Este é percebido somente na próxima borda do sinal de relógio.
+De a mesma forma, o sinal de reconhecimento é gerado na borda de subida do consumidor.
+Esta configuração apresenta um desempenho muito próximo de o pior caso, para sincronizadores funcionando nestes valores de freqüência.
+Este Capítulo apresentou a comparação de interfaces assíncronas de comunicação propostas na literatura e a especificação.
+Entre as interfaces simuladas a abordagem de fila bi-síncrona foi a que apresentou melhor desempenho.
+Outra vantagem é que essa interface pode ser totalmente descrita em código RTL.
+O resultado do estudo das interfaces foi utilizado para selecionar qual interface assíncrona mais adequada para o uso nas redes intrachip Hermes-G e Hermes-GLP.
+Esse Capítulo descreve o desenvolvimento de uma interface assíncrona de comunicação ponto a ponto desde a especificação até a sua validação através de um caso de uso.
+Essa interface é uma contribuição desse trabalho de mestrado e foi desenvolvida com objetivo de suportar a interação entre módulos síncronos funcionando com sinais de relógio distintos ou a interação entre módulo síncrono e módulo assíncrono bundled data ou dual rail de quatro fases.
+A interface SCAFFI (Stretchable Clock Asynchronous Flexible FPGA Interface) utiliza o mecanismo de extensão de relógio para sincronização dos dados.
+Este mecanismo foi escolhido devido a sua capacidade de, desde que corretamente especificado, evitar a metaestabilidade.
+O esquema geral da interface proposta é apresentado na Figura 42.
+A interface é composta de portas que utilizam um protocolo de duas fases entre porta e ilha síncrona e um protocolo de quatro fases entre porta e o sistema assíncrono.
+Maiores detalhes sobre a implementação das portas e os protocolos são apresentados na Seção 6.1.
+O esquema geral do sistema de comunicação é mostrado na Figura 42.
+Este esquema é semelhante aos sistemas GALS propostos por.
+Os diferenciais dessa proposta são:
+O mecanismo de extensão do relógio e o suporte a comunicação entre sistemas síncronos com sistemas assíncronos.
+As propostas de utilizam um elemento de exclusão mútua para decidir quando uma requisição deve ser atendida e o relógio deve ser pausado.
+Este trabalho propõe a utilização de um Stretcher como alternativa aos elementos de exclusão mútua.
+Quando uma interface utiliza um elemento de exclusão mútua para gerar a extensão do relógio, o relógio é pausado somente num dos níveis, desta forma, a interface atende a requisições somente dentro de uma janela delimitada do sinal de relógio.
+Se a requisição ocorre fora de esta janela, o sinal de relógio é estendido somente na próxima janela.
+Com o uso do Stretcher o sinal de relógio é estendido o mais rápido possível, isso faz com que a transmissão de dados ocorra de uma forma mais rápida evitando o trancamento prolongado do módulo transmissor enquanto a requisição é atendida por o consumidor.
+Outro diferencial dessa proposta de interface é a disponibilização de elementos que permitem a comunicação de módulos síncronos com módulos assíncronos dual rail de quatro fases.
+Interfaces que realizam a extensão de relógio utilizam elementos de exclusão mútua para decidir quando o sinal de relógio irá oscilar e quando será pausado.
+A implementação mais comum desses elementos utilizam latches RS acoplados a um sistema de filtros que são encarregados de eliminar a metaestabilidade da saída do Me.
+Dispositivos do tipo FPGA não permitem a construção de filtros, portanto a eliminação da metaestabilidade no árbitro não pode ser garantida.
+Najibi em seu trabalho propõe um sistema GALS que implementa o elemento de exclusão mútua utilizando um latch RS.
+Para evitar a metaestabilidade ele propõe que o sinal assíncrono de requisição de extensão do sinal do relógio passe por um latch sensível ao nível alto.
+Entretanto este método não evita metaestabilidade apenas transfere a possibilidade de metaestabilidade do árbitro para o latch.
+O trabalho de Moore apresenta um circuito de árbitro para ser prototipado em FPGAs.
+Em esta abordagem o árbitro possui um sinal de relógio próprio.
+O sinal de requisição e o sinal de relógio devem ser sincronizados com o relógio do árbitro para então a arbitragem ser realizada.
+Este método embora quase elimine a probabilidade de metaestabilidade no árbitro introduz uma latência grande no mecanismo de arbitragem.
+A conseqüência desta latência é a inserção de um limite de freqüência que o gerador de relógio em anel pode gerar, uma vez que cada transição do sinal de relógio que chega ao árbitro leva dois ciclos de relógio do árbitro para aparecer na saída.
+Desta forma a freqüência do sinal de relógio que sai do gerador de relógio em anel é no mínimo duas vezes maior que a freqüência do relógio do árbitro.
+Em este trabalho é proposto um mecanismo para extensão do sinal de relógio que substitui o elemento de exclusão mútua por um Stretcher.
+O Stretcher é um componente que tem a finalidade de parar o sinal de relógio assim que uma requisição de extensão, não importando em que nível o sinal de relógio se encontra, chegue ao Stretcher.
+O circuito do Stretcher é apresentado na Figura 43 ­.
+O circuito é composto por um Celement, um multiplexador e elementos de atraso.
+O multiplexador é responsável por selecionar entre manter o sinal de relógio oscilando ou pausar- lo.
+Os circuitos do multiplexador e do C-element foram projetados de forma que suas saídas sejam hazard free, sob o pressuposto do modo fundamental.
+Em este circuito, enquanto não houver uma requisição, o sinal de relógio de entrada passa por o multiplexador e alimenta as duas entradas do C-element fazendo com que a saída deste copie as suas entradas.
+Quando uma requisição for assinalada, o multiplexador terá como saída o sinal de relógio da saída, o qual alimentará uma das entradas do C-element fazendo com que nenhuma transição do sinal de relógio de entrada apareça na saída, assim o relógio é estendido.
+O elemento de atraso D2 é inserido para garantir que não serão gerados glitches quando o sinal de requisição chegar simultaneamente com uma borda do sinal de relógio.
+Assim quando o sinal de relógio chegar ao multiplexador ao mesmo tempo em que uma requisição o elemento de atraso garante que o sinal de relógio já está estável na entrada do C-element.
+Desta forma o Celement então atua como um filtro, eliminando todos os hazards provenientes do multiplexador.
+Um exemplo de valor transitório gerado por a saída do multiplexador e filtrado por o C-element é mostrado na Figura 44, a qual mostra o resultado de simulação SPICE do C-element para a tecnologia 0,35 µm.
+O circuito prototipado em FPGA demonstra o mesmo comportamento.
+A interface SCAFFI é dotada de portas de comunicação assíncronas responsáveis por converter o protocolo de duas fases, usado entre módulo síncrono e porta, para um protocolo de quatro fases e ainda controlar as solicitações de extensão do sinal de relógio.
+O protocolo de quatro fases foi escolhido para a comunicação assíncrona devido a o seu grande uso em circuitos assíncronos dual rail e bundled data.
+A implementação das portas partiu de uma especificação modo rajada (do inglês, burst mode), do comportamento das portas.
+Esta especificação foi utilizada para alimentar a ferramenta MINIMALIST, a qual gera circuitos de dois níveis e livres de hazard.
+O grafo da especificação burst mode é mostrado na Figura 45.
+Os circuitos gerados por a ferramenta MINIMALIST para as portas de saída e entrada são mostrados na Tabela 13.
+Os circuitos gerados por a ferramenta MINIMALIST devem funcionar dentro de o modo fundamental, isto é, é permitida a alteração de um sinal de entrada a cada instante de tempo e nenhuma outra alteração pode ocorrer até que o circuito se estabilize.
+Essa restrição se aplica também aos sinais de realimentação.
+Para que essas restrições sejam alcançadas em circuitos prototipados em FPGAs, as portas da interface SCAFFI foram desenvolvidas utilizando hard macros e inseridas na biblioteca proposta no Capítulo 4.
+As portas implementadas possuem um sinal de realimentação, Y0, que representa o estado da porta.
+Para atender a restrição de modo fundamental nos circuitos das portas foi inserida uma LUT no sinal de realimentação Y0 de ambas as portas, mostrado no canto inferior esquerdo da Figura 46.
+Essa LUT, além de inserir um atraso para a satisfação da restrição, também insere um mecanismo de reset na porta.
+Uma segunda restrição importante para que as portas proposta não produzam valores transitórios diz respeito às derivações nos sinais de entrada da interface.
+Tais derivações devem ser isócronas simétricas.
+Para isso, as hard macros foram implementadas garantindo que todos os sinais de entrada possuem um único ponto de entrada na macro, incluindo o sinal de realimentação Y0.
+O objetivo dessa abordagem é que todas as derivações tivessem seu atraso especificado e validado no desenvolvimento da hard macro.
+Para tanto, foram inseridas LUTs transparentes nos sinais de entrada das portas conforme ilustrado na da Figura 46 onde as LUTs a esquerda são transparentes.
+Essa Figura representa a macro da porta de saída da interface SCAFFI para um FPGA Spartan 3 XC3 S200.
+As derivações devem ter escorregamento menor que 0.21 ns, que é o valor mínimo do tempo de propagação de uma LUT do FPGA citado.
+A inserção de LUTs transparentes adicionam atraso as portas e reduzem a máxima taxa de transferência na interface.
+Uma alternativa a essa abordagem seria a não utilização das LUTs transparentes, com exceção da LUT inserida para o sinal Y0, e a adição de restrições temporais de MAXSKEW mostradas na Figura 21.
+Entretanto, a adição de restrições não garante que essas serão atendidas por a ferramenta de roteamento.
+Desta forma, é necessária a validação temporal pós roteamento das portas, etapa não necessária com a macro proposta.
+Uma transmissão de dados é iniciada quando o transmissor gera uma requisição síncrona, através de uma borda em Sr (os sinais Sr e As pertencem ao protocolo de duas fases e são ativados por borda e não por nível), solicitando a porta de saída o início de uma transmissão de dados.
+Juntamente com o sinal Sr o transmissor deve inserir os dados a serem transmitidos no canal de comunicação.
+Quando a porta de entrada recebe a requisição produz uma requisição de extensão do sinal de relógio RS para o Stretcher.
+Quando o sinal de relógio estiver garantidamente pausado o Stretcher gera um sinal de reconhecimento As.
+Em função de isto, a porta gera dois sinais de saída:
+Uma requisição assíncrona AR e um reconhecimento síncrono através de uma borda em SA.
+A geração do sinal SA ocorre neste estado para que este respeito o tempo de setup quando o sinal de relógio do transmissor voltar a funcionar.
+Quando a requisição assíncrona gerada por a porta de saída é processada por a porta de entrada, esta sai do seu estado inicial e solicita a extensão do sinal de relógio através do sinal RS ao Stretcher.
+A porta de entrada quando recebe um reconhecimento As, sinalizando que o sinal de relógio está parado, gera um sinal de reconhecimento assíncrono AA e de requisição síncrona Sr para que este esteja estável quando o sinal de relógio do receptor voltar a funcionar.
+Após esta seqüência de eventos a porta de entrada permanece no estado 2 esperando AR.
+A porta de saída ao perceber o sinal AA gera AR e permanece esperando no estado 3 até que o sinal de reconhecimento volte ao estado inicial.
+A porta de entrada ao perceber o sinal AR, solicita ao Stretcher que o sinal de relógio volte a funcionar Rs.
+Quando o sinal de relógio retorna ao funcionamento, o sinal de reconhecimento As é gerado por o Stretcher.
+Quando a porta de entrada percebe este sinal de reconhecimento, passa para o estado 4 e fica esperando que a ilha síncrona processe o sinal de requisição síncrona, amostre os dados e gere o sinal de reconhecimento síncrono através de uma borda em SA.
+Quando a porta de entrada percebe o sinal de reconhecimento síncrono, esta gera o sinal de reconhecimento assíncrono.
+O sinal de reconhecimento síncrono pode ter um elemento de atraso adicionado para garantir que o tempo de hold seja atendido.
+Em a prática isto não é necessário porque o tempo de propagação do circuito das portas faz com que o tempo de hold seja alcançado antes do sinal de reconhecimento assíncrono ser inicializado.
+A porta de entrada quando percebe que o sinal de reconhecimento assíncrono volta ao seu estado inicial solicita ao Stretcher que o sinal de relógio volte a oscilar, Rs.
+Quando o Stretcher responde, As, é finalizado o processo de transmissão e a porta de saída fica esperando a solicitação de transmissão um novo dado.
+Quando um SoC é composto de diversos módulos que utilizam comunicação ponto a ponto pode ocorrer que dois módulos interligados estejam distantes no chip.
+Quando isto acontece, se torna mais difícil de conseguir garantir em FPGAs a restrição imposta pelo modo bundled data de que o sinal de requisição tem um atraso maior que todos os sinais do canal de dados, principalmente quando o canal de dados é de grande largura.
+Um meio de evitar esta requisição é utilizar um canal de comunicação onde os dados utilizam codificação insensível a atraso.
+A biblioteca de interfaces proposta possui componentes que permitem a conversão de uma comunicação bundled data para dual.
+Para isso conversores single to dual e dual to single podem ser inseridos junto às interfaces, como mostra a Figura 48, restringindo o pressuposto de temporização para a comunicação entre a interface e os conversores.
+Os componentes Di da biblioteca permitem também a comunicação entre um sistema síncrono e um sistema QDI dual rail.
+Em esta Seção um novo modelo de implementação do algoritmo de criptografia RSA é apresentado.
+A principal característica dessa implementação é seu potencial para redução da dissipação de potência e economia de energia.
+O RSA consiste numa operação de exponenciação modular.
+A operação de exponenciação modular, entretanto é computada como uma seqüência de multiplicações modulares.
+A multiplicação modular é o módulo que mais executa e possui o caminho crítico do RSA.
+O módulo de exponenciação modular é responsável por o controle de execução da multiplicação.
+A implementação proposta divide o RSA em dois módulos -- exponenciação modular e multiplicação modular ­ onde cada um opera numa freqüência diferente.
+Durante a execução da multiplicação o módulo da exponenciação tem o seu relógio parado para diminuir o consumo de potência.
+A implementação do GALS RSA segue o modelo apresentado na Figura 42, onde o Sender corresponde à Exponenciação Modular e o módulo Receiver corresponde à Multiplicação Modular.
+A implementação GALS do RSA é comparada a uma implementação síncrona ambas com chaves de 128 bits.
+A Tabela 14 descreve a máxima freqüência de operação obtidas dos relatórios de temporização para o FPGA XC3 S200 e o número de elementos de memória que são sincronizados a partir de cada relógio (clock load).
+As duas abordagens foram validadas através de simulação SDF e prototipadas e verificadas num FPGA XC3 S200 da família Spartan 3 da Xilinx.
+A Tabela 15 mostra os resultados de ocupação de área e consumo de potência de cada abordagem.
+O consumo de potência foi extraído através de medições seguindo o modelo proposto em.
+Para a medição de potência foram comparadas à versão síncrona trabalhando na aproximadamente na sua freqüência máxima 40 MHz e a versão GALS com o módulo de multiplicação modular trabalhando aproximadamente na sua freqüência máxima 40 MHz e o módulo de exponenciação modular trabalhando na freqüência de 72 MHz.
+Este valor de freqüência da exponenciação foi escolhido por representar um valor ligeiramente superior a freqüência onde o desempenho da proposta GALS iguala o desempenho da versão síncrona.
+A partir deste valor de freqüência o sistema GALS possui um desempenho superior à versão síncrona, porém, este desempenho não chega a ser significativo uma vez que 98% do tempo de execução é destinada a multiplicação modular.
+Os resultados mostram um acréscimo quase desprezível no consumo de área e uma redução acima de 46% no consumo de potência da versão GALS em relação a a versão síncrona.
+A interface SCAFFI provê um mecanismo de sincronização baseado na extensão do sinal de relógio, permitindo dessa forma a comunicação de módulos com domínios distintos de relógio em FPGAs.
+O desenvolvimento de sistemas que utilizam a interface SCAFFI pode ser feito utilizando a biblioteca de hard macros proposta no Capítulo 4.
+A validação da interface foi feita através de uma aplicação de criptografia RSA.
+Este módulo de criptografia foi particionado em dois sub-módulos, cada um com um domínio de freqüência.
+Medições demonstraram a redução de potência do sistema GALS quando comparado com a mesma implementação utilizando um sistema síncrono.
+Este Capítulo descreve o desenvolvimento das redes intrachip Hermes GALS (Hermes-G) e Hermes GALS Low Power (Hermes-GLP).
+A NoC Hermes-G consiste de uma adaptação da rede intrachip Hermes para que esta possa suportar o desenvolvimento de SoCs GALS.
+A rede Hermes-GLP, além de suportar sistemas GALS, implementa mecanismos de controle de atividade nos roteadores visando a redução da dissipação de potência.
+A rede intrachip Hermes possui:
+Topologia de malha bi-dimensional, roteadores de até cinco portas, roteamento distribuído XY e chaveamento wormhole de comutação de pacotes.
+XY associado.
+A rede Hermes emprega roteamento distribuído, isso é, em cada roteador é realizada uma parte do algoritmo de roteamento para cada pacote, em função de o endereço destino e do endereço do roteador atual do pacote.
+O algoritmo usado nesse trabalho é o algoritmo XY, onde, um pacote percorre toda a sua rota primeiramente no eixo X da NoC, para depois percorrer a sua rota em Y. Este algoritmo é determinístico, isso é, dado um endereço destino e o endereço atual do roteador existe um único caminho através de o qual o pacote pode ser roteado.
+A estrutura adotada para o pacote da rede Hermes é mostrada na Figura 50.
+O primeiro flit do pacote contém o endereço do destino desse pacote.
+O segundo flit possui o tamanho do payload do pacote.
+O restante dos flits faz parte do payload do pacote.
+Para permitir a comunicação entre módulos com freqüência de operação distintas a fila de entrada da NoC Hermes foi substituída.
+A fila proposta acrescenta um mecanismo de sincronização baseado na fila bi-síncrona abordada na Seção 5.1.3 e mostrada na Figura 51.
+Essas filas permitem que as escritas nas portas de entrada utilizem um sinal de relógio diferente do sinal de relógio de leitura que é utilizado internamente por o roteador.
+Cada roteador transmite o seu sinal de relógio para a porta de entrada dos roteadores vizinhos.
+A fila bi-síncrona foi escolhida devido a sua capacidade de permitir à escrita e a leitura de dados num ciclo do relógio.
+A fila bi-síncrona da Hermes-G consome mais área que a fila da NoC Hermes original, isso acarreta num aumento de área nos roteadores A inserção do mecanismo de sincronização nas portas de entrada dos roteadores permite que os roteadores funcionem cada um com uma freqüência distinta.
+Entretanto, dessa forma cada roteador deve trabalhar de forma sincronizada com o módulo IP associado.
+Essa estratégia fragmenta a árvore de relógio global em diversas árvores locais, responsáveis por distribuir o sinal de relógio em cada ilha síncrona, que compreende o roteador e seu núcleo IP.
+Esta fragmentação possibilita a eliminação de buffers grandes, reduzindo a dissipação de potência do sistema.
+Além disso, essa abordagem facilita o controle do escorregamento do sinal de relógio.
+O principal problema da abordagem é a correlação da freqüência de operação do roteador com o elemento de processamento, considerando que a máxima freqüência de operação dos roteadores costuma ser maior que dos núcleos IP associados.
+Isso torna a comunicação fortemente vinculada à computação e não explora plenamente a capacidade da rede intrachip.
+Para desacoplar a freqüência de operação do roteador do núcleo IP é necessária a adição de uma fila para fazer a sincronização dos dados que chegam ao núcleo IP.
+Além de o mecanismo de sincronização, o buffer de entrada da NoC Hermes-G possui também um mecanismo de controle que solicita o roteamento de um pacote, quando o primeiro flit de um pacote é detectado.
+A detecção do primeiro flit ocorre quando uma porta de entrada que está no estado inativo percebe que a sua fila não está vazia.
+Quando isso acontece, a porta de entrada solicita o roteamento e o dado que está na primeira posição da fila é utilizado como endereço de destino.
+Quando o módulo switchcontrol confirma o roteamento do pacote, a porta de entrada incrementa o ponteiro de leitura e registra o tamanho do pacote.
+O estado seguinte realiza a transmissão do restante do pacote até que o tamanho seja alcançado.
+Quando isso ocorre, a porta entra num estado onde solicita ao switchcontrol a liberação da porta de saída alocada para a transmissão.
+A funcionalidade da rede intrachip Hermes foi validada através de simulação comportamental e simulação com temporização SDF.
+A próxima Seção apresenta dados de latência referentes à simulação da NoC Hermes-G. Esta Seção apresenta alguns resultados referentes a simulações de uma rede Hermes-G 3x3.
+As simulações foram realizadas utilizando a ferramenta ModelSim.
+Os resultados mostrados foram obtidos de simulações funcionais.
+As simulações utilizaram um modelo em VHDL RTL da HermesG e um modelo SystemC para os geradores de tráfego e para módulos receptores, que juntos desempenham o papel de núcleos IP.
+Cada gerador de tráfego é um módulo SystemC que opera numa freqüência independente.
+O tráfego é gerado a partir de a ferramenta Atlas, a qual produz arquivos de texto que especificam o tempo da simulação em que o pacote deve ser inserido na rede, o endereço de destino, e o endereço de origem.
+Cada gerador de tráfego possui um arquivo contendo todos os pacotes que este deve inserir na rede.
+Quando um módulo gerador de tráfego inicia a transmissão de um pacote, anexa ao pacote o tempo em que este pacote começou a ser transmitida uma informação denominada timestamp.
+O tempo é determinado como uma quantidade de pulsos de um sinal relógio de referência, utilizado somente por os módulos SystemC como referência temporal, e não existe na descrição da NoC.
+Além de os módulos de geração de tráfego, responsáveis por transmitir pacotes, são adicionados também módulos SystemC responsáveis por a recepção dos pacotes.
+Os módulos receptores são responsáveis por receber os pacotes da rede e gerar dados de temporização dos tempos de chegada e a latência do pacote na NoC.
+Em este trabalho latência é a diferença entre o tempo de saída da NoC do último flit do pacote e o tempo de entrada do primeiro flit do pacote na rede.
+Os dois tempos são gerados em função de o mesmo relógio de referência global.
+Em as simulações, cada par módulo gerador-módulo receptor numa posição da rede representa um núcleo IP.
+Cada um destes compõe uma ilha de freqüência, isso é, trabalham com o mesmo sinal de relógio.
+Adicionalmente, cada roteador também constitui uma ilha de freqüência.
+Entretanto, não existe sincronização entre os pares em posições diferentes da NoC.
+Em o restante desse trabalho, o termo de gerador de tráfego denotará o par responsável por a inserção e remoção de pacotes na rede.
+Diversos cenários foram testados.
+Estes cenários variaram em função de a freqüência de operação dos módulos geradores de tráfego, da freqüência de operação dos roteadores, tamanho das filas e número de flits dos pacotes.
+Em estes cenários, cada produtor envia dados para exatamente um consumidor.
+Os dados foram retirados de uma comunicação entre dois geradores de tráfegos distanciados por cinco roteadores numa rede 3x3.
+O tamanho dos pacotes é de 100 flits e os buffers possuem capacidade para o armazenamento de 16 flits.
+A Figura 52 mostra a variação da latência média dos pacotes na rede em função de a freqüência de operação do produtor, quando a freqüência de operação do consumidor é fixada em 200 MHz.
+A Figura 53 mostra a latência dos pacotes na rede em função de a freqüência de operação do consumidor de dados, quando a freqüência de operação do produtor é fixada em 200 MHz.
+Os gráficos das duas Figuras mostram que a freqüência de operação dos roteadores influência a latência de transmissão dos pacotes somente até um valor próximo de o mínimo entre a freqüência do produtor e a do consumidor.
+A partir desse valor, a latência estabiliza e não existe mais ganho de desempenho possível.
+As NoCs que dão suporte a sistemas GALS revisadas no Capítulo 3 permitem a redução da árvore de relógio, reduzindo assim a dissipação de potência.
+Entretanto, sistemas GALS podem ser aproveitados para a implementação de técnicas de controle de potência baseadas no controle dinâmico da freqüência de operação de cada ilha síncrona.
+Além disso, uma vez que a freqüência de operação pode ser controlada, mecanismos de controle dinâmico da tensão de alimentação também podem ser implementados.
+O controle de tensão depende do controle de freqüência, uma vez que ao reduzir a tensão de alimentação o tempo de propagação das portas é aumentado.
+Conseqüentemente, a máxima freqüência de operação é reduzida.
+A Equação 2 descreve como calcular a dissipação de potência dinâmica média de um circuito síncrono composto de n portas lógicas, onde:
+Ci é a carga capacitiva da saída de cada porta, Vdd é a tensão de alimentação, Tc é o período do sinal de relógio e Pt (xi) é a probabilidade de transição da saída de uma porta quando uma alteração ocorre nas suas entradas.
+Segundo essa Equação, a dissipação de potência dinâmica de uma porta lógica é proporcional ao quadrado da tensão de alimentação desta porta.
+Assim, a aplicação de técnicas de controle dinâmico de freqüência (em inglês dynamic frequency scaling, DFS) e controle dinâmico da tensão de alimentação (em inglês dynamic voltage scaling, DVS) podem reduzir consideravelmente a dissipação de potência de um SoC.
+A próxima Seção faz uma breve revisão do estado da arte de propostas de controle de potência em SoCs que usam NoCs, enquanto a Seção 7.2.2 apresenta a inserção de mecanismos de controle de potência dinâmica na rede intrachip Hermes-G, gerando a rede Hermes-GLP.
+As propostas de redes intrachip que dão suporte a sistemas GALS descritas no Capítulo 3 não aproveitam o potencial dos sistemas GALS para o controle dinâmico de freqüência das ilhas síncronas.
+A implementação de tais controles é possível devido a a possibilidade de cada ilha síncrona funcionar com freqüência totalmente distinta das demais ilhas.
+Desta forma, a freqüência de uma ilha pode ser alterada sem influenciar a freqüência de operação das demais.
+Este tipo de mecanismo é possível de ser implementado em todos os tipos de sistemas de comunicação GALS:
+O trabalho de Hsu Apresenta uma proposta de chaveamento do sinal de relógio (frequency scaling low-- power -- FSLP) para controlar a potência consumida num SoC que utiliza uma rede intrachip como meio de comunicação.
+Para validar a abordagem uma aplicação de MPEG é prototipada em FPGA.
+Segundo os Autores, a abordagem proposta apresenta uma redução de aproximadamente 30% no consumo de potência.
+O controle dinâmico da freqüência é aplicado aos núcleos IP conectados à rede intrachip, e não aos roteadores.
+A freqüência de operação dos núcleos IP é alterada em função de as taxas de comunicação nas portas de entrada e saída do roteador e nos requerimentos de comunicação.
+Simunic Propõem um método semelhante ao de Hsu Em a abordagem dos primeiros, uma malha fechada de controle é responsável por determinar a melhor freqüência de operação dos núcleos IP conectados a rede intrachip com base nos requisitos de potência e QoS de cada núcleo IP.
+O trabalho de Worm Propõe um mecanismo de auto calibração para empregar DVS em redes intrachip procurando manter um nível tolerável da taxa de erros, do inglês bit error rate (BER).
+O mecanismo proposto utiliza módulos que realizam a detecção de erro em cada palavra transmitida e solicitam a retransmissão quando ocorre um erro na transmissão.
+Entretanto, mecanismos de retransmissão podem gerar uma latência muito grande num pacote e desta forma violar as restrições de QoS na comunicação.
+O trabalho de Ogras Propõe um fluxo de particionamento de SoCs GALS que utilizam redes intrachip em ilhas de domínio de tensão e freqüência (VFIs).
+O principal objetivo é criar ilhas compostas de diversos roteadores e módulos IPs capazes de operar na mesma freqüência e tensão.
+Em esse trabalho, as ilhas são estáticas e não existe nenhum mecanismo de adaptação da rede intrachip a transmissão dos pacotes.
+A proposta de controle de freqüência apresentada nessa Seção se diferência dos demais por oferecer uma estrutura de rede intrachip capaz de suportar o desenvolvimento de sistemas GALS e ainda oferecer mecanismos dinâmicos de redução de potência aplicados aos roteadores da NoC.
+A abordagem apresentada aqui cria dinamicamente ilhas de freqüência em função de a prioridade de cada pacote.
+Os mecanismos de controle de potência adotados possuem baixa complexidade e, portanto não adicionam uma quantidade significativa de área, como será mostrado.
+O primeiro mecanismo de controle implementado foi o de clock gating.
+O mecanismo de clock gating consiste em desabilitar o sinal de relógio de regiões inativas do sistema.
+O circuito utilizado para a implementação de clock gating é mostrada na Figura 54.
+Esse mecanismo pode ser aplicado em diferentes níveis de granularidade.
+Em a Hermes-GLP o uso de clock gating é feito no nível de roteador.
+O roteador é considerado ocioso quando todas as suas portas estão ociosas, isto é, nenhuma possui pacote para transmitir.
+Para implementar a técnica de clock gating, foi inserido um módulo de controle do sinal de relógio no roteador.
+Todas as portas do roteador enviam para o clock control um sinal informando o seu estado.
+Quando todas as portas indicam que não possuem dados para transmitir o clock control para o sinal de relógio do roteador.
+O roteador permanece nesse estado até que uma escrita seja realizada numa de suas portas, tirando essa porta do estado ocioso.
+Esse sistema é possível devido a o fato de que cada porta possui um sinal de relógio de escrita diferente, mas compartilham o mesmo relógio para leitura.
+O sinal de relógio de leitura também é utilizado internamente por o roteador.
+A Figura 57 mostra a estrutura de controle do roteador da NoC Hermes-GLP.
+Além de clock gating a Hermes-GLP implementa também o controle dinâmico da freqüência do roteador DFS.
+Em esse trabalho o mecanismo de DFS foi implementado através da seleção entre dois ou mais sinais de relógio em tempo de execução, porém é possível a adoção de sistemas mais elaborados de geração de relógio como em.
+A Figura 55 mostra o circuito utilizado para a implementação de clock switching.
+Esse circuito garante que o chaveamento entre os sinais de relógio é livre de glitch, restrição necessária para que essa seleção seja feita de forma robusta.
+O uso dessa técnica permite que os roteadores pertencentes ao canal de comunicação estabelecido entre dois núcleos IP se adaptem à freqüência de operação requerida por o pacote.
+Para isso cada pacote deve sinalizar qual a freqüência com a qual deve ser transmitido.
+Este sinal é roteado juntamente com o pacote.
+Cada roteador recebe uma indicação de freqüência de cada porta de entrada e seleciona a maior freqüência das indicadas.
+Desta forma a transmissão obedece às restrições de latência de todos os pacotes e fornece um mecanismo de controle simples e que requer uma quantidade pequena de hardware adicional.
+A Figura 57 mostra a estrutura do controle de freqüência do roteador da Hermes-GLP.
+Cada canal de comunicação possui, além de os sinais mostrados na Figura 49, dois sinais de controle sideband:
+Sel_ clk_ in e Sel_ clk_ out..
+O sinal Sel_ clk_ in é usado por o módulo de Clk_ Ctrl para o controle dinâmico da freqüência de operação (DFS).
+Este sinal é roteado para o sinal Sel_ clk_ out juntamente com o pacote.
+O sinal Port_ State sinaliza o estado das portas e é utilizado para realizar o clock gating do roteador, e para determinar qual os sinais Sel_ clk_ in que o roteador deve utilizar para o clock switching, uma vez que são utilizados somente os Sel_ clk_ in das portas ativas.
+A Figura 58 mostra as formas de onda da simulação do controle de relógio com duas fontes de relógio.
+Em o primeiro caso (a), a rede intrachip inicia com uma transmissão de baixa prioridade uma requisição com prioridade mais alta sendo iniciada, criando uma segunda ilha de freqüência IF2 comunicação funcionem na freqüência mais elevada.
+Tal situação permite que os requisitos de comunicação de mais alta prioridade sejam alcançados.
+Essa alteração não introduz nenhuma latência e não interfere funcionalmente na comunicação de baixa prioridade.
+Em esse exemplo, a transmissão de maior freqüência é a primeira finalizada (c), fazendo com que os o roteador 11 reduza a sua freqüência de operação.
+Quando essa comunicação também é encerrada (d) os roteadores ficam ociosos e seus relógios são pausados.
+A Seção 7.1.1 mostrou a dependência da latência em função de a freqüência de operação dos roteadores.
+Em essas simulações foi possível verificar que existe uma redução de latência somente até o momento em que a freqüência dos roteadores alcança min (Fp, Fc).
+Para freqüências superiores a este valor a latência se estabiliza.
+Com base nessa constatação, foi desenvolvido um mecanismo nos geradores de tráfego para que estes possam determinar a prioridade do pacote em função de a freqüência dos módulos produtores e consumidores.
+Estes geradores de tráfego foram utilizados para as simulações utilizando a NoC Hermes-GLP.
+Não foi possível ao longo deste trabalho implementar montagens capazes de habilitar medidas físicas de potência das NoCs propostas.
+Assim, propõe- se aqui uma técnica para estimar os ganhos em termos de redução de dissipação de potência destas NoCs.
+A técnica é baseada no conceito de taxa de ativação definido a seguir.
+A taxa de ativação instantânea de um roteador Ax (t) é definida por a Equação 3.
+Em esta Equação, Fop (t) é a freqüência de operação do roteador no instante t, e Fmax é a maior freqüência de operação que o roteador pode selecionar.
+As simulações na Hermes-GLP foram efetuadas com o objetivo de verificar a redução na taxa de ativação dos roteadores, e conseqüentemente da NoC.
+Para que a taxa de ativação de cada roteador pudesse ser especificada, foi desenvolvido um módulo em SystemC que fica atualizando a cada 1 ns o estado do roteador, que pode estar em situação de clock gating ou operando numa de várias freqüências.
+O estado de cada roteador é registrado num arquivo de texto que é utilizado após a simulação para determinar a taxa de ativação média de cada roteador.
+A taxa de ativação média de cada roteador é determinada a partir de a Equação 4, onde n é o número total de atualizações registradas por o módulo Observador durante a simulação e Ax é dado por a Equação 3.
+A Equação 5 mostra como é calculada a taxa média de ativação da NoC, onde r denota o número de roteadores da NoC e Aav é dado por a Equação 4.
+A taxa de ativação média da NoC é calculada como a média das taxas dos roteadores.
+ANoC $= (k) k $= 1 A Tabela 16 e a Tabela 17 apresentam dois cenários de testes, (a) e (b) respectivamente, compostos por os mesmos núcleos IP, mas em cada cenário o posicionamento desses núcleos IP é alterado.
+Esses cenários forma escolhidos para demonstrar o potencial de redução da taxa de ativação dos roteadores da NoC Hermes-GLP e a dependência da taxa de ativação média em função de o posicionamento dos núcleos IP na NoC.
+Tabela 17 ­ Cenário (b) de pares produtor-consumidor utilizados nas simulações.
+Freqüência Freqüência Fonte Destino (MHz) (MHz) Tráfego Endereço Fonte Endereço Destino Alta Alta Baixa Baixa Baixa Prioridade A Figura 60 apresenta a taxa média de ativação de cada roteador para o cenário (a) (Tabela 16).
+A taxa de ativação de todos os roteadores possui um ponto de saturação entre 75% e 80%, essa saturação corresponde ao ponto de saturação da NoC para esse tráfego.
+A Figura 61 mostra a comparação dos dois cenários da Tabela 16 e da Tabela 17 (a e b).
+Os dois mapeamentos possuem taxas de ativação média distintas, sendo que o mapeamento (b) apresenta melhor aproveitamento dos recursos de controle de potência da NoC.
+Essa Figura mostra também que mesmo para taxas elevadas de injeção de tráfego, os mecanismos de controle de potência ainda provêem uma redução significativa da taxa de ativação da NoC.
+Um exemplo de redução que pode ser visualizado no gráfico é para a taxa de inserção de 50%, onde a NoC Taxa de Ativação apresenta uma taxa de ativação inferior a 50% para os dois mapeamentos.
+O tráfego (a) da Tabela 16 foi simulado também na NoC Hermes-G, onde os roteadores operam com freqüência de 200 MHz.
+A latência média da NoC Hermes-G é mostrada na Tabela 18.
+Por outro lado, a Tabela 19 mostra a latência média da NoC Hermes-GLP.
+Ambas as tabelas mostram os resultados de latência média para o cenário (a) (Tabela 16).
+Tabela 19 ­ Latência média dos tráfegos do cenário (a) descrito Tabela 16 para a NoC Hermes-GLP.
+Latência Média Hermes-GLP (ns) Taxa A Figura 62, a Figura 63, a Figura 64 e a Figura 65 mostram comparações de latência média para as taxas de inserção de 30%, 50%, 70% e 90% respectivamente.
+Em estas Figuras é possível observar que não é inserida latência significativa na comunicação com a adição dos mecanismos de controle dinâmico de potência.
+A Figura 66 compara a diferença média de latência das duas NoCs para todos os tráfegos em todas as taxas de inserção de dados.
+A mesma informação aparece na Tabela 20 sob a forma de Diferença Média de Latência (ns) dados numéricos.
+A Figura 66 mostra uma que a diferença de latência entre as NoCs aumenta com a redução da taxa de inserção de dados.
+Esse resultado é esperado, uma vez que, quanto menor a taxa de inserção de dados na rede maior o número de pausas e chaveamentos de relógio nos roteadores.
+As mudanças de estado do roteador inserem uma pequena latência na transmissão do pacote.
+Para comparar o acréscimo de área resultante da adaptação da rede Hermes para dar suporte ao desenvolvimento de SoCs GALS, as três redes intrachip Hermes, Hermes-G e Hermes-GLP foram sintetizadas usando o FPGA XC2 V1000 da família Virtex II da Xilinx.
+Todas as redes foram sintetizadas com a ferramenta de síntese XST da Xilinx, mantendo as opções de síntese idênticas para os três casos.
+Os resultados de área são mostrados na Tabela 21.
+Foram comparados os consumos de Flip Flops, LUTs, Slices (cada slice é composto por 2 LUTs e 2 Flip Flops), e o consumo em função de portas equivalentes.
+O consumo de LUTs foi dividido entre consumo usado para lógica e LUTs usadas para route-thru.
+A ferramenta de síntese utiliza LUTs para route-thru quando um sinal é amostrado por dois flip-flops em série.
+Para evitar que o tempo de hold seja violado no segundo flip flop, é adicionada uma LUT transparente (onde a saída copia a entrada), para adicionar um tempo de propagação maior que o tempo de propagação mínimo entre dois flip flops.
+O acréscimo de área nas redes Hermes-G e Hermes-GLP se deve ao fato de que as filas empregadas utilizam flip flops em série para sincronizar o endereço de leitura e escrita.
+De essa forma, o número de LUTs route- é bem maior que na NoC Hermes síncrona.
+A Hermes-G ocupa mais slices que a Hermes-GLP, mas esse acréscimo é devido somente ao fato da ferramenta de síntese ter distribuído a lógica de forma menos otimizada.
+Em nenhuma das três implementações forma inseridas restrições de tempo ou de área.
+XC2 V1000 da família Virtex II da Xilinx, com buffers de 8 posições e palavra de 16 bits.
+A comparação de acréscimo de área é feita em relação a a NoC Hermes.
+PE denota Portas Equivalentes.
+Este Capítulo descreveu a implementação de duas redes intrachip, a Hermes-G e a rede Hermes-GLP.
+A rede Hermes-G é capaz de suportar o desenvolvimento de sistemas GALS onde cada roteador e cada núcleo IP pode possuir uma fonte distinta do sinal de relógio.
+A interface de comunicação adotada foi comparada com outras interfaces propostas na literatura, desta forma o desempenho da NoC Hermes-G é projetada para atender aos requisitos de comunicação de SoCs com comunicação intensiva.
+A rede Hermes-GLP é uma contribuição original desse trabalho, apresentando um sistema de controle de potência associado a cada roteador.
+Este sistema de controle permite a redução da taxa de ativação da NoC Hermes-GLP mesmo quando é submetida à taxas elevadas de inserção de tráfego.
+Outro ponto positivo dessa NoC é que o controle de potência implementado não acrescenta área e latência significativas se comparada a Hermes-G. Esse trabalho apresentou o desenvolvimento de sistemas de comunicação em FPGAs com capacidade para dar suporte ao estilo GALS de projeto.
+As principais contribuições desse trabalho foram o desenvolvimento de uma biblioteca de componentes básicos para dar suporte ao desenvolvimento de circuitos assíncronos em FPGAs;
+A proposta e implementação de uma nova interface de comunicação assíncrona de comunicação para FPGAs e o desenvolvimento de duas redes intrachip para sistemas GALS, a Hermes-G e a HermesGLP, sendo que essa última ainda oferece mecanismos de controle dinâmico de potência.
+A biblioteca de hard macros simplifica o desenvolvimento de circuitos assíncronos em FPGAs, promovendo o reuso de hardware e reduzindo a verificação temporal dos circuitos assíncronos gerados.
+Entretanto ainda existem problemas de posicionamento e roteamento devidos a ferramenta de place and route ISE que dificultam o aproveitamento dos componentes da biblioteca.
+A proposta de interface apresentada aqui utilizou um Stretcher, proposto durante o desenvolvimento desse trabalho, diferenciando essa abordagem das encontradas na literatura.
+A validação da interface através de um módulo GALS do criptocore RSA evidenciou o potencial de redução de potência de sistemas GALS.
+A última e principal contribuição desse trabalho foi o desenvolvimento de duas redes intrachip capazes de suportar o estilo GALS.
+A primeira NoC, Hermes-G, é uma adaptação da Hermes síncrona diferenciando- se quase que somente por a fila empregada ns portas de entrada.
+As filas da Hermes original foram substituídas por uma fila capaz de prover mecanismos de sincronização.
+Essa interface foi cuidadosamente selecionada, sendo que a escolha abrangeu o estudo comparativo de diversas abordagens de interfaces assíncronas da literatura.
+A segunda NoC, denominada Hermes-GLP, consiste numa extensão da Hermes-G. Essa extensão foi feita para aproveitar as características de sistemas GALS para reduzir a taxa de ativação dos roteadores.
+Através de simulações foi possível constatar que mesmo quando a NoC Hermes-GLP está sob intensa inserção de dados na rede, esta é capaz de reduzir significativamente a taxa de ativação de seus roteadores.
+A continuação desse trabalho prevê primeiramente o levantamento quantitativo, através de medições e estimativas, de redução de potência que a Hermes-GLP é capaz de prover.
+Além disso, esses valores levantados serão confrontados com as taxas de ativação encontradas nas simulações.
+O principal objetivo é verificar a possibilidade de utilização das taxas de ativação como estimativas de dissipação de potência na comunicação, uma vez que a extração dessas taxas é possível em fases iniciais de projeto.
+A implementação da NoC Hermes-GLP em ASIC é também uma das tarefas previstas para a continuação desse trabalho.
+Uma vez que, a Hermes-GLP seja transferida para ASIC serão implementadas técnicas de controle dinâmico de tensão nos núcleos IP conectados a NoC.
+Tendo em vista que os resultados demonstraram a dependência da taxa de ativação da NoC em função de o posicionamento dos núcleos IP na NoC, se verifica a necessidade de desenvolvimento de ferramentas que auxiliem a exploração correta do potencial da NoC.
+Um segundo objetivo futuro com respeito a ferramentas de software consiste na adaptação do ambiente Atlas, ferramenta que disponibiliza a geração automática de redes intrachip desenvolvidas por o GAPH, para geração correta das duas redes intrachip visando o aproveitamento das NoCs por a comunidade acadêmica.

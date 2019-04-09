@@ -1,0 +1,701 @@
+A evolução da tecnologia de fabricação de circuitos integrados continua obedecendo à lei de Moore.
+Entretanto, aplicações científicas cada vez mais necessitam de recursos de alto desempenho computacional, motivando pesquisadores a propor a aceleração por hardware dedicado para aumentar o desempenho destas aplicações.
+Freqüentemente, devido a a necessidade de rapidez no projeto de tais aplicações, empregam- se técnicas de projeto com emprego de hardware reconfigurável.
+Atualmente, há um grande aumento em pesquisas de biofísica molecular com o objetivo principal na concepção de fármacos.
+Porém, para se chegar até a droga e a possível cura de alguma doença, diversos procedimentos devem ser empreendidos.
+Como exemplos podem ser citados experimentos para determinar o comportamento de moléculas simples ou de proteínas.
+As simulações por dinâmica molecular aportam uma variedade de informações do sistema molecular em questão.
+Entretanto, para se executar estas simulações é necessário o auxílio de recursos computacionais de alto desempenho, devido a a elevada quantidade de cálculos a efetuar, à quantidade de informações geradas e à necessidade destas informações e resultados em períodos curtos de tempo, tornando a exigência por computação de alto desempenho uma característica básica desta área.
+Para suprir a exigência computacional de simulações por dinâmica molecular existem plataformas baseadas em FPGAs, que são largamente utilizadas como aceleradores de hardware de aplicações com alto custo computacional.
+FPGAs são amplamente disponíveis e permitem realizar rapidamente o projeto e a implementação de hardware com alto desempenho se comparado a software executando em processadores de propósito geral.
+A principal contribuição deste trabalho é uma proposta de método de comunicação entre uma máquina hospedeira e uma plataforma de hardware reconfigurável baseada em FPGAs, sugerindo uma arquitetura de software para integração das plataformas de software e o hardware usado para acelerar aplicações de simulação por dinâmica molecular.
+A proposta foi implementada como uma API para organização da comunicação entre as plataformas em níveis de abstração de serviço, visando tornar as camadas de software independentes do hardware.
+Palavras Chave: API.
+Simulação por dinâmica molecular.
+FPGA. Aceleração por hardware.
+A bioinformática e a biofísica molecular computacional são áreas que necessitam de alto poder de processamento e beneficiam- se da disponibilidade de processamento paralelo tradicional HPC (do inglês, High Performance Computing).
+Há um grande número de aplicações nessas áreas que têm esta necessidade computacional.
+Uma destas aplicações são simulações de macromoléculas utilizando dinâmica molecular, uma técnica para simular o movimento e interações entre átomos ou moléculas usando as equações clássicas de movimento de Newton.
+Para simular macromoléculas e todos seus átomos ligados ou não-ligados, os pesquisadores precisam recorrer a recursos computacionais de alto desempenho.
+Por exemplo, em predição de estruturas de proteínas, alguns poucos nanossegundos de simulação podem exigir dias de processamento num computador pessoal ou sobre uma grade computacional.
+Dependendo da estrutura a ser predita, podem ser necessárias centenas de nanossegundos simulados para tal macromolécula, inviabilizando a sua predição por meio de tais recursos computacionais.
+Em, pode- se observar que mesmo em supercomputadores tem- se apenas um estudo de caso com o método PME, definido na Seção 5.2, que ficou acima de 500 psec/ Dia.
+Com isso, mostra a grande necessidade de avanços em HPC ou novas técnicas para aumentar o desempenho para esse tipo de aplicação, que envolve simulação por dinâmica molecular.
+A combinação de microprocessadores convencionais e FPGAs (do inglês, FieldProgrammable Gate Arrays) com diferentes níveis de granularidade produzem uma abordagem tecnológica denominada de HPRC (do inglês, High Performance Reconfigurable Computing).
+A granularidade é relativa ao tamanho, escala e nível de detalhamento de componentes, os dois principais tipos são:
+Grão grande e grão pequeno.
+Em componentes de grão pequeno, pode- se aproveitar melhor o hardware para um determinado problema, utilizando técnicas e altos níveis de paralelismo, independente do tamanho dos dados ou da complexidade.
+Conseguem- se excelentes resultados de desempenho com FPGAs, por exemplo, que são baseados em grão pequeno e agregado de máquinas com processadores de propósito geral é considerado grão grande.
+Plataformas FPGAs são amplamente utilizadas para aceleração por hardware, principalmente por a relativa facilidade em migrar partes de software para hardware por meio de compiladores de linguagens de alto nível para linguagem de descrição de hardware (HDL), obtendo- se flexibilidade na aceleração.
+Porém, na implementação direta em VHDL pode- se obter um melhor desempenho que na utilização de compiladores, aumentando também a complexidade e o tempo de projeto.
+Em esta conversão de software para hardware pode- se adicionar um maior nível de paralelismo na parte da aplicação que requer maior custo computacional, aumentando o desempenho global da aplicação.
+Projetistas de sistemas digitais utilizando dispositivos reconfiguráveis constantemente pesquisam como melhorar o desempenho.
+A definição de uma plataforma de implementação é ponto importante para ser determinado.
+Quanto a a plataforma, trata- se de um tipo de arquitetura a ser escolhida por o projetista, dependendo dos recursos que serão utilizados na aceleração da aplicação.
+Assim, determina- se uma configuração adequada de hardware para a necessidade imposta na construção do projeto.
+Aplicações que necessitam de HPC estão determinando uma nova finalidade ao desenvolvimento tecnológico que envolve as plataformas FPGAs (HPRC), mas ainda existem algumas limitações como demonstradas em:
+Projetistas ­ A complexidade das aplicações e a adequação ao hardware, o tempo de desenvolvimento de um projeto e a complexidade da programação em HDL.
+Lei de Amdahl ­ Diz que o desempenho máximo que pode ser encontrado numa determinada melhoria está diretamente relacionado ao uso desta melhoria, assim não é possível diminuir o tempo não afetado por a melhoria.
+Um exemplo desta regra é a fração que pode ser paralelizada e P o número de processadores.
+Componentes ­ Restrição e acessibilidade em atributos chaves como multiplicadores e memórias.
+Em cada equipamento HPRC realiza- se uma comunicação direta entre a máquina hospedeira e uma plataforma baseada em FPGA, pois a aplicação a ser implementada é dividida entre esses dois componentes determinados previamente.
+Com isto, há diversas Apis (do inglês, Application Programming Interface) abertas e privadas geralmente específicas para determinadas plataformas de hardware e aplicações científicas (software), limitando as possibilidades de portabilidade.
+Modelo Conceitual da API O principal objetivo desse trabalho é propor e implementar uma arquitetura de software para viabilizar a comunicação em aplicações que usam aceleração por hardware dedicado de simulações por dinâmica molecular.
+A comunicação nos casos específicos tratados aqui é realizada entre dois componentes, o computador hospedeiro e uma plataforma baseada em FPGA.
+Ela deve se acontecer de forma transparente à aplicação, localizada no hospedeiro.
+O código da aplicação é modificado para conter chamadas à API, chamadas estas, sobretudo voltadas para a transferência de dados e comando de execução de tarefas por o hardware dedicado.
+A arquitetura de hardware está sendo definida paralelamente a esse trabalho, visando substituir uma parte da aplicação da máquina hospedeira por hardware dedicado com alto nível de paralelismo.
+O objetivo final é obter ganhos no desempenho global da aplicação.
+O modelo conceitual da Figura 1 expõe a estrutura da API proposta e ilustra os componentes a serem utilizados para aceleração por hardware dedicado.
+Em a máquina hospedeira será executada a aplicação que se deseja acelerar.
+Uma parte desta denomina- se PCH (Parte Convertida em Hardware), que possui maior custo computacional, será codificada numa linguagem de descrição de hardware, por exemplo VHDL, e convertida em hardware no FPGA.
+A API alvo do presente trabalho é uma arquitetura de software, transparente ao usuário da aplicação.
+Esta coleta informações relevantes para a PCH e as transfere por a IC (Interface de Comunicação) para a plataforma FPGA onde existe um Controlador de Interface (Ci), que pode comportar ou não um processador, dependendo da interface a ser utilizada.
+Em este controlador reside uma parte da API, que em conjunto com a outra parte acoplada na aplicação terá a função de transferência de dados entre a máquina hospedeira e a plataforma FPGA.
+O PCH é o trecho da aplicação onde reside o maior custo computacional da aplicação e terá que ser previamente prototipado no FPGA antes da execução da aplicação.
+A conversão do PCH em hardware paralelizado no FPGA é objeto de um trabalho paralelo a esse.
+O cenário apresentado nesta Seção é adequado para efetuar a aceleração por hardware de forma dedicada à aplicação.
+Com isso há a necessidade, num primeiro momento, de efetuar a comunicação entre a máquina hospedeira e a plataforma FPGA para contribuir na aceleração total da aplicação.
+Importância do uso de Apis em Aceleração por Hardware Existem diversos fabricantes de arquiteturas HPRC.
+Durante o uso de hardware reconfigurável, torna- se necessário o uso de software do próprio fabricante para comunicação entre a máquina hospedeira e a plataforma FPGA e a existência de um ambiente de desenvolvimento de hardware, tipicamente baseado numa linguagem HDL.
+Porém, com o grande número de fabricantes de plataformas FPGAs de baixo custo, acoplado a aplicações executadas numa máquina hospedeira, surge a necessidade de Apis para conectar essas máquinas hospedeiras e as plataformas baseadas em FPGAs.
+Isto viabiliza a utilização em diferentes plataformas de HPRC, trazendo portabilidade e diversidade as plataformas FPGA empregadas.
+Devido a o tempo significativo de desenvolvimento de um projeto de HPRC, deve- se fazer uso intensivo da técnica de reutilização de componentes.
+Assim, a confecção de uma API portável e de fácil reuso está diretamente relacionada ao tempo total do projeto de uma plataforma HPRC.
+Para isso, conta- se com a utilização de linguagens de programação padronizadas e portáveis.
+O emprego de uma API em diferentes projetos de HPRC é assim facilitado, desde que esta seja portável e reutilizável.
+Objetivos do Trabalho A proposta desse trabalho é de construir uma arquitetura de software para a comunicação da máquina hospedeira com a plataforma FPGA.
+Em a máquina hospedeira, o software será acoplado à aplicação de simulação por dinâmica molecular, visando à transferência de dados desta aplicação para a plataforma de hardware utilizando uma interface de comunicação.
+Organização do Restante do Documento O restante desse trabalho está organizado em dez Capítulos, como descrito a seguir.
+Em o Capítulo 5 aborda os estudos de casos realizados e a comunicação por meio de troca de mensagens.
+A Seção 5.1 apresenta- se uma análise do código do software PMEMD, visando a proposta da API.
+Uma ferramenta de traçado de perfil de execução (gprof da Gnu) é empregada para definir e quantificar o comportamento do software PMEMD e os tempos consumidos na execução das rotinas que compõe esta aplicação.
+Em a Seção 5.2 complementa a compreensão das aplicações de simulação por dinâmica molecular, por a discussão de experimentos realizados com duas aplicações e quantidades variadas de processos.
+Os conceitos básicos relacionados à comunicação quando se usa processamento paralelo baseado na biblioteca clássica MPI está exposto na Seção 5.3.
+Adicionalmente, apresenta- se outra contribuição desse trabalho, ao decidir por o emprego ou não da biblioteca MPI em conjunção com plataformas FPGA.
+As dificuldades encontradas na implementação e os recursos utilizados na elaboração da arquitetura de software são mostrados no Capítulo 6, incluindo os recursos de hardware e software escolhidos conforme a necessidade do trabalho.
+Uma proposta da arquitetura de software ou API é apresentada no Capítulo 7.
+Define- se aqui as rotinas a serem padronizadas e implementadas na API, também é demonstrado dois experimentos realizados com a proposta, trazendo resultados preliminares da arquitetura de software.
+Em este Capítulo apresentam- se alguns conceitos importantes para o entendimento desse trabalho e componentes utilizados ou agregados à implementação da API no contexto de simulações de dinâmica molecular com hardware reconfigurável.
+Dispositivos Lógicos Programáveis Circuitos integrados digitais implementados numa pastilha de silício podem ser classificados conforme a disponibilidade desses CIs, como padrão ou de prateleira (do inglês, offthe-- shelf), e para uma dada aplicação específica (em inglês, Aplication Specific Integrated Circuits ou ASICs).
+Circuitos integrados digitais são constituídos por portas lógicas e necessitam de outros componentes para realizar uma função específica, para determinar as funcionalidades ao projeto de hardware.
+Dispositivos lógicos programáveis ou PLDs (do inglês, Programmable Logic Devices) são circuitos integrados que não possuem uma funcionalidade fixa, podendo ser reconfigurados por o usuário quando houver necessidade, facilitando as alterações no projeto.
+Uma característica destes é a capacidade de programação das funções lógicas por o usuário.
+Conforme, PLDs podem ser classificados em função de a capacidade de portas lógicas equivalentes, e os principais grupos nesta categoria são:
+SPLDs (Simple Programmable Logic Devices):
+São dispositivos simples de baixa capacidade, para pequenos projetos;
+Geralmente contêm menos de 600 portas lógicas.
+HCPLDs (Highly Complex Programmable Logic Devices):
+São dispositivos de alta capacidade e complexidade, para grandes projetos, geralmente contêm mais de 600 portas, atualmente podendo chegar às dezenas de milhões de portas, e englobam os dispositivos CPLDs (Complex Programmable Logic Devices) e FPGAs (Field Programmable Gate Arrays).
+FPGAs são circuitos lógicos que consistem num grande arranjo de células lógicas ou blocos lógicos configuráveis contidos num único circuito integrado.
+Cada bloco lógico contém tipicamente capacidade computacional para implementar um conjunto de funções lógicas, realizar roteamento para comunicação entre blocos e alguma capacidade de armazenamento de informação.
+Os blocos lógicos consistem de LUTs (do inglês, Look-Up Tables) e FFs (do inglês, Flip-Flops) conforme Figura 2 (a).
+Já na Figura 2 (b), mostra- se uma interface típica de entradas e saídas de um bloco lógico, mostrando a localização dos pinos de entrada e saída.
+As LUTs possuem várias entradas (existem dispositivos que usam LUTs de 4 entradas, outros de 6 entradas e alguns usam LUTS de vários tipos) e dependendo do fabricante ou modelo do FPGA as LUTs podem ocorrer em quantidades e ter características diferentes.
+Módulos de Propriedade Intelectual (do inglês, Intellectual Property Cores ou IP Cores):
+São módulos de hardware acoplados à matriz básica de elemento reconfiguráveis como multiplicadores dedicados e memória embutida, suprindo recursos não passíveis de implementação como os elementos da matriz ou onde uma implementação seria muito custosa usando estes elementos.
+Tais módulos costumam ser eles mesmos reconfiguráveis em algum grau.
+Um exemplo é a possibilidade de escolher a largura de acesso à memória em bit, byte ou palavras de 16 ou 32 bits.
+Distribuição de recurso de relógio:
+Gerenciamento digital de relógio (do inglês, Digital Clock Manager ou DCM) ou analógicos (denominados em inglês Phase Locked Loops ou PLLs) suprindo controle de frequência e escorregamento de o (s) sinal (is) de relógio.
+Características de E/ S:
+Permite a escolha de um de entre uma gama de padrões de E/ S comerciais tais como TTL, CMOS, ou padrões diferenciais (que usam dois pinos por bit de informação transmitida).
+Permitir que processadores com diversos graus de complexidade sejam implementados ou disponibilizados num FPGA.
+Quando se implementa processadores usando os elementos da matriz básica de elementos reconfiguráveis diz- se serem estes soft IP cores ou soft processors.
+A outra possibilidade é o fabricante disponibilizar processadores sob a forma de um IP Core dentro de o FPGA, os chamados hard IP cores ou hard processors.
+Exemplo de dispositivo com tais módulos são vários membros da família VirtexII-Pro da Xilinx, que possuem de um a quatro processadores PowerPC 405, um processador RISC de 32 bits.
+Em[ ORD06] apresenta- se as quatro principais organizações internas utilizadas em circuitos programáveis:
+Matriz simétrica, Sea-of-gates, Row--based e PLD hierárquico.
+A matriz simétrica é bastante difundida, por a flexibilidade no roteamento e por possuir canais horizontais e verticais.
+Sua estrutura básica é formada por blocos lógicos, blocos de entrada e saída e segmentos de fios, como pode ser observado na Figura 3.
+Para interconectar os segmentos de fios ou canais horizontais e verticais existem blocos chamados de caixas de comutação ou SBs (do inglês, Switch
+Boxes). Essas estruturas podem ser visualizadas na Figura 4, organizadas numa arquitetura de matriz simétrica e um detalhamento de sua funcionalidade interna para interconectar segmentos de fios que chegam a sua interface.
+De entre as diversas evoluções de FPGAs complexos, uma que se destaca é a agregação de blocos lógicos de base em clusters lógicos, que criam uma região de alta conectividade com mais de um bloco lógico.
+Em e, mostra- se que a utilização de clusters é vantajosa para a eficiência em área e o desempenho do FPGA, por diminuir atrasos, sobretudo de fios longos.
+FPGA é um tópico de pesquisa diretamente vinculado a produtos industriais que trazem benefícios econômicos a muitas empresas.
+Assim, existe uma imensa quantidade de trabalhos abordando o projeto e o emprego desses dispositivos, tanto na área acadêmica como na área industrial.
+Dinâmica Molecular A mecânica molecular usa funções simples de energia potencial (tais como oscilador harmônico ou os potenciais de Coulomb) para modelar sistemas moleculares.
+Esta mecânica é largamente aplicada no refinamento de estruturas moleculares e em simulações por dinâmica molecular (do inglês molecular dynamics ou Md), Monte Carlo (MC), ou ligand-- docking.
+Esse refinamento é o passo inicial na fase de preparação do sistema molecular que posteriormente será submetido a simulações por dinâmica molecular.
+O método por dinâmica molecular é amplamente utilizado para obter informações como a evolução conformacional, de cinética e termodinâmica em proteínas e outros sistemas moleculares ao longo de o período de simulação.
+Ainda, podem- se obter detalhes mais precisos a respeito de o movimento de partículas individuais em função de o tempo.
+Em simulações por dinâmica molecular existem três características básicas necessárias à execução desse método:
+Um modelo para interação entre os elementos do sistema (átomos, moléculas, vértices, etc);
+um integrador para propagar as posições das partículas e velocidades num determinado tempo;
+E a escolha de um conjunto (do inglês, ensemble) estático para definir parâmetros como pressão, temperatura, volume, entre outros.
+A dinâmica molecular e outras técnicas são relacionadas numa metodologia de simulação computacional integrando a equação de movimento.
+Desta forma, o modelo da evolução no tempo num grupo de interações entre átomos ou moléculas determina a força em cada átomo, repetindo essas interações entre todos os átomos, gerando a evolução do sistema biológico.
+A dinâmica molecular é baseada em mecânica clássica, ou seja, na segunda lei de Newton (F $= me a).
+A força em cada átomo é obtida por intermédio da derivada do potencial relacionado com suas coordenadas.
+Com essa força e as equações de movimento pode- se descrever como as coordenadas atômicas variam com o tempo, e em cada passo da dinâmica essas forças são reavaliadas.
+A função da energia potencial é dividida em duas partes:
+Átomos ligados e não ligados, conforme a Equação 1.
+Em a primeira parte, átomos ligados, contêm os cálculos do número de ligações covalentes, dos ângulos e dos diedros.
+Já a parte de átomos não ligados possui os cálculos de Van Der Waals e as interações eletrostáticas.
+E potencial El ligações ângulos dihedros Evdw Eel j 1 i 1 Equação 1 ­ Cálculo da Energia Potencial ­ a primeira parte, com três termos, está relacionada aos cálculos de átomos ligados, e a segunda, com dois termos, a átomos não ligados.
+Em os átomos ligados, o primeiro termo contém os cálculos do potencial em ligações covalentes entre pares de átomos baseado principalmente na distância e no tipo de ligação química, conforme Figura 5 (a).
+Em o segundo termo, associam- se ao cálculo as alterações angulares entre pares de ligações como mostra a Figura 5 (b).
+Assim como as ligações químicas, as oscilações dos ângulos podem ser descritas por um potencial harmônico.
+Em o último termo de átomos ligados, representa- se o ângulo de torção entre átomos separados por três ligações covalentes com os cálculos dos diedros entre estes, como ilustrado na Figura 5 (c).
+A Equação 1 pode ser reescrita com os parâmetros matemáticos corretos de cada termo original mostrado na Equação 2.
+Além disso, apresenta- se todos os termos separadamente do cálculo de energia potencial com suas respectivas definições, seja de átomos ligados ou não ligados definidos em.
+Equação 2-Cálculo da Energia Potencial com toda descrição matemática de seus termos.
+Cálculos envolvendo termos de átomos ligados são extremamente rápidos em simulações computacionais.
+Porém, os cálculos de átomos não ligados possuem complexidade assintótica O (N2), onde N é o número de átomos da molécula, que pode chegar a centenas de milhares num sistema normal e a milhões em grandes sistemas biológicos.
+O cálculo de Van Der Waals é a implementação do potencial de Lennard-Jones, quarto termo da Equação 2.
+Este utiliza funções de atração e repulsão dos átomos, dependendo da distância e de constantes determinadas experimentalmente, expressando a natureza e a interação entre os átomos.
+O raio de corte ou cutoff pode ser configurado na descrição da dinâmica molecular, variando- o conforme a necessidade do usuário, assim determina- se a área de atuação do pequeno alcance ou short- range servindo como um parâmetro de limitação do seu alcance.
+Já nos cálculos de longo alcance ou long range, utiliza- se o potencial de Coulomb, onde todos os átomos interagem entre si por as nuvens eletrônicas, quinto termo da Equação 2.
+Quando os átomos estão muito próximos entre si, a força repulsiva cresce rapidamente e o ponto de equilíbrio é dado por o raio de Van Der Waals.
+O somatório de Ewald é limitado por condições periódicas, esse método considera o potencial devido a as modificações parciais do sistema, junto com todas as suas imagens periódicas por o uso da decomposição.
+Divide- se uma interação de Coulomb num termo de pequeno alcance, manipulando exatamente uma soma direta, mais um longo alcance, variando suavemente o termo e tratando a aproximação na soma recíproca por meio de métodos de Fourier.
+Desta forma, torna- se o cálculo de pequeno alcance o recurso mais utilizado, determinando a maior parte do tempo da execução da simulação por DM, e com maior custo computacional.
+Em a Seção 5.1 mostra com maiores detalhes a função short_ ene, responsável por os cálculos de pequeno alcance.
+O método somatório de Ewald é amplamente utilizado na manipulação das interações de Coulomb para sistemas periódicos, esse método é representado por as interações eletrostáticas contidas na Equação 2.
+Estas convertem séries convergentes numa soma de constantes do espaço real e o recíproco.
+O método PME reduz a complexidade da soma de Ewald, onde o espaço real é computado em O (N) e o recíproco passa de O (N2) para O (NlogN) usando respectivamente as técnicas denominadas particle-mesh interpolation procedure e a já conhecida FFT (do inglês, Fast Fourier Transform).
+Em trabalhos recentes, estas técnicas são amplamente aplicadas por essa otimização na complexidade assintótica desses cálculos Para sistemas com mais de dois átomos a resolução da equação de movimento de Newton precisa de uma solução por meio de métodos numéricos.
+O integrador traz características físicas do sistema ao modelo potencial, dando uma maior precisão nos resultados da simulação.
+Quando não há erros de simulação o integrador proporciona resultados exatos dentro de o modelo, caso contrário é feita uma aproximação para o sistema com desenvolvimento contínuo no tempo, por se tratar de sistemas periódicos.
+Conforme, o integrador deve obedecer alguns requisitos como:
+Precisão: Em o sentido em que se aproxima muito de uma trajetória verdadeira.
+Estabilidade: Em o sentido em que conserva energia e que as pequenas perturbações não levam a instabilidades no sistema.
+Robustez: Em o sentido em que se permitem grandes passos de tempo ou time steps, a fim de uma propagação eficiente do sistema por o espaço.
+Existem diversos tipos de integradores os três principais são os integradores baseados na expansão de Taylor, que são integradores de um operador baseado em métodos de divisão que possibilitam integração de movimento e integradores que consideram o grau de liberdade das moléculas.
+Como as simulações dos sistemas moleculares tentam resolver equações matemáticas há a necessidade de utilização de métodos numéricos para inicialmente aproximar essas equações usando, por exemplo, a série de Taylor.
+Os métodos numéricos, possuem erros de truncamento e erros de aproximação.
+A aproximação das equações matemáticas introduz o chamado erro de truncamento e os erros de aproximação ocorrem por o fato de que os computadores representam os seus dados numéricos com limitações de dígitos.
+Então, os integradores para obedecer aos seus requisitos de precisão e devem contabilizar, além de as aproximações, os erros gerados por esta integração baseados em estimativas de erros.
+A energia potencial é uma função contínua das posições e onde o passo de tempo ou time step seja pequeno o suficiente para se considerar que as posições variem suavemente com o tempo, num dado conjunto de posições atômicas num determinado instante, as posições no próximo passo podem ser obtidas por uma expansão de Taylor.
+A forma mais simples e direta de construir um integrador é por a expansão das posições e velocidades numa série de Taylor.
+Um popular algoritmo que utiliza séries de Taylor é o de Verlet, que faz a integração das equações de movimento de Newton, além disso, é usado para calcular as trajetórias para cada átomo e em cada incremento de tempo em simulações por dinâmica molecular.
+Conforme, além de o algoritmo de Verlet, existem diversos outros algoritmos numéricos para integração de equações de movimento:
+Algoritmo Leap-Frog, Velocity Verlet, Algoritmo de Beeman.
+As condições experimentais são importantes para trazer precisão na simulação, pois existem valores para condições físicas, pressão e temperatura, que são replicados e devem ser observados na simulação.
+Um conjunto ou ensemble é uma coleção de um grande número de sistemas possíveis que possuem diferenças ou parâmetros a serem definidos de forma microscópica e que pertencem a sistemas macroscópicos ou termodinâmicos.
+Cada um dos sistemas num determinado conjunto com N interações entre átomos ou moléculas, possuem valores pré-determinados conforme o tipo de conjunto utilizado.
+Existem diferentes tipos de conjuntos com suas próprias características, porém os mais usados em simulações por dinâmica molecular são os seguintes:
+O conjunto canônico (NVT):
+Com o número de átomos fixos (N), volume fixo (V) e temperatura fixa (T).
+O conjunto isobárico-isoentalpia (NPH):
+Com o número de átomos fixos (N), pressão fixa (P) e entalpia fixa (H).
+O conjunto isobárico-isotérmico (NPT):
+Possui o número de átomos fixos (N), pressão fixa (P) e temperatura fixa (T).
+O grande conjunto canônico (µVT):
+Com potencial químico fixo (µ), volume fixo e temperatura fixa.
+O conjunto microcanônico (NVE):
+Possui o número de átomos fixos (N), volume fixo e energia fixa (T).
+Outra propriedade importante no ambiente de simulação por dinâmica molecular é a solução química adequada ao sistema molecular.
+As soluções implícitas é um tipo de solvente utilizado em ambientes de simulação por DM para que se criem dinamicamente soluções, de água pura ou contendo íons, durante a simulação do sistema molecular.
+Porém, parte do tempo computacional da simulação é gasto com interações entre solventes, isto pode ser evitado com a utilização de soluções explícitas baseadas em água quando possível, que são adicionadas antes de iniciar a simulação na fase de preparação do sistema molecular.
+Existem vários tipos de modelos acessíveis de águas explícitas, para que o pesquisador possa agregar em seu sistema molecular esse tipo de solvente para trazer um comportamento adequado do sistema molecular imerso.
+Os tipos mais populares de águas explícitas são:
+TIP3P, TIP4P, TIP5P, SPC e SPC/ E.
+O foco desse trabalho está direcionado aos cálculos de átomos não ligados que contêm os cálculos de van der Waals e de interações eletrostáticas, onde se concentra o maior custo computacional em toda a simulação, determinando a sua complexidade e seu potencial para recursos de HPRC.
+Diversos grupos de pesquisa de biofísica molecular dispõem de recursos computacionais de alto desempenho para investigação de sistemas biológicos utilizando aplicações de simulação por dinâmica molecular.
+Existem disponíveis aplicações baseadas nos termos de software livre e proprietárias com esta função, os mais populares sendo:
+AMBER, CHARMM, NAMD e Protomol.
+Programas de simulação por dinâmica molecular simulam o comportamento de sistemas biomoleculares por a sua evolução temporal.
+Esses comportamentos são do movimento contínuo dos átomos, da vibração das ligações químicas, da variação dos ângulos dessas ligações e da rotação da molécula.
+Um grande desafio científico está na exploração efetiva de todos os recursos (Processador, Memória e I/ O) de plataformas HPC.
+A utilização de máquinas paralelas é popular nesse tipo de aplicação.
+De acordo com, existem dois principais métodos para se paralelizar códigos em aplicações por dinâmica molecular:
+O método de replicação de dados e o método de decomposição de domínios.
+Método de replicação de dados É o método em que todos os nodos de processamento mantêm os dados de coordenadas e forças de todo o sistema, e a paralelização é obtida por o algoritmo de decomposição de forças ou de partículas.
+Quando surge a necessidade de atualização dos dados, tem que ser realizado em todos os nodos.
+Com isso, dependendo da aplicação, pode- se gerar um grande volume de dados, pois em cada nodo de processamento terá que ter uma réplica dos dados.
+Assim, o número de operações de envio e recepção (E/ R) desses dados pode- se tornar um problema se a quantidade de atualizações for alta.
+Método de decomposição de domínios O princípio desse método é designar geometricamente domínios para diferentes processadores.
+Assim, as partículas não têm ligações longas para certo processador, mas pode ser transferido de um processador a outro, ajustando para as posições espaciais de eles.
+Esse método é designado para sistemas com interações de pequeno alcance ou onde tem que ser aplicado o raio de corte no espaço.
+Em a utilização desse método diminui- se a quantidade de operações de envio e recepção (E/ R), por cada nodo manter apenas uma parte das posições e coordenadas atômicas.
+A Figura 6 demonstra a comunicação desse método em 2 dimensões, que escolhe quatro processadores de borda colocando- se rótulos e iniciando a sequência para comunicação.
+Primeiro as informações são E/ R da esquerda e direita armazenando as coordenadas de três processadores em cada um.
+Depois as informações são E/ R para cima e para baixo finalizando o processo de comunicação.
+O método de decomposição de domínio possui maior escalabilidade para grande quantidade de processadores e sistemas biológicos mais complexos, como se pode constatar na leitura de.
+Porém, em, discutido no Capítulo 3, mostra- se que é possível acelerar aplicações de simulação por DM que aplicam o método de replicação de dados por meio de hardware reconfigurável, conseguindo obter sucesso na aceleração, como mostrado para o pacote Refinement) é uma coleção de programas que realiza os três passos principais em processamento de dados de sistemas biológicos:
+Preparação, Simulação e Análises de Trajetórias.
+Pode- se observar o fluxo de dados nesta suíte na Figura 7.
+Pmemd; Por último, no passo de análise de trajetórias dos átomos encontram- se o mm-pbsa e o ptraj que são responsáveis por esta função.
+O código da suíte AMBER é baseado em linguagem C e Fortran.
+O Fortran ainda é uma linguagem muito popular em pesquisas científicas principalmente para cálculos na área de física.
+Em as primeiras versões do AMBER 30% do código era escrito em linguagem C.
+A execução do AMBER em modo paralelo é determinada por o método de replicação de dados por intermédio de uma interface de troca de mensagens entre os processadores participantes do anel que compõem o cluster.
+Encontra- se na suíte AMBER uma otimização do software SANDER, chamado de PMEMD (do inglês, Particle Mesh Ewald Molecular Dynamics).
+Este reimplementa o SANDER com o objetivo de aumentar o desempenho em simulações por dinâmica molecular.
+O PMEMD utiliza processamento paralelo e foi reescrito todo em Fortran 90 com capacidade de executar sobre os mesmos arquivos de entrada utilizados no SANDER em versões posteriores à 6.
+PMEMD é um subconjunto do SANDER.
+Em o início, esse sistema era utilizado apenas para dar suporte a simulações com o PME (do inglês, Particle Mesh Ewald), por isso o nome PMEMD.
+Em versões posteriores foram adicionadas mais funcionalidades como simulações com GB (do inglês, Generalized Born) e ALPB (do inglês, Analytical Linearized Poisson--Boltzmann).
+Esse software é um pacote para simulações utilizado principalmente no estudo de proteínas, estrutura de ácidos nucléicos e funções, especialmente com macromoléculas de proteínas, DNA, RNA e outros sistemas biológicos complexos.
+Além disso, é utilizado para diversas funções, como:
+Atualmente, o CHARMM criou um portal como ferramenta para prover uma interface amigável para o pacote e facilitar a preparação, execução e visualização de simulações moleculares, chamado de CHARMMing (do inglês, CHARMM interface and graphics).
+Conforme, a execução paralela do CHARMM compartilha todas as forças e coordenadas em todos os processadores, e a maior eficiência em paralelo é adquirida com 16 processadores.
+Com isso, determina- se o método empregado que é o de replicação de dados por a similaridade nas execuções em paralelo com as descritas em outras aplicações, por exemplo, o Recentemente, surgiu uma iniciativa do Laboratório Daresbury em desenvolver um pacote para simulações macromoleculares chamado de Dl_ POLY.
+Trata- se de um pacote de propósito geral para simulação por dinâmica molecular.
+O objetivo é aplicar métodos por dinâmica molecular em paralelo para sistemas complexos, em especial macromoléculas.
+Inicialmente foi utilizado o método de replicação de dados para efetuar a paralelização desta aplicação.
+Em a versão mais recente, do Dl_ POLY, utiliza- se uma estratégia de paralelização por decomposição de domínios com mais eficiência e escalabilidade.
+Houve uma nova adaptação da decomposição de domínios com o método SPME (do inglês, Smoothed Particle Mesh Ewald), considerado uma atualização do PME, para calcular forças de longa distância em simulações moleculares agregadas a FFTs (do inglês, Fast Fourier Transform) de três dimensões.
+Com estas técnicas é possível fazer simulações de sistemas na ordem de um milhão de partículas em diante, considerados como grandes sistemas biológicos.
+É um pacote para simulação por dinâmica molecular desenvolvido originalmente em a (do inglês, GROningen MAchine for Chemical Simulations) é uma coleção de programas para simulação por dinâmica molecular e análise de trajetória de dados.
+É popular em computadores paralelos, por possuir eficiência nas implementações paralelas de propósito gerais, com códigos utilizando dinâmica molecular.
+O GROMACS é baseado no software GROMOS (do inglês, GROningen MOlecular Simulation), referência para algoritmos de simulação, enquanto que a paralelização utiliza métodos propostos em literatura mais recente.
+Em as primeiras versões do GROMACS, escrito em linguagem ANSI C o paralelismo era baseado na decomposição de partículas.
+A comunicação entre os processadores foi limitada por a distribuição de forças e posições sobre o anel do cluster e realizado uma vez a cada passo de tempo (time-steps) da simulação.
+Atualmente, no GROMACS 4, estão presentes diversas atualizações:
+Em ferramentas acopladas, alto desempenho em processadores simples, na otimização de algoritmos, e em máquinas paralelas com algoritmo de decomposição de domínios, balanceamento de carga e redução na comunicação.
+Com isso, pode ser adotado em sistemas moleculares complexos atuando de forma mais eficiente em máquinas paralelas.
+Um pacote clássico para DM é o LAMMPS (do inglês, Large- scale Atomic/ Molecular Massively Parallel Simulator).
+Trata- se de um código desenvolvido para simulação molecular e sistemas atômicos em computadores paralelos usando técnicas de decomposição espacial, que decompõe o domínio da simulação em pequenas partes tri-dimensionais.
+Desenvolvido por o Sandia National Laboratory, possui licença GPL e contém três versões principais.
+A primeira, de 1999 é escrita em código Fortran 77.
+Em 2001 o código foi melhorado para efetuar gerenciamento de memória em código Fortran 90.
+A última versão foi reescrita em C+ em 2004.
+Todas as versões realizaram a comunicação através de MPI (do inglês, Message Passing Interface).
+Porém, diversas mudanças foram feitas nos algoritmos paralelos, especialmente em cálculos de átomos não ligados Simulação por DM contém uma enorme complexidade computacional e as máquinas paralelas provêem um potencial para este desafio computacional.
+Existe a necessidade, além de recursos computacionais, de desenvolver programas escaláveis e de fácil modificação por os programadores.
+NAMD2 (do inglês, NAnoscale Molecular Dynamics) é um programa que provê estas características.
+Esse aplicativo é um código paralelo que utiliza dinâmica molecular, desenvolvido para alto desempenho em simulações de grandes sistemas biomoleculares.
+O NAMD é distribuído como código livre, e disponibiliza também, um programa gráfico molecular chamado VMD (do inglês, Visual Molecular Dynamics), para configuração da simulação e análise de trajetória e pode ser adquirido de forma independente.
+NAMD provê escalabilidade para centenas de processadores em plataformas paralelas, dezenas de processadores em clusters de baixo custo e execução individual em PCs.
+O NAMD é modularizado com linguagem C+ nativa, e é baseado no sistema de programação paralela Charm+ em conjunto com uma biblioteca específica, onde a computação é decomposta em objetos que interagem por o envio de mensagens para outros objetos com o mesmo ou com processadores remotos.
+A estratégia de paralelização é tratada na simulação da molécula por meio de divisões efetuadas no espaço tri-dimensional dos átomos, com cada parte de tamanho suficiente somente para 26 vizinhos mais próximos conservando as partes envolvidas em ligações bonded ou nonbonded.
+Assim, esta aplicação emprega o método de decomposição por domínios trazendo alta escalabilidade para as simulações.
+Protomol é um arcabouço orientado a objetos para DM com licença GPL.
+Utiliza encapsulamento e programação genérica, com a idéia de prover uma plataforma com extensão de componentes para algoritmos paralelos para DM.
+Esse programa é inspirado no NAMD2.
+Porém, seu principal objetivo não é alta escalabilidade, mas fazer uma otimização paralela simples e bastante flexível.
+Esta abordagem também é encontrada em outros projetos como o POOMA, MTL, Este arcabouço aborda o método de decomposição de forças.
+Possui um esquema de paralelização incremental, que traz suporte a um mecanismo genérico de paralelização e facilidades para execução em clusters com números moderados de nodos.
+A comunicação é feita por MPI-2 entre os nodos de processamento do agregado de computadores.
+Em este Capítulo será realizada uma discussão de diversos trabalhos relacionados a Apis em aplicações científicas ou de alto desempenho e diferentes formas de se utilizar HPRC com aplicações que envolvem simulações por dinâmica molecular.
+Apis em Aplicações de Alto Desempenho API é um conjunto de padrões estabelecidos por software para utilizar as funcionalidades de aplicativos e não aprofundar no seu entendimento.
+Uma função amplamente utilizada em plataformas de hardware é a adaptação de aplicações para aceleração por hardware.
+Desta forma, utilizam- se os serviços do hardware e do software, integrando a necessidade da aplicação com os recursos disponíveis no hardware.
+A função de uma API depende do ambiente onde está, podendo conter vários tipos de funções, dependendo da necessidade.
+O cuidado no uso de Apis é outro ponto importante, possibilitando tanto acrescentar melhorias, como prejudicar todo o sistema computacional.
+Existem diversas propostas de Apis na literatura para aplicações de alto desempenho.
+O restante desse Capítulo mostra a descrição de uma API e sua utilização de forma correta.
+Stahlberg et al.
+Propõem uma API genérica (OpenFPGA GENAPI), para dar suporte a integração de programas para cálculos de campos de força clássicos por dinâmica molecular a aceleradores de hardware baseados em FPGAs.
+De entre as diversas características mostradas como necessidades, apresentam- se inicialmente uma variedade de funções e algumas vantagens na disponibilização de Apis, tais como:
+Alocação de recursos necessários e inicialização do dispositivo FPGA e sua infraestrutura.
+Gerenciamento dos algoritmos no FPGA (fluxo de arquivos) e seu mapeamento para o dispositivo FPGA.
+Alocação de memória para melhorar a transferência de dados da memória do hospedeiro para os bancos de memória do FPGA e vice-versa.
+Interface explícita para (bloquear) funções de transferência de dados.
+Em, os autores mencionaram melhorias na API adicionando funções específicas para cálculos por dinâmica molecular como:
+Introduzir o conceito de um Algoritmo para registradores e metadados.
+Suporte para codificar e consultar a configuração de hardware do FPGA.
+A definição das funções básicas foi dividida em três grupos:
+Inicialização e Operação, Alocação de memória e Gerenciamento do Algoritmo.
+Definiram- se novas características e funcionalidades na API para dar suporte aos cálculos de Lennard-Jones (LJ) e FFT (do inglês, Fast Fourier Transform) para interações de longo alcance de Coulomb e a criação da lista de átomos vizinhos.
+Para isso criaram- se novas funções para uma API portável para DM constituída de 4 categorias:
+Configuração e setup de LJ, API de Operações de LJ, API da camada superior de LJ e baixo nível de configuração FFT.
+Em a validação da API, em investigações iniciais determinou- se viabilidade nas seguintes plataformas:
+Mitrion-C, Dime-C, Nallatech H101, Cray XD1 com Virtex-4 LX100 e DRC FPGA.
+Para examinar o potencial da API na aceleração os autores escolheram uma aplicação por DM, a LAMMPS, para exercitar a API.
+Underwood et al.
+Argumentam que em aplicações HPC há dois aspectos importantes.
+Primeiro, a forma de uso da API, ocultando o paralelismo do sistema, e as questões relacionadas à arquitetura do sistema como segundo aspecto.
+Esse trabalho demonstra que uma grande largura de banda, baixa latência na conectividade pode ser importante, mas a maneira correta do uso da API pode ser tão importante quanto.
+Os autores executaram dois tipos de aplicações, uma FFT e operações DGEMM (do inglês, Dense Matrix Multiply Operation), com diversas arquiteturas de hardware e diferentes tamanhos de números de ponto flutuante.
+Além disso, utilizaram- se diferentes API para a conexão entre a máquina hospedeira e a plataforma aceleradora baseada em FPGA.
+Uma das conclusões do trabalho é que a utilização errada da API pode ter como impacto reduzir em até três vezes o desempenho da aplicação, mostrando a importância da API para a eficiência do sistema.
+O desenvolvimento de Apis não é uma tarefa trivial conforme salientam Stalberg et al.,
+e os diferentes ambientes de desenvolvimento fornecidos por os fabricantes de FPGAs apenas aliviam parte dessa complexidade.
+Contudo, como FPGAs estão sendo utilizados como a principal técnica na aceleração de hardware atualmente, resta o desafio de abordar as diversas plataformas existentes, implicando um compromisso entre generalidade e efiCiência das Apis propostas.
+Saha et al.
+Mostram a significativa redução de tempo de desenvolvimento de aplicações com computação reconfigurável, através de bibliotecas portáveis de núcleos de hardware altamente otimizados.
+Esta literatura apresenta a permuta e os desafios encontrados no projeto de tais bibliotecas, provendo um conjunto de orientações no desenvolvimento de bibliotecas portáveis e a validação desse suporte por meio de um estudo de caso com a biblioteca RCLib (do inglês, Reconfigurable Computing Library).
+A implementação de núcleos aceleradores de hardware em sistemas HPRC está exposto na Figura 6, onde se tem o núcleo instanciado no wrapper para se adaptar aos sinais providos do núcleo de serviços do próprio fabricante, em o qual se cria um alto nível para ser sintetizado e implementado no FPGA.
+Os autores identificam os 5 principais problemas a serem resolvidos no desenvolvimento desse tipo de biblioteca de hardware, com orientações que levantam importantes características a serem definidas por o projetista de tais bibliotecas.
+O primeiro é a análise de domínio, onde determina- se o conteúdo e o escopo da biblioteca, seguido da definição da interface padrão.
+O terceiro problema é a portabilidade de código, precisa- se considerar um balanceamento entre desempenho e portabilidade.
+O controle de qualidade é colocado em quarto, e o último é destinado à distribuição, licenciamento e colaboração.
+A validação do conjunto de orientações propostos foi realizada por meio de um estudo de caso com a biblioteca RCLib.
+Esta biblioteca foi desenvolvida por a universidade George Washington (GWU), por a associação acadêmica da universidade de George Mason (GMU) e por a universidade da Carolina do Sul (SC), provê uma coleção de núcleos otimizados de hardware que podem ser portados em diferentes sistemas HPRC, entre esses, estão apenas os principais fabricantes como SGI, SRC e Cray.
+O conjunto de orientações tem sido completamente validado por meio de estudos de caso com mais de 100 diferentes tipos de núcleos, destinados as aplicações de processamento de imagem, criptografia, bioinformática e aritmética de números inteiros longos.
+O uso e desempenho da biblioteca de hardware RCLib foi demonstrado por dois exemplos de aplicações, uma utilizando um nodo simples de processamento no algoritmo de redução de dimensão espectral de onda, e o segundo exemplo da RCLib com múltiplos nodos e dois níveis de paralelismo, chip e sistema, numa aplicação de bioinformática no algoritmo de Smith-Waterman.
+Em os dois exemplos encontrou- se um nível de desempenho muito maior quando comparado a simples sistemas HPC, na ordem máxima de aproximadamente 32x e 2794x respectivamente em cada aplicação.
+Aceleração de Processamento com Hardware Dedicado Baseado em FPGAs O multiprocessamento intra-chip é um tema clássico de pesquisa e desenvolvimento intra-chip, visando sempre o alto desempenho como provido por plataformas MPSoC populares em aplicações que exigem recursos computacionais avançados, principalmente por sua flexibilidade.
+Em aplicações de bioinformática e biofísica molecular computacional, exige- se recursos computacionais de alto desempenho e a utilização de plataformas baseadas em FPGA é viável, tendo recebido atenção crescente de diversos autores.
+Alguns trabalhos apresentam diversas formas de utilização de plataformas baseadas em FPGAs, como arquiteturas ou máquinas dedicadas, escolhas de métodos conforme a aplicação utilizada e implementação em aplicações de computação científica.
+Conti et al.
+Apresentam diversos métodos relacionados a aceleração por meio de plataformas baseadas em FPGAs, com aplicações em bioinformática e biofísica molecular computacional.
+Os Autores propõem um método em que se considera a Lei de Amdahl, onde enfatizam a combinação entre a otimização do código original e a atribuição de execução de uma parte desse código ao FPGA, acelerando as tarefas mais exigentes em termos de processamento, e conseqüentemente maximizando o desempenho global da aplicação.
+Um exemplo de aplicação citada com a utilização desse método são as simulações por dinâmica molecular e aplicações envolvendo a predição de estruturas moleculares com suas interações.
+Agarwal et al.
+Demonstram a utilização de FPGAs em computação científica, especificamente em cálculos científicos.
+Os autores alegam que o uso de HDLs (do inglês, Hardware Description Languages) pode ser um fator limitante na área de aceleração de simulações por dinâmica molecular, pois relativamente poucas pessoas da área dominam tais linguagens.
+Assim, esses e outros autores sugerem o uso de plataformas reconfiguráveis que contém ambientes de desenvolvimento capazes de gerar hardware a partir de linguagens de programação como C. Mapstation, com moléculas de 23.558 e 61.641 átomos.
+Os autores mostraram um desempenho de gerenciamento da memória.
+Os Autores de mostram uma diversidade de métodos para execuções de aplicações HPC em FPGA, principalmente em áreas relacionadas a bioinformática.
+Já os estudos de, além de sua contribuição conceitual, agregam dados de desempenho para aplicações envolvendo cálculos para simulações por dinâmica molecular.
+A implementação foi realizada especificamente no cálculo de PME utilizando diferentes análises e arquiteturas.
+Cálculo de forças entre átomos não ligados consome grande parte do tempo de execução da aplicação, por isso, foram convertidos para hardware com o software The Carter Compiler presente na plataforma.
+Utilizaram as plataformas MAPstation SRC-6 series-C e series-E, em cada elemento de hardware reconfigurável tem- se Virtex-II XC2 V6000 e XC2 VP100s respectivamente, e todos FPGAs operando a 100 MHz.
+O software por DM foi escrito por os autores para programar o algoritmo velocity Verlet em simples e dupla precisão aritmética.
+Em átomos não ligados, foram efetuados cálculos de LennardJones e Coulomb para as forças e o movimento dos átomos, em duas moléculas o ácido Palmítico de 52.000 de átomos e a proteína CheY de 32.000 de átomos.
+Em os resultados dos experimentos as duas moléculas obtiveram um aumento de 2x com aceleração por hardware.
+Porém, na implementação com vários nodos obteve- se resultados inferiores, quando a quantidade de nodos é maior que um.
+É importante ressaltar que, houveram diferenças, na análise das saídas a flutuação de energia nas simulações aceleradas ou não, principalmente na molécula do ácido Palmítico, que aproximouse de 5% continuamente em toda simulação.
+A proteína CheY aproximou- se de 5% apenas num momento no início da simulação, já no restante da simulação encontrou- se similar ao original (não acelerado).
+Gu et al.
+Apresentam aceleração por intermédio de co-processadores baseados em FPGAs para forças de curto alcance.
+Foi realizada uma otimização no código do cálculo de Lennard-Jones (curto alcance), que inclui os métodos de atração de Van Der Waals e repulsão de Pauli.
+Uma das principais características otimizada está relacionada a interpolação aplicada na computação de forças de curto alcance.
+Compararam- se três métodos de interpolação de Taylor, Polinômios Ortogonais e Hermite, levando em consideração a quantidade de seções e a ordem da interpolação.
+Escolheu- se o método Ortogonal, devido principalmente a redução de erros, e caracterizou- o para executar o pipeline de forma eficiente.
+Outras duas características importantes na otimização foram a precisão nos cálculos com ponto flutuante e a exclusão de átomos ligados, antes de efetuar os cálculos de átomos não ligados.
+Em o primeiro comparou- se dois modelos com ponto flutuante completo (precisão dupla) e um semi-ponto flutuante (com 35 bits).
+Em a outra característica, diminuiu- se o número de átomos e conseqüentemente a computação efetuada nesses cálculos.
+Em a definição do projeto do co-processador o uso de pipelines foi essencial na caracterização do hardware para a aceleração.
+Em o cálculo de forças também foi utilizado no suporte ao método de listas de células e o gerenciamento de memória, por a quantidade de informações transferidas nesses cálculos.
+Os experimentos foram realizados com uma molécula de 77 k de átomos e o seu PDB Id é 1 qgk.
+A caixa que envolve esta molécula possui dimensões de 93 Å x 93 Å, a execução da simulação para esta molécula é de 1.000 passos de tempo.
+Utilizaram o software Protomol para simular a molécula e no código base, as otimizações em ponto flutuante foram de 35 bits com 4 pipelines no cálculo de forças.
+Compararam- se duas versões, acelerada e não acelerada, e com dois softwares o Protomol e o NAMD.
+Em o Protomol conseguiu- se um aumento de 9.8 x, já com o NAMD esse número caiu para FPGA, obtendo- se com dois dispositivos XC2 VP70 (da família VirtexII Para o da Xilinx) um ganho de 11.0x com o NAMD realizado no laboratório próprio e de 6.5x com o mesmo software num laboratório externo, da mesma forma, com um VP100 obteve- se 8.9x e 5.3x respectivamente e para a nova Virtex-5 LX330T com precisão simples o aumento foi de 16.8 e 10x conforme os parâmetros de software anteriores.
+Comparação das abordagens Existem diferentes grupos de pesquisa trabalhando com o objetivo de ajudar na aceleração de aplicações por DM aprimorando o desempenho em arquiteturas modernas de computadores baseadas em hardware reconfigurável, como e.
+Em biofísica molecular, há a necessidade de alto poder computacional para facilitar a obtenção de dados e posterior análise do sistema molecular por meio de simulações.
+Se esta área encontrasse a quantidade de informações necessárias para analisar o sistema molecular em segundos, mesmo em grandes sistemas ou tempos de simulação, seria possível encontrar fármacos para doenças em poucas horas, constituindo um sonho aos pesquisadores de biofísica molecular.
+Pode- se observar na Seção 3.2, que mesmo com a diversidade dos autores trabalhando com aceleração por hardware numa parte dos cálculos (curta distância) de toda a dinâmica molecular, ainda existe um campo amplo para pesquisa, por envolver uma infinidade de abordagens como:
+API, são as principais.
+Não será utilizada uma API comercial como muitos autores o fizeram.
+A proposta desse trabalho é construir uma API para comunicação entre a máquina hospedeira e a plataforma FPGA.
+Em este Capítulo serão descritos todos os recursos utilizados nos experimentos práticos realizados nesse trabalho.
+Algumas características específicas de cada experimento serão descritas na própria Seção que define o experimento para facilitar a compreensão.
+Recursos de Software Os estudos de casos realizados nos Capítulos 6, 7 e Seção 7.1, foram realizados com o mesmo pacote de aplicações por dinâmica molecular, o AMBER na versão 9.
+Em os estudos de casos escolheram- se dois subconjuntos desse pacote, o SANDER e o PMEMD como os softwares para aplicação por dinâmica molecular, e no da Seção 7.1 apenas o PMEMD.
+Esses experimentos foram executados no laboratório do GAPH.
+Em esses estudos de caso empregou- se o sistema operacional Linux, baseado em software livre, com a distribuição Fedora.
+Em os experimentos do Capítulo 5 fez- se uso da versão 9 com a arquitetura X86.
+64 nas duas máquinas.
+Devido a as restrições de hardware e software, que serão apresentados no Capítulo 6, os testes realizados com a plataforma FPGA e a API, na Seção 7.1, aplicou- se na máquina hospedeira o sistema operacional Linux Fedora na versão 8 e arquitetura i386.
+Para a compilação dos softwares do pacote AMBER foi necessário a utilização de compiladores do projeto Gnu e outros específicos para as linguagens Fortran e C. Os compiladores Gnu foram o GFORTRAN e GCC nas versões 4.1 e 4.3, e do fabricante Intel, o IFORT na versão compilador ICC.
+Em a comunicação por meio de troca de mensagens, nos experimentos que utilizam o modo paralelo para realizar as simulações por DM, empregou- se a biblioteca MPICH na versão 2.
+Com o software VMD, na versão 1.8.6, realizou- se a animação e visualização em 3D do sistema molecular nas Figuras 12 e 13.
+Este software possibilita a definição de cores e modos de visualização conforme descritos nessas figuras.
+Recursos de Hardware Para os estudos de casos utilizaram- se dois ambientes, o primeiro, referente a as Seções 5.1 e organizadas num pequeno cluster.
+O segundo ambiente, referente a Seção 7.1, contém apenas uma máquina reconfigurável com a plataforma de hardware (FPGA) acoplada ao barramento PCI.
+As duas máquinas definidas para o primeiro ambiente possuem as seguintes características:
+Em o segundo ambiente a configuração básica do computador, máquina hospedeira, e da plataforma de hardware são, respectivamente:
+Sistema Molecular O átomo é a unidade básica da matéria, são os responsáveis em compor os seres vivos ou minerais, possuem um núcleo envolvido por uma nuvem de cargas elétricas negativas.
+As moléculas são formadas por ligações de entre dois ou mais átomos.
+Um sistema molecular é formado por um conjunto de átomos e/ ou moléculas, e podem conter milhares ou milhões de átomos dependendo do seu tamanho.
+Os parâmetros iniciais para a simulação por dinâmica molecular e o sistema molecular, definidos nos arquivos de entrada nos experimentos, foram obtidos do grupo de pesquisa LABIO.
+Estas características são iguais em todos os experimentos apresentados posteriormente, o sistema molecular utilizado está exposto na Figura 11.
+NAH é com coloração do tipo palito.
+A dinâmica molecular utilizada na simulação é composta por pressão de 1 atm, temperatura de 298,16 Kelvins ou 25° C, caracterizando no conjunto ou ensemble isobárico-isotérmico (NPT), e nos cálculos de átomos não ligados utiliza- se o PME, van der Waals, entre outros, expostos na Seção 5.2.
+A molécula possui 20 tipos diferentes de átomos e todo o sistema com a caixa ortorrômbica é apresentada na Figura 11, esta imagem foi criada a partir de o software VMD, descrito na Seção 2.3.6.
+A estrutura terciária, mostrada na Figura 11, faz parte de um experimento já iniciado por o grupo LABIO.
+Esta imagem foi retirada do intervalo de 9.900 ps a 9.910 ps da simulação desse sistema molecular, os parâmetros da simulação estão descritos na Seção 5.2.
+A estrutura terciária desse sistema molecular pode ser visualizada de forma mais detalhada sem a caixa ortorrômbica e o solvente na Figura 12.
+Esta figura foi criada com o software VMD determinando cada característica das estruturas por meio de diferentes métodos de coloração e de desenho para melhor visualização da estrutura terciária.
+A animação foi representada em 3D por o software VMD com o método de coloração estrutura, com material brilhoso e método de desenho novo cartoon.
+NAH por o desenho em forma de palitos no centro da estrutura da molécula.
+Dinâmica Molecular Os parâmetros definidos na dinâmica molecular utilizada está contido no arquivo de entrada da simulação do sistema molecular.
+Esses parâmetros foram definidos previamente, conforme as características estipuladas para a simulação, como os parâmetros do conjunto estático utilizado, o uso do método PME, entre outros.
+A descrição e definição de todos os parâmetros que compõem esse arquivo de entrada estão presentes no Anexo A ­ Características da Dinâmica Molecular.
+Este exemplo, é utilizado apenas para o pacote AMBER, o arquivo apresentado no anexo é para ser utilizado no SANDER.
+Para utilizar a mesma dinamica molecular no PMEMD é preciso retirar os que não são suportados por essa aplicação.
+Dois estudos de caso são realizados neste Capítulo, um para a investigação da aplicação PMEMD e outro para realizar simulações por dinâmica molecular.
+Em a última Seção é feita uma discussão sobre a biblioteca MPI e sua possível utilização.
+Investigando o Perfil da Aplicação PMEMD Recentemente, observou- se que os níveis de complexidade nas aplicações aumentam de maneira espantosa, especialmente em aplicações científicas.
+Além disso, o grande número de módulos, rotinas e funções acoplados dificulta a compreensão do problema, nestas aplicações, que geralmente só é entendido por os próprios autores.
+Para auxiliar o entendimento de aplicações complexas têm- se ferramentas que atuam como monitores de traçado de perfil da mesma, coletando informações específicas e essenciais para sua análise.
+É possível obter informações a respeito de o tempo de execução em cada módulo ou rotina, possibilitando uma análise de qual parte do código exige maior poder computacional, e coletar a quantidade de chamadas efetuadas de cada módulo ou rotina da aplicação.
+Estas informações facilitam o trabalho de paralelização de uma aplicação que necessita de HPC.
+Como visto na Seção 2.3, aplicações de simulação por dinâmica molecular necessitam de HPC e contêm um grande nível de complexidade.
+Para facilitar o entendimento do problema, utilizou- se uma ferramenta para traçar o perfil do software PMEMD.
+Esta ferramenta é chamada de GPROF (do inglês, Gnu PROFiler), que possui licença Gnu, e geralmente é um componente básico de qualquer distribuição, em sistemas operacionais Linux.
+Para compreender a aplicação PMEMD de maneira mais profunda, adquiriram- se informações por intermédio de duas técnicas empregadas, o plano de perfil e o gráfico de chamadas, obtidas por a ferramenta de profiling.
+Em o plano de perfil visualizam- se com detalhes os tempos gastos em cada módulo e rotina da aplicação, conforme Tabela 3.
+Já no gráfico de chamadas além de a quantidade de chamadas em cada módulo ou rotina, obtém- se a hierarquia e seqüência das chamadas efetuadas em toda aplicação.
+Esses resultados estão expostos na Figura 13, a quantidade de chamadas em cada rotina está entre colchetes e os números em cada rotina mostra a sequência de execução dessas no software PMEMD.
+Em a sub-rotina short_ ene, pode- se observar a estrutura básica desta parte do software, com seus laços e seleções, e a quantidade de loops feitos em cada seleção, representado por os números entre colchetes.
+Para caracterizar de maneira mais detalhada alguns pontos principais numa aplicação é realizado alguns procedimentos para poder traçar o perfil do software.
+Em a intenção de trabalhar numa parte da aplicação em que se tenha um custo computacional alto, faz- se necessária a investigação do perfil da aplicação, capturando informações de tempos e quantidades de chamadas em cada rotina do programa.
+Em a aplicação de Simulação por dinâmica molecular PMEMD, software usado nesse trabalho, são executados 5 módulos, conforme sequência da Figura 13, até se encontrar a sub-rotina short_ ene.
+Essa rotina interna usada para a realização desse trabalho por conter o maior custo computacional em toda simulação, conforme Tabela 3.
+Em esta se mostra a rotina get_ nb_ energy que efetua a chamada a short_ ene, e que faz o cálculo de forças dos átomos não ligados.
+Os valores mostrados nas Figura 13 e na Tabela 3, foram adquiridos de uma simulação utilizando o PMEMD com 200 time-steps e com uma taxa de 0,002 ps para cada passo (step).
+Foi estipulado este valor por a quantidade de dados gerados no monitoramento da subrotina short_ ene, tornando- se difícil o acesso aos dados por o seu tamanho.
+Com isso, para que os tempos de simulação não contenham medidas diferentes no monitoramento e no traçado de perfil, optou- se por este número, que mostra claramente quais as funções mais visitadas, a hierarquia e os tempos gastos iguais ao de uma simulação maior.
+Estas informações têm alta relevância ao estudo desta aplicação.
+Cada chamada a rotina get_ nb_ energy gera quantidades diferentes de repetições nos laços dentro de a subrotina short_ ene.
+Com isso, foi realizado um cálculo simples de média aritmética na quantidade de repetições de algumas amostras (ou chamadas a rotina get_ nb_ energy), determinando os valores expostos na Figura 13, nas chamadas efetuadas dentro de a rotina interna short_ ene_ novec.
+Os resultados obtidos em toda execução do PMEMD foram obtidas, por a ferramenta gprof.
+Em o SANDER foram definidos os mesmos parâmetros de entrada apresentados por a dinâmica molecular, mas com 5.000 passos de tempo ou 10 ps de tempo de simulação, utilizando a máquina com o Turion x 2, executando em modo serial.
+Como discutido anteriormente o cálculo na rotina Short_ ene é o que contém maior custo computacional em toda simulação, isto pode ser comprovado por o JAC benchmark da Figura 14.
+Estes valores foram adquiridos do arquivo de saída gerado por o JAC e reduzido a quantidade de informações para facilitar a visualização.
+Cada rotina vem associada com segundos consumida por a sua execução em toda a simulação e organizada hierarquicamente.
+A rotina Short_ ene gastou 4.863,15 segundos, de um total de 7.071,21 segundos, chegando a aproximadamente 68,77% de todo o tempo de simulação, comprovando assim, que trata- se da rotina que possui maior custo computacional.
+Amber 9.
+Com o tempo de execução das principais rotinas ou módulos existentes em segundos e sua respectiva porcentagem.
+Para o entendimento de todo o processo de simulação é necessária a compreensão de áreas co-relacionadas como a física, química e biologia.
+Existem grandes quantidades de cálculos realizados que não são visíveis ao usuário da aplicação.
+Como mostrado na Seção 2.2, existe uma grande variedade de aplicações que utilizam dinâmica molecular para simular sistemas biológicos de vários tamanhos.
+Em a Instalação do pacote AMBER deve- se escolher entre uma instalação serial ou paralela.
+Em a serial a sua execução é realizada em apenas um núcleo de processamento, mesmo que o processador contenha mais núcleos.
+Já na paralela, pode- se definir a quantidade de processos iniciados.
+Se o número de processos for maior que a quantidade de núcleos é realizado um particionamento entre eles e o escalonamento entre todos é realizado por o sistema operacional.
+Esta é uma técnica baseada em concorrência entre processos.
+É possível também utilizar um cluster de máquinas e distribuir a quantidade de processos para cada nodo do cluster, conforme se desejar.
+A Simulação realizada com PMEMD contém a mesmas características de entrada da dinâmica molecular apresentadas na Capítulo 2, e o tempo de simulação foi definido como 10 ps ou Os gráficos desta Seção apresentam os resultados das duas aplicações por DM (PMEMD e SANDER) em diferentes ambientes, para efeito de comparação entre estas.
+Os recursos de hardware possuem as configurações apresentadas na Seção 4.2.
+Os resultados foram obtidos com o modo paralelo, por intermédio de um cluster empregando- se a comunicação dos nodos por meio de a biblioteca MPI.
+Essa comunicação também foi utilizada nos testes com mais de um processo na mesma máquina quando executado independentemente.
+As simulações usaram 8 diferentes quantidades de processos:
+1, 2, 3, 4, 5, 6, 8 e 12.
+Em a versão paralela não foi realizada simulação com 1 processo ou serial por motivos óbvios.
+A Figura 15 mostra os resultados para as duas máquinas independentes, com simulações utilizando as duas aplicações por DM.
+A diferença relacionada entre os dois processadores pode ser observada claramente em qualquer uma das duas aplicações, em que o tempo de simulação é muito maior utilizando um processador de dois núcleos em qualquer situação.
+Em as simulações com o ambiente paralelo, cluster ou agregado de computadores, obteve- se resultados ruins em relação a os resultados observados com apenas uma máquina.
+Esses resultados aparecem na Figura 16 e na Figura 17, mostrando que mesmo com um agregado de computadores, o tempo de simulação para o mesmo sistema, é maior do que com um computador possuindo um processador de quatro núcleos, mostrando a possível má influência da interface de comunicação na simulação.
+Conforme os gráficos apresentados anteriormente, nesta Seção pode- se observar que mesmo num ambiente paralelo não se conseguiu obter um desempenho melhor do que numa máquina com um processador com vários núcleos de processamento, mostrando a possível má influência da interface de comunicação na simulação.
+O ambiente paralelo mostrado foi implementado com uma interface de rede Fast-Ethernet de 100 Mbps para conexão entre os processadores, e a comunicação é realizada por a biblioteca MPI, resultando em aproximadamente 12 GB de transferência de dados para cada simulação, mostrados por meio de um monitor do sistema do próprio sistema operacional.
+Outro ponto importante a ser observado e o principal estímulo para a realização destas simulações é a comparação entre as duas aplicações pertencentes ao pacote AMBER, PMEMD e SANDER.
+Em todos os ambientes mostrados a aplicação PMEMD foi superior ao SANDER, mesmo com arquiteturas e quantidades de processos distintos.
+Por esta razão, e por a simplicidade e otimização do código do PMEMD, definiu- se que esta será a aplicação base para o trabalho a ser realizado.
+Processamento paralelo permite o aumento de desempenho de um programa utilizando técnicas para aproveitar melhor os recursos de hardware de um sistema.
+A comunicação em processamento paralelo usando agregados ou computadores paralelos, permite a agregação de técnicas de sistemas distribuídos para a troca de informações entre processadores do sistema, como a troca de mensagens.
+Em processamento paralelo definem- se entre os computadores pertencentes ao agregado dois tipos, o mestre que realiza a distribuição e gerenciamento das tarefas e o escravo que realiza a computação das tarefas.
+A comunicação pode ser efetuada entre mestre e escravos ou entre escravos e escravos.
+Dependendo da aplicação a ser paralelizada, utiliza- se um desses tipos ou os dois em conjunto.
+Para efetuar essa comunicação exige- se um nível de complexidade alto em programação paralela e distribuída.
+Vários fatores envolvidos em eventos de comunicação devem ser coordenados, tais como a transferência segura de arquivos, a identificação e abertura de portas nas máquinas participantes, o particionamento dos dados a serem transmitidos, o controle de chegada e de envio dos dados, padrões para efetuar solicitações, entre outros.
+Uma biblioteca popular para a comunicação com estas funções é a MPI, que implementa técnicas de troca de mensagens em processamento paralelo.
+Existem diversos programas e bibliotecas que efetuam as técnicas de troca de mensagens por meio de primitivas MPI, os principais são:
+MPICH, LAM/ MPI e OpenMPI.
+A biblioteca utilizada para efetuar as simulações da Seção 5.2 foi a MPICH.
+Observou- se nestas implementações que esta biblioteca, além de as primitivas padronizadas da MPI, encontra- se um programa chamado MPD (do inglês, Management Processor Daemon).
+Este faz a divisão e cria o anel base para a comunicação dos processos entre as máquinas.
+Este gerenciador de processadores precisa ser iniciado antes da execução das primitivas MPI, utilizando uma porta informada ao cliente e iniciada no servidor para poder ser adicionado no anel.
+É requisitada a configuração de IP associado ao nome da máquina e um protocolo para autenticação remota, podendo- se escolher entre ssh (padrão) e rsh.
+Além disso, a biblioteca contém uma dependência no local onde se encontra o software a ser paralelizado, por exemplo, se o programa executável está no caminho /home/user/programa no servidor, ele obrigatoriamente tem que estar em todas as máquinas pertencentes ao anel nesse mesmo local.
+Esta dependência acontece na biblioteca MPI devido a a utilização de técnicas de processamento paralelo baseado em SPMD (do inglês, Single Program, Multiple Data).
+Em a execução paralela utilizando MPI com aplicações da Seção 5.2, observou- se uma quantidade grande de memória utilizada em cada processo iniciado na máquina, além de o processo mestre que geralmente é ainda maior.
+A partir de dados capturados com o monitor do sistema operacional, verificou- se que o PMEMD utiliza em cada processo escravo iniciado aproximadamente 35 MB, e no SANDER esse valor sobe para 45 MB, dados capturados com monitor do sistema do sistema operacional.
+Com isso, a transferência de dados entre as máquinas pode influenciar no desempenho de todo o sistema como averiguado na Seção 5.2.
+Com a necessidade de memórias de grande porte, requisitos reservados de memória nas plataformas FPGA, podendo inviabilizar implementação em aceleradores por hardware.
+Em, explora a sobrecarga causada por requisitos pesados de memória em hardware reconfigurável.
+Os autores de, relatam que a utilização do padrão MPI necessita de vários recursos que podem não estar disponíveis em sistemas embarcados ou plataformas FPGA.
+Isto inclui sistema operacional, alta capacidade de memória, processador, entre outros.
+Os autores implementaram um subset da MPI denominado TMD que não utiliza sistema operacional e possui uma necessidade menor no tamanho da memória, mas esta implementação é específica para máquinas TMD.
+Para, o ambiente ideal para MPI é aplicado ao projeto de SOCs complexos inclusive com uso de NoCs, já que pode- se demonstrar que barramentos compartilhados em MPSoCs não são escaláveis além de 8 processadores.
+Como uma parte da aplicação por DM é enviada para os nodos clientes por meio de MPI, a implementação em FPGAs seria comprometida, tendo que explorar a utilização de processadores nos FPGAs.
+Assim, o emprego de um nível de paralelismo de grão pequeno não seria possível.
+Para conseguir enviar só os dados necessários por as primitivas MPI, reduzindo a quantidade de chamadas e de transferência de dados teria- se que verificar e modificar grande parte do código da aplicação.
+Assim, torna- se o trabalho mais complexo, conforme Seção 5.1, limitando o nível de paralelismo que se pode obter com FPGAs.
+Devido a a quantidade de restrições impostas na implementação da aplicação por DM utilizando a biblioteca MPI decidiu- se que a comunicação entre a máquina hospedeira e a plataforma FPGA não será realizada por intermédio de primitivas MPI.
+Recursos Utilizados Esta Seção apresenta os recursos de hardware e software utilizados para criar e testar a API proposta.
+Estes recursos são apresentados de forma sucinta junto às dificuldades para seu uso.
+Uma plataforma muito difundida na aceleração por hardware é o FPGA.
+Também chamado de hardware reconfigurável, estas plataformas contêm algumas vantagens e desvantagens no seu emprego.
+As vantagens estão no custo, na facilidade de alterações no hardware e o nível de paralelismo possibilitado.
+Como desvantagens pode- se citar o alto consumo de energia e a relativa escassez de recursos dos chips dificultando a criação de grandes códigos, e a dificuldade de encontrar projetistas de hardware.
+A placa destinada a realização dos testes iniciais desse trabalho foi a DN8000 K10PCI do Grupo DINI.
+Esta placa possui características interessantes para o trabalho, a mais importante destas é a utilização da interface PCI para comunicação com a máquina hospedeira e a possibilidade de inserção de até 3 FPGAs na mesma placa, como pode ser observado na Figura 18 o diagrama de blocos caracterizando esta plataforma FPGA.
+Para validação da interface PCI, dois componentes possuem grande importância para a comunicação.
+O primeiro destes é o Ci controlador QL5064 que interage diretamente com o slot PCI e o segundo é um FPGA Spartan II para interconexão e configuração de o (s) FPGA (s) destino, por o barramento Main Bus.
+A Main Bus consiste num barramento principal interconectando todos os FPGAs Virtex 4 por meio de um barramento de 40 bits de largura, porém a interface Main Bus utiliza apenas 36 bits, sendo 4 bits de controle e 32 bits de dados, conforme mostrado na Figura 18 utilizando a sigla MB.
+Esse barramento pode ser usado para comunicação com interfaces USB, PCI ou PCI- e, dependendo do modelo da placa e de suas funcionalidades.
+Para a transferência de dados, cada palavra contém 32 bits representados em números hexadecimais e com o mesmo tamanho para realizar o endereçamento.
+O acesso a interface Main Bus pode ser realizada através de leitura ou escrita, respectivamente com as transações RD e WR, definidas nas Seções seguintes.
+Os acessos são sempre iniciados por o FPGA Spartan II Suporte 1 circuito principal e 16 escravos Existem quatro sinais de controle:
+Ale, RD, WR e DONE Todas as transferências são síncronas conforme sinal MB_ CLK, que é fixo em 48 Mhz.
+O RD é utilizado para realizar um acesso de leitura por o barramento Main Bus, este processo consiste em três passos principais que são gerenciados por o circuito principal, FPGA Spartan II.
+O driver da placa é o software responsável por fazer a interface entre hardware e software, escrito em linguagem C, que é compilado e disponibilizado, por o Dinigroup, em conjunto com o software Aetest, descrito na Seção 6.1.3, em diversas plataformas de sistemas operacionais.
+Uma das plataformas suportadas é o Linux, que é a escolha desse trabalho, pois a aplicação por DM executa apenas neste sistema operacional.
+Esse driver possui suporte para o kernel 2.6 do Linux, porém houve problemas de compilação com o sistema operacional, na distribuição Fedora em suas duas últimas versões, que utilizam kernel acima de o 2.6.25.
+Já com a versão 8, e kernel 2.6.23, não ocorreu o mesmo problema, lembrando que a arquitetura utilizada foi a i386 em todas as situações e conforme o fabricante este software tem suporte à arquitetura x 86.64, não utilizada pois a máquina hospedeira tem processador com arquitetura de 32 bits.
+O fabricante também disponibiliza scripts para carregar o driver, mas estes tiveram que ser adaptados para funcionar.
+Quando o driver é carregado, cria 6 entradas de dispositivos com o nome dndev em/ dev, entradas estas utilizadas no software Aetest para comunicação.
+Em o grupo GAPH foi desenvolvido, no escopo de outro projeto de pesquisa, hardware que será utilizado aqui para realizar testes de leitura e escrita via interface PCI no barramento Main Bus, como ilustra a Figura 21.
+O módulo principal é o MB_ Target, cuja função é comunicar- se com o dispositivo principal e gerenciar módulos escravos nas transações de leitura e escrita.
+Além deste módulo, o projeto contém um módulo para leitura de dados e um para escrita, que fazem acesso à memória por os Handlers de cada transação.
+Por último, o módulo Top faz manipulação dos dados.
+Em o presente projeto realiza- se uma transferência dos dados da memória de entrada para a memória de saída, não executando nenhum tipo de cálculo.
+A transferência dos dados realizada por esse projeto é definida por o envio ou recepção de 64 bits de dados por chamada e a memória (formada por BlockRAMs do FPGA) total de armazenamento é de 81.600 palavras de 32 bits em hexadecimal.
+O fluxo de dados na entrada e saída desse projeto de hardware por as chamadas de escrita e leitura no barramento Main Bus, é determinada por a técnica de ordenação FIFO (do inglês, First In, First Out).
+Este hardware é a necessidade atual para efetuar os testes com a api nas transferências de dados entre a máquina hospedeira e a plataforma FPGA.
+Em trabalhos futuros esse hardware será aprimorado para efetuar os cálculos a serem acelerados na aplicação por DM.
+O fabricante da placa DN8000 K10PCI, o Grupo Dini, disponibiliza este software para executar diversos testes em suas plataformas FPGAs.
+Além disso, esse programa utilitário tem suporte a diversas plataformas de sistemas operacionais e diferentes funcionalidades como:
+Teste na interface PCI, testes de memória SRAM, DDR, testes de alcance do barramento de memória, vários outros testes e verificações no hardware, entre outros.
+O software Aetest contém duas funções essenciais para a necessidade deste trabalho, a mb_ read e a mb_ write, que possibilitam as transações de leitura e escrita no barramento Main Bus, definidas nas Seções 6.1.1.1.1 e 6.1.1.1.2.
+Estas funções estão implementadas no arquivo driver da placa, estes arquivos fontes estão contidos no Aetest.
+Esta função realiza o acesso de escrita por a interface PCI por o barramento Main Bus.
+Que passa como parâmetro duas informações, o endereçamento e os dados a serem escritos.
+Os dois função na Figura 22.
+Os tamanhos da palavra para os dados e endereços são de 32 bits, conforme Seção 6.1.1.1, representado por as variáveis addr e data no protótipo da função.
+A palavra de endereçamento é definida na Figura 23, conforme especificação da interface Main Bus, já a palavra de dados é toda para o envio de dados e não contém nenhum tipo de controle.
+Em a Figura 23, o campo FPGA guarda o endereço do FPGA destino de entre os três possíveis na placa MDN8000 K10PCI, o campo escravo seleciona o módulo escravo definido no projeto, podendo ter no máximo 16 possibilidades.
+Por fim, o campo endereços determina uma estrutura interna do módulo escravo que deverá armazenar os dados.
+O trecho de código da Figura 24, em linguagem C, representa a função mb_ write com seus comandos no arquivo mdn8000 k10pci_ c..
+A função possui basicamente quatro comandos que são chamadas a função bar_ write_ dword, e cada chamada possui uma função conforme a sequência da linha 3 à 6: Para acesso aos barramentos no driver em nível menor de abstração a função mb_ write precisa passar por o arquivo os_ dep_ c, conforme Figura 30, isso é feito por a função bar_ write_ dword, que possui o protótipo da Figura 25.
+Essa função possui três parâmetros com o mesmo tipo de dado unsigned int, e o tipo dword foi definido com esse mesmo tipo no arquivo header.
+Os dois primeiros parâmetros são para identificar e definir o barramento e o último para o envio dos dados.
+A mb_ write é uma função simples e essencial na transferência de dados por o barramento PCI e necessária para execução desse trabalho.
+As informações de endereços e dados são representadas em hexadecimal conforme especificação da própria Main Bus.
+A mb_ read é uma função que realiza a leitura de dados por a interface PCI utilizando o barramento Main Bus para acesso ao hardware.
+Diferente da mb_ write, só possui um parâmetro de entrada, o endereço para leitura dos dados.
+Outra diferença em relação a o mb_ write, é que o mb_ read possui retorno de valor unsigned int, dados a serem lidos.
+Conforme protótipo na Figura 26, o tipo de dado é o unsigned int, de 32 bits, representado em números hexadecimais.
+Os campos de controle parra o endereçamento sobre a variável addr é o mesmo da função mb_ write na Figura 23.
+O trecho de código que representa a função mb_ read, está na Figura 28, que além de o citado na função mb_ write contém a inclusão da linha 7, com uma chamada bar_ read_ dword para a leitura de dados por o barramento Main Bus.
+A função bar_ read_ dword possui o protótipo da Figura 29, que diferente da bar_ write_ dword, contém um ponteiro no parâmetro referente a os dados a serem lidos.
+Em a aplicação por DM, PMEMD pertencente ao pacote AMBER, possui em sua maioria arquivos fontes baseados em linguagem Fortran e em específico o módulo pmemd_ clib está escrito em linguagem C. Esta integração de linguagens existente nessa aplicação, permite o emprego de chamadas no código Fortran para C, facilitando a implementação em linguagem C padrão desse trabalho.
+A escolha da linguagem C para a implementação da API é devido a o driver da placa e a aplicação por DM utilizar esta linguagem, servindo como interface entre a máquina hospedeira e a plataforma de hardware, proposta da API.
+A partir de o módulo pmemd_ clib serão acopladas todas as rotinas da API de comunicação entre o hardware e a aplicação por DM.
+Desta forma, é possível a integração com o software Aetest e consequentemente ao driver da plataforma de hardware, isso pode ser observado na Figura 30.
+Em a camada Aetest contém os arquivos necessários para a implementação da comunicação por a interface PCI, que fazem um intermediário entre a aplicação por DM e a parte de software de nível mais baixo, driver da plataforma de hardware, e utilizam os arquivos:
+Mdn8000 k10pci, pci e os_ dep.
+A forma como está organizado os arquivos fontes possibilita posteriores inserções de plataformas FPGAs compatíveis com o driver da placa DN8000 K10PCI, por o barramento PCI.
+Este driver possui suporte a diversas plataformas, fabricadas por o grupo DINI, tendo a necessidade de apenas acoplar alguns parâmetros do modelo específico da plataforma de hardware no arquivo pci.
+Compilação, Link-edição e Otimização Após os testes preliminares com a plataforma FPGA para leitura e escrita por a interface PCI, observou- se a quantidade de arquivos fontes e funcionalidades no software Aetest desnecessárias para o propósito do trabalho.
+Com isso, fez- se uma análise em todas as funcionalidades do software e seus fontes para otimizar- lo conforme a necessidade.
+O pacote AMBER, versão 9, é disponibilizado para o sistema operacional Linux e o software Aetest oferecer suporte em diversos sistemas operacionais.
+Como o trabalho é voltado para a aplicação PMEMD, pertencente ao AMBER, não haveria necessidade do Aetest dar suporte a outros sistemas operacionais.
+Este foi um dos critérios encontrados para a otimização do código do Aetest.
+Portanto, todas as funcionalidades que não eram necessárias para a realização do trabalho foram desabilitadas, para que o software Aetest se tornasse mais otimizado.
+Outros critérios foram utilizados para fazer a reorganização do código, como as verificações e testes em barramentos e memórias, operações feitas com memória, utilização de DMA, entre outros.
+Além de o grande número de arquivos reduzidos, os que sobraram, também foram reduzidos em seus códigos internos, deixando apenas o essencial ao trabalho e a plataforma de sistema operacional adotada.
+O software Aetest contém 52 arquivos sem contar os relacionados ao driver da placa.
+Este número foi reduzido para apenas 5 arquivos, porém houve a necessidade de executar diversas alterações no código original como:
+Conversão do código original em linguagem C+ para linguagem C padrão, visando o acoplamento no driver da placa e na aplicação por DM;
+Adaptação dos Headers para os novos arquivos fontes;
+Posterior acoplamento na aplicação por DM;
+Modificar o suporte de plataforma direcionando a aplicação por DM (Linux), retirando o suporte multiplataforma e definindo apenas monoplataforma.
+A conversão de linguagens de programação do software Aetest foi necessária para acoplar o driver da placa MDN8000 K10PCI com a aplicação por DM.
+Além disso, o pacote AMBER possui suporte as linguagens C e Fortran, facilitando a implementação de driver, que geralmente utilizam linguagem C padrão.
+Em a compilação da aplicação de DM com o software Aetest, em linguagem C+, não foi possível por a quantidade de erros gerados na fase de linkedição dos objetos das linguagens contidas no PMEMD.
+Há literaturas que mostram a mistura das linguagens C+ e Fortran, e a linguagem C+ já possui a linguagem C padrão embutida, porém os parâmetros de compilação e linkedição da aplicação de DM e os compiladores utilizados foram fatores determinantes para impossibilitar a união das linguagens.
+Executaram- se diversos testes para esta união, porém não se obteve sucesso em nenhum de eles.
+Com isso, a opção determinada foi a de migração do código da linguagem C+ para linguagem C. Os arquivos intermediários da Figura 30, pertencentes ao Aetest, foram alterados para dar e no arquivo de configuração da aplicação por DM, os devidos parâmetros de configuração e comandos para a compilação e linkedição dos novos arquivos fontes.
+Desta forma, conseguiu- se fazer a união do pacote AMBER com os arquivos da API e seus respectivos headers.
+Novas Características Encontradas na Implementação Observou-se na implementação da API, algumas características importantes ao trabalho nesta fase.
+Com a mudança de arquitetura de hardware da máquina hospedeira no sistema operacional, de 64 para 32 bits, por o fato da plataforma FPGA disponível estar numa máquina com processador de 32 bits e a análise de perfil realizada na Seção 5.1 ter sido de 64 bits, ocorreram mudanças no código da função short_ ene gerada por o software PMEMD na fase de compilação.
+A função short_ ene utilizada em 64 bits era chamada de Short_ ene_ novec.
+Já em 32 bits a função chama- se short_ ene_ vec.
+Porém, além de o nome, também foi alterado parte de seu código fonte.
+Assim, efetuou- se uma nova análise de perfil, mostrada na Figura 31.
+Se esta for comparada com a análise anterior, nota- se claramente as principais diferenças, na quantidade de laços e seleções.
+Em a Figura 31, apresenta- se entre colchetes na função short_ ene_ vec, onde se encontra o PCH e quantidade de repetições em cada laço.
+As chamadas e a ordem das rotinas antecessoras a short_ ene não foram alteradas.
+As características da simulação é igual a apresentada na Seção 5.1.
+Com o intuito de especificar com maiores detalhes a aplicação PMEMD, a função short_ ene_ vec e o laço PCH, fizeram- se necessária a alteração do código do PMEMD para demonstrar a quantidade de chamadas e o custo dessas partes do código no desempenho global da aplicação.
+Assim, a função short_ ene e o laço PCH estavam como funções internas da sub-rotina get_ nb_ energy e foram alterados para sub-rotinas do módulo PME_ DIRECT em duas simulações distintas, utilizando a ferramenta de traçado de perfil GPROF para adquirir essas informações.
+Para se construir as primitivas da API foram necessárias investigações do código para a determinação dos dados a serem enviados e recebidos da plataforma FPGA.
+Os dados que serão enviados contará com as informações necessárias para a execução do PCH em hardware.
+A Tabela 4, mostra todos esses dados com seus respectivos tamanhos, tipos, tipo de conjunto de dados e módulos onde foram declaradas.
+As quantidades de variáveis em alguns dados, ef_ tbl e eed_ cub, podem variar dependendo do sistema molecular utilizado ou de diferenças na configuração da dinâmica, por serem alocados dinamicamente.
+As variáveis que serão criadas ou atualizadas na plataforma de hardware e que necessitam retornar à aplicação por dinâmica molecular para dar continuidade a execução do software, são determinadas na Tabela 5.
+Para esses dados específicos, terá na API uma primitiva para a operação de envio desse conjunto de dados, exposto Tabela 4, e outra primitiva para a recepção dos dados referentes à Tabela 5.
+A arquitetura de software proposta nesse trabalho é de extrema importância a definição da forma e da estrutura das chamadas à API de comunicação entre hardware e software.
+Ressalta- se a importância da organização desta arquitetura de software, para abordar a comunicação entre hardware e software, para que seja possível a atuação em diferentes níveis de abstração.
+Para conter um nível de abstração coerente e com intuito de facilitar a utilização da API, determinou- se o emprego de 3 níveis de abstração.
+O primeiro nível trata- se da camada superior do software, onde o programador efetuará as chamadas à API.
+Em o segundo, foi determinada a interface de comunicação utilizada por a plataforma de hardware como PCI, Ethernet, USB, entre outras.
+O último nível possui as plataformas de hardware a serem utilizadas dependendo da interface definida anteriormente.
+Com essa divisão pode- se adaptar funcionalidades, plataformas de hardware e execução em sistemas operacionais distintos, conforme Figura 34.
+Assim, a facilidade em agregar funções conforme a necessidade de projeto torna- se uma tarefa mais simples, proporcionando portabilidade a API.
+Os módulos adaptados ao software PMEMD, foram organizados de forma a apresentar uma estrutura conforme o nível de abstração inicialmente adotado como guia.
+Pode- se verificar esta estrutura e o nível de abstração, fazendo uma comparação entre a Figura 30 e a Figura 34, com foco na portabilidade da API.
+Assim, o primeiro nível relaciona- se ao nível do módulo pmemd_ clib acoplado ao software PMEMD, o nível intermediário relacionado ao Aetest e o terceiro nível, mais baixo, relaciona- se ao driver da plataforma de hardware.
+Dependendo da plataforma FPGA ou interface de comunicação a ser empregada no projeto, terá de ser modificado apenas o nível, em que o novo projeto se diferência, tornando- se pequena complexidade desta integração com a aplicação de simulação por DM.
+A API será utilizada na aplicação PMEMD e com isso a portabilidade de ela para outro software que não pertence ao pacote AMBER poderá ser realizada se tiver suporte a linguagem C, que é uma linguagem muito utilizada em aplicações científicas e que permite fácil mixagem de linguagem.
+As rotinas para o envio e recepção com uma variável, um vetor ou uma matriz, foram construídas para facilitar o uso da API no processo de crescimento do projeto.
+Assim, o transporte de pequenos códigos da aplicação por DM para hardware, e/ ou na fase de testes de comunicação entre a máquina hospedeira e a plataforma FPGA.
+Já as primitivas de manipulação de diversas variáveis, tornam- se específicas para a finalidade desse trabalho, cujo intuito é enviar um conjunto de dados necessários, para a execução do laço mais custoso computacionalmente no FPGA.
+A recepção dos dados atualizados é necessária para continuidade da aplicação por DM.
+A comunicação software/ hardware, nestas rotinas, inicializa no carregamento do módulo do driver da plataforma de hardware, selecionando o modelo da plataforma a ser utilizada através de requisição ao driver.
+Após carregar o driver da plataforma podem ser executadas as rotinas que fazem a escrita ou leitura no barramento Main Bus conforme o tipo de primitiva.
+Inicialmente, definiram- se algumas primitivas que serão padronizadas na API conforme apresentadas na Tabela 6.
+Foi disponibilizado suporte a uma plataforma FPGA por meio de uma interface PCI de comunicação que melhor se adapta à necessidade e à disponibilidade atual.
+Poderão ser usadas outras plataformas com suporte a outras interfaces apenas com adaptação dos módulos adequados.
+As primitivas que determinam todos os dados necessários à implementação do laço alvo na função short_ ene são API_ DATA e API_ REC_ DATA.
+Estas determinam os dados a serem transferidos ao FPGA.
+Estas rotinas têm seus dados diretamente relacionados ao código da função short_ ene analisado e ao PCH escolhido.
+Em a Figura 35 mostra o protótipo dessas duas rotinas, onde se encontram todas as variáveis com seus nomes originais na aplicação por DM precedido do tipo de conjunto de dados, como variável, vetor e matriz.
+Em esses protótipos pode- se observar o uso de ponteiros em todas as variáveis, independente do seu tamanho ou tipo.
+Isso se dá por a mistura entre Fortran e C, com dados tratados via ponteiros no PMEMD, o que facilita sua manipulação.
+As rotinas apresentadas nesta Seção demonstram a padronização adotada na arquitetura de software criada e a portabilidade desta API, com o intuito de facilitar a sua utilização e disseminação.
+Em a implementação desta arquitetura de software, criou- se um padrão para a codificação dos dados inteiros e de ponto flutuante, obedecendo aos critérios impostos no projeto de hardware descrito na Seção 6.1.2.
+Esta rotina permite o envio de um conjunto de dados necessários para execução do primeiro laço mais custoso da sub-rotina short_ ene, tornandose específica para o problema proposto.
+Contém nesta primitiva dados de vários tipos e conjuntos como variável simples, vetor e matriz, geralmente em ponto flutuante.
+Apenas o primeiro campo é utilizado para controle de execução desta primitiva, pode- se ter uma variável ou apenas um valor para este campo e apenas se este valor for igual a 1 será iniciada esta rotina.
+Este campo será definido em todas primitivas da mesma forma e na mesma posição.
+Esta rotina permite o envio de dados do tipo inteiro para a plataforma FPGA.
+O primeiro campo foi determinado na primeira primitiva.
+O segundo campo determina os dados que se deseja enviar a plataforma de hardware.
+O terceiro campo pode- se definir o tipo de conjuntos de dados s serem enviados como variável simples, vetor ou matriz colocando os valores 0, 1 ou 2 respectivamente, tornando- se flexível, mas respeitando o tipo de dado.
+O quarto parâmetro define o tamanho do vetor, e caso seja matriz, será colocado o comprimento das linhas, pois a quantidade de linhas encontradas nas matrizes no PCH são as mesmas (três), definindo uma restrição.
+Porém, se houver necessidade pode- se parametrizar toda a matriz facilmente.
+Coloca- se 0 se a variável for comum.
+Os dados são representados com o tipo inteiro padrão, de tamanho 4 bytes definidos em linguagem C por int, dependendo da arquitetura do processador o tamanho pode variar.
+Esta rotina permite o envio de dados com o tipo ponto flutuante de dupla precisão para a plataforma FPGA.
+Os parâmetros referenciados por esta primitiva seguem a mesma definição e restrições encontradas em Os dados são representados por o tipo ponto flutuante preferencialmente com tamanho de 8 bytes definida em linguagem C padrão por o tipo double.
+Inicialmente não será utilizada toda a precisão do ponto flutuante, será definido aproximadamente em 32 bits podendo chegar até 39 bits, conforme apresenta que este range é suficiente para a necessidade da aplicação por DM, isto é comum a todas primitivas.
+O segundo campo da função determina a variável que receberá os dados da plataforma de hardware respeitando o tipo de dado.
+Os parâmetros referenciados por esta chamada seguem a mesma definição e restrições encontradas em API_ DATA_ I. Esta rotina recebe apenas uma variável ou um vetor por vez e do tipo ponto flutuante de dupla precisão, double em linguagem c, conforme definição em Os parâmetros referenciados por esta chamada seguem a mesma definição e restrições encontradas em API_ REC_ I, com diferença apenas no tipo de dado a ser recebido.
+Resultados Em a validação da API numa simulação por dinâmica molecular, trabalhou- se em conjunto com o software PMEMD.
+Desta forma, é possível o envio de dados em tempo de simulação, da aplicação por DM, para a plataforma de hardware e o retorno de dados para a aplicação por DM com a API fazendo a interface entre as plataformas, máquina hospedeira (PMEMD) e Plataforma de Hardware (FPGA).
+Para demonstrar esta validação foram realizados dois experimentos preliminares com parâmetros iguais da simulação por DM, do projeto de hardware no FPGA e modos de transferência da API.
+Os parâmetros do sistema molecular e de entrada para a simulação por DM, descritos na step na simulação.
+Esta quantidade foi definida por já surgir efeitos de comparação nos dois experimentos.
+A transferência de dados, seja receber ou enviar, é composta por uma chamada ao barramento com uma palavra de 32 bits em hexadecimal.
+Determinou- se que na API as variáveis do tipo inteiro utilizariam apenas uma palavra e as de ponto flutuante duas palavras.
+Assim, a cada transferência de dados teria no mínimo duas palavras, independente do tipo de dado a ser transferido para ser padronizado em todas as situações.
+A definição do início e término dos dados fica a cargo de a codificação e decodificação de todos os dados para corresponder ao número hexadecimal empregado por o barramento, realizando um protocolo próprio para identificação dos dados.
+Isso para comprovar a veracidade das informações transferidas entre as plataformas, obedecer à restrição do barramento e possibilitar a validação da API.
+Os tempos de execução demonstrados nos dois experimentos foram retirados do JAC benchmark do próprio software PMEMD e corresponde aos tempos de execução de não CPU ou de entrada e saída.
+Em um primeiro momento realizou- se uma implementação da API com o objetivo de alcançar o princípio básico da API de empregar a comunicação da máquina hospedeira e a plataforma de hardware.
+Assim, não houve qualquer preocupação em relação a o desempenho da comunicação entre as plataformas neste primeiro momento.
+Em os experimentos demarcaram- se diferentes tamanhos e tipos de variáveis, e também os tipos de transferência realizados.
+Primeiro foram introduzidos os dois tipos de variáveis, inteiro e ponto flutuante, utilizadas no PCH do software PMEMD.
+Os tamanhos são com uma variável e três dimensões de vetores e matrizes.
+Todas as matrizes do PCH possuem 3 linhas e por esse motivo empregou- se esse valor específico em dados referentes a matrizes.
+Para facilitar a visualização, foram atribuídos os seguintes tamanhos 1, 8, 24, 32, 96, 128 e 384, sendo que os vetores correspondem aos números 8, 32 e 128, e as matrizes aos números 24, 96, 384.
+O valor zero na Figura 37 corresponde à execução da simulação no software PMEMD sem chamadas à API.
+Foram realizados três tipos de transferências, envio (SEND), recepção (REC) e envio e recepção (SEND_ REC) para cada valor de quantidade de variáveis, conforme Figura 37.
+Por o gráfico pode- se observar a semelhança nos tempos das operações entre SEND_ I e REC_ I, e entre as operações SEND_ D, REC_ D e SEND_ REC_ I. E em todos os casos, com uma quantidade maior que um, os tempos de transferência são inaceitáveis no aproveitamento do barramento.
+Com esse experimento comprovou- se a viabilidade de transferências entre as plataformas sem corrupção dos dados na API.
+Além disso, tornou- se clara a necessidade de ajustes na API, pois o tempo na realização das transferências é inaceitável, em vista de o uso de um barramento PCI.
+Como no primeiro experimento observou- se um alto tempo de execução das operações de transferência de dados da API, este segundo experimento visou melhorar o desempenho da transferência em termos de tempo.
+Os resultados são apresentados na Figura 38 e na Figura 39.
+Verificou- se que não havia necessidade de que cada transferência de duas palavras tivesse uma interrupção que habilitava e desabilitava o driver da plataforma de hardware.
+Isso estava causando um grande aumento de tempo nas transferências realizadas com um maior número de variáveis e conseqüentemente um maior número de interrupções na plataforma de hardware.
+Para garantir um tempo de transferência aceitável, a interrupção foi estabelecida para cada chamada feita à API.
+Com isso, independente da quantidade de variáveis a serem transferidas entre as plataformas o tempo gasto com a interrupção é o mesmo em todos os casos, utilizando alocação dinâmica de memória e passando apenas o ponteiro para quando for necessário o acesso aos dados a serem transferidos.
+Em a validação desta melhoria realizada pode- se observar na Figura 38, em que ocorre uma pequena variação, no tempo de execução, em cada operação.
+Isso ocorre, pois a própria simulação que possui quantidades diferentes no tempo de processamento influenciando no resultado apresentado.
+Os valores demonstrados na Figura 38 são adquiridos por o JAC benchmark do próprio software de simulação por dinâmica molecular, PMEMD.
+Reduziu- se a escala do tempo de execução na Figura 38 para que sejam visualizadas as variações ocorridas em cada operação, assim é possível verificar que em alguns casos as variações ocorrem em ordem decrescente da quantidade de variáveis.
+Desta forma, pode- se afirmar que a execução da API não está influenciando no tempo de execução da simulação e quem está determinando essas diferenças é a própria simulação.
+Vale lembrar que o tempo de execução com a quantidade de variáveis em zero, quando não há nenhuma chamada da API no código da aplicação.
+Como cada operação em cada quantidade de variáveis é uma simulação distinta, foi realizada esta simulação sem a API, para efeito de comparação, nesse caso o tempo total da simulação ficou em 2 (dois) segundos, Figura 39.
+No entanto, existem vários momentos que mesmo com chamadas de transferências com diversas variáveis o valor permanece igual ao da simulação sem a API, mostrando que a API não está influenciando no tempo total de Non-CPU.
+Em a Figura 39 modificou- se a escala do gráfico para observar a simulação sem API, em 2 (dois), e as operações com até 32 variáveis no momento inicial do gráfico.
+Com isso, algumas chamadas a API, com diversas quantidades de variáveis, ficam com o mesmo tempo de custo da simulação do momento em que não há nenhuma chamada a API, provando a sua validação.
+Em este experimento é possível observar a validação da API com uma grande variedade de parâmetros e tempos de execução.
+E não houve nenhuma influência no tempo de simulação da molécula no software PMEMD.
+Os dados envolvidos foram testados no envio e no seu retorno para o software na máquina hospedeira sem nenhum problema, utilizando- se a plataforma de hardware, descrita na Seção 7.1.1, populado com um FPGA XCV4 FX100 para validar a API.
+Conclusões Este trabalho apresentou o desenvolvimento de uma arquitetura de software para comunicação de uma máquina hospedeira com uma plataforma de hardware baseada em FPGAs, para dar suporte ao modelo de organização de estrutura de alto desempenho com hardware dedicado.
+Para tanto, nas seções 6.2 e 6.3, são apresentadas investigações de perfil da aplicação e de desempenho das aplicações por DM, por meio de experimentos realizados a fim de compreender o ambiente ao qual a proposta de arquitetura de software será empregada.
+Em a Seção 5.1, encontrou- se o PCH definido na Figura 1 com a ferramenta de profiling gprof por o traçado de perfil e do gráfico de chamadas adquiridos na simulação por DM com o software PMEMD.
+Em a Seção 5.2 efetuaram- se experimentos em diversos ambientes com os softwares PMEMD e SANDER comparando- os e escolhendo o PMEMD como software base por os resultados dos experimentos e por dados adquiridos de outras literaturas como, demonstrando o seu desempenho superior ao SANDER.
+Decidiu- se na Seção 5.3 por a não utilização da biblioteca MPI por a alta quantidade de recursos exigidos por esta, bem como por as restrições impostas a sua implementação em plataforma FPGA.
+A arquitetura de software criada e testada, com os recursos disponíveis atualmente, será disponibilizada ao grupo GAPH para dar continuidade ao objetivo do projeto geral ou outros pertinentes.
+A API foi validada no Capítulo 7 com a demonstração de dois experimentos realizados por meio de diversos parâmetros diferentes de comparação.
+Devido a a diversidade de ferramentas, métodos, técnicas, recursos de hardware, cálculos matemáticos, entre outros, pode- se averiguar que a abrangência de áreas agregadas dificultou o entendimento e a visão do objetivo a ser alcançado.
+Finalmente, o trabalho e os resultados apresentados demonstram a pertinência da área escolhida como tema de estudo.
+Trabalhos Futuros Como a diversidade da área é de maneira vasta, podem- se determinar várias propostas a futuros trabalhos.
+A implementação da API em diferentes aplicações por dinâmica molecular que utilizam o método de replicação de dados, e acompanhado de um estudo maior em outros métodos de paralelização.
+A inclusão da API em outros projetos ou apenas com diferentes plataformas de hardware baseadas em FPGAs utilizando recursos de HPRC.
+A plataforma FPGA disponível para a realização desse trabalho possui uma interface PCI que apresenta seu melhor desempenho nesta plataforma.
+Porém, com a disponibilidade de plataformas mais recentes, onde se encontram interfaces como PCI- e, por exemplo, que tem um desempenho melhor do que a interface PCI, poderia- se- adaptar a API para uma plataforma deste tipo ou de outros conforme a necessidade.
+A arquitetura de software apresentada nesse trabalho pode ser adaptada para projetos de outras áreas, diferente de simulação por dinâmica molecular, pois apresenta transferência de dados com tipos de variáveis padrões.
+Porém, tem- se que respeitar a forma de passagem de parâmetros encontrada nesta API onde foi determinada por a mixagem da linguagem Fortran com a linguagem C determinada por a especificidade imposta do projeto.

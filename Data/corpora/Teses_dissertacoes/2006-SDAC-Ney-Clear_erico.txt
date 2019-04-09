@@ -1,0 +1,1267 @@
+A tecnologia de fabricação de circuitos integrados (CIs) evoluiu ao ponto de inviabilizar alguns dos principais paradigmas subjacentes ao projeto de sistemas digitais complexos.
+De entre estes, dois dos mais relevantes são o uso de barramentos como meios de interconexão intra-chip e o projeto totalmente síncrono.
+Redes intra-chip (em inglês, Networks On-Chip ou NoCs) vêm se destacando como uma possível alternativa para substituir barramentos, talvez até suprindo meios de superar as dificuldades de abandonar o projeto totalmente síncrono.
+Trata- se de arquiteturas de comunicação que adaptam conceitos oriundos de redes de computadores e de sistemas paralelos e distribuídos para o ambiente intra-chip.
+Elas são constituídas por fiação de alcance local no interior de um Ci e elementos chaveadores ou roteadores, cuja interconexão define uma topologia de rede.
+Em os extremos da rede conectam- se núcleos processadores de um SoC.
+Uma das questões relevantes colocada por a comunidade de pesquisa em NoCs é qual a melhor topologia a adotar para que um SoC alcance máximo desempenho a um mínimo custo.
+O presente trabalho contribui com uma proposta de arquitetura para um roteador toro, partindo de um algoritmo de roteamento mínimo totalmente adaptativo, sugerido por Cypher e Gravano.
+Com base neste roteador, desenvolve- se aqui o projeto de uma rede com topologia toro denominada Mercury.
+Apresentam- se também as modelagens abstrata e concreta da rede Mercury.
+A rede foi capturada como uma descrição de hardware em VHDL, validada por simulação e prototipada com sucesso em FPGAs.
+Uma ferramenta parametrizável que dá suporte para a geração automática dos modelos abstrato (em SystemC Tl) e concreto (em VHDL RTL) da rede Mercury é uma contribuição adicional do trabalho.
+Finalmente, provê- se resultados preliminares de avaliação do projeto, tanto do ponto de vista de ocupação de área em FPGAs como em relação a o desempenho da rede, medindo a vazão e a latência média desta sob diferentes condições de tráfego.
+Valores obtidos para a rede Mercury são também comparados com a NoC Hermes, uma rede no estado da arte de desenvolvimento.
+Palavras-chave: Rede Intra-chip.
+Topologia Toro 2D.
+Algoritmo de Roteamento Adaptativo Mínimo.
+Organização do Restante do Documento. Sistemas digitais estão cada vez mais presentes na sociedade moderna, uma vez que grande parte dos produtos eletrônicos como computadores, telefones celulares, DVDs, aplicações automobilísticas, entre outros, são controlados e operados de forma digital.&amp;&amp;&amp;
+Sistemas digitais são compostos de três tipos de blocos básicos:
+Lógica, memória e comunicação.
+A lógica transforma e combina dados, através de operações aritméticas e lógicas;
+As memórias armazenam dados para uso num tempo futuro;
+A comunicação transfere os dados de um local para outro.
+O desempenho da maioria dos sistemas digitais está diretamente ligado à comunicação, já que, com o avanço da tecnologia, memórias e processadores têm diminuído o seu tamanho, se tornado mais rápidos e ao mesmo tempo se tornado mais acessíveis.
+O grande problema é que o mesmo não acontece com os componentes de comunicação, fazendo com que o principal limite dos sistemas digitais nos dias de hoje, esteja diretamente relacionado com a interconexão entre módulos lógicos e memórias, que realizam a comunicação.
+A crescente densidade (número de transistores por unidade de área de silício), as freqüências de operação elevadas, o tempo de projeto e o ciclo de vida reduzidos caracterizam o cenário da indústria de semicondutores na atualidade.
+Em 1980, a maioria dos circuitos integrados (CIs) complexos, eram compostos por dezenas de milhares de transistores.
+Atualmente, já é possível encontrar CIs com dezenas de milhões de transistores.
+Esse avanço na tecnologia tem permitido a integração de múltiplos componentes, como processadores, controladores de acesso a periféricos e memória, num único chip, resultando na integração de um sistema completo numa mesma pastilha.
+Esses sistemas são conhecidos como SoCs (do inglês, de uma aplicação complexa.
+A Figura 1 ilustra a arquitetura genérica de um SoC.
+O uso de múltiplos barramentos interconectados por pontes passivas ou ativas produz arquiteturas hierárquicas de barramentos, que reduzem algumas das restrições listadas, uma vez que diferentes barramentos podem prover meios de satisfazer diferentes requisitos de largura de banda e/ ou protocolos de comunicação, além de aumentar o paralelismo da comunicação.
+Contudo, o projeto e a implementação de barramentos hierárquicos constituem uma disciplina ad hoc, podendo comprometer o reuso e escalabilidade de soluções específicas.
+Atualmente as interconexões entre os núcleos num SoC são realizadas através de canais ponto-a-ponto ou de canais multi-ponto.
+Em os canais ponto-a-ponto os núcleos são interligados por canais dedicados (Figura 2 (a)), sendo que cada canal é constituído por um conjunto de fios ligando dois núcleos entre si.
+Os canais multi-ponto possuem seguidas vezes uma estrutura de interconexão com a forma de um barramento compartilhado (Figura 2 (b)), multiplexado no tempo, em o qual os núcleos do sistema são conectados.
+Por serem considerados simples e reutilizáveis, canais multi-ponto como os barramentos têm sido preferidos para a construção de SoCs.
+Apesar de serem os mais utilizados, várias desvantagens são encontradas quando comparados com canais ponto-a-ponto.
+Algumas de elas são:
+De acordo com vários autores, arquiteturas de interconexão baseadas em barramentos compartilhados não terão condições de prover suporte aos requisitos de comunicação de SoCs de futuro próximo.
+Ainda, de acordo com o ITRS, CIs contendo bilhões de transistores, com um min-feature- size em torno de 50 nm e freqüências de relógio em torno de 10 GHz serão uma realidade antes de 2012.
+Em este contexto, redes estruturadas mais complexas que barramentos compartilhados aparecem como uma solução possivelmente melhor para implementar arquiteturas de comunicação para tais SoCs.
+Um conceito que vem evoluindo bastante são as denominadas redes intra-chip (em inglês, no interior de um Ci e elementos chaveadores (normalmente denominados roteadores ou chaves), cuja interconexão define uma topologia de comunicação, em cujos extremos conectam- se núcleos de um SoC.
+Os núcleos do sistema são interligados por meio de uma rede de roteadores utilizando canais ponto-a-ponto e canais para transferência de dados entre a origem e o destino.
+NoCs podem apresentar uma topologia de interconexão regular ou não, podem apresentar diferentes relações entre as cardinalidades de elementos chaveadores e núcleos do SoC, etc..
+O presente documento descreve a especificação, uma implementação abstrata no nível de transação (ou seja, um modelo de referência) para um arquitetura de comunicação do tipo NoC com topologia toro 2D regular.
+Também se descreve a implementação concreta, a validação e a prototipação desta NoC.
+Esta arquitetura é denominada de NoC Mercury.
+Parte da motivação deste trabalho já foi apresentada anteriormente, ao mencionar os compromissos envolvidos na escolha de arquiteturas de comunicação intra-chip, concluindo por a necessidade de transcender o uso barramentos compartilhados e conexões ad hoc via fios dedicados.
+Além de esta motivação, existem outras, derivadas da experiência do grupo GAPH (Grupo de Apoio ao Projeto de Hardware) da PUCRS de o qual o autor faz parte, que propõe o trabalho com projeto, implementação e avaliação de redes intra-chip, discutidas a seguir.
+Desde 2002, o grupo GAPH aborda a pesquisa no tema de redes intra-chip.
+A partir de o trabalho do grupo, de ênfase eminentemente exploratória e de implementação prática, atingiu- se a proposta da infra-estrutura Hermes de suporte à implementação de NoCs com baixo consumo de área, inicialmente descrita em.
+Esta infra-estrutura tem evoluído ao longo de os últimos anos, agregando crescente número de funcionalidades, métodos de modelagem, projeto, validação e avaliação de NoCs e ferramental de apoio associado.
+Apesar de o extenso trabalho já realizado, percebe- se um conjunto de limitações na abordagem adotada.
+Primeiro, todos os trabalhos citados restringem a estrutura de NoCs investigada, visando tornar a complexidade da pesquisa gerenciável.
+As redes investigadas em todos os trabalhos citados assumem chaveamento de pacotes, empregam apenas a topologia malha bidimensional regular (malha 2 D, Figura 3 (a)), usam apenas o modo de chaveamento wormhole onde o tamanho do flit e do phit são idênticos e assumem armazenamento temporário baseado apenas em filas de entrada.
+Existem ferramentas de apoio também desenvolvidas por o grupo, que na sua versão presente somente trabalham com topologia malha.
+Pode- se citar como exemplo as ferramentas Maia e NocGen para geração de rede, TrafficGeneration para geração de tráfego e NocLogView para visualização das estatística de tráfego.
+A arquitetura de uma rede toro 2D (Figura 3 (b)) quando comparada a uma rede malha 2D é basicamente a mesma, exceto por os canais wraparound, que conectam os roteadores das extremidades da rede no sentido horizontal e vertical.
+Desta forma, diferente do que ocorre na rede malha 2 D, todos os roteadores possuem 5 portas no toro 2D (Norte, Sul, Leste, Oeste e Local).
+A topologia toro possui algumas vantagens em relação a a malha, como por exemplo, o seu melhor desempenho em redes com alto tráfego e uma melhor diversidade de caminhos.
+Como ainda pouco se conhece dessa topologia no ambiente intra-chip, informações de como ela se comporta quando utilizada em NoCs não estão totalmente esclarecidas.
+A motivação principal do trabalho parcialmente descrito aqui é expandir o escopo de pesquisa em NoCs no grupo para abranger NoCs de topologia diversa de malha 2 D, neste caso usando a topologia toro 2 D, modos de chaveamento diversos de wormhole e estratégias de armazenamento distintas de filas de entrada.
+O trabalho continua sendo de cunho exploratório e eminentemente prático, visando coletar informações que permitam comparar diferentes aspectos ao longo de o projeto de NoCs.
+O objetivo principal deste trabalho é obter uma arquitetura de comunicação de rede com topologia toro, denominada Mercury, através da implementação da mesma em níveis de abstração Tl (do inglês, transaction level) e RTL (do inglês, register transfer level).
+A maior contribuição do presente trabalho, resultado deste objetivo, é a quantificação da comparação entre a Mercury e a já existente arquitetura de comunicação com topologia malha, denominada Her-mes, comparando as mesmas de forma a avaliar em que aspectos uma é superior a outra em diversos quesitos.
+Os objetivos específicos deste trabalho são:
+Estudar propostas de NoCs com topologia toro presentes na bibliografia;
+Modelar de forma abstrata no nível Tl e concreta no nível RTL a arquitetura Mercury;
+Avaliar, de forma inicial, a implementação da rede Mercury em comparação com rede Hermes implementada com topologia malha;
+Prototipar a modelagem concreta da arquitetura de comunicação Mercury em hardware.
+O restante deste trabalho encontra- se organizado da seguinte forma.
+Em o Capítulo 2 são apresentadas definições básicas de redes de comunicação, como topologias, chaveamento, armazenamento temporário, controle de fluxo etc., além de outros conceitos, definindo uma terminologia coerente para o restante do volume.
+É também apresentada uma introdução a redes com topologia toro e redes intra-chip.
+Este Capítulo tem como objetivo demonstrar de que forma foi implementado cada módulo da NoC, a estrutura do roteador e da rede, além de demonstrar o seu funcionamento através de validações por simulação.
+Em este Capítulo apresentam- se as diferentes etapas de prototipação, passando por a prototipação inicial do roteador até a de instâncias completas da rede.
+Em este Capítulo são apresentados alguns dos principais conceitos relacionados a redes de comunicação, com o intuito de servir de referência ao leitor para a nomenclatura no restante do texto.
+Aqui se discute as características e os mecanismos utilizados para o envio e recebimento de dados através de uma rede.
+Inicialmente o Capítulo apresenta algumas definições sobre redes de comunicação.
+Após, introduz definições de topologia de rede, roteamento, chaveamento, controle de fluxo, armazenamento temporário e arbitragem.
+Em seguida, discute- se características de uma rede com topologia toro.
+Por fim, apresenta- se alguns conceitos sobre redes intra-chip.
+Uma rede de comunicação é formada por um conjunto de nodos capazes de trocar informações e compartilhar recursos, interligados por um sistema de comunicação.
+Nodo é uma entidade que gera informação a ser comunicada a outras entidades e/ ou consome informação gerada por outras entidades similares.
+Por exemplo, imagine quatro nodos conectados a uma rede de comunicação, onde essa rede possui a funcionalidade de receber e transmitir dados de uma origem a um destino qualquer conectado a ela.
+Quando um nodo deseja comunicar- se com outro, basta ele enviar o dado para a rede que a mesma se encarrega de transmitir o dado.
+Como a rede de comunicação é um sistema programável, ela pode refazer suas conexões entre qualquer par de nodos da forma que desejar, fazendo assim com que qualquer nodo se comunique com outro através da sua estrutura.
+A definição de redes de comunicação é utilizada em vários contextos distintos.
+Existem redes locais e não locais, redes que conectam outras redes ou que conectam computadores a internet, e até redes dentro de chips que interligam memórias, registradores e unidades aritméticas com o processador.
+Segundo Zeferino, uma rede de comunicação é tipicamente caracterizada por a sua topologia e por um conjunto de mecanismos que definem a forma como ocorre a transferência de mensagens através da rede.
+Uma rede é composta por um conjunto de roteadores e canais, e a topologia de rede é definida por a estrutura de interligação destes roteadores através dos canais.
+Dally define topologia de rede como um conjunto de nodos N* conectados a um conjunto de canais C, onde as mensagens enviadas e recebidas pertencem a um conjunto de nodos terminais N onde N N*.
+Se a rede possuir todos os nodos como terminais, pode- se simplificar afirmando que o conjunto de nodos é N. Um canal pode ser definido como c $= (x, y) C, onde o nodo origem, representado por x, e o nodo destino representado por y, pertencem a N*, sendo x, y N*.
+Quando se aborda topologias de rede é necessário definir alguns conceitos importantes.
+São eles:
+Largura de banda:
+Quantidade de informações máxima que pode trafegar de uma origem para um destino num determinado período de tempo.
+Latência: Tempo gasto para entregar uma única mensagem no seu destino.
+Esse tempo é totalmente dependente da rede sob análise.
+Hop Count: Número de canais que a mensagem deve cruzar para ir do nodo fonte ao nodo destino seguindo algum caminho disponível na rede.
+Largura de Bissecção: Número mínimo de canais de comunicação da rede que precisam ser cortados para que a rede seja dividida em dois conjuntos de nodos com cardinalidade o mais próxima possíveis.
+As topologias de rede de comunicação podem ser agrupadas em duas classes principais, as redes diretas e as redes indiretas.
+Em as redes diretas, cada nodo de chaveamento (responsável por a transferência de mensagens entre os nodos de processamento) possui um nodo de processamento associado (responsável por o processamento da mensagem), como ilustra a Figura 4.
+As redes diretas são também conhecidas como redes estáticas, pois as ligações entre os nodos de chaveamento e processamento não mudam ao passar do tempo.
+Entre as redes diretas ortogonais mais utilizadas pode- se citar malha Figura 5 (a), toro Figura 5 (b) e o hipercubo Figura 5 (c).
+Em as redes indiretas os nodos de processamento possuem uma interface para uma rede de nodos de chaveamento.
+Cada nodo de chaveamento possui um conjunto de portas bidirecionais para ligações com outros nodos de chaveamento e/ ou com os nodos de processamento.
+Somente alguns nodos de chaveamento possuem conexões para nodos de processamento e apenas esses podem servir de fonte ou destino de uma mensagem.
+Essa característica é o que diferência as redes diretas das indiretas.
+Como exemplo de topologia homogênea de redes indiretas pode- se citar o crossbar, ilustrado na Figura 6.
+Dally afirma que não existe uma topologia que seja a mais adequada para qualquer aplicação, pois cada uma é apropriada para uma situação diferente de requisitos e restrições de comunicação.
+Roteamento é o método utilizado por o roteador para decidir, de entre as possíveis portas de comunicação com nodos vizinhos, aquela por onde o dado irá seguir.
+Geralmente, quando se envia um dado por a rede, existem vários caminhos possíveis para que ele chegue ao seu destino.
+Um bom roteamento é aquele que consegue escolher um caminho com poucos roteadores entre a origem e o destino, ser tolerante a falhas e adaptativo de forma a conseguir diminuir o hop count.
+Também deve- se considerar o balanceamento de carga através dos diversos caminhos existentes, para que a rede não fique desbalanceada (alguns dos caminhos fiquem sobre-utilizados em relação a outros).
+Algoritmo de Roteamento O roteamento da rede é implementado por um algoritmo que define como é realizada a transferência de dados entre o roteador origem e o destino.
+O algoritmo é que determina quais dos possíveis caminhos entre os roteadores será utilizado.
+Além de isto, ele deve garantir o correto funcionamento da rede na entrega de pacotes evitando problemas como:
+Deadlock: Dependência cíclica entre roteadores que solicitam acesso de uma determinada porta de saída, de forma que nenhum consiga obter progresso algum, independente da seqüência de eventos que ocorra.
+A Figura 7 ilustrada um exemplo de deadlock.
+D4 respectivamente.
+Nota- se que todos os pacotes estão trancados esperando por um canal que nunca estará disponível, resultando numa situação de deadlock.
+Livelock: Ocorre quando pacotes ficam circulando na rede sem conseguir fazer progresso algum na direção do seu roteador destino.
+Normalmente este problema ocorre em algorit- mos de roteamento adaptativos não mínimos, podendo ser evitado com estratégias como restrição dos desvios que um pacote pode realizar.
+Starvation: Situação onde um pacote requisita uma porta de saída, mas nunca é atendido porque ela é sempre alocada para outros pacotes, podendo ocorrer postergação indefinida de entrega do pacote.
+Existem vários algoritmos de roteamento propostos na literatura, cada qual visando atender requisitos distintos.
+É possível classificar algoritmos de roteamento de acordo com alguns critérios, tais como:
+Quanto a a adaptatividade:
+Roteamento Determinístico:
+Utiliza sempre o mesmo caminho entre um dado par de roteadores fonte-destino;
+Roteamento Adaptativo: Escolhe o caminho entre um par de roteadores fonte-destino em função de características dinâmicas da rede, tais como congestionamento de canais, tráfego médio por os canais ou falhas que venham a ocorrer na rede.
+Os algoritmos adaptativos ainda podem ser classificados quanto:
+Quanto a o lugar onde as decisões de roteamento são tomadas:
+Roteamento Fonte: O nodo transmissor determina a rota que o pacote deverá passar até chegar ao seu destino antes de injetar- lo na rede.
+O cabeçalho do pacote deve carregar a informação de roteamento completa, aumentando assim o tamanho do pacote;
+Roteamento Centralizado: Possui um roteador centralizado com a função de criar todas as rotas da rede e distribuir- las aos outros roteadores;
+Roteamento Distribuído: Cada roteador possui a responsabilidade de calcular parte da rota com as informações locais que possui, bem como informações que recebe do pacote.
+Quanto a a implementação:
+Baseado em Tabela:
+Roteamento é feito baseado numa consulta a uma tabela de rotas;
+Baseado em Máquina de Estados:
+Quando a máquina de estados determina o roteamento ou parte deste.
+Quanto a o momento da realização do roteamento:
+Dinâmico: Executa o algoritmo em tempo de execução da aplicação.
+Estático: Executa o algoritmo no tempo de compilação da aplicação.
+Quanto a o número de destinos:
+Unicast: Pacotes possuem somente um destino.
+Multicast: Pacotes podem ser roteados para vários destinos.
+Para que seja possível realizar a comunicação entre a origem e o destino de um pacote, roteadores devem repassar o pacote recebido para o próximo roteador ou para o destino através de regras definidas por o chaveamento.
+O chaveamento define a forma por a qual os dados são transferidos de um canal de entrada de um roteador para um dos seus canais de saída.
+Segundo Dally e Towles, Ni e McKinley, um roteador pode ser definido como um dispositivo que conecta um número de canais de entrada a um número de canais de saída, ou seja, um roteador tem a funcionalidade de transferir informações de uma de suas portas de entrada para uma de suas portas de saída.
+Em a Figura 8, pode- se visualizar a estrutura genérica de um roteador.
+Existem dois métodos básicos utilizados para a transferência dos dados que são:
+chavea-mento de circuito e chaveamento de pacotes.
+Em o método chaveamento de circuito é estabelecido um caminho entre a origem e o destino antes do inicio do envio da mensagem.
+Quando este caminho é estabelecido a mensagem pode ser enviada, sendo que qualquer outro pedido de comunicação que utilize os canais alocados não será aceito.
+O caminho somente é desfeito quando toda a mensagem chega no seu destino.
+Segundo a grande vantagem deste método é que não são necessárias filas nos roteadores intermediários, pois uma vez que a comunicação foi estabelecida a mensagem não é bloqueada.
+A desvantagem é que esse método causa perda no desempenho da rede como um todo, já que todos os roteadores no caminho reservado para o envio ficam bloqueados durante a transmissão de dados.
+Em o método chaveamento de pacotes, a mensagem é dividida em pequenos pacotes.
+Através do cabeçalho de cada pacote é decidido em cada roteador por qual porta de saída o pacote deve ser roteado, não existindo um caminho pré-definido.
+Mello e Möller colocam que a grande vantagem do chaveamento de pacotes é que o canal permanece ocupado apenas enquanto o pacote está sendo transferido, enquanto que a desvantagem deste método é que existe a necessidade de filas para o armazenamento temporário de pacotes.
+O chaveamento de pacotes pode ser classificado segundo o modo de chaveamento, que define a política de repasse de dados entre os roteadores intermediários.
+Os modos mais usados são:
+Store- and-- forward, virtual cut-through ou wormhole.
+Store-and--Forward O modo de chaveamento store- and-- forward garante que todo pacote será recebido e armazenado por inteiro antes de ser enviado ao próximo roteador.
+A vantagem deste modo é sua simplicidade e o baixo congestionamento dos canais da rede devido a o armazenamento por completo do pacote em cada roteador.
+Como desvantagem, pode- se citar a maior latência na rede, já que o roteador deve receber todo o pacote para depois iniciar o seu envio ao próximo roteador.
+Desta forma, o roteador aloca os recursos necessários para que os pacotes possam avançar de nodo em nodo em direção a o destino.
+Virtual Cut--Through O modo de chaveamento virtual cut-through é um aperfeiçoamento do modo store-- andforward do ponto de vista de eficiência.
+Sua vantagem é a redução da latência na comunicação, já que somente pressupõe o armazenamento do pacote inteiro caso o canal por ele desejado encontre- se indisponível.
+Após o roteador receptor garantir que pode receber todo o pacote, o roteador fonte pode iniciar a transferência, mesmo que ainda não tenha recebido o pacote por inteiro.
+A desvantagem é que apesar de um pacote somente ser armazenado localmente quando o canal desejado por ele estiver indisponível, o roteador ainda necessita de espaço de armazenamento suficiente para estocar completamente o pacote no caso de bloqueios.
+Wormhole O modo de chaveamento wormhole é uma variação do chaveamento virtual cut-through, que visa reduzir a quantidade de memória para armazenar pacotes num roteador.
+Em este modo, pacotes são divididos em pedaços menores denominados flits que trafegam por a rede em modo pipeline.
+A grande vantagem da utilização desse modo de chaveamento é a possibilidade de construção de roteadores pequenos e rápidos.
+Apenas o flit cabeçalho contém informações sobre o roteamento.
+Com isto, os demais flits que compõem o pacote devem seguir o mesmo caminho reservado para o cabeçalho.
+Como desvantagem do modo wormhole, se o flit do cabeçalho encontrar um canal que ele deseja utilizar já em uso, ele é bloqueado até que esse canal seja liberado para que se possa progredir.
+Quando isso acontece, os flits do conteúdo da mensagem ficam armazenados ao longo de o trajeto por a rede, bloqueando um número arbitrário de roteadores, dependente do tamanho do pacote.
+Outra desvantagem é a suscetível ocorrência de deadlock, já que mensagens possuem permissão para reter alguns recursos enquanto requisitam outros.
+Em uma rede de comunicação podem existir vários pacotes trafegando simultaneamente e concorrendo por os mesmos recursos com o objetivo de avançar de sua origem até o seu destino.
+Quando algum recurso está alocado para um pacote e um outro não consegue prosseguir, podese dizer que ocorreu um bloqueio de recursos.
+Quando isso ocorre, é necessário que exista uma política para determinar a melhor maneira de lidar com o pacote que não pode ser atendido.
+Em esse caso, o pacote pode ser descartado, bloqueado no lugar onde está, recebido e armazenado temporariamente ou então desviado por um caminho alternativo.
+Quem determina isso é a política do controle de fluxo.
+Ela é quem aloca os canais e as filas no momento em que o pacote trafega na rede.
+O controle de fluxo possibilita saber se o receptor está habilitado a receber dados ou não (por exemplo, este pode estar com as filas lotadas, impossibilitando o recebimento).
+De entre os controles de fluxo conhecidos, os dois mais utilizados são baseado em créditos e handshake.
+Baseado em Créditos Em a abordagem do controle de fluxo baseada em créditos não existe descarte de pacotes, já que uma transmissão entre roteadores somente é iniciada quando o receptor garantir que pode armazenar a unidade de informação a ser transmitida do roteador fonte.
+Essa abordagem leva em consideração que o receptor envia ao transmissor um sinal confirmando a existência de créditos que o último possui para envio dos dados.
+De posse desta informação o transmissor envia dados apenas se existir crédito para o envio.
+A cada envio de dados por o transmissor pode ou não haver mudança no seu estado de crédito junto ao receptor, dependendo do espaço de buffer no último.
+Handshake Em a abordagem para controle de fluxo denominada handshake, o transmissor inicialmente informa ao receptor a intenção de enviar um dado através de um sinal de solicitação.
+A o receber este sinal o receptor verifica se existe espaço para receber o dado.
+Em caso afirmativo, o dado é lido e armazenado, e o receptor envia o sinal de reconhecimento de recepção ack ao transmissor.
+Caso não exista espaço disponível o receptor pode enviar um sinal de não reconhecimento nack ou não tomar nenhuma ação.
+Quando ocorrer o roteador transmissor retransmite o dado até o recebimento de um ack.
+Algumas desvantagens são encontradas nessa abordagem de controle de fluxo.
+Segundo Dally, o controle de fluxo handshake é menos eficiente no uso das filas do que o controle de fluxo baseado em créditos.
+Esta redução ocorre porque os dados ficam armazenados nas filas por um tempo extra até receberem o sinal de acknowledge.
+Além de isto, ele coloca que o handshake é ineficiente no uso da largura de banda quando não há espaço em fila, já que se torna necessário reenviar o dado.
+Carara mostra através de simulação e um caso simples onde o controle de fluxo por créditos alcança ganhos próximos de 100% em velocidade quando comparado com handshake.
+Como principal vantagem para a utilização desta abordagem é a simplicidade para implementação.
+O roteador de uma rede com chaveamento de pacote deve garantir o armazenamento de pacotes destinados a saídas que já estejam sendo utilizadas por outros pacotes.
+Além disso, o roteador deve ser capaz de controlar o fluxo proveniente dessa porta a fim de evitar a perda de dados.
+Todo roteador é capaz de armazenar um número limitado de pacotes ou uma fração de um pacote em sua memória.
+Por esse motivo, o bloqueio de pacotes pode ocorrer em maior ou menor escala dependendo da estratégia de armazenamento temporário utilizada.
+Estas estratégias podem influenciar significativamente o desempenho da rede.
+De entre as mais utilizadas pode- se destacar o armazenamento na entrada, na saída ou centralizado de forma compartilhada.
+Armazenamento na Entrada O armazenamento temporário de dados na entrada pressupõem a existência de filas independentes em cada uma das portas de entrada do roteador.
+As filas podem ser implementadas de várias formas, destacando- se as estratégias FIFO (First In First Out), SAFC (Statically Allocated, Fully Connected), SAMQ (Statically Allocated Multi-- Queue) e DAMQ (Dynamically--Allocated, Multi-Queue).
+Filas FIFO A estratégia de filas FIFO é a que possui um funcionamento mais simples e menor custo quando comparada com as demais.
+Basicamente cada uma das filas possui um espaço da memória fixo onde os dados são escritos e lidos na mesma ordem, conforme a Figura 9 (a).
+O grande problema desta abordagem é o bloqueio da cabeça da fila (em inglês, Head Of Line ou HOL), onde um pacote bloqueado por necessitar de uma saída em uso por outro pacote impede que outros pacotes atrás de ele avancem para uma porta/ saída qualquer que esteja disponível naquele instante.
+Filas SAFC A estratégia SAFC é uma abordagem para amenizar o bloqueio HOL.
+Basicamente, dividese cada fila de entrada em N slots que possuam tamanho igual a 1/ N do tamanho da fila original.
+Filas SAMQ A estratégia SAMQ foi proposta para simplificar o crossbar, fazendo com que as saídas das filas de entrada direcionadas à mesma porta possa ser multiplexadas no tempo, conforme ilustra a Figura 10 (a).
+Alguns problemas da estratégia SAFC são eliminados quando utiliza- se a SAMQ, já que o custo do crossbar é reduzido.
+Entretanto, os problemas relacionados com a utilização das filas e o controle de fluxo se mantêm.
+Filas DAMQ A estratégia DAMQ tem como objetivo evitar alguns dos problemas encontrados nas estratégias descritas anteriormente.
+DAMQ propõem um espaço de armazenamento associado a uma porta de entrada e particionado de forma dinâmica entre as portas de saída, conforme a demanda dos pacotes recebidos, o que é ilustrado na Figura 10 (b).
+Com essa estratégia elimina- se a possibilidade do bloqueio HOL nas filas FIFO, aumenta- se a utilização do espaço de memória disponível e o controle de fluxo é mais simples que nas estratégias SAFC e SAMQ.
+Como desvantagem, cita- se a implementação física mais complexa para o gerenciamento das filas, baseada em listas encadeadas.
+Armazenamento na Saída O armazenamento temporário de dados na saída implica a inserção de filas nas portas de saída do roteador.
+O problema desta estratégia é que cada fila deve ser capaz de receber simultaneamente dados das N entradas, implicando que a fila de saída possua N portas de entrada ou que opere a uma velocidade N vezes maior do que as entradas.
+O uso de armazenamento temporário de saída exige a implementação de um controle de fluxo entre a porta de entrada e de saída, aumentando assim a complexidade do roteador.
+Armazenamento Centralizado de Forma Compartilhada O armazenamento centralizado compartilhado denominado CBDA (Centrally Buffered, Dynamically Allocated), utiliza filas para armazenamento de pacotes de todas as portas de entrada do roteador.
+O espaço de memória disponível a ser utilizado é dividido de forma dinâmica entre os pacotes de diferentes entradas.
+O armazenamento temporário centralizado compartilhado oferece uma melhor utilização de memória do que aquelas proporcionadas por as abordagens onde este espaço é prévia e estaticamente alocado a portas de entrada.
+Segundo Zeferino o CBDA deve oferecer no mínimo uma largura de banda igual à soma das larguras de banda de todas as portas, fazendo com que num roteador NxN, a fila possua 2N portas de acesso, de modo a permitir N acessos simultâneos de leitura e N acessos simultâneos de escrita.
+Como desvantagem, pode- se citar um problema semelhante ao HOL.
+Onde caso uma porta de saída esteja em uso por uma determinada porta de entrada e ao mesmo tempo outra porta de entrada esteja recebendo dados e também deseje utilizar essa mesma saída, está segunda porta fica com seus dados bloqueados, sendo armazenados na fila centralizada, o que pode acarretar a um preenchimento total da mesma.
+Quando isso ocorre as outras portas de comunicação são afetadas, pois a fila lotada acarreta a recusa de dados, criando contenção.
+Este problema pode ser evitado restringindo espaço alocado a cada uma das portas de entrada.
+Suponha a existência de um conjunto de recursos requisitando acesso a um elemento compartilhado por todos.
+Dá- se o nome de arbitragem ao processo de escolha de qual elemento do conjunto de recursos terá acesso ao elemento compartilhado a cada instante.
+Por exemplo, quando se utiliza chaveamento de pacotes, estes chegam através de canais nas portas de entrada do roteador e são transferidos para os canais das portas de saída.
+Quando pacotes de diferentes portas chegam simultaneamente ao roteador e requisitam acesso a mesma porta de saída, é necessária uma arbitragem para selecionar quem ganhará o direito a utilizar a porta de saída.
+O processo de arbitragem é realizado por um árbitro.
+Este tem como função realizar o compartilhamento das portas de saída, garantindo uma utilização balanceada destas por as portas de entrada, além de assegurar que não existam problemas de starvation, ou seja, uma porta de entrada ficar esperando acesso a uma porta de saída indefinidamente.
+Existem duas formas de implementação dos árbitros:
+Centralizada ou distribuída.
+Em um árbitro centralizado, os mecanismos de roteamento e arbitragem costumam ser implementados de forma monolítica, recebendo pacotes de filas de entrada, executando o algoritmo de roteamento e determinando a porta de saída que cada pacote irá utilizar.
+Essa abordagem é utilizada em árbitros que procuram maximizar a utilização do crossbar, realizando uma arbitragem global, a qual considera todos os pacotes que estejam prontos para transmissão nas entradas, bem como o estado das portas de saída.
+Em árbitros distribuídos, os mecanismos de roteamento e arbitragem são independentes para cada uma das portas do roteador, existindo um módulo de roteamento em cada porta de entrada e um módulo de arbitragem em cada porta de saída do roteador.
+A implementação distribuída permite que sejam construídos roteadores mais rápidos.
+Entretanto, quando utilizada com algoritmos adaptativos esta abordagem apresenta limitações.
+Essas ocorrem porque o mecanismo de roteamento pode conseguir rotear o pacote por várias portas de saída, e com isso envia requisições a todos os árbitros dessas portas.
+Caso mais de um árbitro reserve a sua porta a esse pacote, as portas que não forem escolhidas para envio ficarão ociosas, enquanto poderiam estar enviando pacotes de outras portas de entrada.
+Por este motivo, roteamentos determinísticos são mais utilizados em conjunto com a arbitragem distribuída.
+Quando vários canais de entrada de um roteador estiverem com pacotes prontos para serem transmitidos para as portas de saída, a política de arbitragem irá decidir qual de eles irá iniciar a transmissão.
+Existem vários tipos de política de prioridade, como por exemplo Round-Robin, estática, randômica, First-Come-First-Served, Oldest-First, Least Recently Served, entre outras.
+Cada uma possui características próprias, algumas voltadas para o desempenho, outras para a simplicidade de implementação.
+Conforme mencionado na Seção 2.1.2, a topologia de uma rede é definida por a estrutura de interligação de seus nodos.
+Por exemplo, na Figura 11 (a) onde está representada a topologia de uma rede toro bidimensional 3x3, nota- se a presença de 9 roteadores, cada qual conectado a 8 canais (supondo- se que cada enlace da Figura corresponde a dois canais unidirecionais), sendo 1 para cada vizinho e 1 de cada vizinho.
+Em uma rede toro todos os nodos possuem o mesmo número de enlaces.
+Isto é a principal diferença entre uma rede com topologia toro e uma com topologia malha, pois até mesmo os nodos localizados nas extremidades da rede possuem ligações com os seus quatro vizinhos.
+Desta forma uma rede toro consegue rotear de qualquer nodo origem para qualquer nodo destino com enlaces unidirecionais enquanto que numa rede de topologia malha isto é impraticável.
+Conceitos Em uma rede toro, os caminhos mínimos são quase sempre fisicamente mínimos também, permitindo que a rede possa explorar a característica de localidade física na comunicação.
+Um caminho mínimo de um nodo x a um nodo y é um caminho com o menor hop count possível.
+Uma característica importante de uma rede, é a quantidade de caminhos mínimos disponíveis de um nodo x origem até um nodo y destino.
+O conjunto de todos os caminhos mínimos entre x e y é denotado por Rxy.
+Uma rede que possui múltiplos caminhos mínimos entre a maior parte dos seus nodos, ou seja| Rxy|\&gt; 1 para x, y N é mais robusta do que uma rede com somente um caminho mínimo entre um nodo origem N1 e um nodo destino N2,| Rxy| $= 1.
+Quando uma rede possui altos valores de| Rxy| diz- se que ela tem uma boa diversidade de caminhos, e com isso, é possível obter um bom balanceamento de carga através dos vários caminhos da rede, permitindo inclusive que a rede seja tolerante a falhas dado que o algoritmo de roteamento seja capaz de explorar estas características.
+Estrutura A estrutura de uma rede toro de raiz k n-dimensional consiste de N $= k n, onde N são todos os nodos que estão dispostos em n dimensões, tendo k nodos em cada uma das dimensões.
+Todos os nodos numa rede toro 2D estão interligados com seus vizinhos por um par de canais em cada direção (N/ S/ E/ W), sendo um para envio e outro para recebimento, totalizando 8 canais.
+O conceito de rede toro pode ser generalizado para incluir toro com raízes mistas onde cada dimensão pode ter um valor de k diferente.
+Esta é a definição mais geral de rede toro, que tem como caso especial redes anel, que nada mais são do que um toro de raiz k 1-dimensional.
+Em uma rede de comunicação cada nodo possui uma posição relativa na rede.
+Suponha uma rede toro 2D 3x3, onde a estrutura da rede pode ser caracterizada como tendo além de as ligações convencionais dispostas na topologia malha, ligações wraparound dos nodos a k-1 para os a0, onde k é o número de nodos em cada dimensão da rede.
+A Figura 12 ilustra esta situação, onde o nodo de número &quot;21 «(a2) possui uma ligação wraparound com o nodo &quot;01 «(a0) e uma ligação convencional com o nodo &quot;11».
+Cada vez mais núcleos IPs e outros componentes reutilizáveis têm sido integrados num único Ci.
+Benini et al.
+E Guerrier et al.
+Prevêem que futuramente SoCs sejam compostos por centenas de núcleos IPs.
+Tradicionalmente canais dedicados e barramentos são utilizados como abordagem para comunicação entre os núcleos IPs.
+Os canais dedicados são considerados ineficientes, já que são de difícil reuso.
+Entretanto, barramentos são reutilizáveis, mas possuem limitações por a diminuição da freqüência de operação com o aumento da densidade de SoCs, devido a o uso compartilhado do canal de comunicação por um número crescente de IPs tornando a escalabilidade limitada.
+Algumas abordagens foram utilizadas para tentar resolver essas limitações, como por exemplo, barramentos hierárquicos (CoreConnect e Amba).
+Entretanto, outros problemas foram agregados, como a possibilidade de operação bloqueante atingindo todo o barramento hierárquico, diferenças entre as freqüências de operação, largura de banda entre cada barramento e principalmente a forma desestruturada de montagem destes.
+Redes mais complexas para comunicação intra-chip denominadas NoCs, foram propostas para superar os problemas já mencionados, de forma a suprir as necessidades dos projetos atuais.
+NoC é um paradigma emergente de projeto, que visa suprir as limitações apresentadas por barramentos tradicionais, trazendo melhorias nos quesitos:
+Consumo de energia;
+Escalabilidade da largura de banda;
+Reusabilidade; Confiabilidade.
+NoCs são constituídas por um conjunto de roteadores interligados por meio de canais pontoa-ponto.
+Elas surgiram a partir de conceitos (topologias de rede, roteamento, chaveamento, protocolos de comunicação etc.) das áreas de rede de computadores e sistemas distribuídos devidamente adaptados para utilização em ambiente intra-chip.
+O que diferência redes intrachip de redes de computadores são os requisitos do sistema, onde na primeira o número de núcleos e a distância entre eles são inferiores aos da segunda.
+Contribuições e revisões conceituais sobre NoCs foram publicadas por vários autores.
+Destacamse Benini, Dally Guerrier, Duato, Pande entre outros.
+Para implementações de NoCs pode- se citar.
+Em é encontrada uma revisão abrangente do estado da arte em redes intra-chip realizada por Moraes et al.
+Este Capítulo é um apanhado do estado da arte para redes intra-chip com topologia toro encontradas atualmente na literatura especializada.
+O resultado deste apanhado está sintetizado através da Tabela 1.
+Em ela, cada linha corresponde a uma rede intra-chip com topologia toro distinta.
+Um apanhado geral de NoCs com múltiplas topologias representando o estado da arte no ano de 2004 pode ser encontrado na referência.
+Esta Seção descreve brevemente cada uma das NoCs toros descritas na literatura consultada durante a realização deste trabalho.
+A Seção também revisa uma comparação entre algumas classes relevantes de topologias de NoCs, conforme proposta por Pande e outros.
+Dally e Towles propõem uma rede toro dobrado 2D.
+Para utilização em conjunto com essa topologia é proposto um algoritmo de roteamento XY em conjunto com canais virtuais, de forma a evitar a ocorrência de deadlocks na rede.
+Marescaux et al.
+Utilizam uma rede de comunicação toro 2D com modo de chaveamento wormhole especialmente modificada para limitar a área do roteador.
+Sabe- se que numa rede de topologia malha o roteador deve realizar o roteamento em todas as direções Norte, Sul, Leste e Oeste de forma bidirecional, para garantir conectividade.
+Por outro lado, numa rede com topologia toro, é possível diminuir a complexidade do roteamento e do roteador modificando ambos para utilizar somente dois sentidos de deslocamento, um no eixo das coordenadas X e outro no eixo das coordenadas Y. Entretanto, Marescaux verificou que essa prática aumenta em 15% o consumo de energia em relação a uma topologia malha análoga para uma rede 4x4.
+Hölzenspies et al.
+Propõem, em, um modelo de comunicação baseado numa arquitetura toro de n dimensões, utilizando modo de chaveamento wormhole.
+Este trabalho tem como principal contribuição a extensão do roteamento introduzido numa arquitetura de duas dimensões para uma topologia toro n-dimensional.
+Em, Theocharides et al.
+Propõem uma arquitetura de rede neural reconfigurável, implementada numa rede intra-chip toro 2D com roteamento XY e modo de chaveamento wormhole.
+Essa arquitetura permite um grande número de conexões entre os neurônios da rede, provendo um bom desempenho quando comparado com implementações alternativas.
+Theocharides et al.
+Acreditam que implementações em NoCs podem resolver o problema de congestionamento de projetos anteriores da mesma equipe de forma econômica, já que podem ser reconfiguráveis e ter alto desempenho.
+Chi e Chen propõem um projeto e implementação de um roteador para redes com topologia malha ou toro.
+Em este são utilizadas filas de entrada e saída e roteamento especial, denominado look-- ahead para eliminar problemas de bloqueio dos pacotes nas filas.
+Em as simulações realizadas, o desempenho do roteador proposto se mostrou melhor do que um roteador que utiliza filas FIFO.
+Bartic et al.
+Acreditam que diferentes tipos de redes serão necessárias, dependendo do domínio da aplicação visada.
+Por este motivo, propõem um projeto de rede flexível e escalável, de forma que se possa modificar a rede facilmente para cada necessidade.
+O projeto é adequado para construção de redes com topologia irregular, baixa latência e alto desempenho.
+Em é realizada uma simulação com diferentes topologias de rede, entre elas toro e malha, ambas com dimensões 4x4.
+Em esta simulação, foi constatado que uma rede toro com canais unidirecionais possui tamanho, número de LUTs e slices menores quando comparado com a topologia malha, por usar roteamento unidirecional em X e Y. Kim et al.
+Propõem uma arquitetura de roteador que utiliza roteamento adaptativo enquanto mantêm uma baixa latência.
+Em esta arquitetura, é utilizada uma rede toro 2D de dimensões 8x8, com pacotes de 4 flits, modo de chaveamento wormhole, filas com 4 flits e 6 canais virtuais por canal físico.
+O toro diagonal recursivo (em inglês, RDT) é uma proposta oriunda de uma rede de interconexão voltada para uso em computadores maciçamente paralelos, onde o objetivo é reduzir drasticamente o diâmetro da rede, visando obter baixíssimas latências de comunicação.
+Como exemplo, um toro 2D de 1024 vértices (assumindo 32x32) possui diâmetro de 32, enquanto que num RDT pode- se obter um diâmetro de apenas 7 para o mesmo número de vértices.
+A topologia é uma rede direta composta por a superposição de n toros de diferentes graus.
+Cada toro envolve uma parte dos P vértices da rede.
+O toro de grau-1 é um toro 2D com enlaces girados de 45 graus e conectando apenas 1 a cada 4 vértices em X e Y. O toro de grau-2 é um toro 2D girado 90o (assim equivalendo a um toro convencional) conectando apenas 1 a cada 8 vértices em X e Y. De aí infere- se os toros de grau superior.
+O algoritmo de roteamento é complexo, sendo baseado na decomposição de um vetor resultante XY entre os vértices origem e destino num conjunto de vetores componentes sobre toros de graus decrescentes.
+O número de enlaces de cada roteador na rede é proporcional ao número de graus usado.
+Por exemplo, em roteador de um RDT com grau máximo 2 possui 8 enlaces, enquanto que se o grau máximo é 0, ele tem 4 enlaces, (idêntico ao toro 2D convencional).
+Pande et al.
+Demonstram num método de avaliação desenvolvido para comparar o desempenho e as características de diversas topologias e arquiteturas de NoCs.
+Em este trabalho são comparadas NoCs descritas por outros autores, incluindo:
+A NoC SPIN, proposta por Guerrier and Greiner a qual utiliza uma arquitetura denominada árvore gorda com 16 nodos;
+A NoC CLICHÉ, proposta por Kumar et al.,
+baseada numa rede com topologia malha de 16 nodos;
+A NoC OCTAGON, proposta por Karim et al.,
+onde se utiliza uma arquitetura básica de um octágono com 8 nodos e 12 canais bidirecionais;
+A Arquitetura Butterfly Fat-Tree proposta em, com 16 nodos;
+A NoC Toro 2D proposta por Dally e Towles com 16 nodos, modificada para um toro dobrado de duas dimensões.
+Pande em seu estudo de caso utilizando o método de avaliação proposto em concluiu que a rede toro dobrado em comparação com a rede CLICHÉ, dependendo do tipo de tráfego utilizado, pode obter uma maior ou menor vazão, mas sempre obtendo uma menor latência média.
+Em este trabalho, várias comparações foram realizadas envolvendo todas as arquiteturas de NoCs descritas anteriormente, comparando quesitos como área, vazão, latência e energia.
+Em outro trabalho Pande verificou que a topologia toro 2D consegue uma maior vazão em relação a a topologia malha, quando comparadas numa rede de mesmas dimensões sujeita a tráfego aleatório uniformemente distribuído.
+Esta Seção descreve em detalhes cada uma das NoCs toro consultadas durante a realização deste trabalho.
+Em a Tabela 1 é demonstrado um resumo das características de cada rede, sendo que uma maior descrição é realizada nas Seções a seguir.
+Apesar de existirem muitas redes de computadores com topologia toro, são ainda escassos os casos de empregado desta topologia em NoCs.
+A topologia malha é a mais predominante neste tipo de rede no momento.
+Existem algumas razões para isso.
+Entre as três maiores vantagens da topologia malha pode- se citar:
+Facilidade de implementação;
+Simplicidade na estratégia para roteamento, quando utilizado roteamento XY;
+Escalabilidade. A topologia toro de duas dimensões é utilizada como alternativa à malha com o intuito de reduzir o diâmetro da rede, enquanto que o toro dobrado 2D tem como principal vantagem a redução do custo de fios quando comparada com o toro 2D convencional.
+Analisando a segunda coluna da Tabela 1, onde é considerado o quesito topologia, somente Dally propõem o uso do toro dobrado.
+Hölzenspies propõem uma topologia toro 2D com possibilidade de extensão para n dimensões, Bartic propõem uma rede onde a topologia pode ser substituída, sendo toro 2D uma das opções e Yang propõem um toro diagonal recursivo.
+Todas as outras NoCs presentes na tabela empregam toro 2D como topologia.
+O próximo parâmetro comparado na Tabela 1 é o algoritmo de roteamento.
+O algoritmo XY é o mais utilizado em redes toro 2D, devido a sua facilidade de implementação.
+Contudo, trata- se de um algoritmo bloqueante, determinístico e baseado em hops.
+Seu funcionamento é baseado em endereços relativos ao seu destino, não necessitando que os roteadores tenham conhecimento da estrutura da rede como um todo.
+Inicialmente, o pacote é roteado no eixo cartesiano X até atingir a coordenada correta nesta direção, após, é roteado no eixo Y até alcançar a coordenada correta, atingindo assim o roteador destino.
+Existem diversas variações possíveis deste algoritmo devido a o uso diferenciado de canais virtuais e métodos de armazenamento temporário.
+Chi e Chen utilizam um roteamento denominado &quot;look-- ahead «onde a decisão do roteamento é realizada um hop antes do pacote chegar ao roteador.
+Este método de roteamento foi desenvolvido especialmente para roteadores que possuem filas de entrada e saída de modo a prevenir perdas de desempenho por causa de o problema de bloqueio de cabeça de fila.
+Kim propõe um algoritmo de roteamento que utiliza a técnica de look-- ahead para verificar o congestionamento nos roteadores vizinhos, de forma a tornar o roteamento adaptativo baseado no fluxo de dados.
+Bartic utiliza um algoritmo de roteamento determinístico implementado como uma look-up table.
+Este algoritmo utiliza uma tabela onde cada roteador da rede possui uma entrada de modo a conter o roteamento para o próximo canal levando ao próximo roteador.
+O grande problema desta abordagem é a área ocupada em NoCs de tamanho médio a grande, já que quanto maior forem as dimensões da rede, maior será a tabela presente em cada roteador.
+Em a rede Mercury descrita no contexto deste trabalho é utilizado um algoritmo denominado Algoritmo CG1, proposto por Cypher e Gravano em.
+Este algoritmo utiliza somente caminhos mínimos e é completamente adaptativo, ou seja, todos os caminhos mínimos entre uma origem e um destino podem ser utilizados para evitar congestionamento.
+Esse algoritmo será abordado em detalhe no Capítulo 4.
+Em o parâmetro modo de chaveamento, descrito na quarta coluna da Tabela 1, as redes propostas por Dally, Hölzenspies, Kim, Marescaux e Theocharides, pressupõem o uso de chaveamento de pacotes utilizando o modo wormhole.
+Devido a a probabilidade deste modo causar deadlock na rede, é utilizado em conjunto canais virtuais para quebrar os ciclos presentes na rede, evitando assim a ocorrência do problema.
+Desta forma as NoCs propostas em utilizam canais virtuais, cada qual da maneira que melhor lhe convém para sua implementação.
+A NoC proposta por Bartic e a rede Mercury utilizam o modo de chaveamento virtual cut-through e nenhuma de elas, nem a NoC implementada por Chi e Chen utilizam canais virtuais.
+A escolha do modo de chaveamento virtual cut-through para a rede Mercury se deve a diversos fatores.
+Segundo Shin e Rexford, o modo de chaveamento virtual cut-through consegue manter uma baixa latência na rede em relação a o modo store- and-- forward, pois os pacotes são enviados adiante assim que chegam no roteador, caso a porta de saída requerida por o roteamento esteja disponível.
+Este modo alcança, com baixo tráfego a mesma latência do modo de chaveamento wormhole, enquanto que com alto tráfego alcança a mesma alta vazão do modo store- and-- forward.
+Uma rede que utiliza virtual cut-through possui uma baixa latência enquanto mantém alto desempenho, ao custo de uma maior quantidade de área necessária para filas.
+Banerjee et al.
+Demonstram que o modo virtual cut-through consegue baixas latências e altas taxas de aceitação de dados por roteador, quando comparado com o modo wormhole, desde quando utilizado com somente 1 enlace entre roteadores com a utilização de até 8 canais virtuais.
+Ao mesmo tempo, verifica- se que o consumo de energia é praticamente o mesmo para os dois modos de chaveamento.
+Desta forma Banerjee et al.
+Afirmam que virtual cut-through consegue um melhor desempenho a um custo de energia similar ao wormhole.
+A técnica de armazenamento temporário é o quinto parâmetro analisado na Tabela 1.
+Algumas NoCs toro analisadas empregam filas nas portas de entrada como as propostas por Dally e problema de bloqueio da cabeça da fila.
+Para solucionar esse inconveniente, pode- se utilizar filas de saída em conjunto com as de entrada, como no caso de o roteador proposto por Chi e Chen.
+Entretanto, essa solução acaba gerando uma maior utilização de área por o roteador.
+Segundo Moraes et al.,
+o tamanho da fila é um importante parâmetro, que implica no compromisso entre a quantidade de contenção da rede, a latência dos pacotes e a área utilizada por o roteador.
+Contenção da rede é a medida da quantidade de recursos da rede alocados por o bloqueio de pacotes.
+Filas grandes proporcionam uma pequena contenção na rede, uma alta latência de pacotes e roteadores de tamanho grande.
+Por sua vez, filas pequenas proporcionam uma situação contrária a essa.
+Em NoCs, o quesito área é de suma importância.
+Considerando que o modo de chaveamento escolhido para a rede Mercury não prioriza este aspecto, optou- se por um algoritmo que utilizasse filas centralizadas e compartilhadas entre todas as portas do roteador, de forma a diminuir a área utilizada em comparação com as filas de entrada e/ ou saída.
+Por fim, na última coluna mostra- se a disponibilidade de dados de implementação e/ ou prototipação das NoCs revisadas.
+Marescaux et al.
+Utilizou um FPGA Virtex XCV800 para prototipar sua rede.
+Hölzenspies et al.,
+somente simulam a rede utilizando- se de três tipos de cenários de testes, enquanto Theocharides et al.
+Simula utilizando cinco tipos de aplicações como testbenchs, além de sintetizar sua proposta de arquitetura.
+Já Chi e Chen implementam somente seu roteador num IP Core, o qual pode ser utilizado numa rede toro.
+Bartic et al.
+Prototipam sua NoC utilizando um FPGA Virtex-II Para o e Kim et al.
+Simularam sua rede com vários padrões de tráfego.
+Para a rede Mercury, vários testbenchs foram realizados para validação da NoC e a mesma foi prototipada num FPGA Virtex-II Para o.
+Mais informações sobre a prototipação da rede Mercury serão trazidas no Capítulo 8.
+Em os últimos anos tem se destacado o volume de pesquisas em topologias para redes intrachip em geral, devido a necessidade de um aumento no desempenho da rede e na eficiência do consumo de energia utilizada na mesma.
+Em esta Seção revisam- se algumas abordagens da evolução destas pesquisas.
+Três direções de pesquisa relacionadas a topologias de NoCs envolvem a relação das topologias com a aplicação, com o consumo de energia e com a evolução das tecnologias de fabricação.
+Murali e De Micheli em apresentam uma ferramenta denominada SUNMAP a qual seleciona de forma automatizada a melhor topologia (dentro de as disponibilizadas por a ferramenta) para uma determinada aplicação e realiza o mapeamento dos núcleos IP.
+Estes Autores acreditam que a escolha da topologia é uma importante fase no desenvolvimento do projeto de NoCs.
+Hu et al.
+Exploram uma metodologia de síntese física para gerar NoCs com uma boa relação energia/ eficiência.
+Como resultados de experimentos, conseguem reduzir o consumo de energia de forma significativa, otimizando a topologia de rede, localização das células, capacidade dos canais e estilo de ligações dos fios.
+Wang et al.
+Colocam em seu trabalho que a topologia e a tecnologia empregada nos semicondutores possuem um alto impacto na energia consumida por a rede.
+Afirmam que uma determinada topologia que hoje é considerada a melhor para determinada aplicação utilizando- se da tecnologia atual, pode deixar de ser- lo com o passar do tempo, devido a novos parâmetros tecnológicos.
+Os Autores de realizam comparações entre o consumo de energia de determinadas topologias versus a tecnologia empregada (70 nm, 50 nm e 35 nm).
+Outra direção de pesquisa envolve a relação entre topologias, algoritmos de roteamento e consumo de energia associado.
+Por exemplo, nas primeiras propostas de roteadores para NoCs, o uso de roteadores simples com algoritmos de roteamentos determinísticos dominavam.
+Com a evolução da pesquisa começaram a surgir propostas utilizando canais virtuais em conjunto com roteamentos mais elaborados.
+Notou- se que quando utilizado tráfego não uniforme ou aplicações especificas, como por exemplo multimídia em tempo real, o roteamento determinístico não consegue rotear rapidamente pacotes de modo a evitar congestionamento na rede, resultando em atraso na comunicação.
+A solução encontrada para resolver esse problema é o emprego de algoritmos adaptativos.
+Estes porém possuem maior complexidade de hardware e possivelmente consumiram mais energia.
+Kim et al.
+Acreditam que reduzindo a latência da rede e aumentando a vazão com a utilização de algoritmos adaptativos, o pequeno gasto extra de energia quando comparado com algoritmos determinísticos, ficará anulado por o desempenho que o roteamento conseguirá em tráfego não uniforme.
+Kim et al.
+Avaliam sua arquitetura utilizando uma rede toro 2D de dimensões 8x8, com pacotes de 4 flits, modo de chaveamento wormhole, filas com 4 flits e 6 canais virtuais por canal físico.
+Para validação, foram realizadas simulações de injeções de pacotes utilizando três tipos diferentes de carga:
+Tráfego internet auto-similar;
+Tráfego uniforme;
+Tráfego MPEG-2.
+Em cada uma das simulações foram utilizados quatro diferentes tipos de permutações de tráfego:
+Normal-aleatória; Transposta;
+Tornado; Complemento.
+Com esses testes, Kim et al.
+Validaram sua hipótese, de que a energia gasta quando se utilizam algoritmos adaptativos é em geral menor do que com algoritmos determinísticos, devido a a redução da latência da rede.
+Redes intra-chip com topologia toro estão sendo atualmente estudadas, construídas, testadas e comparadas em vários contextos e com objetivos distintos.
+Isto reforça ainda mais a necessidade de um estudo aprofundado desta topologia.
+Desta forma, o projeto do roteador presente na rede Mercury foi pensado para ser diferente do que já vem sendo trabalhado no meio acadêmico.
+Grande parte das implementações toro utilizam algoritmos XY, modo de chaveamento wormhole, canais virtuais e filas na entrada, enquanto a implementação proposta da rede Mercury utiliza um algoritmo com modo de chaveamento virtual cut-through, filas centralizadas compartilhadas, sem canais virtuais.
+O algoritmo é livre de deadlock, livelock e starvation.
+Em o rede Mercury e análise das simulações realizadas, foram propostas duas ferramentas de apoio, as quais serão apresentadas no Capítulo 7.
+Cypher e Gravano da IBM propuseram dois algoritmos de roteamento para redes de chaveamento de pacotes voltados para processamento paralelo, utilizando redes de interconexão com topologia toro, de raiz mista e dimensões arbitrárias.
+Em este Capítulo detalha- se o primeiro destes algoritmos, denominado CG1, o qual foi escolhido para definir as características da NoC Mercury proposta aqui, por ser o mais simples de entre os dois, para implementação em hardware.
+CG1 é mínimo e completamente adaptativo, ou seja, todos os caminhos mínimos disponíveis podem ser usados para o roteamento de pacotes.
+Além disso, o algoritmo é livre de deadlock, livelock e starvation e pressupõe roteamento no modo store- and-- forward ou no modo virtual cut-through, não sendo viável seu uso no modo wormhole.
+Algumas definições e pressupostos devem ser introduzidos antes de se iniciar o estudo propriamente dito do algoritmo.
+Assume- se aqui uma rede com topologia toro onde o número de dimensões é qualquer, embora definido para cada instância da rede.
+Cada dimensão comporta um número arbitrário de pontos na rede, denominados nodos.
+Um nodo é um núcleo de propriedade intelectual associado a um roteador que implementa localmente o algoritmo CG1.
+Isto caracteriza o uso de redes diretas.
+A maioria dos exemplos apresentados para ilustrar os conceitos assume uma rede toro 2D.
+Contudo, todo o desenvolvimento neste Capítulo é genérico, aplicando- se a toros com qualquer número de dimensões.
+Com relação a a conectividade entre nodos, que caracteriza a rede toro, tem- se:
+Cada nodo na rede toro possui um identificador único com a forma, onde 0 ai ki para todo i, 0 i d..
+Cada nodo da rede, identificado por, é conectado a todos os nodos identificados por, onde 0 i d..
+As linhas que conectam os nodos identificados por e são chamadas de linhas wraparound, e todas as demais são chamadas de linhas internas.
+O algoritmo proposto por Cypher e Gravano pode utilizar modos de roteamento store-- andforward ou virtual cut-through.
+As filas podem ser de qualquer tamanho, as de injeção/ entrega não precisam sequer existir, sendo contudo sua definição útil para a apresentação do algoritmo, como verá- se- adiante.
+Dados os nodos, o algoritmo computa a seqüência de filas a ser percorrida por o pacote, para cada posição na rede (nodo, fila) em que se encontra o pacote.
+O conjunto de filas possíveis para onde o pacote pode- se mover a seguir é denominado conjunto de espera.
+Todas as filas desse conjunto pertencem ao nodo atual ou a vizinhos deste.
+Nota- se que a fila de injeção não pode pertencer ao conjunto de espera, e o conjunto de espera de pacotes na fila de entrega é vazio, já que a sua única opção de movimento na rede é ser entregue, ou seja, sair da rede.
+Um conjunto de filas é utilizado em cada um dos nodos que compõem a rede toro.
+Estas filas se classificam em três tipos, de acordo com a função que desempenham no roteador:
+Fila de injeção: É utilizada por um nodo para inserir pacotes novos na rede;
+Fila de entrega: Quando o pacote está no seu nodo destino, ele é retirado da rede a partir de esta fila;
+Filas padrão: Utilizadas para armazenamento temporário durante o caminhamento do pacote na rede.
+Um pacote move- se de uma fila para outra se a fila para onde o pacote está se movendo pertence ao conjunto de espera computado por o roteador onde o pacote está armazenado.
+Quando um pacote está sendo movido de uma fila para outra, assume- se que este ocupa as duas filas por uma duração finita de tempo.
+CG1 assume que a rede possui as seguintes propriedades: O pacote que estiver na fila de entrega do seu nodo destino, será eventualmente removido da rede, num tempo finito;
+Nenhum pacote permanece para sempre numa fila se existe alguma fila no seu conjunto de espera;
+Nenhum pacote permanece para sempre numa fila enquanto um número finito de outros pacotes entra e sai de algumas das filas do seu conjunto de espera.
+Definem- se dois tipos diferentes de ordenamento total dos nodos numa rede toro para utilizar CG1.
+O primeiro tipo é denominado crescente à direita.
+Trata- se de um ordenamento onde a numeração cresce da esquerda para a direita ao longo de as linhas de nodos da rede, conforme ilustra a Tabela 2 para uma rede toro 2D 6x6.
+O segundo tipo de ordenamento, denominado crescente à esquerda é exatamente o oposto do crescente à direita, conforme ilustrado na Tabela 3 para a mesma rede.
+Tabela 3 ­ Ordenamento crescente à esquerda para uma rede toro 2D 6 x 6.
+Dá- se a seguir um conjunto de definições formais que viabilizam computar estes ordenamentos.
+Dado um inteiro i, 0 i d, sendo d o número de dimensões do toro, seja a função g definida por:
+Assume- se g $= 1.
+O símbolo kj representa o número de nodos na dimensão j sendo kj define- se a função Eval como:
+Eval $= gai.
+de este modo, a função Eval associa um único inteiro entre 0 e n -- 1 para cada nodo da rede, onde n é o número total de nodos nesta.
+Para esclarecer o uso destas definições, mostra- se a seguir um exemplo de cálculo do índice de um nodo.
+Seja uma rede toro 2D 6x6 como as ilustradas nas Tabelas 2 e 3.
+Calcula- se nesta rede o valor da função Eval para o nodo localizado na quinta linha e quarta coluna de roteadores.
+Este nodo possui índices a1 $= 4 e a0 $= 3, dado que a numeração inicia em 0 para todas as dimensões, e que a0 indica a abscissa e a1 indica a ordenada.
+Logo deseja- se computar Eval (3,4).
+Como d $= 2 (rede 2 D), tem- se Eval (3, 4) $= gai.
+Expandindo o somatório, obtém- se:
+Eval (3,4) $= g (0).
+A0+ g..
+A1. Conforme descrito anteriormente, assumiu- se que g tem valor 1, e que g é calculado através da equação cujo lado esquerdo é o produtório já descrito.
+Assim, tem- se que:
+Assim, g $= k0 $= 6.
+Logo, computa- se Eval (3,4), como segue:
+Eval (3,4) $= 1.3+ 6.4 Eval (3,4) $= 3+ 24 Eval (3,4) $= 27.
+Cada um dos diferentes ordenamentos (crescente à direita e crescente à esquerda) pode ser obtido por o uso da função Eval e por o uso de uma função de translação de índices dos nodos, como descrito a seguir.
+Dado o inteiro ki 2 e qualquer inteiro ai onde 0 ai ki, então tem- se:
+As funções acima serão usadas para gerar os ordenamentos crescente à direita e crescente à esquerda, respectivamente.
+A Tabela 4 apresenta o resultado de aplicar f R e fL a uma linha de uma rede toro com dimensão ki de tamanho 7.
+A partir as definições de Eval, fR e fL, pode- se agora estabelecer as funções geradoras dos ordenamentos crescente à direita e crescente à esquerda.
+Dado um nodo, quando eles são numerados por o ordenamento crescente à direita (respectivamente para crescente à esquerda).
+Por exemplo, uma transferência na direção positiva ao longo de nodos internos ocorre para a direita enquanto uma transferência na direção positiva através de um wraparound ocorre para a esquerda.
+Para que seja possível entender o algoritmo proposto por Cypher e Gravano, deve- se estabelecer algumas notações resumidas na Tabela 5.
+Considere que p é um pacote arbitrário que está sendo roteado numa rede toro, utilizando- se do algoritmo descrito na Seção 4.1.5.
+O cálculo dos caminhos mínimos é conceito fundamental, usado mas não discutido em.
+Remete- se o leitor interessado ao Capítulo 5 desta dissertação para uma explicação de como este cálculo pode ser feito.
+Conjunto de espera de p, representando as fi las para onde o pacote pode ser movido no próximo passo.
+Conjunto de nodos (p).
+Ok_ nodes (p) Subconjunto de neighb (p) que consiste dos nodos vizinhos que estão dispostos sobre algum caminho mínimo entre node (p) e dest (p).
+Conjunto de fi las em ok_ nodes (p) acessíveis diretamente a partir de node (p).
+O Algoritmo CG1 pressupõe a existência de três filas centrais denominadas A, B e C em cada um dos nodos da rede.
+CG1 utiliza roteamento de pacotes por qualquer um dos caminhos mínimo da origem até o destino e é livre de deadlock, livelock e starvation.
+CG1 é descrito a seguir. Seja p um pacote arbitrário que está sendo roteado e que q $= queue (p), x $= node (x).
+O conjunto de espera (wait (p)) é neste caso geral formado a partir de a aplicação das seguintes regras:
+Caso 1: Se q (fila onde o pacote p está armazenado) é a fila de injeção, então o conjunto de espera da fila A consiste em x.
+Caso 2: Se q é a fila A, então existem duas possibilidades:
+­ Se existe um nodo y vizinho de x que faz parte de algum caminho mínimo tal que Right Right (y), o conjunto de espera contém todas as filas A que pertencem aos nodos acessíveis diretamente a partir de x e que pertencem a algum caminho mínimo do pacote, ou seja, todas as filas A contidas em ok_ queues (p).
+Caso 3: Se q é a fila B, então existem duas possibilidades:
+­ Se existe um nodo y vizinho de x que faz parte de algum caminho mínimo tal que Left Left (y), o conjunto de espera contém todas as filas B que pertencem aos nodos acessíveis diretamente a partir de x e que pertencem a algum caminho mínimo do pacote, ou seja, todas as filas B contidas em ok_ queue (p).
+Caso 4: Se q é a fila C, então existem duas possibilidades:
+­ Se x não é o nodo destino, o conjunto de espera contém todas as filas C que pertencem aos nodos acessíveis diretamente a partir de x e que pertencem ao caminho mínimo do pacote, ou seja, todas as filas C contidas em ok_ queue (p).
+Caso 5: Se q é a fila de entrega, então o conjunto de espera é o conjunto vazio.
+Para ilustrar a funcionalidade do algoritmo de roteamento, será mostrado a seguir o caminhamento de um pacote numa rede toro 2D 6x6 utilizando o CG1.
+Considerando uma rede toro 6x6, seja um pacote p que deve ser roteado da origem para o destino.
+Em a Figura 13 (a) o roteador origem é indicado por a letra &quot;O «e o destino por a letra &quot;D».
+O primeiro passo a ser realizado no roteamento é a inserção do pacote na rede e logo após a ordenação dos roteadores.
+Os pacotes sempre entram na rede por o IP local no roteador origem na fila de injeção e logo após são injetados na rede na fila A. Assim, a ordenação dos roteadores usada é crescente à direita, mostrada na Figura 13 (b).
+A seguir, inicia- se o cálculo para saber para onde o roteador deve enviar o pacote presente em sua fila A. O pacote p tem como destino o roteador, portanto ok_ nodes (p) $= algum dos ok_ nodes (p) satisfaz a condição de Right (nodo atual) Right (nodo destino).
+Sabese, através da ordenação 3,23,0) $= &quot;3 «e Right (2,1) $= &quot;8».
+Com base nesta informação deve- se verificar se algum dos roteadores presentes em ok_ nodes (p) possui o resultado da função Right maior que o da função Right do roteador onde está armazenando o pacote naquele instante.
+Em o exemplo, verifica- se que o Right Right (3,2), Right (3,1) Right (3,0) e Right Right e constata- se que somente Right (3,2) satisfaz essa condição.
+Apesar de somente um dos três roteadores satisfazer a condição, o Algoritmo CG1 determina que o seu conjunto de espera (wait (p)) consiste de todas as filas A que pertencem ao ok_ queue (p) e ao ok_ nodes (p).
+Diante de essa situação considera- se (neste caso exemplo) que se pode rotear o pacote do roteador para os roteadores (3,2), (3,0) ou (2,1).
+Por questões práticas, define- se aqui que diante de uma situação onde se possa rotear pacotes em várias direções, utilize- se um ordenamento da seguinte forma (Norte, Sul, Leste, Oeste).
+Com isso, o pacote presente no roteador é roteado ao Norte para o roteador (3,2), conforme Figura 13 (c).
+Utilizando o processo já descrito, calcula- se os ok_ nodes (p) para cada novo roteador onde o pacote for armazenado, verificando se o Right do roteador atual é menor que Right do roteador destino, gerando a partir deste resultado o novo wait (p).
+Com base no conjunto de espera utiliza- se o ordenamento (Norte, Sul, Leste, Oeste) e roteia- se o pacote para o próximo roteador.
+Seguindo essas regras no exemplo, o pacote p é movido do roteador (3,2) para o (3,3) (Figura 13 (d)), e em seguida movido de o (3,3) para o roteador (3,4) (Figura 13 (e)), utilizando sempre a fila A e o ordenamento &quot;crescente à direita «em cada roteador.
+Quando o pacote p chega no roteador (3,4) (Figura 13 (e)), o conjunto ok_ nodes (p) possui somente o roteador (2,4).
+Sabe- se que Right (2,4) é menor que o Right (3,4), fazendo com que o conjunto wait (p) seja vazio.
+Quando isto ocorre, é necessário que o pacote troque de fila.
+Desta forma o pacote p do exemplo, que está na fila A do roteador (3,4) move- se para a fila B, permanecendo no mesmo roteador).
+Isto é ilustrado por a troca de cor padrão do roteador. A partir deste momento, por o motivo do pacote pertencer à fila B deve- se usar o ordenamento dos roteadores para &quot;crescente à esquerda», conforme ilustra a Figura 14 (a).
+Utilizando-se essa nova ordenação, usa- se a função Left definida na Seção 4.1.3.
+Em o exemplo, aplica- se a função Left verificando se Left (3,4) Left (2,4).
+Como Left (3,4) $= &quot;8 «e Left (2,4) $= &quot;9 «a condição é satisfeita e o pacote p avança em direção a o seu destino).
+De esta mesma forma, o pacote p é movido do roteador (2,4) para o (1,4), conforme Figura 14 (c).
+Quando o pacote p chega ao seu destino no roteador, ele ainda encontra- se na fila B).
+Desta forma deve- se necessariamente mover- lo para a fila C antes de entregar- lo ao IP local.
+Move- se então o pacote para a nova fila e com isso o ordenamento &quot;crescente à esquerda «não é mais utilizado, deixando a rede sem ordenamento algum, o que ocasiona um possível deslocamento do pacote p em qualquer direção no sentido do seu destino).
+Como o pacote já se encontra em seu roteador destino e na fila C, ele pode sair da rede sendo inserido na fila de entrega de onde sai para o IP local deste roteador, conforme Figura 14 (f).
+Em resumo, o pacote p será armazenado na fila de injeção no roteador, na fila A nos roteadores, (3,2), (3,3) e (3,4), na fila B nos roteadores (3,4), (2,4) e (1,4), na fila C no roteador e na fila de entrega no nodo, de onde é entregue, saindo da rede.
+Para provar que o algoritmo é livre de deadlock, livelock e starvartion, Cypher e Gravano enunciam e provam três Lemas, que são então combinados num teorema fundamental.
+em os Lemas 1 e 2 prova-se que uma vez que um pacote seja colocado na fila de injeção, ele nunca permanecerá numa única fila (seja ela qual for) para sempre.
+Através dessa prova, pode- se garantir que o Algoritmo CG1 é livre de deadlock e starvation.
+Se fosse possível o algoritmo de roteamento entrar em deadlock (fazendo com que ele não conseguisse mais progredir na rede) ou starvation, não se conseguiria provar, através dos Lemas 1 e 2, que o pacote se moveria de fila em fila até ser entregue.
+Em o Lema 3, utilizando- se o que foi provado nos Lemas anteriores, provou- se que um pacote atinge a fila de entrega do seu nodo destino num tempo finito.
+Para garantir que o algoritmo é livre de livelock para pacotes que entram na rede, usa- se o fato de que nenhum pacote pode permanecer para sempre na fila de injeção de acordo com Lemas 1 e 2, fazendo com que fila de injeção esteja eventualmente voltando a ficar vazia.
+Com isso, o CG1 é mínimo, completamente adaptativo e livre de deadlock, livelock e starvation.
+Mais detalhes sobre a prova de liberdade de deadlock, livelock e starvation são encontrados em.
+A partir de a compreensão da teoria por trás do algoritmo CG1, procurou- se definir como utilizar- lo na prática.
+Quando propuseram o algoritmo, Cypher e Gravano não levaram em consideração algumas características que existem em redes intra-chip, como o paralelismo natural do hardware, o tamanho dos canais de comunicação, o tamanho reduzido necessário para as filas, entre outras características.
+Por esses motivos, procurou- se definir alguns pressupostos para facilitar a implementação do algoritmo em NoCs, enumerados abaixo:
+Em este Capítulo propõe- se uma arquitetura de roteador para uma rede toro 2D utilizando o algoritmo CG1.
+O objetivo aqui é demonstrar a abordagem de modelagem e implementação do algoritmo, de forma a obter uma arquitetura que possa oferecer os requisitos necessários para a operação do CG1 de forma eficiente.
+O roteador é denominado Mercury.
+Inicialmente dá- se uma visão global da rede e do roteador, assim como das interfaces de comunicação entre roteadores na rede e entre o roteador e seu IP local.
+Em seguida, discutemse os árbitros de entrada e de saída, que possuem a função de realizar o caminhamento do pacote entre entradas e saídas do roteador.
+Logo após, é mostrada uma proposta de arquitetura para implementação das filas de armazenamento temporário, que têm como objetivo armazenar o dado a partir de o momento em que esse entra no roteador até o momento que é transmitido ao IP local ou a outro roteador da rede.
+O roteador apresentado aqui assume redes toro 2D apenas.
+Com a eliminação de estruturas selecionadas, o mesmo roteador pode ser usado também em redes toro 1D (topologia anel).
+A estrutura geral da rede de comunicação Mercury possui um número arbitrário de elementos de processamento conectados entre si através de uma rede toro, conforme ilustra a Figura 15 para o caso de uma rede de raiz 2,3 e dimensão 2.
+Essa rede tem como objetivo realizar a comunicação entre os diversos IPs de um SoC, através da execução do algoritmo CG1.
+Todos os roteadores presentes na rede de comunicação toro possuem a mesma estrutura, já que a rede é totalmente simétrica.
+A arquitetura geral do roteador proposto é ilustrada na Figura pares denominados, Norte, Sul, Leste, Oeste e Local.
+As portas de entrada Norte, Sul, Leste e Oeste estão ligadas à entrada de três multiplexadores denominados multiplexadores de entrada, os quais por sua vez, estão ligados cada um a uma das três entradas das filas centrais denominadas A, B e C. Através dessa abordagem, cada uma das portas de entrada não locais (N/ S/ E/ W) do roteador está ligada diretamente às entradas das três filas.
+O controle do multiplexador é resultado do processo de operação de três árbitros de entrada, um por fila.
+A porta Local por sua vez, possui um tratamento distinto, pois segundo o algoritmo CG1, ela somente pode enviar pacotes para fila A. Por isso, sua conexão na porta de entrada é somente com o multiplexador de entrada da fila A. Por motivos similares a saídas das filas A e B estão conectadas aos multiplexadores de entrada das filas B e C, respectivamente.
+As portas de saída Norte, Sul, Leste e Oeste do roteador, estão ligadas cada uma à saída de um multiplexador, o qual recebe as saídas das três filas, A, B e C. O controle desses multiplexadores é resultado do processo de operação de um árbitro de saída, que recebe como entrada requisições pendentes das três filas e tem como objetivo conectar cada uma de elas a uma porta de saída de forma independente e exclusiva.
+Para viabilizar a implementação do roteador, propõe- se a utilização de dois tipos de interfaces de comunicação.
+A primeira de elas, ilustrada na Figura 17, é a interface entre alguma das portas do roteador N/ S/ E/ W com alguma das portas N/ S/ E/ W de um roteador vizinho.
+Em esta interface são definidos quatro sinais por comunicação entre os roteadores, que são queue_ addr, size, data e ack_ nack, correspondendo respectivamente ao endereço da fila de destino, o tamanho do pacote, o dado do pacote em si e o reconhecimento de aceitação ou não do dado por o roteador receptor.
+O sinal queue_ addr, informa ao roteador destino em qual das filas A, B ou C o pacote que está sendo enviado deve ser armazenado ou dá uma indicação de que não há requisição de transferência de dado.
+Este sinal pode ser codificado em dois bits, representando dado disponível nas fila A, B ou C ou a inexistência de dado a transmitir.
+N/ S/ E/ W de outro roteador Mercury.
+Lo por inteiro em sua fila.
+O dado em si (que representa o payload), é enviado através do sinal data.
+O sinal ack_ nack sinaliza, através de um código ack ao roteador transmissor que o receptor já recebeu o dado presente no sinal data.
+Caso não seja possível receber o dado, por motivos de espaço insuficiente na fila, o roteador receptor sinaliza isto através de um código nack.
+Este sinal necessita pelo menos 2 bits para codificação, pois deve transportar informações ack, nack e decisão ainda não formada.
+A segunda interface de comunicação, ilustrada na Figura 18, representa a comunicação entre o IP Local e o roteador associado a ele.
+Essa interface contém a ligação da saída da fila C, com os sinais data_ av, size, data e ack_ nack, para o IP Local e a entrada na fila A a partir de os mesmos sinais.
+A principal diferença entre as interfaces de comunicação roteador-roteador e roteador-IP_ local, é que o sinal queue_ addr foi substituído por o sinal data_ av por não fazer sentido informar ao IP local em que fila o dado deve ser armazenado.
+Portanto, o sinal data_ av tem somente a funcionalidade de sinalizar se existe ou não dado para ser recebido por o IP local, podendo ser codificado em apenas 1 bit.
+Para que o roteador proposto possa implementar o algoritmo CG1, propõe- se o uso de dois tipos de árbitro.
+Os árbitros possuem a função de controlar quem deve e quem não deve acessar um determinado recurso num dado instante.
+Os recursos de cada roteador são as entradas das três filas centrais A, B e C e as portas de saída do roteador N/ S/ E/ W. Para o roteador em questão, há necessidade de três árbitros de entrada, um para cada fila central A, B, C e um árbitro de saída, que controla o acesso das três filas às cinco portas do roteador.
+Os árbitros são máquinas de estados que operam de forma concorrente entre si.
+A funcionalidade dos quatro árbitros, associada ao restante da estrutura do roteador implementa o CG1.
+As seções 5.5.1 e 5.5.2 dão a estrutura básica de cada um dos tipos de árbitro.
+O árbitro de entrada, ilustrado na Figura 19, possui a função de controlar o multiplexador associado à fila cuja entrada lhe cabe comandar.
+Por exemplo, imagine- se o árbitro de entrada da fila A, que tem como função definir a cada instante qual porta de entrada N/ S/ E/ W/ L irá acessar a sua fila.
+Existem três árbitros de entrada trabalhando concorrentemente, um para cada entrada de fila central A, B e C. Não existe restrição de acesso simultâneo a filas distintas, ou seja, pode- se ter três portas quaisquer (distintas), escrevendo em paralelo nas filas A, B e C. Como exemplo, pode- se pensar que simultaneamente se tenha a porta Norte escrevendo na fila A, a porta Sul na fila B e a porta Oeste na fila C. Cada árbitro de entrada recebe até cinco sinais de solicitação de acesso relativos às entradas do multiplexador respectivo.
+Quatro desses sinais são iguais para todos os árbitros de entrada, que são os sinais das portas de entrada não locais N/ S/ E/ W. O quinto sinal de solicitação de acesso varia de um árbitro para outro.
+No caso de o árbitro da fila A, esse sinal é oriundo da porta L (local), no árbitro da fila B, ele vem da fila A indicando uma solicitação de transferência de um dado da fila A para fila B, e no árbitro da fila C, ele vem da fila B indicando uma solicitação de transferência de dado da fila B para fila C. Percebe-se que externamente cada árbitro de entrada possui um bloco a ele associado denominado into-arbiter.
+O sinal into-arbiter recebe sinais de solicitação de acesso à todas as filas e coloca em sua saída apenas a solicitação específica para a entrada da fila controlada por o árbitro ao qual into-arbiter está associado.
+Assim, cada into-arbiter é distinto para cada árbitro de entrada, e os árbitros em si são idênticos.
+O árbitro de entrada utiliza um algoritmo de arbitragem de prioridade rotativa, denominado Round Robin.
+Ele foi escolhido porque com ele consegue- se conceder prioridade de acesso de forma justa e simples para todas as entidades concorrentes.
+O árbitro de saída, ilustrado na Figura 20, possui a função de controlar qual de entre as saídas das três filas A, B ou C, terá direito a acessar uma determinada porta do roteador.
+O árbitro de saída recebe em paralelo os sinais enviados por as três filas do roteador, e deve determinar qual de elas terá acesso, a uma determinada porta naquele instante.
+Nota- se que é possível haver até três portas de saída trabalhando em paralelo, já que se pode ter, por exemplo, a fila A enviando dados por a porta Norte, a fila B por a porta Sul e a fila C por a porta Oeste.
+Como podem existir várias requisições simultâneas das filas para a mesma porta, é necessário utilizar- se de um algoritmo de arbitragem, assim como ocorreu com os árbitros de entrada.
+Por os mesmos motivos anteriores, utiliza- se o algoritmo de prioridade rotativa Round Robin.
+Cálculo dos Caminhos Mínimos O árbitro de saída também realiza a função de calcular os caminhos mínimos disponíveis entre um roteador origem e um roteador destino pertencentes a rede.
+Este cálculo é realizado baseado em funções matemáticas.
+Estas por sua vez, verificam qual a menor distância existente (em hops) entre os dois roteadores.
+A partir deste resultado verifica- se de entre os caminhos do roteador origem nas direções Norte, Sul, Leste e Oeste, qual de elas é igual a distância mínima calculada anteriormente.
+Um pseudocódigo do cálculo para as direções pertencentes ao eixo X é demonstrado a seguir, sendo praticamente o mesmo para o eixo das coordenadas Y. Em o pseudocódigo descrito acima, verifica- se inicialmente se o roteador destino já está alinhado no eixo cartesiano X com o roteador em que se encontra o dado.
+Logo após verifica- se a NoC possui um número par de roteadores no eixo X juntamente com a verificação da distância entre o nodo atual e o nodo destino no eixo X. Se a NoC possuir um número par de roteadores no eixo analisado e a distância for igual por qualquer uma das direções, seta- se como caminhos mínimos as direções Leste e Oeste.
+Caso a NoC não possua um número par de roteadores no eixo X ou a distância por um dos lados (Leste ou Oeste) for menor em hops, seta- se somente a direção com menor número de hops entre a origem e o destino como caminho mínimo.
+O roteador Mercury possui três filas centrais denominadas A, B e C, para armazenamento temporário.
+Essas filas são circulares e utilizam o método FIFO para inserção e remoção de dados.
+A Figura 21 ilustra a estrutura geral das filas, onde se visualiza os sinais de interface da mesma.
+Os principais sinais são data_ in, utilizado para sinalizar a inserção dos dados e data, utilizado para retirar um dado e enviar- lo para outra fila ou roteador.
+Nota- se também a presença dos ponteiros internos de leitura e escrita na fila.
+Quando a posição de leitura for igual à posição de escrita, considera- se que a fila está vazia, e quando a posição de escrita for a posição de leitura -- 1, considera- se a fila cheia.
+A organização interna das filas, ilustrada na Figura 22, detalha de como a comunicação realmente acontece.
+Nota- se a presença do sinal enqueue enviado por o árbitro de entrada, sinalizando para a fila que existe um dado a ser armazenado, o qual está representado por o sinal data_ in.
+Saindo da fila, nota- se a presença dos sinais que vão para o árbitro de saída.
+O sinal data_ av indica ao árbitro que um determinado dado está disponível para ser enviado, o sinal data representa o dado propriamente dito, e o sinal size representa o tamanho do pacote ao qual esse dado pertence.
+O roteador destino após receber a requisição de envio, confirma a recepção do dado a fila através do ack_ in, indicando se foi ou não aceito o dado presente no sinal data.
+Existem duas máquinas de estados finitas associadas a cada fila.
+Elas são responsáveis por a liberação ou não, do acesso de escrita e leitura.
+Por exemplo, a máquina de estados de entrada, está ligada diretamente ao sinal enqueue proveniente do árbitro de entrada, o qual serve como ativador de seu funcionamento.
+Quando esse sinal indicar que existe um dado para ser armazenado, a máquina de estados deve verificar se a fila está cheia ou não, para que ela possa aceitar o dado e armazenar- lo na fila.
+A máquina de estados de saída controla os dados da fila que saem através do sinal data.
+Ela verifica a cada instante se a fila está ou não vazia.
+Caso algum dado esteja disponível para ser enviado, ela o disponibiliza e aguarda o recebimento do sinal ack_ in do roteador vizinho para o qual o dado está endereçado.
+A cada envio realizado, ela verifica novamente se a fila possui dados para serem enviados.
+Em esse Capítulo apresentou- se a proposta do roteador Mercury, que dá suporte à execução do algoritmo de roteamento CG1 de Cypher e Gravano.
+Definiu- se através de uma abordagem descendente, a arquitetura do roteador Mercury incluindo como são realizadas suas ligações na rede (Seção 5.2), passando por a estrutura interna (Seção 5.3), seus componentes de interface (Seção 5.4), os árbitros (Seção 5.5) e a estrutura geral do armazenamento temporário (Seção Os problemas de implementação desta arquitetura residem sobretudo no tratamento da funcionalidade das filas, devido a o alto grau permitido de concorrência de acesso.
+Nota- se que todas as portas podem requisitar acesso à mesma fila simultaneamente, pois todos os processos dentro de o roteador ocorrem em paralelo.
+Além de isto, pode- se citar outro problema existente em relação a as máquinas de estados.
+Por o motivo de existirem várias trabalhando em paralelo e concorrendo por recursos compartilhados, o processo de implementação destas torna- se importante, visando garantir a justiça no acesso às filas, portas etc..
+Em o Capítulo seguinte será abordada a implementação dos módulos definidos aqui.
+Em o Capítulo anterior, apresentou- se uma proposta de arquitetura do roteador Mercury, que dá suporte à implementação de redes toro com raiz mista e duas dimensões.
+Este roteador permite implementar NoCs que empregam o algoritmo de roteamento CG1 proposto em por Cypher e Gravano e apresentado no Capítulo 4.
+Em o presente Capítulo, aborda- se na Seção do roteador e da rede Mercury utilizando- se da linguagem SystemC.
+A seguir, mostra- se a modelagem concreta RTL do roteador e da rede Mercury na linguagem de descrição de hardware VHDL.
+Em ambas as Seções, 6.1 e 6.2 usa- se uma abordagem similar, mostrando a modelagem do roteador seguida da modelagem da rede, seguido de uma descrição razoavelmente extensa do processo de validação dos modelos propostos.
+O objetivo da modelagem Tl é prover uma versão executável da especificação de um roteador para rede toro, e de uma rede intra-chip para topologia toro.
+Esta especificação executável serve mais tarde para guiar o processo de modelagem concreta, bem como a prototipação hardware da rede Mercury facilitando a detecção de possíveis erros de projeto durante o processo de implementação.
+Em essa Seção será apresentada a modelagem SystemC em módulos, canais e interfaces.
+A abordagem será ascendente, iniciando com a modelagem do roteador, seguida da modelagem da rede e sua validação por simulação.
+O nível de abstração de transação (em inglês, transaction level ou Tl) vem se constituindo como uma das formas preferenciais para validar projetos de sistemas complexos em alto nível, por permitir rapidamente capturar a funcionalidade de um projeto de grande porte.
+O nível Tl pressupõe descrições em temporização detalhada, onde os módulos principais do sistema interagem através de canais abstratos.
+Os canais podem prover diversos serviços, além de o serviço básico de transferência de informação entre módulos do sistema, incluindo adaptação de formatos de dados, conversão de protocolo de comunicação, encapsulamento da informação, entre outros.
+Este nível é muito usado para obter reusabilidade em ambientes de verificação.
+Descrições mais detalhadas de propostas do nível Tl podem ser encontradas em.
+A linguagem SystemC possui recursos explícitos para a modelagem Tl.
+Módulos são implementados usando a construção SC_ MODULE e canais usando a construção SC_ CHANNEL.
+Uma forma de prover a conexão abstrata entre módulos se comunicando através de canais ocorre através do uso de conceitos de interfaces, construções parametrizáveis e reutilizáveis providas por a linguagem para modelar cada um dos pontos de comunicação entre um módulo e um canal.
+A descrição Tl do roteador Mercury foi realizada usando estes conceitos e recursos da linguagem.
+Atribui- se aqui a esta modelagem abstrata o rápido êxito do processo de validação funcional, bem como do posterior processo de prototipação da NoC Mercury.
+Apenas para dar idéia do nível de esforço necessário para gerar descrições Tl e RTL apresenta- se na Tabela 6 uma comparação de implementações de uma NoC Mercury 3x3 nos dois níveis de abstração.
+As Seções a seguir descrevem em algum detalhe a modelagem Tl da NoC Mercury, bem como do processo empregado em sua validação, baseado no uso da ferramenta Modelsim, do compilador gcc associado a esta e da biblioteca SystemC disponibilizada por a Open SystemC Initiative (OSCI).
+O roteador é um conjunto de módulos que tem por objetivo receber e enviar pacotes segundo um algoritmo de roteamento.
+Os módulos que compõem o roteador realizam a tarefa de armazenar os pacotes na fila à qual ele é destinado e enviar- los por a porta de destino correta.
+A estrutura geral da modelagem SystemC do roteador Mercury pode ser observada na Figura em cada momento para cada fila, seguindo a prioridade Round-Robin;
+IntoArbiter, árbitro para selecionar e direcionar pacotes para a fila a qual eles pertencem;
+ArbiterOut, árbitro para definir a porta de saída através de a qual o pacote será enviado para chegar em seu destino por um caminho mínimo, baseando- se no algoritmo CG1.
+Para a construção de um roteador são utilizados três módulos intoArbiter, três módulos arbiterIn, três módulos queue e um módulo arbiterOut.
+Para realizar a comunicação entre estes módulos foi utilizado um conjunto de canais:
+Into_ intoArbiterChl, é o canal de entrada do roteador;
+IntoArbiterChl, é o canal de comunicação entre intoArbiter e arbiterIn;
+IntoQueueChl, é o canal de comunicação entre arbiterIn e queue;
+OutFromQueueChl, é o canal de comunicação entre queue e arbiterOut;
+E outFromChaveLocalChl, é o canal de saída para a porta Local que tem como entrada a saída do módulo arbiterOut.
+Cada um dos módulos pertencentes ao roteador será descrito a seguir em maior detalhe:
+Canal into_ intoArbiterChl O canal into_ intoArbiterChl é o canal de entrada do roteador, ele contém funções necessárias para o recebimento dos pacotes originários das portas Norte, Sul, Leste e Oeste ou da porta Local.
+Módulo intoArbiter O módulo intoArbiter é único para cada fila e tem por objetivo analisar e separar os pacotes que chegam no roteador de acordo com sua fila de destino.
+Cada pacote que está sendo recebido através do canal into_ intoArbiterChl tem uma fila de destino única:
+Se sua origem é um roteador vizinho, a fila destino será a mesma em que ele estava armazenado no roteador anterior.
+Se sua origem é a porta Local, a fila destino será sempre a Fila A seguindo o definido no algoritmo O módulo intoArbiter seleciona os pacotes para uma única fila, de forma que se uma instância particular do módulo estiver conectada à Fila A, este deve ser configurado na sua criação, (via seu construtor), para selecionar apenas os pacotes destinados para a Fila A. Caso a fila destino do pacote não seja a fila em a qual este módulo está configurado nada será feito, pois outro intoArbiter que está configurado para esta outra fila vai se encarregar de consumir este pacote.
+De forma geral, o objetivo deste módulo é selecionar os pacotes de acordo com sua fila de destino, para que cada um seja armazenado na fila correta, eliminando esta tarefa do módulo arbiterIn, para que este preocupe- se apenas com o ordenamento dos pacotes recebidos por ele segundo a prioridade Round-Robin.
+Canal intoArbiterChl O canal intoArbiterChl está presente entre os módulos intoArbiter e arbiterIn.
+Ele é único para cada fila e sua função é prover a transferência dos dados entre os módulos que ele conecta.
+Módulo arbiterIn O módulo arbiterIn é responsável por ler os pacotes, um por vez, do canal intoArbiterChl e enviar- los para o módulo queue através do canal intoQueueChl com prioridade Round-Robin.
+Este módulo modela o controle de prioridade necessário para que o mesmo atenda todas as portas igualmente, de modo a não permitir que ocorra postergação indefinida de uma porta.
+Cada vez que a função é chamada, verificam- se as portas na seqüência circular:
+Norte, Sul, Leste, Oeste e Local.
+Isto é feito para determinar se existe algum pacote destinado à fila que o módulo opera.
+Se houver, o pacote será lido, e o endereço dessa porta será armazenado.
+Em a próxima vez que a função for chamada, as portas serão verificadas novamente na mesma seqüência citada, mas começando por a porta posterior à porta em que o pacote foi lido na última vez que a função foi chamada.
+De essa forma, nenhuma porta terá mais prioridade do que as outras.
+Este módulo é único para cada fila, sendo que todos os pacotes que chegam em ele, são oriundos do módulo intoArbiter, que já os filtrou de acordo com sua fila de destino.
+Em o momento do envio de um pacote, o módulo fica aguardando seu armazenamento na fila, para então ler outro pacote, se houver.
+Canal intoQueueChl O canal intoQueueChl está presente entre os módulos arbiterIn e queue, sendo único para cada fila.
+Este canal tem como objetivo realizar a transferência de dado entre os módulos que ele conecta.
+Módulo queue O módulo queue implementa a fila do roteador e contém funções para controlar o armazenamento de pacotes.
+A fila implementada é circular e de porta dupla.
+Em ela, os pacotes que chegam são armazenados na primeira posição livre e os pacotes que saem são retirados da primeira posição ocupada.
+Estas operações podem ser realizadas de forma concorrente.
+Dois processos implementam a funcionalidade da fila:
+O processo de entrada e o processo de saída.
+O primeiro é responsável por verificar se a fila está em condições de receber um novo pacote para armazenamento (através do qualificador fila_ cheia) e calcular a próxima posição de armazenamento.
+O processo saída tem como função enviar o primeiro pacote da fila, esperar o sinal que indica que ele foi armazenado no roteador receptor, e calcular a posição em que se encontra o próximo pacote a ser enviado.
+Uma posição da fila só é acessada depois de verificado o qualificador fila_ vazia, que informa se existe algum elemento na fila.
+Um elemento de exclusão mútua (mutex) impede que os processos de entrada e saída alterem ao mesmo tempo os qualificadores que indicam o estado da fila (fila_ cheia e fila_ vazia).
+Uma posição ocupada da fila nunca será sobrescrita antes ser lida, pois os processos que querem escrever na fila verificarão se existe espaço livre para isso antes de tentar escrever.
+Depois de armazenado o pacote na fila, a porta de entrada por onde o pacote chegou é liberada para enviar novos pacotes e a fila pode recomeçar a enviar.
+Quando a fila contém dados, o processo de saída envia o primeiro pacote da fila através do canal outFromQueueChl, e espera até que ele seja armazenado na fila do roteador seguinte, ou se for destinado à porta Local, espera até que se confirme sua chegada ao IP local, para então enviar outro pacote.
+Canal outFromQueueChl O canal outFromQueueChl implementa a comunicação entre os três módulos queue contidos no roteador e o módulo arbiterOut através de um vetor de três posições para envio de pacotes, sendo que cada posição do vetor é dedicada a uma fila.
+Os três módulos queue, quando possuem pelo menos um dado armazenado, o enviam para a posição que lhe pertence neste canal.
+Quando um pacote é enviado para uma das posições do vetor, o canal outFromQueueChl espera até que a escrita do pacote seja realizada em seu destino (roteador vizinho ou outra fila do mesmo roteador no caso de troca de filas), após isto, o canal comunica o módulo queue que o dado enviado já foi armazenado no seu destino.
+Com isso a posição ocupada no módulo queue já pode ser sobre escrita e a posição no vetor para envio de dados no canal outFromQueueChl fica apta para receber um novo pacote.
+Existe apenas um canal outFromQueueChl para as três filas, pois neste ponto todas filas devem concorrer por as mesmas cinco portas de saída do roteador.
+Quem seleciona qual porta irá atender qual fila é um único módulo (arbiterOut), de forma a evitar que um mesmo recurso seja disponibilizado para mais de uma fila.
+Módulo arbiterOut O módulo arbiterOut é o responsável por enviar os pacotes seja para os roteadores vizinhos, seja para outra fila no mesmo roteador ou para o IP local.
+Em este módulo existem três processos de envio, um para cada fila.
+Cada um envia pacotes distintos, para portas distintas.
+Este módulo contém uma referência ao algoritmo de roteamento que está sendo utilizado.
+Portanto, antes do envio do pacote, o algoritmo será executado/ chamado e retornará uma ou mais portas para as quais o pacote poderá ser enviado.
+Verifica- se, para cada porta seqüencialmente, se é possível enviar um pacote por ela.
+Em caso afirmativo, o pacote é enviado.
+Caso contrário, ocorre um processo de verificação da próxima porta retornada por o algoritmo, de forma circular, até que seja encontrada uma livre.
+No caso de o algoritmo retornar a porta Local como porta destino, o módulo leva em consideração a fila em que o pacote se encontra.
+Segundo o algoritmo do Cypher e Gravano, um pacote só poderá ser entregue no IP local do roteador se estiver na Fila C. Então, se o pacote encontra- se na Fila A e deve ir para a porta Local, ele irá antes para a Fila B, depois para a Fila C, para somente daí ser enviado à porta local, saindo da rede para o IP local.
+Canal outFromChaveLocalChl É o canal de comunicação entre a saída do roteador (módulo arbiterOut) e a entrada no IP local do mesmo.
+Somente um pacote da Fila C poderá ser enviado neste canal de cada vez.
+Em o momento em que o pacote está sendo enviado, o canal deve aguardar até que o IP local o receba, para que então um novo pacote possa ser enviado por ele.
+A implementação da comunicação entre os roteadores Mercury, bem como a disposição dos roteadores para implementar uma topologia do tipo toro 2D serão descritos nessa Seção.
+A comunicação entre os roteadores acontece entre o módulo arbiterOut, localizado na saída do roteador transmissor e o canal into_ intoArbiterChl do roteador receptor.
+Esta comunicação é implementada através de funções de envio e recebimento de pacotes e funções de controle de fluxo.
+O tipo de transferência de dados é bloqueante, isto é, quando um pacote é enviado, o processo emissor fica aguardando até receber a confirmação de recebimento por o receptor.
+As funções utilizadas para a realização da escrita num roteador estão localizadas na interface de entrada (into_ intoArbiterInIf) do canal into_ intoArbiterChl e são:
+write_ queue_ addr:
+Utilizada por o módulo arbiterOut do roteador transmissor.
+Recebe como parâmetros um pacote, o endereço da fila destino e a porta através de a qual o pacote será acolhido no roteador receptor.
+A fila em a qual o pacote está armazenado no roteador transmissor fica bloqueada até que o pacote chegue na fila destino do roteador receptor.
+Para tanto, essa função faz uso de semáforos e, assim que o pacote chega no canal, ele é bloqueado até que receba um sinal da fila destino, indicando sua chegada e armazenamento.
+write_ local:
+É utilizada por o módulo IP local para escrever no roteador.
+Como todos os pacotes que vêm do IP local estão sendo injetados na rede, eles devem ser direcionados para a Fila A, segundo o algoritmo CG1.
+A função write_ local simplesmente utiliza a função write_ queue_ addr descrita anteriormente, mandando o endereço da Fila A como parâmetro de endereço de fila.
+isBusy: Essa função é utilizada por o módulo arbiterOut antes de enviar um pacote para outro roteador, para saber se a porta a ser utilizada está livre e se a fila que vai receber o pacote possui o espaço necessário para acolher- lo.
+Recebe como parâmetros o endereço da porta a ser utilizada para o recebimento, o endereço da fila que vai armazenar o pacote e uma variável Booleana (busy) por referência.
+Quando a porta está livre e a fila pode armazenar o pacote, a variável busy retorna falso, caso contrário retorna verdadeiro.
+Algumas funções foram implementadas para a troca de filas num mesmo roteador.
+Elas são importantes para o funcionamento do algoritmo, já que o mesmo utiliza filas centralizadas e estão localizadas na interface de entrada do canal into_ intoArbiterChl.
+Estas funções também estão localizadas na interface de entrada do canal into_ intoArbiterChl, e são:
+write_ queue_ change, utilizada por o módulo arbiterOut do próprio roteador para a realização da troca de fila.
+Recebe como parâmetros um pacote e o endereço da fila destino.
+Em este caso, como no caso de a função write_ queue_ addr, também utilizam- se semáforos para controle da comunicação.
+A fila transmissora fica bloqueada até receber o sinal de confirmação do armazenamento na fila destino.
+isBusyLocal, tem o mesmo objetivo da função isBusy, porém não testa se alguma porta está livre, apenas se há espaço disponível na fila destino.
+Recebe como parâmetros o endereço da fila destino e uma variável Booleana (busy) por referência.
+Após concluída a modelagem abstrata da rede Mercury em nível de abstração de transação, faz- se necessário validar a mesma.
+Esta Seção descreve as estruturas utilizadas para validar a NoC Tl em SystemC.
+A validação com a ferramenta Modelsim foi realizada inicialmente de forma ad hoc, por a análise de dados impressos na tela e logo após diante de a quantidade de dados gerados, desenvolveu- se uma ferramenta para auxiliar na análise que será descrita no Capítulo trabalho.
+Em esta Seção serão citados os mais importantes, iniciando com testes das estruturas internas e seguindo em direção a testes da rede completa.
+Testbench módulo queue Este testbench foi utilizado para validar o funcionamento do módulo queue e dos canais de entrada (intoQueueChl) e saída (canal outFromQueueChl) deste módulo, cuja interligação é ilustrada na Figura 24.
+O gerador de estímulos é o módulo test_ intoQueue, que conecta- se ao canal de entrada do módulo.
+Este contém um processo que insere um determinado número de pacotes na fila.
+A partir de o momento em que o pacote é enviado ao canal e enquanto ele não chega no módulo queue, o processo de envio fica bloqueado.
+Em o momento em que este é armazenado no módulo, outro pacote pode ser enviado.
+O capturador de saídas é o módulo test_ outQueue, que conecta- se ao canal de saída e através de um processo que lê os pacotes do mesmo.
+Caso não haja pacotes disponíveis, o canal bloqueia o processo até que um pacote seja inserido.
+A partir de a estrutura de testbench criada para validar o módulo queue, o resultando obtido quando simulado na ferramenta Modelsim é mostrado na Figura 25.
+Cada linha resultante desta simulação foi numerada à esquerda da ampliação do código, para facilitar o acompanhamento dos eventos relatados.
+Este testbench foi realizado com poucos dados (somente três) e tamanho de fila reduzido (filas de tamanho útil 2) para facilitar a explicação neste trabalho.
+Em a prática foram realizados vários testes com filas de tamanho arbitrário assim como número arbitrário de dados inseridos.
+Em a Figura 25 onde o resultado da simulação é mostrado, queue0 representa Fila A, e a numeração representa o roteador ao qual a fila está associada.
+Em a linha 1, inicia- se o testbench a partir de a inicialização do processo de entrada de dados.
+Em a linha 2, é ilustrado o armazenamento do dado &quot;0 «na Fila A do roteador 1x2, tendo como destino o roteador 0x0.
+Em a terceira linha é relatado o conteúdo atual da Fila A, onde está armazenado o valor &quot;0 «referente a o dado inserido na linha 2.
+Em a linha 4, inicia- se o processo de retirada dos dados da fila.
+Em a linha 5, o dado &quot;0 «é retirado da Fila A, e na próxima linha é relatado novamente o conteúdo da fila, que após a retirada do dado inserido por a linha 2, está vazia.
+Deve- se notar que os processos de inserção e retirada de dados das filas são totalmente independentes e operam em paralelo.
+Ambos são processos bloqueantes, e a operação da fila também se dá em paralelo com as operações de inserção e retirada.
+Testbench Parcial do Roteador Mercury Este testbench é utilizado para validar o funcionamento dos módulos intoArbiter, arbiterIn e queue trabalhando em conjunto.
+Ele possui um gerador de estímulos denominado módulo test_ intoChave que conecta- se a entrada do roteador (canal into_ intoArbiterChl) e tem por objetivo simular o envio simultâneo de pacotes por diferentes portas (através de cinco processos, um para cada porta) com diferentes filas de destino.
+O capturador de saídas, módulo test_ outChave possui três processos paralelos para retirar pacotes do canal de saída das três filas de forma concorrente (canal outFromQueueChl).
+A estrutura do testbench é ilustrada na Figura 26.
+O resultado obtido com a simulação do testbench criado na ferramenta Modelsim pode ser visualizado na Figura 27.
+Este testbench, assim como o descrito para o módulo queue, foi realizado com o mínimo de dados possíveis, a fim de demonstrar somente a idéia utilizada para validação dos módulos.
+Em este caso específico, foram definidas filas de profundidade de dois dados e envio de somente um dado por porta de entrada, ou seja, foram enviados cinco dados, sendo cada um originado de uma das portas do roteador, Norte, Sul, Leste, Oeste e Local.
+Em a prática, para validação desses módulos foram feitos testes com filas de tamanho arbitrário assim como o número arbitrário de dados inseridos nestas.
+Em a Figura 27 onde o resultado da simulação é mostrado, nota- se a existência de poucas informações, visto que foi configurado no testbench somente a exibição das informações relativas às entradas dos dados no canal into_ intoArbiterChl e a saída por o canal outFromQueueChl.
+Em as linhas 1 a 5, escrevem- se os dados numerados de &quot;0 «a &quot;4», oriundos das portas N/ S/ E/ W/ L nas Filas A, B e C de forma arbitrária.
+A sintaxe dessas linhas informa primeiramente a numeração dos dados de &quot;0 «a &quot;4», logo após a fila para onde cada dado será enviado, sendo a Fila A representando por o numeral &quot;0 «a Fila B por o &quot;1 «e a Fila C por o &quot;2».
+Por fim, a seqüência numérica que aparece indica a porta por onde o dado entrou no roteador, sendo a representação 0/1/2/3/4 das portas N/ S/ E/ W/ L respectivamente.
+As linhas numeradas de 6 a 8 mostram o módulo de saída tentando retirar dados do canal outFromQueueChl, e em seguida nas linhas 9 a 11 é mostrado que realmente os dados foram lidos do canal.
+Este processo se repete mais duas vezes para a Fila A, já que esta possuía 3 dados armazenados, totalizando assim a retirada de cinco dados enviados.
+Pode- se perceber através deste testbench que o funcionamento de intoArbiter está correto, já que os dados destinados para a Fila A foram enviados para ela, assim como os das Fila B e C, sem que existisse erros na colocação dos dados na fila apropriada.
+Por exemplo, o dado &quot;2 «pertencia à Fila C no momento que foi injetado no testbench por o módulo test_ intoChave conforme a linha 3, e este mesmo dado foi recebido e armazenado na fila correta, já que o módulo test_ outChave que retira os dados da fila, mostra na linha 9 que retirou o dado &quot;2 «da Fila C. Este processo verificou- se para todos os dados injetados e retirados por o testbench, validando assim a estrutura parcial do roteador.
+A partir de o funcionamento desta estrutura, pode- se então implementar o testbench para o roteador completo, para avaliar o correto funcionamento do algoritmo de roteamento presente no módulo arbiterOut, o mais complexo do roteador.
+Testbench Completo do Roteador Mercury Este testbench é utilizado para validar o roteador completo, em especial o módulo arbiterOut, em conjunto com o algoritmo de roteamento funcionando de forma isolada.
+Em este teste, verifica- se o comportamento do módulo arbiterOut, ou seja, se ele está enviando pacotes por a porta correta baseado no algoritmo CG1.
+Para esta validação, utiliza- se uma roteador completo.
+Em o arquivo top-level do testbench ilustrado na Figura 28, é possível informar a posição relativa do roteador a ser validado e o tamanho da rede nas coordenadas X e Y em a qual este está virtualmente inserido.
+O gerador de estímulos é o módulo test_ intoChave, que coloca em cada porta de entrada uma quantidade de pacotes definida, cada pacote com um valor distinto de dado (para viabilizar o acompanhamento do trajeto dos pacotes por o roteador e sua saída do mesmo), além de escolher o roteador destino e a fila em a qual o pacote irá pertencer, de forma aleatória.
+Cada uma da cinco portas recebe um pacote de forma concorrente, devido a os cinco processos paralelos que executam no módulo test_ IntoChave.
+Os capturadores de saída são o módulo test_ OutChave e o módulo test_ OutChaveLocal.
+O test_ OutChave é um módulo do tipo intoArbiter com funções diferenciadas, a fim de atender os objetivos do testbench.
+Ele recebe os pacotes que saem do módulo arbiterOut, simulando uma recepção num roteador vizinho, imprimindo na tela o conteúdo do pacote (que funciona como identificador) e o endereço da porta em a qual o pacote foi recebido, além de incrementar a quantidade de pacotes recebidos.
+O módulo test_ outChaveLocal tem como funcionalidade receber pacotes destinados à porta Local do roteador, isto é, pacotes que entraram no roteador com destino ao IP local deste.
+Um exemplo de simulação com a ferramenta Modelsim utilizando o testbench apresentado acima gerou o resultado visualizado na Figura 29.
+Foram definidas filas de profundidade 2 e envio de somente um dado por porta de entrada.
+Assim, foram enviados cinco dados, cada um proveniente de uma das portas:
+Norte, Sul, Leste, Oeste e Local.
+O testbench foi realizado num roteador presente numa rede de dimensões 3x3, sendo o roteador avaliado o da posição 1x1.
+Vários outros testes foram realizados com injeção de um número arbitrário de pacotes com diversos tamanhos de fila para efeito de validação, gerando resultados corretos do ponto de vista da funcionalidade.
+As informações apresentadas na Figura 29 são relativas aos módulos de inserção de dados (test_ IntoChave) e de remoção dos dados (test_ OutChave).
+Em as linhas 1 a 5 mostra- se informações referentes à inserção de dados no roteador.
+Por exemplo, na linha 1 é inserido o dado &quot;0», na Fila A, por a porta Norte, com destino ao roteador 1x0.
+Utilizando esta mesma sintaxe seguem as linhas de número 2 a 5.
+As linhas de 6 a 10 ilustram a remoção dos dados das filas por o roteador.
+Por exemplo, na linha 9 mostra- se o procedimento adotado sobre o dado &quot;0».
+Com base nas informações de entrada do dado &quot;0 «no roteador, o módulo arbiterOut computa o roteamento do pacote para o seu destino com base no algoritmo CG1.
+Inicialmente, ele avalia que não existe nenhum caminho mínimo entre o roteador atual do pacote 1x1 e o roteador destino 1x0 quando o pacote está na Fila A. De esta forma, o roteador envia este pacote para a sua Fila B, conforme visualiza- se na linha 9, onde é informado que o pacote &quot;0», está agora na Fila B. De a mesma forma, o dado &quot;1 «que entrou no roteador por a porta Sul na Fila B tendo com destino o roteador 0x1, é roteado por a porta Oeste do roteador que está sendo testado.
+Desta forma, na linha 8 é mostrado que o pacote foi recebido por o roteador 0x1 na porta Leste, Fila B. Este mesmo procedimento pode ser verificado para os outros 3 dados, inseridos nas linhas 3 a 5 e retirados do roteador nas linhas 8 a 10.
+Através deste processo de teste, verificou- se que o roteador como um todo está em princípio operando de forma correta, já que se pôde validar os seguintes módulos:
+As cinco portas estão aptas a receber e enviar dados;
+O módulo intoArbiter seleciona corretamente os pacotes para cada uma das filas;
+O módulo arbiterIn recebe direito de acesso à fila;
+O módulo queue armazena e envia o dado adiante de forma correta;
+O módulo arbiterOut, com base nas informações de controle presentes no pacote, roteia o último de forma correta, aplicando o algoritmo de roteamento;
+Sabendo que o funcionamento da estrutura básica do roteador está correto, pode- se então realizar o testbench na rede como um todo.
+A seguir serão mostrados alguns dos vários testes funcionais realizados sobre instâncias completas da rede Mercury TL.
+Testbench da NoC Mercury TL Este testbench utiliza vários roteadores conectados, representando uma NoC toro 2D.
+Vários testes foram realizados nesse ambiente para validar o fluxo correto de dados, o algoritmo de roteamento de forma mais ampla e o funcionamento do projeto em diferentes situações.
+Como o testbench da rede gera um grande volume de pacotes, foi criado um protocolo de comunicação e uma ferramenta para leitura e formatação dos dados resultantes da simulação Modelsim.
+A ferramenta e o protocolo desenvolvidos neste trabalho serão apresentados no Capítulo 7.
+A rede utilizada durante todos os testes que serão apresentados a seguir é uma NoC Mercury 4x3 toro bidirecional.
+Em as Figuras 30, 31, 32, 33, 34, 35 é mostrado a leitura e interpretação dos arquivos gerados na simulação por a ferramenta Modelsim, utilizando- se da ferramenta Analisador Júpiter.
+Essas Figuras estão divididas em quatro partes, sendo mostrado na ampliação em (a) o caminhamento de algum (s) pacote (s) típico (s) da simulação, desde a sua origem até o seu destino detalhando o caminhamento do pacote.
+Em (b), verifica- se se os pacotes chegaram ou não ao seu destino, sendo ilustrado cada pacote em separado para facilitar a localização de possíveis erros, caso algum dos pacotes não consiga chegar ao seu destino.
+Em a ampliação em (b) ilustra- se o (s) mesmo (s) pacote (s) que foram demonstrados na ampliação em (a) para facilitar o entendimento do testbench.
+Em (c) é ilustrado um resumo geral da quantidade de pacotes enviados e recebidos por a rede e em (d) dá- se um resumo da atividade individual de cada roteador da rede, em função de quantos pacotes entram e saem por alguma de suas portas.
+Situação 01: Roteador 1x1 enviando 150 pacotes para o roteador 2x1.
+Teste realizado para verificar o funcionamento do envio de pacotes para um roteador vizinho.
+Pacote 150 Origem:
+Destino: Caminho:
+Em a Figura 30 (a) pode- se verificar na ampliação a ilustração de caminhamento de um dos pacotes, no caso o pacote de número 150.
+Este pacote entrou no roteador origem 1x1 (E:), saindo (S:) para o roteador destino (E:) por a Fila A. A o chegar no roteador o qual é destino do pacote, o mesmo trocou de fila para Fila B (T:) e logo em seguida para Fila C (segundo T:), sendo entregue após ao IP local.
+Em (b) é mostrado na ampliação que o pacote de número 150, saiu do roteador 1x1 e chegou com sucesso no seu destino, roteador 2x1.
+Em (c) pode- se visualizar que todos os 150 pacotes enviados chegaram ao seu destino.
+E em (d) é mostrado que 150 pacotes entraram no roteador 1x1 (através do IP local) e que 150 passaram por o conjunto de portas de saída da rede.
+Também se pode visualizar na Figura 30 (d), que 150 pacotes entraram e saíram do roteador 2x1.
+Sabendo- se que foram injetados na rede 150 pacotes ao todo, e que os outros 10 roteadores não receberam nem enviaram nenhum pacote, pode- se afirmar que não se perdeu pacotes ao longo de a rede.
+Também se pode afirmar que nenhum pacote foi roteado para um caminho incorreto.
+Em a Figura 31 (a) verifica- se na ampliação a ilustração de caminhamento de um dos pacotes, no caso o pacote de número 150.
+O caminho utilizado para enviar este pacote foi do roteador origem 1x0 por a Fila A para o roteador 1x2, logo após para o 2x2 e em seguida para o 3x2 onde chegou ainda na Fila A. Em seguida, o pacote, trocou duas vezes de fila, para logo após sair do roteador por a Fila C. Em (b) mostra- se na ampliação que o pacote de número 150, saiu do roteador 1x0 e chegou com sucesso no seu destino, roteador 3x2.
+Em (c), visualiza- se que todos os 150 pacotes enviados chegaram ao seu destino.
+E em (d) é mostrado que todos os roteadores do caminho entre a origem e o destino, receberam e enviaram os 150 pacotes injetados na rede.
+Situação 03: Roteador 0x0 enviando 150 pacotes para o roteador 3x2.
+Teste realizado para verificar o funcionamento do wraparound vertical e posteriormente o horizontal através do caminho 0x0\&gt; 0x2\&gt; 3x2.
+Pode- se verificar, a partir de os resultados do testbench mostrado na Figura 32 que a interligação entre os roteadores das pontas da rede no sentido vertical e horizontal está funcionando corretamente.
+Em a Figura 32 (a) verifica- se na ampliação a ilustração de caminhamento de um dos pacotes, no caso o pacote de número 150.
+O caminho utilizado para enviar este pacote foi do roteador origem 0x0 por a Fila A para o roteador 0x2 utilizando- se do wraparound vertical e logo após para o roteador 3x2 utilizando- se do wraparound horizontal.
+Por fim o pacote muda duas vezes de fila para poder sair da rede para o IP local.
+Em (b) mostra- se na ampliação que o pacote de número 150 saiu do roteador 0x0 e chegou com sucesso ao seu destino, roteador 3x2.
+Em (c), visualiza- se que todos os 150 pacotes enviados chegaram ao seu destino.
+E em (d) é mostrado que todos os roteadores do caminho entre a origem e o destino, receberam e enviaram os 150 pacotes injetados na rede.
+Situação 04: Roteador 1x0 e 1x2 enviando cada 300 pacotes para o roteador 3x2 em paralelo.
+Este teste foi realizado para visualizar a adaptatividade do algoritmo CG1 com os pacotes saindo do roteador 1x0 e tomando caminhos diferentes dos normalmente utilizados, já que o caminho por onde os pacotes eram roteados agora está congestionado.
+É ilustrada neste testbench a utilização de três caminhos mínimos para envio do roteador 1x0 e dois do roteador 1x2, mostrando que o algoritmo de roteamento é capaz de rotear pacotes por diversos dos caminhos mínimos da rede.
+Pacote 60 Origem:
+Destino: Caminho:
+E: S:
+Pacote 268 Origem:
+Destino: Caminho:
+E: S:
+Pacote 450 Origem:
+Destino: Caminho:
+E: S:
+Pacote 599 Origem:
+Destino: Caminho:
+E: S:
+Pacote 600 Origem:
+Destino: Caminho:
+E: S: (
+a) (b) Pacote 60 -- Origem:
+Destino: Em a Figura 33 (a) verifica- se na ampliação a ilustração de cinco caminhamentos de pacotes.
+Os pacotes de número 60, 268 e 450 de origem 1x0 e destino 3x2, que no testbench da situação 02 eram encaminhados por o caminho 1x0\&gt; 1x2\&gt; 2x2\&gt; 3x2, agora seguem por caminhos alternativos igualmente mínimos.
+O pacote 60 utiliza o caminho 1x0\&gt; 0x0\&gt; 0x2\&gt; 3x2, o pacote 268 utiliza o caminho 1x0\&gt; 2x0\&gt; 3x0\&gt; 3x2 e o 450 utiliza o caminho 1x0\&gt; 0x0\&gt; 0x2\&gt; 3x2.
+O roteador 1x2 envia pacotes utilizando- se de dois caminhos mínimos como mostrado nos caminhos percorridos por os pacotes 599 e 600.
+O primeiro utiliza- se do caminho 1x2\&gt; 2x2\&gt; 3x2 e o segundo do caminho 1x2\&gt; 0x2\&gt; 3x2.
+Desta forma, fica demonstrado que o algoritmo de roteamento consegue dividir a carga da rede entre os diversos caminhos mínimos disponíveis.
+Em (b), mostra- se na ampliação que os pacotes de número 60, 268, 450, 599 e 600 chegaram em seus destinos.
+Em (c) visualiza- se que todos os 600 pacotes enviados chegaram ao seu destino.
+Finalmente, em (d) é demonstrado que todos os roteadores utilizados dos diversos caminhos entre a origem e o destino, receberam e enviaram os pacotes enquanto que os roteadores que não faziam parte destes caminhos não receberam e também não enviaram pacotes.
+Situação 05: Todos os roteadores enviando pacotes para o roteador 1x0.
+O teste totaliza 150 pacotes por roteador, e 1800 pacotes na rede como um todo.
+Teste realizado para visualizar o comportamento de um roteador lidando com pacotes chegando de todas as direções e fontes de dados da rede.
+Em a Figura 34 (a) verifica- se na ampliação a ilustração de caminhamento de um dos pacotes, no caso o pacote de número 1800.
+O caminho utilizado para enviar este pacote foi partir do roteador origem 2x1, inicialmente trocando da Fila A para a Fila B. Posteriormente o pacote vai para o roteador 1x1 e em seguida para o 1x0, onde novamente troca de fila para sair do roteador para o IP local.
+Em (b), mostra- se na ampliação que o pacote de número 1800, saiu do roteador 2x1 e chegou com sucesso no seu destino, roteador 1x0.
+Em (c) visualiza- se que todos os 1800 pacotes enviados chegaram ao seu destino.
+Finalmente, em (d) é mostrado que todos os roteadores da rede injetaram pacotes e que o roteador destino 1x0 recebeu os 1800 pacotes por todas suas portas e enviou os mesmos para seu IP local.
+Situação 06: Todos os roteadores enviando 350 pacotes cada para todos os roteadores, de forma aleatória e uniforme, totalizando 4200 pacotes na rede.
+Teste realizado para visualizar o comportamento geral da rede em lidar com uma grande variedade de tráfego em todos os roteadores, conforme ilustra a Figura 35.
+Em esta Seção será apresentada a implementação no nível de transferência entre registradores da NoC Mercury mediante emprego da linguagem de descrição de hardware VHDL.
+Para validar a implementação dos módulos, componentes do roteador, do próprio roteador e da rede analisa- se formas de onda parciais obtidas por a execução dos testbenchs utilizados na ferramenta Active-HDL.
+Os módulos que compõem o roteador Mercury RTL são praticamente os mesmo módulos do roteador Tl, salvo por a estrutura de interligação.
+O roteador Mercury RTL possui os seguintes tipos de módulos:
+intoArbiter: Módulo para selecionar os pacotes referentes a uma determinada fila;
+arbiterIn: Módulo com a função de selecionar a porta que será atendida naquele instante;
+queue: Fila para armazenamento temporário de pacotes;
+arbiterOut: Módulo para definir a porta de saída do roteador para a qual o pacote será enviado, baseado no algoritmo CG1;
+ack_ nackOut:
+Módulo para realizar o handshake entre o roteador e os recursos que desejam enviar pacotes para este;
+ack_ nackIn:
+Módulo para realizar o handshake entre o roteador e os receptores de pacotes deste.
+Um roteador completo é composto de um módulo ack_ nackOut, três intoArbiter, três arbiterIn, três queue, um ack_ nackIn e um arbiterOut.
+De forma diferente do que ocorre na implementação Tl, na versão RTL não existem canais para realizar a comunicação entre os módulos e sim interfaces físicas, compostas por conjuntos de fios de interconexão.
+A Figura 36 ilustra a arquitetura de um roteador RTL.
+Essa arquitetura pode ser vista com maiores detalhes no Anexo Apêndice A Figuras 69, 70, 71.
+Cada módulo pertencente ao roteador na implementação RTL será descrito a seguir em maior detalhe:
+Módulo ack_ nackOut O módulo ack_ nackOut é responsável por realizar o handshake entre o roteador e os recursos que desejam enviar pacotes para este.
+Ele comunica- se diretamente com um gerador externo de pacotes e com os três módulos intoArbiter e arbiterIn do roteador, para tentar realizar uma troca de pacotes.
+Seu funcionamento se dá baseado nos sinais que ele envia para o gerador externo quando este deseja realizar uma comunicação.
+Esses sinais basicamente podem ter três valores ack, nack ou none, e são recebidos do módulo arbiterIn.
+Através desta interface informa- se ao gerador externo se existe ou não condição de receber o pacote.
+O gerador externo pode ser um roteador vizinho ou uma porta de saída do IP local do roteador.
+Módulo intoArbiter Este módulo é único para cada fila.
+Assim como na implementação Tl, tem como objetivo analisar e separar as requisições dos pacotes que chegam ao roteador de acordo com sua fila de destino.
+Ele recebe solicitações de armazenamento de todas as cinco portas do roteador e o endereço da fila onde o pacote deve ser armazenado.
+Com essa informação, o módulo somente repassa para arbiterIn os pedidos de armazenamento pertencentes à fila a qual o último está associado.
+Módulo arbiterIn O módulo arbiterIn, tanto na implementação Tl quanto na RTL, é único para cada fila.
+Ele é responsável por receber requisições de escrita de pacotes e enviar- las para o módulo queue aplicando uma prioridade Round-Robin.
+As requisições que chegam neste módulo já foram filtradas por o módulo intoArbiter, de forma que quando este recebe alguma requisição para armazenamento ela pode ser tratada imediatamente.
+A Figura 37 detalha a funcionalidade deste módulo como uma máquina de estados finita.
+O módulo arbiterIn recebe as requisições para armazenamento de intoArbiter.
+Ao mesmo tempo, recebe o tamanho do dado a ser armazenado diretamente do gerador externo que está enviando o pacote.
+De posse dessas informações, arbiterIn verifica se existe espaço na fila para o armazenamento completo do pacote.
+Caso exista espaço suficiente, arbiterIn envia ao módulo ack_ nackOut um sinal de ack, caso contrário um sinal de nack é enviado, conforme ilustra a máquina de estados da Figura 37.
+Módulo queue Este é o módulo que implementa a fila.
+Assim como na implementação Tl, possui funções de controlar o armazenamento e a retirada de pacotes.
+Em o roteador, existem três módulos queue denominados Fila A, Fila B e Fila C. A fila implementada por o módulo queue é de porta dupla e circular, onde os pacotes que chegam são armazenados na primeira posição livre, e os pacotes que saem são retirados da primeira posição ocupada.
+Essas operações podem ser realizadas em paralelo.
+O módulo queue possui um processo para armazenamento dos dados na fila e uma máquina de estados para retirada e envio dos dados presentes em ela.
+O funcionamento do processo de escrita é bem simples, uma vez que exista uma requisição de escrita enviada por o módulo arbiterIn, o processo inicia escrevendo um dado a cada ciclo de clock.
+A máquina de estados finita de saída do módulo queue opera conforme ilustrado na Figura 38.
+Quando o sinal p_ write for diferente do sinal p_ read, significa que existe um dado na fila que ainda não foi enviado.
+Em este momento é disparado o processo de requisição para envio do dado para o módulo arbiterOut, que por sua vez irá verificar por qual porta do roteador este dado será enviado.
+Os sinais p_ write e p_ read informam a posição dos ponteiros de leitura e de escrita respectivamente.
+Quando os dois apontarem para a mesma posição significa que a fila está vazia.
+Módulo ack_ nackIn O módulo ack_ nackIn é o responsável por realizar o handshake entre o roteador e algum receptor de pacotes deste.
+Sua comunicação se dá através dos módulos queue e arbiterOut do roteador e da interface com o receptor do pacote.
+Sua função é realizar o controle das filas e das portas de saída do roteador, de forma que todas as filas tenham possibilidade de acessar todas as portas (uma de cada vez) num determinado momento.
+Módulo arbiterOut O módulo arbiterOut, tanto na implementação Tl quanto na RTL é o responsável por executar o algoritmo de roteamento, selecionando as possíveis portas para envio de um determinado pacote para os roteadores vizinhos, para outra fila dentro de o próprio roteador ou para o IP local.
+Existem três processos paralelos independentes que controlam o envio, sendo um para cada fila (A, B e C), que podem enviar pacotes simultaneamente, desde que por portas distintas.
+Este módulo está diretamente interligado com os módulos ack_ nackIn e queue do roteador, bem como com recursos externos receptores do pacote.
+Cada processo de envio de dados possui uma máquina de estados onde é executado o algoritmo de roteamento.
+Em a Figura 39 ilustra- se a máquina de estados da Fila A contida no módulo arbiterOut, sendo que para as filas B e C as máquinas possuem estruturas idênticas.
+Supor que a máquina de controle de arbiterOut está no estado S_ IDLE e recebe de queue a informação de que existe pelo menos um pacote disponível na fila A para emissão, através do sinal data_ av_ A. Este fato dispara o cálculo de que portas de saída do roteador conectam- se a enlaces participando em algum caminho mínimo para o destino do pacote.
+Está informação é armazenada no vetor caminho_ minimos_ A. Por exemplo, caso o sinal caminhos_ minimos_ A (Norte) seja igual a &quot;1», significa que o roteador pode enviar o pacote por a porta Norte, pois utilizandose esta porta o pacote sairá em direção a o roteador destino por um caminho mínimo.
+Caso o valor do sinal seja &quot;0», isto significa que aquela porta não está apta para rotear o pacote naquele instante, pois não faz parte de um caminho mínimo.
+A implementação da rede Mercury RTL se dá através da interligação de roteadores para implementar a topologia toro 2D.
+A Figura 40 descreve as interfaces de comunicação de um roteador.
+A interface de comunicação entre roteadores vizinhos utiliza os sinais queue_ addr, size, data e ack_ nack para realizar o handshake e a troca de dados entre eles.
+A interface de comunicação para o IP local é um pouco diferente, sendo o sinal queue_ addr substituído por o sinal data_ av, conforme discussão anterior apresentada no Capítulo 5, Seção 5.4.
+Em a Figura 40 ilustra- se um roteador presente numa rede, detalhando os sinais da porta Oeste ligados ao roteador vizinho e também os sinais da interface com o IP local.
+Em essa Seção serão descritos os testbenchs utilizados para validar a NoC Mercury RTL.
+A partir de a criação de arquivos para geração de tráfego, analisou- se o comportamento de determinados módulos quando submetidos ao tráfego gerado.
+Como resultado, pôde- se analisar as formas de onda na ferramenta Active-HDL.
+A seguir serão descritos os principais testes realizados.
+Módulo intoArbiter A simulação apresentada na Figura 41 ilustra o funcionamento do módulo intoArbiter ligado à Fila A. Este módulo filtra requisições que chegam a ele, repassando ao módulo arbiterIn somente as que são direcionadas para a Fila A. A o mesmo tempo em que o intoArbiter associado à Fila A realiza a seleção de requisição, os outros módulos intoArbiter associados às outras duas filas trabalham em paralelo, selecionando dados relativos as suas filas.
+A Figura 42 ilustra o funcionamento do módulo intoArbiter associado a Fila B. Os passos da simulação são descritos abaixo, onde a numeração tem correspondência com a Figura 42.
+A partir de estas duas simulações visualiza- se um exemplo de funcionamento correto do módulo intoArbiter que analisa e separa as requisições dos pacotes que chegam ao roteador de acordo com a fila de destino.
+Módulo arbiterIn Uma simulação parcial do funcionamento do módulo arbiterIn associado à Fila A é ilustrada na Figura 43.
+Este módulo recebe requisições de acesso apenas da fila associada a ele, pois intoArbiter já filtrou as mesmas.
+A partir de as requisições recebidas, arbiterIn envia as mesmas para a fila através de prioridade Round-Robin.
+Sul. Referente a o tamanho do pacote desta porta chega em arbiterIn por o sinal size.
+Após o enviado do pacote descrito, a prioridade Round-Robin é novamente executada.
+Desta vez, a porta Oeste que ficou aguardando é atendida e todo o procedimento descrito antes se repete.
+Módulo queue A Figura 44 ilustra uma simulação parcial mostrando o funcionamento do módulo queue, sendo este equivalente para todas as três Filas, A, B e C. A fila validada possui tamanho de 7 phits, conforme mostra o sinal free_ size no tempo &quot;0 «ns de simulação.»
+0», o recebimento do pacote terminou.
+Em este instante, o sinal buf1 possui armazenado o dado por completo e a cabeça de escrita contêm a última posição escrita do dado.
+Nota- se que o sinal free_ size é decrementado até este instante, mas como o envio do dado da fila está em execução, seu valor volta a aumentar novamente.
+Módulo arbiterOut O testbench para o módulo arbiterOut objetiva validar o algoritmo de roteamento.
+A Figura 45 ilustra o comportamento de arbiterOut quando submetido a uma requisição de envio de dados.
+O roteador onde o módulo arbiterOut testado está inserido ocupa a posição 1x1 numa rede 3x3.
+O módulo arbiterOut sempre tenta rotear os pacotes por as portas disponíveis no sinal caminhos_ minimos seguindo o ordenamento Norte, Sul, Leste, Oeste.
+Sempre que a posição &quot;4», representando a porta Local estiver ativa ela terá prioridade sobre as demais, e o pacote deve ser roteado por este caminho.
+Em a segunda parte, visualiza- se que o dado percorreu um caminho correto por dentro de o roteador e saiu por a porta Norte em direção a o seu destino sobre um caminho mínimo.
+Cabe ressaltar que o roteador testado ocupa a posição 1x1 numa rede de dimensões 3x3.
+O pacote enviado tem como destino o roteador 2x2.
+Desta forma, o roteamento por a porta Norte pertence realmente a um caminho mínimo, visto que o pacote entra no roteador na Fila A. Os passos da parte 2 da simulação são descritos abaixo, onde a numeração tem correspondência na Figura 47.
+Em a Fila A, pois o valor fila_ a está presente na posição &quot;0 «(Norte) do vetor.
+NoC Mercury RTL O exemplo de simulação da rede completa foi igualmente dividido em duas partes para facilitar sua compreensão.
+A rede simulada é de dimensões 3x3, sendo que o pacote tem origem no IP local do roteador 2x0 e destino no IP local do roteador 2x2.
+Os passos realizados na parte 1 da simulação são descritos abaixo, onde a numeração tem correspondência na Figura 48.
+A Parte 2 da simulação, ilustrada na Figura 49, representa o dado saindo da Fila C para o IP local do roteador 2x2.
+Os passos desta simulação são descritos abaixo, onde a numeração tem correspondência na Figura 49.
+Ilustrou- se através desta simulação da NoC que um dado pacote trafega na rede de forma correta sem perda de phits ou modificação nos mesmos, utilizando- se de um caminhos mínimos disponíveis na rede.
+Também se ilustra que os wraparound da rede toro ajudam a rotear os pacotes com menos hops, visto que numa rede malha de mesmas dimensões e com a mesma origem e destino, o dado deveria ser roteado para o roteador 2x1 primeiramente antes de ser roteado para o seu destino, no roteador 2x2.
+As Seções 6.1 e 6.2 descreveram as modelagens abstrata e concreta da NoC Mercury em algum nível de detalhe.
+O processo de validação destas modelagens foi aqui apenas esboçado.
+Em a realidade, uma extensa quantidade de casos foi gerada e simulada em ambos os modelos, Tl e RTL.
+Várias falhas sutis foram encontradas apenas após a utilização de casos complexos de múltiplas transmissões simultâneas de pacotes, alguns destes casos sendo descritos no Capítulo 9 desta Dissertação.
+Devido a o grande volume de informações geradas nas simulações, foi proposta e implementada uma ferramenta para auxiliar a compilação de resultados no nível de abstração Tl, conforme será descrito no Capítulo 7.
+Considera- se o projeto da rede Mercury suficientemente validado para servir como base de uma NoC real, uma vez que simulações Tl e RTL extensas são realizadas sem erros, e que a rede, foi prototipada em hardware, gerando resultados de operação absolutamente corretos conforme será descrito no Capítulo 8.
+A ferramenta Júpiter, apresentada neste Capítulo, foi desenvolvida dentro de o contexto deste trabalho para dar apoio à geração e validação de NoCs Mercury.
+Ela é composta de dois módulos denominados Gerador Júpiter e Analisador Júpiter.
+O primeiro tem como funcionalidade gerar descrições de redes Mercury a partir de um conjunto de parâmetros selecionados por o usuário.
+O gerador Júpiter pode produzir descrições nos dois níveis de abstração em que a rede foi modelada, conforme descrito no Capítulo 6, Tl (em SystemC) e RTL (em VHDL).
+A segunda ferramenta foi desenvolvida para dar apoio ao processo de validação manual dos resultados gerados na ferramenta Modelsim após simulação da NoC em nível Tl.
+Para validação de descrições RTL usa- se formas de onda geradas diretamente por a ferramenta Modelsim.
+O módulo Júpiter responsável por gerar redes Mercury produz descrições da interconexão entre roteadores e a própria descrição dos roteadores da NoC além de a interface externa da rede.
+Ele foi desenvolvido para facilitar o trabalho mecânico de descrição da rede empregado para geração de NoCs Mercury.
+Além de isto, o gerador Júpiter possui flexibilidade, permitindo que sejam parametrizadas algumas informações antes da geração da rede, hoje incluindo:
+o nível de abstração da descrição;
+as dimensões da rede;
+o algoritmo de roteamento;
+o tamanho do phit;
+o tamanho das filas centralizadas A, B, C. Em a opção &quot;Nível de abstração «é informado se a ferramenta irá gerar uma NoC Mercury em SystemC Tl ou VHDL RTL.
+Caso seja escolhida a primeira opção, os parâmetros &quot;Tamanho do phit «e &quot;Tamanho da fila «serão desconsiderados.
+No caso de a escolha da segunda opção (VHDL RTL), o tamanho do phit deve ser escolhido entre as opções disponíveis que variam entre 8 e 64 bits e o tamanho da fila entre os valores de 4 a 32 phits.
+Em o parâmetro &quot;dimensões da rede «deve- se informar o número de roteadores desejado nas dimensões X e Y da rede a ser gerada.
+Assume- se uma topologia toro 2D regular e totalmente simétrica.
+As dimensões da NoC Mercury sempre estão de acordo com os eixos cartesianos, ou seja, a coordenada X cresce para a direita e a coordenada Y cresce para cima.
+Os valores na ferramenta para essa opção podem variar de 3 até 255, para ambas coordenadas.
+Atualmente, a escolha do algoritmo de roteamento está restrita a apenas uma opção, CG1 de Cypher e Gravano, devido a ele ser o único algoritmo implementado neste trabalho.
+Uma possibilidade de trabalho futuro inclui implementar sobre o mesmo roteador o segundo algoritmo proposto em sem alterações significativas do hardware.
+Quando se seleciona o tamanho do phit pode- se automaticamente estar restringindo o tamanho da NoC nas coordenadas X e Y. Isto ocorre porque, no caso de a utilização de CG1, quando existe comunicação entre roteadores ou IP local, são enviadas junto ao pacote as coordenadas XY do roteador destino.
+Por este motivo, a parametrização da rede pode ser limitada por o tamanho do phit.
+Por exemplo, na implementação de CG1 realizada neste trabalho, o endereço destino (posição XY) do dado a ser enviado, deve estar contido na metade do tamanho de um phit.
+Portanto, caso o phit escolhido seja de tamanho 16 bits, o endereçamento dos roteadores da rede deve ser passível de representação utilizando 8 bits para as coordenadas X e Y juntas.
+Com isso, se tem 4 bits para coordenada X e 4 bits para Y. De esta forma, utilizando- se de um phit de 16 bits pode- se endereçar roteadores em até 16 posições em X e 16 posições em Y, ou seja, é viável se ter uma NoC de tamanho 16x16 com um phit de tamanho 16 bits.
+Em a Figura 50, mostra- se a janela inicial do Gerador Júpiter, totalmente desenvolvido em Java.
+O processo de validação por simulação de uma NoC, mesmo de pequenas dimensões (3x3 ou 4x4), produz uma quantidade de dados que rapidamente pode se tornar inviável de gerenciar para extrair informações úteis sobre a corretude da implementação ou sobre o desempenho da rede.
+No caso de descrições RTL, dispõe- se de visualizadores de formas de ondas digitais que facilitam um pouco esta tarefa.
+Contudo, para simulação Tl, os dados são gerados como resultados numéricos de tráfego de pacotes passando por roteadores e interfaces de rede.
+Assim, propõe- se aqui uma ferramenta de análise de tráfego da NoC Mercury, com a finalidade de permitir ao desenvolvedor efetuar análises específicas de certos aspectos do tráfego de uma simulação em SystemC em nível de transação.
+Estes aspectos são:
+a quantidade total de pacotes enviados por os IPs Locais;
+a quantidade total de pacotes recebidos por os IPs Locais;
+detalhes sobre o caminhamento de pacotes específicos por a rede;
+a verificação de quais pacotes chegaram ao destino de entre todos os enviados durante a sessão de simulação;
+a verificação de quais pacotes não chegaram ao destino de entre todos os enviados durante a sessão de simulação;
+Em testbenches executados através da ferramenta Modelsim, é possível visualizar os pacotes trafegando dentro de um roteador, nas filas e até mesmo na rede.
+Contudo é inviável analisar o tráfego numa rede sem um processo sistemático de tratamento do grande volume de dados intermediários gerados durante uma simulação realista da NoC.
+Para facilitar tais análises, foi proposto e implementado o Analisador Júpiter e foi definido um protocolo de comunicação entre a simulação da NoC e a ferramenta.
+Para o funcionamento e análise de um tráfego através do Analisador Júpiter, necessita- se abrir um arquivo com um formato pré-definido.
+Esse arquivo é gerado ao longo de a simulação da NoC Mercury TL realizada no Modelsim.
+O formato do arquivo contempla registros em formato texto de quatro tipos, assim definidos:
+As seguintes abreviações são definidas da seguinte forma:
+identifica que essa linha possui informação sobre as dimensões da rede;
+identifica que essa linha informa a entrada de um pacote em algum roteador;
+identifica que essa linha informa uma troca de fila dentro de algum roteador;
+identifica que essa linha informa a saída de um pacote de algum roteador;
+Tamanho da NoC em X e Y, é a primeira linha impressa no arquivo de saída.
+Ex: Representa que esta é uma NoC de tamanho 3 em X e 4 em Y. Roteador final para o qual o pacote se destina;
+Roteador em o qual o pacote se encontra atualmente;
+Fila em a qual o pacote entrou no roteador;
+Fila em a qual o pacote foi colocado;
+Porta através de a qual o pacote entrou no roteador;
+Porta que o pacote usou para sair do roteador.
+As portas de entrada e de saída são identificadas numericamente.
+A porta Norte é representada por o algarismo &quot;0», a porta Sul por &quot;1», a porta Leste por &quot;2», a porta Oeste por &quot;3 «e a porta Local por &quot;4».
+O mesmo estilo de representação é usado para as filas:
+A fila A é representada por o algarismo &quot;0», fila B por &quot;1 «a fila C por &quot;2».
+O protocolo de entrada da ferramenta pode ser visualizado através do exemplo abaixo:
+As linhas explicitamente representadas no exemplo acima mostram o caminho de um pacote com origem no roteador 03 indo para o destino, no roteador 20 numa rede com dimensões X $= 3 e Y $= 4, conforme pode- se visualizar na Figura 51.
+Essas linhas foram retiradas diretamente de um arquivo de saída gerado por a ferramenta Modelsim.
+Entre essas linhas existiam outras que foram ocultadas, para facilitar a leitura do caminhamento desse pacote.
+NoC 3x4.
+O Analisador Júpiter demonstra o caminho decorrido por este pacote de uma forma um pouco diferente, porém mais clara, como demonstra a Figura 52.
+Em a Figura 53 é demonstrado as outras três opções da ferramenta Analisador Júpiter para este exemplo.
+Analisador Júpiter. O texto salientado mostra o caminho do pacote 9, seguindo o caminho entre a origem, no roteador 03 e o destino, no roteador 20.
+Em o caso, o pacote entrou na rede por o roteador 03 (fi la A) e saiu deste, para a fi la A do roteador 00.
+Em seguida, o pacote saiu do roteador 00 para a fi la A do destino, roteador 20.
+Em este último, o pacote troca duas vezes de fi la (da A para a B e desta para a C).
+Após isto, o pacote sai da rede por este mesmo roteador.
+Em Capítulos anteriores mostrou- se em detalhes o algoritmo de roteamento empregado neste trabalho, a proposta de arquitetura para o roteador e a modelagem Tl e RTL da rede Mercury.
+Em este Capítulo, aborda- se a prototipação da rede Mercury em hardware a partir de sua descrição RTL em VHDL.
+Para uma prototipação inicial foi utilizado um módulo serial descrito em VHDL conectado à rede através das portas Locais, com a utilização de wrappers.
+Este módulo recebe informações por a porta serial do computador bit a bit, e as envia para a NoC em conjuntos de bits, como por exemplo 8, 16, 32, 64 bits.
+De forma inversa, o módulo serial também recebe dados da NoC em conjuntos de bits e os transmite para a porta serial bit a bit.
+Para utilização do módulo serial, foi necessária a criação de um wrapper de entrada e um de saída.
+Estes wrappers foram descritos em VHDL e realizam a interligação entre a NoC e o módulo serial.
+Basicamente, os wrappers foram criados porque a velocidade de envio e recepção dos dados da NoC é muito mais alta do que a da porta serial.
+Desta forma, o wrapper de entrada espera todo o pacote chegar até ele, para então realizar o handshake com o roteador através da porta Local, enquanto que o wrapper de saída, espera que o módulo serial consuma todo o pacote enviado, para então deixar o roteador enviar outro pacote por a porta Local.
+Serão descritos deste Capítulo quatro montagens utilizadas para prototipação.
+São elas:
+Dois roteadores interligados, como se estivessem numa NoC Mercury 3x3;
+NoC Mercury 3x3, com o roteador 0x0 enviando dados para o 0x2;
+NoC Mercury 3x3, com o roteador 0x2 enviando dados para o 2x2;
+NoC Mercury 3x3, com o roteador 1x1 enviando dados para o 0x0.
+Todas as montagens descritas acima foram prototipadas no FPGA Virtex-II Para o XC2 VP30 da plataforma de prototipação XUPV2P da Digilent, InC (Figura 54).
+As sínteses lógica e física foram realizadas com a ferramenta ISE 7.
+1 da Xilinx.
+Todas as montagens descritas neste Capítulo são preliminares e visam tão somente mostrar a correta operação de uma implementação de hardware obtida automaticamente a partir de a descrição em VHDL RTL.
+Digilent, Inc..
+A primeira montagem prototipada interliga dois roteadores, correspondendo às posições 1x1 e 0x1, de uma NoC 3x3, conforme ilustra a Figura 55.
+Cada roteador prototipado possui filas de tamanho 8 phits sendo cada phit de 8 bits.
+Essa prototipação com dois roteadores foi realizada com o intuito de verificar o comportamento básico do roteador.
+Para validar a montagem prototipada &quot;módulo serial+ wrappers+ 2 roteadores», realizouse uma simulação através da ferramenta Active-HDL.
+Os passos desta simulação são descritos abaixo, onde a numeração tem correspondência na forma de onda de simulação da Figura 56.
+Abaixo são descritos os passos da ampliação de alguns sinais da simulação da Figura 56, onde a numeração tem correspondência na forma de onda da Figura 57.
+Nota- se que a comunicação entre os wrappers e a NoC se dá de forma muito mais rápida do que com o módulo serial.
+Por este motivo é importante a presença dos wrappers na montagem a ser prototipada.
+Analisando o pacote enviado por o wrapper de entrada, através do sinal tx_ data_ in à porta Local do roteador 1x1, nota- se ser este o mesmo enviado por a porta Local do roteador 0x1 ao wrapper de saída no sinal rx_ data_ out..
+A partir de aí pode- se concluir que a montagem funciona corretamente.
+A montagem validada por simulação com somente dois roteadores, foi prototipada no dispositivo XC2 V1000 da plataforma V2 MB1000 da Insight Memec, bem como no dispositivo XC2 VP30 da plataforma XUPV2P da Digilent, Inc..
+Obtendo como resultados da síntese os valores monstrados na Tabela 7.
+Através da Figura 58, pode- se verificar o correto funcionamento em hardware da estrutura prototipada.
+Trata- se da interface gráfica de um aplicativo Java que interage com o protótipo de hardware através da interface serial de um computador hospedeiro do tipo PC.
+Todos os dados das janelas são representados em hexadecimal.
+O espaço na janela de cima da Figura é reservado para envio das informações através da porta serial do computador.
+Essas informações são enviadas para o módulo serial, descrito em VHDL, que após receber um conjunto de bits comunica- se com o wrapper de entrada para envio dos dados por a porta Local do roteador 1x1.
+O espaço na janela de baixo da Figura é onde são visualizados os pacotes recebidos por a porta serial.
+Eles são oriundos da porta Local do roteador 0x1, que através do wrapper de saída e do módulo serial comunicam- se com o computador hospedeiro.
+Cada pacote é composto de 3 partes.
+O primeiro phit é o endereço destino, valendo sempre 01 nesta montagem;
+O segundo phit é o tamanho do pacote, valendo 04 na primeira mensagem;
+O campo fi nal é a carga útil do pacote, valendo 05 05 para a primeira mensagem.
+Em a Figura, mostra- se a transmissão/ recepção de 7 pacotes.
+Em o segundo experimento foi prototipada uma NoC Mercury completa, com dimensões 3x3, tamanho de fila 16 phits, e cada phit de 8 bits.
+Em a prototipação, utilizou- se o módulo serial e os wrappers, da mesma forma que na prototipação descrita na Seção 8.1.
+Três protótipos foram realizados para validar os diferentes caminhos percorridos por diferentes pacotes.
+Devido a a área ocupada por a rede Mercury 3x3, não foi possível utilizar o dispositivo XC2 V1000 para prototipação.
+Em seu lugar foi utilizado o dispositivo XC2 VP30.
+Tabela 8 ­ Resultado da síntese da Mercury 3x3, com fi la 16 phits e phits de 8 bits, com wrappers de entrada e saída e módulo serial, no dispositivo XC2 VP30 da plataforma XUPV2P.
+XC2 VP30 -- Plataforma XUPV2P Utilizado Disponível Porcentagem Número de Slices Número de LUTs Número de Flip Flops Esta prototipação foi realizada com a NoC Mercury 3x3, onde o wrapper de entrada injeta pacotes no roteador 0x0 oriundos do módulo serial e o wrapper de saída recebe os pacotes enviados por a porta Local do roteador 0x2.
+Através da realização desta prototipação, pode- se testar o caminhamento de pacotes através de um canal wraparound no sentido vertical, conforme ilustra a Figura 59.
+Em a Figura 60, pode- se verificar o correto funcionamento da NoC Mercury em hardware.
+Em a janela de cima da Figura são enviados pacotes através do módulo serial para o wrapper e este, através da porta Local do roteador 0x0 injeta os mesmos na rede.
+Após percorrer o caminho do roteador origem até o destino, os pacotes saem da rede na porta Local do roteador 0x2, onde está conectado o wrapper de saída, que envia as informações para o módulo serial.
+Desta forma pode- se visualizar na parte de baixo da Figura os pacotes saindo da rede.
+Outra prototipação da Mercury 3x3 foi realizada com modificações na injeção e leitura de pacotes na rede.
+Em este experimento o wrapper de entrada injeta pacotes recebidos do módulo serial no roteador 0x2 e o wrapper de saída recebe dados enviados por a porta Local do roteador 2x2.
+Com essa prototipação pode- se verificar o caminhamento de pacotes através de um canal wraparound horizontal, conforme ilustra a Figura 61.
+NoC Mercury 3x3.
+Os pacotes entram por o wrapper de entrada no roteador 0x2 e saem por o wrapper de saída no roteador 2x2.
+A linha tracejada indica o caminho exercitado por a prototipação.
+O último experimento realizado tem forma similar às duas montagens anteriores.
+Este experimento visa verificar o caminhamento de um pacote passando por dois roteadores na rede.
+Desta forma, o wrapper de entrada injeta pacotes recebidos do módulo serial no roteador 1x1 e o wrapper de saída recebe os dados enviados por a porta Local do roteador 0x0.
+A Figura 63 ilustra a estrutura da prototipação utilizada neste experimento.
+A validação do funcionamento desta prototipação é realizada através da verificação dos pacotes enviados e recebidos por a ferramenta Serial, conforme ilustra a Figura 64.
+As montagens descritas neste Capítulo são preliminares, visando somente mostrar o correto funcionamento da rede Mercury quando prototipada.
+Uma evolução dos wrappers está sendo realizada, de modo a aumentar a funcionalidade dos mesmos.
+Pretende-se que os wrappers identifiquem para que roteador deve- se enviar os pacotes oriundos do PC.
+Desta forma, viabilizará- se- validar todos os caminhos disponíveis na rede com uma única montagem.
+Em este Capítulo são relatados um conjunto de experimentos preliminares de comparação entre a rede Mercury e a rede Hermes, também desenvolvida no âmbito do Grupo de Apoio ao Projeto de Hardware (GAPH).
+São analisados os quesitos de área, vazão e latência, sendo estes dois últimos somente de forma externa às redes.
+Os experimentos são realizados através da inserção de tráfego nas portas Locais dos roteadores de ambas NoCs e de uma posterior análise do tráfego de saída nas porta Locais.
+A rede Hermes possui a topologia malha 2D bidirecional com modo de chaveamento wormhole, filas de entrada e lógica de arbitragem/ controle central, compartilhada entre todas as portas do roteador.
+Em esta rede, os valores do phit e do flit são idênticos.
+Para comparação com a rede Mercury, escolheu- se a versão da rede Hermes com dois canais virtuais, que possui desempenho e área maiores que a versão sem canais virtuais.
+A seleção da configuração da rede Hermes deve- se ao fato desta ser considerada aquela com o melhor resultado em termos de custo-benefício para fins de área, vazão e latência, sendo então esta comparação a de pior caso para a rede Mercury.
+A rede Hermes já vem sendo evoluída desde sua criação, há quatro anos.
+Desta forma, sua estrutura e seu código estão otimizados para corresponderem a uma menor área e um ótimo desempenho.
+A rede Mercury é uma proposta nova, descrita neste trabalho que ainda necessita otimização no código para melhorar seu tamanho de área ocupada e o seu desempenho.
+Várias prototipações para o dispositivo FPGA Virtex-II 2V6000 foram realizadas através da ferramenta LeonardoSpectrum para verificação e comparação do número de Slices, Flip Flops e LUTs ocupados por as redes Mercury e Hermes.
+Parâmetros como tamanho de fila e tamanho de phit utilizados por as NoCs foram parametrizados de forma distinta a cada prototipação entre os valores aceitáveis para ambas as redes.
+As configurações escolhidas para comparação de área, são dadas abaixo:
+NoC 3x3 -- Phit de 8 bits variando tamanho da Fila entre 4, 8, 16 e 32 phits;
+NoC 3x3 -- Phit de 16 bits variando tamanho da Fila entre 4, 8, 16 e 32 phits;
+Tabela 9 ­ Comparação de área entre as NoCs Mercury e Hermes, para phit de 8 bits.
+Dispositivo 2V6000 Fila (em phits) Disp.
+Analisando as tabelas nota- se uma pequena diferença de área entre as duas redes quando comparadas com pequeno tamanho de fila.
+Conforme se aumenta a profundidade das filas, a diferença de área entre as NoCs aumenta também.
+Para filas de 32 phits a rede Mercury ocupa mais do que o dobro de área do que a rede Hermes.
+Acredita- se que o aumento na diferença das áreas se deve à utilização de LUTRAMs na rede Hermes, enquanto que o mesmo não ocorre na rede Mercury comparada.
+O principal fator levando a maiores áreas ocupadas por a rede Mercury em qualquer situação, se deve ao processo de roteamento utilizado por a rede.
+Conforme descrito neste trabalho, a rede Mercury possui um roteamento adaptativo complexo, onde os pacotes podem ser roteados por qualquer um dos caminhos mínimos disponíveis, enquanto que a rede Hermes utiliza um algoritmo determinístico mínimo, o mais eficiente em termos de área.
+O grau de complexidade do algoritmo utilizado neste trabalho, torna o roteamento da rede mais eficiente às custas de uma maior área do roteador.
+A Figura 65 mostra graficamente as informações de área ocupadas em Slices, LUTs e Flip Flops dispostas por as Tabelas 9, 10 e 11.
+A comparação de desempenho entre as redes Mercury e Hermes foi realizada baseada nos quesitos vazão e latência.
+Esta comparação usou experimentos onde é inserido e lido tráfego nas portas Locais dos roteadores.
+Para tanto, foram utilizadas ferramentas propostas em.
+Para geração dos arquivos de tráfego a ser injetado na rede, foi utilizada a ferramenta Traffic Mbps.
+Esta ferramenta é parametrizável por o usuário, permitindo a este definir grandezas da rede tais como:
+As dimensões da rede;
+O tamanho do phit;
+A técnica de controle de fluxo.
+Algumas grandezas relacionadas ao tráfego podem e devem ser informadas por o usuário, incluindo:
+O destino dos pacotes;
+O número de pacotes que cada roteador deve enviar a rede;
+O tamanho do pacote em phits e a carga oferecida à rede.
+Algumas destas grandezas podem estar associadas a variáveis probabilísticas, permitindo a geração de tráfego probabilístico.
+Para simulação das redes, foi utilizado um ambiente de simulação desenvolvido dentro de o GAPH.
+Em este ambiente, a rede descrita em VHDL é estimulada com o tráfego gerado por a ferramenta Traffic Mbps.
+Este ambiente injeta pacotes por a porta Local de entrada dos roteadores e aguarda a chegada dos mesmos por as portas Locais de saída.
+A o injetar e receber pacotes, a ferramenta cria arquivos com marcas de tempo (em inglês, timestamps), informando o tempo de entrada e saída dos pacotes na rede.
+Após simular as redes Hermes e Mercury, utilizou- se a ferramenta de medição de tráfego denominadas TrafficAnalysis para verificar a vazão e a latência média que os pacotes inseridos na rede obtiveram.
+Como o tráfego injetado em ambas as redes é o mesmo, pode- se traçar um comparativo inicial dos quesitos analisados.
+Até o momento, foram realizados quatro estudos de caso comparando as duas NoCs, descritos a seguir.
+Para todos os casos, utilizou- se redes com dimensões 3x3, filas de profundidade 32 phits, tendo cada phit largura de 16 bits.
+A rede Hermes utilizada na comparação possui dois canais virtuais e utiliza o algoritmo de roteamento determinístico XY.
+Em os três estudos de caso foram realizados 11 experimentos, onde a taxa de carga oferecida para cada roteador se modifica em cada um de eles.
+Os valores de carga máxima submetidos à rede foram 5, 10, 15, 20, 30, 40, 50, 60, 70, 80 e 90%.
+Considerando que a largura dos canais de transmissão de dados é de 16 bits e que a freqüência da rede é de 50 Mhz, pode- se afirmar que a taxa máxima de injeção é de 800 Mbps.
+Conseqüentemente, sabe- se que as taxas de carga oferecidas à rede foram de 40, 80, 120, 160, 240, 320, 400, 480, 560, 640 e 720 Mbps.
+Hermes no quesito latência, sendo que a diferença de valores entre as redes segue praticamente a mesma, independente da carga oferecida.
+Em o terceiro e último estudo de caso, modifica- se novamente o tamanho dos pacotes.
+Desta vez são injetados 200 pacotes em cada roteador, todos tendo como destino o roteador 2x2, com tamanho de 25 phits.
+Ao todo, são injetados 1800 pacotes idênticos nas duas redes.
+A Tabela 14 mostra os resultados obtidos através da simulação, para os quesitos latência média e vazão.
+Em este terceiro estudo de caso, as redes Mercury e Hermes atingem praticamente a mesma média de latência, enquanto que a rede Mercury tem uma vazão ligeiramente maior.
+A Figura 68, ilustra os dados contidos na Tabela 14.
+Nota- se em (b) que as latências médias de ambas as redes são praticamente idênticas, demonstrando assim um comportamento similar no tempo de entrega dos pacotes.
+Através dos três Estudos de Caso realizados pôde- se observar que a rede Mercury para o tipo de tráfego injetado consegue uma leve vantagem nas médias de vazão e na latência global.
+Atualmente, modificações estão sendo realizadas no ambiente que injeta e lê os pacotes da rede Mercury, visando viabilizar a inserção de pacotes com destinos aleatórios (de qualquer origem para qualquer destino na rede), sendo este um outro padrão de tráfego interessante de se comparar quando aplicado a NoCs.
+Acredita- se que para pacotes de tamanho pequeno, devido a a utilização do modo virtual cutthrough, a rede Mercury obtenha um melhor desempenho, enquanto que para os pacotes de tamanho grande sua utilização não seja interessante.
+Quanto maior o tamanho do pacote que trafega por a rede, maior deve ser o tamanho das filas na rede Mercury, resultando acréscimos de área que rapidamente podem se tornar proibitivos, conforme demonstrado na Seção 9.1 deste Com base nesta primeira abordagem da comparação das duas redes desenvolvidas por o GAPH, acredita- se que a rede Mercury é uma alternativa para ser utilizada em redes de grandes dimensões, diferente do que foi avaliado neste Capítulo.
+Acredita- se que quanto maior as dimensões da rede, maior se torna a diferença do número de hops a ser percorrido em ambas as redes.
+Por exemplo, numa rede de dimensões 8x8, para se rotear um pacote do roteador 0x0 para o 7x7 numa rede com topologia toro o caminho mínimo possui dois hops count, enquanto que numa rede malha um caminho mínimo possui catorze hops count, acentuando assim a diferença de latências entre as duas redes.
+Outro fator importante a ser mencionado aqui é que a utilização de pacotes pequenos faz com que a área ocupada por a rede Mercury seja próxima da ocupada por a Hermes, tornando assim sua utilização uma alternativa viável.
+De forma geral, acredita- se que para utilização em redes de grandes dimensões com pacotes de poucos phits, a rede Mercury é a mais indicada em relação a Hermes.
+Esta por sua vez se torna mais indicada para redes de pequenas dimensões com pacotes de grandes dimensões.
+Está sendo construído um novo cenário de comparação entre as duas redes, onde a dimensão destas é 8x8.
+Em este novo cenário, espera- se que a rede Mercury obtenha maior desempenho em relação a a rede Hermes.
+O cenário do experimento realizado e apresentado neste Capítulo é considerado o de pior caso, visto que para uma rede 3x3 a diferença da média dos hop counts é praticamente desprezível, enquanto que numa rede de maiores dimensões a hop count médio da rede Mercury é bem menor do que o da rede Hermes.
+Este trabalho apresentou as etapas de proposta de arquitetura, modelagem, prototipação e avaliação de uma rede intra-chip com topologia toro e algoritmo de roteamento mínimo adaptativo, a NoC Mercury.
+Adicionalmente, implementou- se um conjunto inicial de ferramentas de apoio ao projeto para esta NoC.
+O levantamento do estado da arte em propostas de NoCs revelou que a topologia toro, embora tendo grande respaldo na área de redes de interconexão para sistemas multiprocessados, ainda é pouco explorada como topologia de redes intra-chip, malgrado sua aparente adequabilidade para este contexto.
+Isto constituiu uma motivação para o presente trabalho.
+O estudo de redes de interconexão com topologia toro empregadas em sistemas multiprocessados levou à seleção de um de entre os numerosos algoritmos de roteamento disponíveis na literatura para implementação em ambientes intra-chip.
+Com a escolha do algoritmo de roteamento, chegouse a uma proposta de arquitetura específica para um roteador de rede intra-chip que suporte o algoritmo, o que constitui uma primeira contribuição deste trabalho, uma vez que a proposta de Cypher e Gravano não incluía a definição de tal arquitetura.
+A proposta de arquitetura incluiu um diagrama de blocos definindo a estrutura geral do roteador, a definição das interfaces roteador-roteador e roteador-IP local, bem como a distribuição das partes da funcionalidade do algoritmo sobre os elementos da arquitetura, a partir de a propostas de árbitros de entrada e de saída.
+Implícito na arquitetura do roteador e do algoritmo adotado encontra- se a proposta de estrutura da rede de interconexão como um todo.
+A partir de as propostas de roteador e rede definiu- se realizar a modelagem destes em dois nível de abstração, Tl e RTL.
+A modelagem nestes níveis de abstração constitui uma segunda contribuição do trabalho.
+Intuitivamente, considera- se que modelar em dois níveis distintos de abstração trouxe como mérito a diminuição do tempo de validação de descrições menos abstratas, produzindo rapidamente resultados corretos na simulação RTL e na prototipação.
+A NoC Mercury foi prototipada com sucesso em FPGAs, efetivando a prova de conceito do projeto como um todo, o que constitui uma terceira contribuição do trabalho.
+Visando reduzir o trabalho de geração de descrições da NoC Mercury TL e RTL, bem como facilitar o processo de validação de descrições Tl, implementou- se ferramentas de apoio ao projeto, o gerador Júpiter e o analisador Júpiter, respectivamente.
+Isto constitui a quarta contri-buição do trabalho.
+Finalmente, foram gerados resultados iniciais de comparação da NoC Mercury com uma NoC no estado da arte, a NoC Hermes.
+Estes resultados iniciais constituem uma quinta contribuição do presente trabalho.
+A partir de o trabalho desenvolvido, pode- se enumerar diversas direções para pesquisas futuras.
+A seguir, discute- se um conjunto de propostas de trabalhos futuros, apresentados em ordem de relevância decrescente para acrescentar contribuições ao presente trabalho.
+Em o Capítulo 9 foram apresentados alguns estudos de caso de comparação entre a NoC Mercury e a NoC Hermes.
+Claramente este conjunto de estudos de caso é limitado.
+De fato, este conjunto não pôde ser mais abrangente devido a problemas na geração de resultados de simulação.
+Após realizar diversos experimentos com a NoC Mercury 3x3, passou- se a tentar simular uma versão 8x8 desta.
+Contudo, simulações nesta última rede apresentaram problemas quando a carga selecionada foi superior a 20%.
+O problema pode estar na rede ou no ambiente de simulação, e encontra- se em investigação.
+Descobrir onde reside este problema e solucionar- lo é hoje uma tarefa de alta prioridade.
+Segundo, o Capítulo 9 mostrou que a taxa de crescimento da área da NoC Mercury excede em muito a taxa de crescimento de uma rede Hermes de dimensões similares.
+Buscar uma explicação e eventualmente otimizar a descrição da NoC Mercury para reduzir sua taxa de crescimento de área é um trabalho futuro importante.
+Um dos possíveis caminhos para se obter resultados melhores em FPGAs é otimizar o código VHDL buscando aproveitar a capacidade de inferir estruturas de memória específicas do FPGA durante a síntese lógica/ física.
+Isto é de fato já aproveitado na rede Hermes.
+Em terceiro lugar, uma análise mais aprofundada do desempenho da rede Mercury é necessária.
+O objetivo desta análise é prover explicações para o comportamento da rede, incluindo mostrar porque a simulação revelou algumas não linearidades de comportamento (ver e.
+g Figura 66 e seguintes), e explicar os resultados da comparação com a rede Hermes com dois canais virtuais.
+Como resultados desta análise, poderá- se- sugerir melhorias na estrutura da rede Mercury, visando aumentar seu desempenho e/ ou reduzir a área de seu roteador.
+Em quarto lugar, comparações com outras redes são um aspecto relevante para posicionar o presente trabalho.
+Visualiza- se como interessante, por exemplo, comparar a NoC Mercury a uma versão sem canais virtuais da rede Hermes.
+Outra possibilidade é comparar com uma versão toro da rede Hermes.
+Esta rede foi inicialmente proposta no escopo do trabalho do Autor e encontra- se no momento com duas versões em implementação, uma com roteamento mínimo determinístico e uma com roteamento mínimo adaptativo.
+Adicionalmente, divisa- se outros trabalhos futuros que podem ter interesse, incluindo:
+Realizar a prototipação da rede Mercury utilizando conexões em todos os IPs Locais da rede, como por exemplo memórias para validar o funcionamento completo e paralelo em hardware.
+Usar técnicas para melhorar o projeto físico da NoC, de forma a posicionar os roteadores estrategicamente conseguindo assim um desempenho melhor em hardware.
+Empregar fluxo de tráfego real a rede Mercury para avaliar seu comportamento quando estimulada num ambiente real.

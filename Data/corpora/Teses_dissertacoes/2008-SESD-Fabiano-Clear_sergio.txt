@@ -1,0 +1,613 @@
+Para atender a uma cresente demanda por desempenho de processamento, o projeto de sistemas embarcados inclui a utilização de diversos processadores além de infra-estruturas de comunicação complexas (por exemplo, barramentos hierárquicos e redes intra-chip).
+Há uma crescente demanda por um número cada vez maior de funcionalidades contidas num único sistema.
+Em este cenário, questões relacionadas a estimativas de consumo de energia ganham importância no projeto de sistemas eletrônicos embarcados.
+De essa forma, o fluxo de projeto de sistemas embarcados multi-processados necessita de ferramentas para a geração de estimativas de desempenho e consumo de energia durante todo o ciclo de desenvolvimento, de forma a verificar se o caminho de construção do projeto condiz com a especificação do mesmo.
+O desempenho, assim como o consumo de energia de um determinado sistema precisam ser avaliadados o mais cedo possível no fluxo de projeto.
+Métodos analíticos são propostos para que estimativas de desempenho e de consumo de energia possam ser realizadas de maneira rápida, evitando tempos proibitivos de simulação.
+Em os métodos analíticos o sistema é modelado como uma série de propriedades e modelos abstratos são utilizados para o cálculo do desempenho do sistema.
+Apesar de métodos analíticos serem mais rápidos que métodos baseados em simulação a modelagem do sistema é mais complexa.
+Além disso, devido a o alto nível de abstração em que o sistema é representado, seu uso em sistemas grandes e complexos se torna inviável devido a explosão de estados necessários para a representação sistêmica destes, que é o caso de recentes projetos de sistemas embarcados.
+De essa forma, melhorias nos métodos baseados em simulação tornam- se bastante pertinentes, e um estudo dessa área é apresentado nesse trabalho.
+Palavras-chave: MPSoC, Desempenho, Consumo de energia, Estimativa O projeto de sistemas digitais complexos tem avançado muito atualmente, juntamente com um aumento da freqüência de operação de um circuito e do número de transistores numa mesma pastilha de silício.
+Em 1980, a maioria dos circuitos integrados (CIs) complexos eram compostos por dezenas de milhares de transistores, e nesta última década já é possível se encontrar CIs com mais de dezenas de milhões de transistores.
+Esse avanço da tecnologia tem permitido que múltiplos componentes, como processadores, controladores e memória, sejam integrados numa única pastilha, formando um sistema completo.
+Esses sistemas são conhecidos como SoCs (do inglês, System-on-a-Chip), e possuem diversos núcleos de propriedade intelectual (do inglês, IP cores) que são blocos de circuito, pré-projetado e pré-verificado, utilizados no projeto de um sistema complexo.
+Certos sistemas embarcados devem considerar requisitos temporais, além de as restrições de potência, custo de desenvolvimento, e da pressão exercida por o mercado -- o time- to-- market -- que são características inerentes a este tipo de sistema.
+Por exemplo funcionalidades multimídia, sistemas de navegação, entre outros, impõem restrições de tempo real para que o comportamento seja executado corretamente no tempo esperado, pois a resposta correta após o tempo esperado (resposta atrasada) é, para este caso, uma resposta errada.
+Dispositivos móveis alimentados por baterias requerem, ainda, capacidades de baixo consumo de energia.
+A pressão exercida por o mercado demanda um projeto rápido, mas, por outro lado, esses produtos precisam ter custo baixo e requerem, dessa forma, um projeto otimizado.
+Flexibilidade é outro requisito importante no projeto dos sistemas embarcados atuais.
+O projeto precisa ser flexível para aceitar novas funcionalidades sem a necessidade de reprojeto.
+Microprocessadores têm importante papel na flexibilidade de um novo sistema embarcado.
+Assim os atuais sistemas possuem um ou mais microprocessadores, que podem ser da mesma família, ou de diferentes famílias.
+Essas soluções chamadas de MPSoCs (do inglês, MultiProcessor System-on-a-Chip), precisam de novas ferramentas e modelos de programação para lidar com a complexidade inerente destes sistemas.
+A Figura 1 representa uma arquitetura MPSoC típica, composta por um ou mais processadores, DSPs e componentes de hardware.
+O meio de interconexão interliga os componentes do MPSoC.
+Interfaces de comunicação (adaptadores de hardware) são utilizados para interconectar microprocessadores e DSPs ao meio de interconexão.
+Além disso, estas interfaces são responsáveis por adaptar o protocolo de comunicação dos microprocessadores e DSPs ao protocolo de comunicação do meio de interconexão.
+Com o objetivo de facilitar a interconexão dos diversos componentes (microprocessadores, DSPs, módulos IP) ao meio de interconexão, é possível utilizar padrões como OCP ou AMBA, por exemplo.
+Em cada microprocessador, uma instância de sistema operacional realiza a gerência das tarefas que executam nesse.
+Os processadores podem acessar o DSP para acelerar determinada função, que pode alternativamente ser executada em software.
+Em uma arquitetura MPSoC, componentes de hardware e software precisam ser considerados como um conjunto único, ou seja, devem estar intimamente integrados.
+Atualmente há uma dificuldade nessa integração, uma vez que esta é feita apenas quando um protótipo dos componentes de hardware está disponível para testes.
+De essa forma, problemas de integração são normalmente encontrados num estágio bastante avançado do projeto, o que pode inviabilizálo.
+Desta forma, ferramentas que permitam a validação do sistema como um todo, e não apenas a sua funcionalidade mas também suas restrições de projeto, se fazem necessárias em níveis de abstração superiores.
+O fluxo de projeto de MPSoCs necessita de ferramentas de estimativa e energia durante seu desenvolvimento, para estimar os requisitos relevantes da especificação tais como desempenho e consumo de energia do sistema, de forma a verificar se a construção do projeto atende sua especificação inicial.
+Em níveis de abstração superiores, a exploração do espaço de soluções se tornou um fator de extrema importância na concepção dos sistemas embarcados atuais.
+Em este contexto, estimativas passam a ter um papel fundamental nas decisões de projeto.
+No entanto, ferramentas que realizam estimativas em níveis de abstração superiores, como requer o projeto de sistemas embarcados atuais, são raras.
+Além disso, estas ferramentas precisam ser integradas num fluxo de concepção para que a equipe de projetistas possa avaliar diversas possibilidades de implementação de um determinado projeto o mais cedo possível.
+Estimativas de desempenho e consumo de energia são tratadas como um processo contínuo e podem ser aplicadas em diferentes níveis de abstração durante todo o fluxo de projeto.
+Em o nível de especificação (funcionalidade da arquitetura, ou seja, não são levadas em conta diversas implicações) são realizadas as tarefas de seleção de um determinado processador, assim como o particionamento de hardware e software e distribuição de tarefas (ou aplicações) entre processadores.
+A interconexão e o particionamento de hardware e software podem ser exploradas num nível de arquitetura virtual, ou seja, as interfaces entre os componentes do sistema são claras, contudo não são modelados detalhes como latências e contagem de ciclos.
+O nível funcional de interconexão inclui interfaces que descrevem a comunicação de forma precisa, e o software é executado num simulador em nível de instrução ou de ciclo.
+Este último nível, permite uma avaliação da comunicação mais detalhada, como por exemplo o uso de pacotes que transitam no meio de interconexão, o tempo que os pacotes levam da origem ao destino, entre outros.
+O número de processadores em MPSoCs têm crescido de forma acentuada, e dessa forma, funcionalidades que antes eram executadas por o hardware agora são executadas em software, aumentando a complexidade do mesmo de forma considerável.
+Para lidar com esse fato, ferramentas para estimativas em níveis de abstração superiores tornam- se necessárias, pois o tempo de projeto é essencialmente curto.
+Ferramentas para a estimativa de desempenho de software e consumo de energia requerem alta generalidade (possibilidade de adaptação para diferentes arquiteturas) e corretude.
+Contudo, ferramentas de estimativa devem requerer um baixo esforço para modelagem e avaliação, de tal forma que o tempo necessário para a avaliação seja consideravelmente pequeno.
+Em a maioria dos casos, a corretude conflita com o esforço para modelagem e avaliação.
+Estimativas precisas podem ser obtidas com um modelo detalhado, o qual requer um alto esforço de modelagem e tempo de computação.
+Por outro lado, modelos mais abstratos requerem menos esforço de modelagem ao preço de uma perda de precisão.
+As ferramentas de estimativa podem ser classificadas como ferramentas de simulação e ferramentas analíticas.
+Ferramentas analíticas se baseiam em diferentes modelos matemáticos, como por exemplo cadeias de Markov, redes neurais e funções matemáticas para calcular o tempo de execução do software e seu consumo de energia numa determinada arquitetura.
+Em os métodos analíticos o sistema é modelado de forma abstrata, como uma série de propriedades, e modelos são utilizados para o cálculo do desempenho do sistema.
+Ferramentas de simulação utilizam algoritmos que representam a execução do hardware para estimar o tempo de execução do software e consumo de energia.
+Existem métodos híbridos que processam anotações em nível de instrução ou bloco básico com o custo de execução do mesmo, sendo mais rápidos que simuladores em nível de ciclo.
+Estimativas utilizam diferentes abstrações para modelar os componentes de um sistema e sua comunicação.
+O uso de diferentes níveis de abstração permite que se faça um balanço entre a velocidade da estimação e a precisão dos resultados.
+Métodos analíticos são propostos para que uma estimativa possa ser realizada de maneira rápida, evitando- se dessa forma tempos proibitivos de simulação.
+Apesar de métodos analíticos serem mais rápidos que métodos baseados em simulação a modelagem é mais complexa.
+Além disso, se torna inviável a modelagem de sistemas grandes e complexos, como os recentes projetos MPSoC, devido a explosão dos estados necessários para sua correta representação.
+De essa forma, o estudo aprofundado de melhorias nos métodos baseados em simulação tornam- se pertinentes, e são motivação para este trabalho.
+Os objetivos do presente trabalho são a proposição e a criação de uma plataforma para estimativas de desempenho e consumo de energia de uma arquitetura MPSoC.
+Uma ferramenta foi construída com base em uma plataforma de hardware já especificada, implementada e prototipada em FPGA.
+A ferramenta foi implementada com base em modelos de nível RTL.
+A partir desses modelos, foram extraídas informações relacionadas a contagem de ciclos de relógio para a execução de trechos de código nativo da arquitetura e consumo de energia de cada instrução executada.
+Essas informações são então utilizadas por o ISS (do inglês, Instruction- Set Simulator) e por o modelo do meio de interconexão.
+Desta forma é possível estimar de forma mais rápida o desempenho e o consumo de energia da plataforma MPSoC.
+A principal contribuição deste trabalho é a ferramenta de estimativas de desempenho e consumo de energia implementada, além de a apresentação de uma metodologia que torna possível a extensão da mesma, uma vez que os conceitos apresentados podem ser aplicados para a caracterização de outras arquiteturas.
+Com a realização deste trabalho obteve- se um fluxo de estimativas para plataformas MPSoC, visando suprir as deficiências na obtenção de resultados imediatos, evitando- se inicialmente longos tempos de simulação para uma avaliação de projeto preliminar.
+Além disso, uma plataforma pré-definida e a implementação de uma ferramenta para estimativas auxiliariam na generalidade e reuso de componentes de hardware para medições de desempenho de software e estimativa de consumo de energia.
+Em o Capítulo 2 serão apresentados os trabalhos relacionados, considerando estimativas baseadas em simulação e estimativas baseadas em métodos analíticos.
+Em o Capítulo 3 será apresentada uma proposta de plataforma para estimativas.
+Em o Capítulo 4, uma ferramenta de estimativas desenvolvida com base na plataforma proposta será apresentada e por fim, nos Capítulos 5 e 6 serão mostrados estudos de caso e apresentadas as conclusões e trabalhos futuros.
+O desenvolvimento de métodos para estimativas e ferramentas de análise de hardware e software é uma área ativa de pesquisas.
+Em o projeto de MPSoCs, estimativas de desempenho e consumo de energia são complexas e requerem métodos que levam em conta especificações de todo o sistema, possibilitando a análise integrada de diferentes processadores, componentes de hardware e o meio de interconexão.
+De essa forma, torna- se necessário o desenvolvimento de métodos rápidos e precisos de estimativa, em altos níveis de abstração.
+Em as próximas seções serão apresentados métodos para a estimativa de desempenho e consumo de energia de software.
+O objetivo destas ferramentas é prover estimativas de desempenho e/ ou consumo de energia de forma rápida, através exploração em alto nível do espaço de soluções de projeto.
+Esses trabalhos têm a intenção de prover uma estimativa global (por exemplo, a plataforma do sistema, formada por seus diversos processadores e meio de interconexão) considerando sistemas multiprocessados e problemas relacionados à comunicação.
+De essa forma, são apresentadas diferentes técnicas de estimativa para aplicações executando numa dada arquitetura.
+As técnicas de simulação oferecem uma estimativa de desempenho de software e consumo de energia bastante precisa, com um alto custo e esforço de modelagem.
+Modelos analíticos normalmente, são utilizados para se estimar o desempenho do software em maior nível de abstração.
+Mesmo rápidos, o maior desafio com métodos analíticos está na criação de um modelo para arquiteturas complexas de processadores.
+A seguir serão apresentados trabalhos relacionados ao tema proposto.
+Assim, são comentados trabalhos que utilizam a técnica de simulação para a obtenção de estimativas.
+O cálculo de estimativa de desempenho e consumo de energia baseado em simulação tem como base a utilização de modelos com diferentes níveis de detalhe da funcionalidade da aplicação e da arquitetura.
+Quanto maior o detalhe, mais custosa torna- se a simulação, uma vez que tenta- se aproximar a complexidade da arquitetura em questão num nível bastante baixo.
+Simplescalar é uma ferramenta flexível para análise de desempenho de processadores.
+Esta ferramenta pode ser utilizada como um simulador em nível de instrução (ISS) ou simulador em nível de ciclo.
+A ferramenta possibilita a otimização da arquitetura provendo meios para configurar uma dada arquitetura, como as unidades funcionais do pipeline, registradores e cache.
+Simplescalar inclui mecanismos para visualização de desempenho, recursos para análise estatística e uma infraestrutura de depuração.
+Algumas ferramentas utilizam linguagens de descrição de arquitetura (ADLs), por exemplo Lisa, Expression e Mimola para descrever a arquitetura do processador.
+Ferramentas que suportam essas linguagens produzem o simulador, compilador e as vezes o hardware sintetizável com base na descrição da arquitetura.
+ADLs permitem uma exploração rápida da arquitetura devido a geração automática da cadeia de ferramentas necessária para um novo processador.
+Algumas ferramentas comerciais como Lisatek e MaxCore utilizam a linguagem Lisa.
+Atualmente, simuladores baseados na linguagem SystemC têm sido desenvolvidos, facilitando a integração de modelos de simulação em nível de sistema.
+A biblioteca Microlib provê um modelo do processador PowerPC 750 descrito em SystemC.
+ArchC é uma ADL que gera modelos de simulação baseados em bibliotecas SystemC.
+Tensilica é um ambiente que provê o desenvolvimento de processadores baseados numa dada aplicação alvo através de um conjunto de instruções configurável.
+Inserido neste ambiente, o compilador XPRES explora automaticamente o espaço de aplicação para um dado código descrito em linguagem C. Após a definição de um modelo de referência da arquitetura, o ambiente gera o simulador, o compilador e o processador sintetizável.
+Protótipos virtuais são modelos de simulação que permitem a validação integrada de componentes de hardware e software.
+Esses componentes são armazenados numa biblioteca de componentes.
+Os modelos de simulação integram um simulador do conjunto de instruções com modelos de simulação do hardware como memórias, barramentos e periféricos.
+Ambientes para modelagem e simulação de protótipos virtuais baseados em SystemC, como o MaxSim, Coware ConvergenSC e Synopsys System Studio provêm um amplo conjunto de componentes que podem ser estendidos através de módulos do usuário, descritos em SystemC.
+Algumas ferramentas suportam a síntese RTL a partir de os componentes de hardware e software da biblioteca de componentes, provendo um caminho automático para a implementação em silício.
+Outros simuladores, como o SIMICS, utilizam modelos funcionais para o processador, barramentos e componentes de hardware.
+Modelos funcionais provêm uma velocidade razoável para executar cargas de trabalho reais, ou seja, é possível a simulação de aplicações com milhões de instruções em tempo viável.
+Alguns trabalhos propõem a integração entre simuladores funcionais do sistema e simuladores do processador com precisão de ciclo, como o Simplescalar.
+Em, são apresentados também estimadores de potência, provendo um cálculo integrado de desempenho e consumo de energia.
+Uma exploração de projeto com estimativas de consumo de energia e ferramentas de análise para SoCs baseados na arquitetura ARM é proposta em.
+A ferramenta integra os modelos comportamentais e de energia de diversas unidades de processamento customizadas, como uma extensão ao simulador em nível de instrução para a família de processadores ARM low--.
+Apesar de diversos estudos mostrarem que técnicas envolvendo tecnologia, layout e portas lógicas oferecem reduções por a metade no consumo de energia, a otimização da arquitetura pode frequentemente resultar em redução de energia em ordens de magnitude, conforme.
+Em são apresentados dois métodos para a integração de simuladores do conjunto de instruções e a linguagem SystemC.
+O primeiro método faz uso de uma chamada de sistema (ou um breakpoint) em software para suspender a execução e sincronizar com o kernel de simulação SystemC, de forma a sincronizar a simulação hardware/ software.
+O segundo utiliza drivers do sistema operacional adaptados para que ocorra a sincronização da execução e comunicação com o kernel SystemC quando uma operação de entrada/ saída ocorre.
+Em ambos os casos, mudanças no kernel SystemC tornam- se necessárias para suportar a sincronização.
+MPARM é um ambiente para a exploração do espaço de soluções para o desenvolvimento MPSoC através da utilização da linguagem SystemC.
+Essa é uma plataforma completa para a simulação MPSoC composta por modelos de processadores (ARM), barramentos (AMBA), modelos de memória, suporte para SMP (hardware semaphores), e uma cadeia de desenvolvimento de software incluindo um compilador de linguagem C e um sistema operacional (UCLinux).
+Os componentes de hardware são todos descritos em SystemC.
+O simulador em nível de ciclo do processador ARM foi desenvolvido em C+, encapsulado num wrapper SystemC e integrado na plataforma.
+A Figura 2 apresenta um exemplo de arquitetura composta por dois processadores ARM, o barramento AMBA, dois módulos de memória e semáforos em hardware.
+A plataforma MPARM provê suporte para análise de desempenho.
+As estatísticas de desempenho incluem taxas de miss/ hit da memória cache, contenção do barramento e tempo de espera médio para tranferências.
+Essas estatísticas são utilizadas para a exploração da política de arbitragem no barramento AMBA.
+Uma proposta de integração entre modelos de simulação gerados através da linguagem Lisa e simulação em nível de sistema, descrita em SystemC, é realizada por.
+Objetivo é explorar o processador e comunicação conjuntamente, utilizando uma abordagem a nível de sistema.
+O simulador do processador é modelado em nível de instrução ou de ciclo.
+O modelo em nível de instrução executa o conjunto de instruções mas ignora os efeitos do pipeline.
+Por outro lado, o modelo em nível de ciclo simula completamente os estágios do pipeline e trancamentos devidos a acessos à memória.
+O processador gerado em Lisa é encapsulado num wrapper SystemC e conectado com o resto do sistema por interfaces TLM ou RTL.
+Os autores propõem diferentes combinações entre níveis de abstração de processador e mo delo de barramento como mostrado na Figura 3.
+O simulador isolado desconsidera a comunicação e conflitos em recursos compartilhados, levando em conta apenas a execução isolada do software.
+Em a fase 2, é considerada a simulação em nível de sistema, e o software utiliza o simulador a nível de instrução com interfaces funcionais com o resto do sistema.
+Essas interfaces modelam as operações sem levar em conta problemas de temporização.
+Em a próxima fase (fase 3), o simulador em nível de instruções é substído por um em nível de ciclo.
+Em a fase 4, a comunicação é modelada com precisão de ciclo utilizando canais de transação BCA.
+Em o próximo nível as interfaces são redefinidas por a interface com pinagem completa.
+O próximo e último passo utiliza modelos sintetizáveis com simuladores RTL.
+Métodos analíticos de estimativa de desempenho de software são propostos para se prover uma estimativa rápida e com um baixo esforço de modelagem e execução.
+Esses métodos são úteis para uma exploração do espaço de soluções em níveis de abstração superiores (por exemplo, nível de transações).
+Usualmente, uma análise da aplicação é feita para a extração do número de instruções de diferentes tipos.
+Após, é realizado um mapeamento dessas instruções para um modelo de desempenho que calcula o tempo de execução.
+Os métodos analíticos e formais são propostos para se evitar longos tempos de simulação e o requerimento de um modelo executável.
+Essas ferramentas são propostas para a verificação de desempenho do sistema e de algumas propriedades, como throughput máximo, atrasos e utilização de buffers.
+Normalmente, métodos analíticos são utilizados no espaço de exploração do projeto para sistemas sem um grau de complexidade grande.
+Em a aplicação é compilada num conjunto virtual de instruções (um conjunto RISC simplificado com 25 instruções).
+A estimativa é feita através da avaliação do custo de execução de instruções virtuais na arquitetura alvo.
+Os autores analisam um conjunto de benchmarks com 35 aplicações automativas baseadas em controle, considerando o conjunto virtual de instruções, e utilizando um simulador em nível de ciclo para obtenção do número de ciclos consumidos por uma aplicação.
+Após, uma análise estatística baseada em regreção linear é aplicada nesses dados para se encontrar uma constante K (dependente da aplicação) e os índices Pi da equação a seguir, onde Pi e Ni são os pesos e o número de execuções de cada instrução, respectivamente.
+Como essa abordagem utiliza um método linear de classificação, o mesmo é apenas ade- quado quando o conjunto de treinamento do modelo é similar às aplicações para as quais a estimativa é requerida, como demonstrado por os autores.
+Não há uma discussão sobre detalhes da arquitetura alvo para as quais as estimativas são obtidas.
+Os autores em utilizam um método não linear para a estimativa do tempo de execução.
+Para um dado conjunto de benchmarks, um classificador extrai um vetor de assinatura funcional para um processador virtual (com um conjunto de 42 instruções), contendo os tipos de instruções que aparecem no código e o número de execuções de cada uma.
+Essa assinatura funcional é, segundo os autores, independente da arquitetura alvo, dessa forma pode ser reusada para a estimativa em diferentes processadores.
+Os autores entretanto não discutem o impacto do uso dessa técnica para estimar o desempenho para um processador de uma arquitetura diferente de a qual o processador virtual serve de base para o classificador.
+Seu método de estimativa é também baseado numa assinatura arquitetural do processador alvo.
+Os autores propõem dois parâmetros que definem essa assinatura:
+O número de ciclos de espera para acesso à memória e a taxa entre a freqüência do processador e do barramento.
+São apresentados resultados de estimativa para um processador MIPS R3000.
+Em esse estudo, é utilizada uma abordagem de treinamento e após testes.
+Em a fase de testes, é aplicada uma técnica de modelagem chamada lazy learning para a escolha de uma função de estimativa que é baseada num critério de vizinhança entre a aplicação e o conjunto de treinamento.
+Essa função, que pode ser localmente linear, usa apenas pontos do conjunto de treinamento que são próximos à aplicação.
+As entradas para essa fase são as assinaturas funcionais e arquiteturais e o número de ciclos para a execução da aplicação do conjunto de benchmarks, obtidas através da simulação em nível de ciclo no processador alvo.
+Os autores propõem um método de treinamento baseado na divisão dos benchmarks em dois conjuntos disjuntos de treinamento e teste.
+Em o estudo é reportado um erro médio de 8.8% nas estimativas, para um conjunto de 6 benchmarks, cada um executado com 15 conjuntos diferentes de entrada de dados.
+Não são reportados, entretanto, o tamanho dos conjuntos de treinamento e de teste.
+Os autores de comparam o uso da técnica de anotação utilizando um conjunto de instruções utilizando dois métodos.
+O primeiro método traduz a aplicação descrita em linguagem C para um conjunto virtual de instruções.
+Cada instrução do conjunto virtual possui um custo associado à arquitetura alvo, que é obtido por simulação ou por um método estatístico, como apresentado em.
+O segundo método utiliza simulação compilada, onde o código assembly é traduzido para um código de simulação que será executado na máquina hospedeira usando anotações de atraso.
+Os autores reportam resultados mais precisos na abordagem baseada em código objeto porque dessa forma podem capturar as otimizações do compilador.
+Os autores reportam os resultados utilizando um processador MIPS R3000 para uma aplicação de pro-dutor/ consumidor.
+O método de instruções virtuais resulta num erro entre 0.29% e 80% comparado à simulação em nível de ciclo, enquanto que o método de código objeto reporta um erro entre 0.29% e 10.5%.
+Em uma abordagem formal usada para verificar as propriedades de escalonamento de sistemas multiprocessados heterogêneos é apresentada.
+A idéia principal é utilizar a caracterização de componentes indiviuais e estender- los num modelo composicional (ou seja, um sistema) para análise global de MPSoCs.
+As técnicas individuais de análise incluem algoritmos bem conhecidos de escalonamento, como o RMS, o EDF e TDMA.
+Essas técnicas de análise modelam a tarefa com ativação de comunicação como fluxos de eventos.
+O problema principal no modelo composicional é que, normalmente, os modelos de saída não são aceitos como modelos de entrada.
+Para resolver esse problema, um conjunto de interfaces de modelos e funções de adaptação de eventos são utilizadas para adaptar automaticamente o fluxo de eventos de saída no modelo de eventos de entrada já estabelecido.
+Uma técnica de macromodelagem baseada em caracterização de trechos de código é apresentada em.
+A técnica possibilita a extração de modelos funcionais em alto nível de componentes reutilizáveis de software, utilizando modelos mais detalhados (em nível de ciclo ou instrução).
+O esforço que é dirigido para a construção de macromodelos para um módulo de software é amortizado por o grande número de aplicações que o utilizam.
+Os autores em apresentam um método baseado em modelos abstratos de desempenho e cenários de aplicação.
+Um cenário de aplicação é um caminho definido no grafo de fluxo de controle que exprime as características mais importantes da aplicação em questão.
+O cenário é extraído estaticamente através de restrições de projeto informadas por o usuário.
+As restrições são propagadas para guiar os nodos num caminho praticável de execução.
+A partir de as restrições iniciais, outras restrições são derivadas e propagadas num processo iterativo.
+O processo iterativo pode requerer interação do usuário para definição manual de restrições, resultando num CFG de caminho único chamado de cenário.
+Um trace é gerado com esse cenário e o desempenho é avaliado com o uso de funções de custo abstratas para cada componente.
+Funções de custo são determinadas por as propriedades de cada componente, características da arquitetura e valores informados por o projetista.
+Por exemplo, a função de custo do processador é composta por ciclos necessários para a execução de uma dada instrução.
+Acessos à memória utilizam uma função de custo derivada da topologia de interconexão em combinação com valores previamente determinados.
+A estrutura da arquitetura leva em conta a influência de componentes que são utilizados durante uma operação.
+Por exemplo, num acesso à memória, barramentos e controladoras de memória são acessados, então sua influência é contabilizada na estimativa de desempenho.
+Os autores apresentam um estudo de caso para uma interface de rede.
+O trabalho analisa duas organizações de memória diferentes utilizando como arquitetura alvo o processador Intel i960.
+Os erros de estimativa reportados estão em torno de 20%.
+Em é demonstrada uma proposta de método estático de análise utilizando uma técnica chamada de enumeração implícita de caminhos, determinando o número de execuções de cada bloco básico num pior caso de execução.
+Os valores são calculados por equações lineares obtidas da análise estrutural e funcional da aplicação.
+Restrições estruturais são geradas a partir de a análise do grafo de fluxo de controle (CFG).
+Restrições funcionais são informadas por o usuário e descrevem a informação que não pode ser obtida por o CFG como limites de laços (limite de vezes que um determinado laço executa) e caminhos falsos (destinos de saltos não satisfeitos por uma condição).
+Um método de programação linear pode maximizar essas equações e ter- se dessa forma o WCET (do inglês, Worst Case Execution Time).
+Em é apresentado um método para reduzir as equações lineares apresentadas em e conseqüentemente, a complexidade na tentativa de extração de um único caminho possível.
+Um único caminho possível pode ser extraído quando a execução do programa é independente da entrada de dados.
+Mesmo não sendo esse o caso para todos os programas, algumas subpartes podem ser classificadas como um caminho único, como núcleos de algoritmos de processamento de sinais.
+O trabalho não utiliza o pior caso mas intervalos que são calculados considerando- se que o custo de um bloco básico de execução é variável.
+Intervalos retornam resultados mais precisos, pois eles utilizam um custo de execução de bloco básico preciso.
+A análise semântica pode dar outras informações que são também relevantes para estimativas de desempenho na presença de características complexas de arquitetura.
+Em, o cálculo de estimativa é realizado a partir de o número de misses na cache que é obtido por a aplicação de equações lineares.
+Em, um método que modela o impacto da execução especulativa é descrito.
+A estimativa de desempenho pode ser calculada em função de o número de misses do preditor de desvios, que pode ser estaticamente obtido, como apresentado em.
+Essas predições podem aumentar a precisão do cálculo do tempo de execução de cada bloco básico, uma vez que esse cálculo utiliza apenas informação local.
+Em essa fase, simuladores em nível de ciclo podem ser alternativamente utilizados, mas com um custo mais elevado.
+Uma alternativa é a utilização de modelos mais abstratos de processador que reduzem a complexidade e facilitam o processo de estimativas para diferentes processadores.
+A plataforma é composta por microprocessadores MIPS, por um meio de interconexão e por módulos de memória.
+O número de processadores utilizados na plataforma está relacionado ao desempenho necessário para a execução da aplicação-alvo e ao consumo de energia esperado.
+Não existe nenhuma restrição ao número de processadores a serem utilizados, o que torna a plataforma escalável e flexível.
+Esta plataforma tanto pode ser simulada como implementada num dispositivo FPGA.
+No caso de a implementação em FPGA existe uma limitação natural quanto a o número de processadores devido a área (tamanho) do dispositivo FPGA.
+A escolha do microprocessador MIPS para compor a plataforma levou em consideração uma série de vantagens, como implementações open source disponíveis, facilidade de integração de múltiplos núcleos através de diferentes meios de interconexão, existência de compiladores e alto desempenho para boa parte das aplicações embarcadas.
+Além disso, a arquitetura do microprocessador MIPS é genérica o suficiente para representar grande parte das características de processadores embarcados.
+Atualmente interconexões entre núcleos num SoC, são realizadas através de canais pontoa-ponto ou de canais multi-ponto.
+A utilização de canais ponto-a-ponto conecta núcleos por canais dedicados, sendo que cada canal é constituído por um conjunto de fios interligando dois núcleos.
+Os canais multi-ponto utilizam uma estrutura de interconexão com a forma de um barramento compartilhado e multiplexado no tempo, em o qual os núcleos do sistema são conectados.
+Uma nova tendência de interconexão denominada redes intra-chip (NoC) está surgindo.
+Seu conceito de interconexão é oriundo de redes de computadores e de sistemas distribuídos, onde os núcleos do sistema são interligados por meio de uma rede de roteadores através de canais ponto-a-ponto, e os dados são transferidos através de roteadores e canais até seus destinos.
+As redes intra-chip estão surgindo como uma solução para alguns problemas de comunicação existentes em sistemas digitais modernos.
+Segundo Dally, a substituição de fios de propósito específico, utilizados atualmente para comunicação por redes de interconexão, tem tornado o processo de roteamento de pacotes mais rápido e econômico.
+Observou- se, entretanto, que para alguns poucos núcleos interconectados e onde não ocorra em demasia comunicação paralela, a interconexão através de canais multi-ponto torna- se mais econômica, com relação a área (em silício) e consumo de energia.
+Além disso, a maioria dos MPSoCs industriais utilizam entre 2 e 4 microprocessadores, e, segundo a indústria eletro-eletrônica, este número não deve aumentar nos próximos 10 anos.
+De essa forma, foi utilizado um meio de comunicação por canal multi-ponto (barramento) para construção da arquitetura utilizada no contexto desse trabalho.
+Essa escolha é justificada devido a o fato desse meio ter sido prototipado em hardware com sucesso, além de ter pouca ocupação em área e throughput satisfatório.
+A arquitetura adotada neste trabalho utiliza o processador Plasma.
+Este processador é um soft-core1 descrito em VHDL, e implementa uma parte do conjunto de instruções MIPS.
+O processador Plasma é um projeto simples, dessa forma apenas o primeiro co-processador (System Control Processor) descrito na arquitetura MIPS é implementado, e instruções de acesso desalinhado a memória estão ausentes, por questões de patente.
+Em o processador Plasma não são implementadas instruções de acesso desalinhado, como citado anteriormente.
+De essa forma, foi necessário a utilização de um compilador que não gerasse as instruções LWL, SWL, LWR e SWR do conjunto de instruções MIPS.
+O compilador utilizado foi o Gnu GCC 4.
+0.2, modificado para não gerar tais instruções.
+Descrição RTL em alto nível de um módulo de hardware, que pode ser visualizada, modificada ou adaptada para determinado fim.
+As medições elétricas são baseadas em cálculos de potência e energia descritos na literatura, e apresentados a seguir.
+A dissipação de potência num sistema digital é calculada através da soma da potência estática de um dado circuito com a potência dinâmica:
+A potência estática, Pstatic, independe da atividade do circuito e é determinada por a tecnologia alvo (que para este trabalho está sendo considerada a tecnologia MOSFET), curto circuitos não desejados e corrente de fuga dos transistores.
+A potência dinâmica Pdynamic (Equação 3.2) pode ser calculada através da soma da potência dissipada em curto circuitos (Equação 3.3) e a potência de chaveamento (Equação 3.4):
+Pdynamic $= Pswitching+ Pshort (Equação 3.2) A potência dissipada em curto circuitos Pshort é originada por a pequena corrente existente entre a fonte e o terra, e que aparece na saída de uma porta lógica MOSFET durante o chaveamento de um nível lógico para outro, no exato momento em que ambos transistores conduzem corrente.
+O termo mais importante da equação é a potência dissipada por a carga e descarga de capacitâncias parasitas presentes em todas as portas lógicas do circuito.
+Essa dissipação de potência é referenciada como potência de chaveamento, e assim como a potência dissipada em curto circuitos, depende da atividade do circuito (número de transições entre os níveis lógicos para todas as portas).
+De essa forma, a potência de chaveamento num circuito digital CMOS pode ser determinada usando- se a seguinte fórmula:
+Pswitching $= × C × f × Vdd (Equação 3.4) Onde é definido como a atividade do chaveamento, C como a capacitância de cada nodo chaveado, f como a freqüência do circuito e Vdd é definido como a voltagem.
+Sabe- se que a potência de um dado circuito é um fator instantâneo.
+O consumo de energia consiste do acúmulo da dissipação de potência num determinado intervalo de tempo2.
+Desta forma a dissipação de potência do circuito como um todo é calculada através da média das dissipações de potências obtitas em diferentes instantes de tempo.
+Assim, basta multiplicar a potência dissipada por o intervalo de tempo desejado, para se obter o consumo de energia.
+Assim, pode ser representado o consumo de energia de um circuito conforme apresentado na Equação 3.5: Onde E é a energia consumida, P é a potência dissipada e t é um intervalo de tempo.
+A metodologia aplicada neste trabalho analisa a atividade de chaveamento de portas lógicas de uma descrição VHDL, sendo este um item que projetistas podem modificar numa arquitetura para a redução ou a otimização do consumo de energia.
+Deve ser observado que a simulação de uma descrição VHDL é muito mais rápida que, por exemplo, a simulação de uma descrição SPICE do mesmo circuito.
+O nível de abstração da linguagem VHDL ajuda a acelerar a estimativa de dissipação de potência de um circuito, e o uso de uma plataforma facilita o processo de simulação.
+O consumo de energia de uma arquitetura MPSoC é calculado por o somatório do consumo de energia de cada processador, acrescido do consumo de energia da estrutura que forma o meio de interconexão.
+Esse consumo é representado por a Equação 3.6: Onde Epi é definido como o consumo de energia do processador i e Eic o consumo de energia do meio de interconexão.
+A ferramenta proposta utiliza um modelo de energia em alto nível e baseia- se num método de classificação de instruções apresentado no próximo capítulo.
+Assim, tem- se um cálculo Integra- se a dissipação de potência num intervalo de tempo, obtendo- se o consumo de energia.
+De essa forma, o ISS utiliza as medições elétricas anteriormente caracterizadas numa biblioteca VHDL e simuladas para estimar o consumo de energia de uma determinada aplicação.
+A biblioteca VHDL de estimativas, assim como a metodologia empregada para estimar o consumo de energia de um circuito são apresentadas nas próximas seções.
+Além disso, na ferramenta de estimativas foi utilizado um modelo em alto nível para estimativas de energia do meio de interconexão, baseado na atividade de comunicação do meio e detalhado no próximo capítulo.
+O tempo de execução de uma aplicação no processador Plasma é determinado por o número de instruções executadas, ciclos de pausa do pipeline devido a leituras e escritas (operações de load e store), ciclos de pausa do controle do processador devido a operações multi-ciclo3, tempo de acesso a memória e frequência do processador.
+De essa forma, o tempo de execução (ET) em milissegundos é dado por a Equação 3.7: Onde Instr representa o número de instruções executadas (considerando- se uma instrução por ciclo), Cls representa o número de ciclos perdidos por pausa do pipeline em leituras e escritas (operações de load e store), Cpause representa o número de ciclos onde o controle do processador permanece em pausa, M emLatency a latência (em ciclos) de acesso a memória e Ref Clock representa a frequência de operação do processador.
+Para a implementação do processador em questão, parâmetros como tempo de acesso a memória e frequência de operação são fatores fixos.
+Em este trabalho, o tempo de acesso a memória foi definido como 1 ciclo, e a frequência de operação 25 MHz.
+De essa forma, o tempo de execução pode ser calculado através da Equação 3.8: Como exemplo, podem ser citadas instruções de multiplicação e divisão.
+A estrutura que forma o meio de interconexão entre os processadores também é responsável por a variabilidade do tempo de execução de uma aplicação quando ocorrer comunicação entre os mesmos.
+Além disso, como o meio de interconexão utilizado no contexto desse trabalho é uma estrutura em forma de barramento, é sabido que a comunicação entre diversos núcleos ocorre multiplexada no tempo.
+Assim, tem- se que:
+CP USend O tempo de comunicação entre núcleos é definido por a latência entre o envio de um pacote de dados de um processador e recebimento dos dados em outro.
+Esse tempo é influenciado por a latência dos drivers de comunicação, latência do controle entre o meio de interconexão e os processadores (tratamento de sinais e geração de bursts), tempo de arbitragem do barramento e fator de multiplexação (M F).
+Simulações possibilitaram a observação de que o tempo de execução dos drivers, a latência do controle de acesso ao meio e do protocolo de comunicação utilizado são bastante superiores ao tempo de transmissão em si, mantendo o barramento ocioso na maioria do tempo.
+Assim, o fator de multiplexação pode ser desconsiderado, pois não existe concorrência entre os núcleos no uso do barramento, apenas pequenos atrasos podem ocorrer no tempo de arbitragem.
+Para se obter o tempo de comunicação, foi simulado o envio de milhares de pacotes de dados e calculado o tempo médio para o envio de um pacote.
+De essa forma, define- se a latência para o envio de um pacote como apresentado na Equação 3.10: Cada pacote tem latência em torno de 50 ciclos para seu envio, então a latência total do meio de interconexão é influenciada por o número de pacotes enviados.
+A latência total da comunicação pode ser definida através da Equação 3.11: Tendo- se o tempo de execução de cada processador e também a latência de comunicação, pode- se calcular o tempo de execução da plataforma MPSoC, que consiste do maior tempo de execução entre o conjunto de processadores e da latência de comunicação entre estes processadores.
+A Equação 3.12 representa o tempo de execução da plataforma MPSoC:
+O modelo de desempenho apresentado é utilizado por a ferramenta de estimativas na execução de todas as instruções de uma aplicação num ou mais ISSs (fator esse que depende do número de processadores da arquitetura), considerando atrasos decorridos de diversos fatores, conforme apresentado anteriormente.
+Assim, cada instrução é buscada em memória no simulador do processador e executada, num processo iterativo.
+Atrasos (em ciclos) que representam a implementação do hardware são incluídos na contagem e modelam dessa forma o funcionamento da plataforma.
+A principal idéia por trás da metodologia aplicada nesse trabalho, é utilizar eventos VHDL para detectar a atividade de dispositivos lógicos.
+Durante a simulação, um dispositivo lógico pode ser estimulado por a mudança do nível lógico de suas portas de entrada.
+O dispositivo reage com a execução de um processo RTL comportamental, e escalona, então, uma transação nos sinais conectados em suas portas de saída.
+Esse fato é conhecido como escalonamento de uma transação naquele sinal.
+Se o novo valor for diferente do valor anterior, um evento ocorre, e outros dispositivos lógicos com portas de entrada conectadas àquele sinal podem ser ativados.
+Com o uso de processos em VHDL, é possivel a coleta de todas as transições num circuito e, consequentemente, é possível estimar o consumo de energia.
+O primeiro passo do método é sintetizar a descrição VHDL comportamental da arquitetura utilizando uma biblioteca alvo, no caso, CMOS TSMC 0.
+35 µm na ferramenta Leonardo Spectrum.
+Após a síntese, é gerado um circuio em nível de portas lógicas, ou seja, um netlist.
+O segundo passo é a conversão do circuito usando a ferramenta CAFES.
+Esse processo converte o netlist gerado por a ferramenta Leonardo Spectrum para um formato compatível com a biblioteca de estimativas de energia.
+O terceiro passo consiste na simulação do circuito utilizando a descrição VHDL gerada e convertida com a biblioteca de estimativas, num simulador VHDL, como por exemplo o ActiveHDL ou ModelSim.
+A Figura 4 apresenta o fluxo de projeto utilizado para estimativas de energia de circuitos digitais CMOS.
+Para a biblioteca CMOS utilizada, foram implementadas 10 portas lógicas.
+Com essas portas lógicas básicas, é possível descrever qualquer circuito.
+Um script utilizado com a ferramenta Leonardo Spectrum restringe as funções geradas àquelas implementadas por a biblioteca, para que o circuito possa posteriormente ser simulado com a mesma.
+O componente chave para estimativas de consumo de energia é a biblioteca de estimativas, implementada por.
+A idéia principal dessa biblioteca é usar eventos em VHDL para detectar a atividade de circuitos, e calcular (ou acumular) a potência dissipada por o circuito em simulação.
+Durante a simulação, um circuito pode ser estimulado por a mudança do estado lógico de suas entradas, e essas mudanças podem ser avaliadas com relação a a estimativa de consumo de energia.
+De fato, o estimador de consumo de energia não reporta o consumo da real implementação, mas um valor aproximado.
+Essa estimativa é consistente de acordo com o consumo de energia por dispositivos lógicos numa implementação em hardware.
+A metodologia aplicada também leva em consideração a potência dissipada por componentes parasitas, introduzidos por interconexões (metais e vias), bem como o fanout de cada porta lógica.
+Para a implementação da biblioteca, simulações de nível elétrico foram feitas e medidas com uso da ferramenta SPICE.
+Diversos scripts foram organizados para automatizar o processo de captura dos valores reportados por a ferramenta SPICE e converter esses valores para VHDL, para diversas funções lógicas.
+As funções escolhidas podem descrever qualquer tipo de circuito, e dessa forma a ferramenta Leonardo Spectrum teve que ser instruida para utilizar apenas esssas funções para a geração do circuito em nível de portas lógicas.
+As funções escolhidas foram inicialmente descritas e sintetizadas na ferramenta SPICE, usando a biblioteca de tecnologia CMOS TSMC 0.
+35 µm.
+A Figura 5 apresenta um tri-state descrito em SPICE.
+Essa porta lógica é composta por os seguintes subcircuitos:
+Inversor e TransmissionGate, e é modelada com uma capacitância de saída de 50 fF e uma resistência de 50 ohms, representando um fanout típico de 3 portas lógicas.
+Esse tri-state foi incluído na biblioteca de estimativas, descrita em VHDL.
+Medidas foram extraídas para fanouts variando entre 1 e 10, e os valores gerados foram contabilizados na biblioteca de estimativa.
+As portas lógicas foram então descritas em VHDL de acordo com o comportamento de suas entradas.
+Em essa descrição, a dissipação de potência foi anotada para cada transição, juntamente com a dissipação de potência estática durante o período em que as entradas não tiveram mudanças no nível lógico.
+Para que o ISS do processador Plasma pudesse ser alimentado com dados sobre estimativas de desempenho e consumo de energia, simulações do nível lógico do processador foram necessárias.
+Uma plataforma para contagem de ciclos e estimativa de consumo de energia foi implementada para realizar as simulações.
+Essa plataforma é composta por diversos componentes, mostrados na Figura 7.
+O primeiro passo no processo foi a geração de uma nova descrição VHDL do núcleo do processador Plasma.
+Os níveis superiores da descrição original do processador foram alterados, para que o núcleo do processador fosse isolado da memória interna e da UART.
+Isso foi feito para que as medidas fossem fiéis ao que será emulado no ISS (num primeiro momento, apenas o núcleo e banco de registradores).
+O núcleo do processador foi sintetizado através da ferramenta Leonardo Spectrum utilizando a tecnologia TSMC 0.
+35 µm, e as funções lógicas foram restritas àquelas implementadas na biblioteca de estimativa de consumo de energia.
+Esse passo gerou uma descrição VHDL em nível de portas lógicas (netlist).
+Em essa etapa, o netlist obtido foi então processado por a ferramenta CAFES, que traduziu as referências das células lógicas padrão para referências as células da biblioteca de estimativa, considerando o fanout das mesmas.
+Com o processador sintetizado para estimativa de consumo de energia, as partes foram interligadas para a formação de uma plataforma completa.
+A plataforma inicial (monoprocessada) é composta por o núcleo do processador Plasma em forma de netlist, um modelo de memória4, e uma UART.
+Um controle de memória externa foi também implementado.
+Esse segundo modelo é bastante genérico, parametrizável, sintetizável, e não possui limitação de tamanho, sendo esse apenas restrito aos recursos disponíveis no dispositivo FPGA.
+Em essa memória externa é carregada a aplicação a ser avaliada.
+A latência da memória externa é de 1 ciclo apenas.
+Todas as partes se comunicam através de um barramento interno.
+Um testbench gera os sinais de clock e reset para o processador e periféricos, e dessa forma o funcionamento do processador pode ser simulado, e uma estimativa de consumo de energia do núcleo pode ser realizada.
+Observou- se que os modelos VHDL tanto comportamental quando em nível de portas lógicas correspondem funcionalmente.
+De essa forma, a estimativa de desempenho de aplicações é consistente, comparando- se os dois modelos.
+Para estimativas de desempenho não são necessários mecanismos especiais como em estimativas de energia.
+Assim, uma avaliação de desempenho pode ser feita diretamente com o uso de uma descrição VHDL comportamental, sendo essa executada mais rapidamente em simuladores que uma descrição em nível de portas lógicas.
+A mesma plataforma descrita na seção anterior foi utilizada para estimativas de desempenho, entretanto, um núcleo não sintetizado foi utilizado (em virtude de a aceleração nas estimativas) e não foi necessária a utilização de bibliotecas adicionais.
+A descrição de memória implementada instancia BlockRAMs de dispositivos FPGA, com o código objeto para boot já carregado.
+Como citado anteriormente, no contexto desse trabalho está sendo utilizado um barramento5 como meio de interconexão.
+O mesmo foi descrito em VHDL, simulado e prototipado em hardware com sucesso, e mostrou- se bastante econômico com relação a ocupação em área.
+Além disso, o barramento apresentou um throughput satisfatório.
+As características do barramento podem ser observadas na Tabela 3: A Figura 8 apresenta uma das portas de dados do barramento.
+Essa porta permite acesso transparente ao barramento para dispositivos (IPs) conectados ao mesmo.
+A porta de dados é formada por uma porta de controle de acesso ao meio, uma fila com tamanho parametrizável, um módulo que implementa a fila6 na porta de controle e um meio de acesso de baixo nível ao barramento.
+Esse meio de acesso é responsável por enviar dados para o barramento, receber dados do mesmo e colocar o barramento em alta impedância quando não estiver sendo utilizado (através da utilização de tri-states).
+O número de portas, o tamanho das filas, assim como a largura do barramento são parametrizáveis.
+Em o protótipo da plataforma, foram instanciadas 4 portas de dados de 8 bits cada, com filas de saída de 16 bytes, e o barramento completo é representado na Figura 9, onde é apresentada a ligação entre as partes.
+A implementação foi criada por o autor, sendo chamada HotWire Bus.
+Implementa buffers para a saída de dados.
+Cada porta de acesso ao barramento implementa o protocolo handshake.
+Assim, os dados são colocados nas portas de entrada ou saída e um sinal é enviado, sinalizando que o dado está pronto.
+Quando a porta de entrada do barramento ou o dispositivo controlado por a porta de saída receberem efetivamente o dado (envio ou recebimento), um sinal de ackno-wledgement é enviado, e um novo ciclo de transferência pode ser iniciado.
+Um exemplo de transferência de dados é demonstrado na Figura 10.
+É importante observar que a latência entre os sinais rx e tx e seus respectivos acknowledgements é de apenas meio ciclo.
+A baixa latência acontece devido a utilização de ambas as bordas de relógio na implementação, com o intuito de manter a latência por palavra transferida em apenas 2 ciclos (após arbitragem).
+Para que os processadores pudessem se comunicar utilizando o barramento implementado, foi necessária a definição de um controle e protocolo de comunicação.
+O processador Plasma possui um barramento interno com largura de 32 bits e portas de dados síncronas, já o barramento externo tem largura de 8 bits e portas de comunicação assíncronas.
+Para conectar os processadores ao barramento foram utilizadas as portas de comunicação externas de entrada e saída, chamadas de GPIOA_ IN e GPIO0_ OUT, respectivamente.
+A porta GPIOA_ IN possui largura de 32 bits, e os bits 31 e 30 estão conectados à linhas de interrupção, o que facilita a implementação de drivers de acesso ao meio de interconexão de alto desempenho.
+Além disso, o uso de portas já implementadas na descrição padrão do processador facilita a compatibilidade com sistemas operacionais e aplicações já existentes para essa arquitetura.
+A função principal do controle entre os processadores da plataforma e o barramento é serializar palavras de 32 bits provenientes do processador para palavras de 8 bits que são enviadas por o barramento, e, também, paralelizar palavras de 8 bits provenientes do barramento para palavras de 32 bits que são enviadas para o processador (porta GPIOA_ IN).
+Além disso, o controle dos sinais do protocolo de comunicação do barramento é recebido ou enviado e sinais de interrupção nos bits 31 e 30 da porta GPIOA_ IN de cada processador são gerados.
+O controle gera bursts de acesso de 4 palavras para leituras e escritas no barramento, e o desempenho do mesmo é limitado apenas por o tempo de arbitragem.
+As perdas por o tempo de arbitragem e latência dos drivers são amenizadas por o tamanho das filas nas portas de saída do barramento.
+Além de a geração de bursts, o controle realiza o endereçamento de cada processador na plataforma, apenas sinalizando o recebimento de dados na porta de entrada de um processador quando o destino confirmar, ou no envio de uma mensagem de broadcast (um processador pode enviar dados a múltiplos processadores).
+A plataforma completa de estimativas é formada não apenas por um único processador, mas sim por diversos processadores comunicando- se por um meio de interconexão.
+O objetivo da plataforma é contabilizar não apenas o consumo de energia em cada um dos núcleos, mas também o consumo de energia do barramento e controle do mesmo, principalmente em aplicações onde ocorra comunicação entre os núcleos.
+Além disso, a estimativa de desempenho será afetada, uma vez que existirão processadores trabalhando em paralelo.
+Para a implementação foi definida uma plataforma constituída por quatro processadores comunicando- se por um barramento HotWire.
+Em a Figura 13 é apresentado um exemplo onde quatro processadores executam código em paralelo e comunicam- se pelo meio de interconexão.
+Existem quatro portas de acesso ao meio de interconexão, e a cada uma está conectado um processador Plasma.
+As portas de entrada e saída de cada processador estão interligadas numa controladora de acesso as portas do barramento.
+Essa plataforma foi implementada em VHDL e um protótipo encontra- se em funcionamento num dispositivo FPGA.
+Foram implementados drivers simples para comunicação entre os processadores, entretando não foi criado um mecanismo que faz uso de interrupções, o que possibilitaria maior flexibilidade.
+Essa plataforma já implementada e prototipada serviu de base para a implementação da ferramenta de estimativas.
+O barramento, o controle de acesso ao meio e os processadores foram simulados para uma estimativa de desempenho de software e o consumo de energia com sucesso.
+Os dados coletados nas simulações foram utilizados para a implementação a nível de ciclo na ferramenta, para que a estimativa da plataforma completa pudesse ser feita em mais alto nível, com ganhos consideráveis nos tempos de simulação.
+A simulação da plataforma de estimativas completa permite uma avaliação detalhada da execução de código em cada um dos processadores, além de a comunicação entre os mesmos.
+Através da simulação, foi possível observar o funcionamento dos componentes de hardware e software.
+Como abordado anteriormente, a simulação de um circuito em conjunto com a utilização de uma biblioteca de estimativas, permite que se obtenha o consumo de energia do mesmo.
+É importante ressaltar, que a simulação da arquitetura serviu de base para a implementação da ferramenta de estimativas, e dessa forma, os dados coletados durante diversas simulações foram essenciais para que fossem feitas avaliações da corretude de funcionamento da plataforma, estimativa de tempo de execução de aplicações e consumo de energia.
+Diferentes componentes formam a arquitetura multiprocessada utilizada no contexto desse trabalho.
+Cada componente é responsável por uma parte do consumo de energia da arquitetura, e influência no tempo de execução de uma dada aplicação devido a sua latência.
+Os componentes são:
+A Tabela 4 apresenta a área utilizada em portas lógicas, após o processo de síntese, para os componentes que compõem a plataforma descrita em VHDL.
+A arquitetura da plataforma isola os processadores da estrutura de interconexão.
+Tal característica possibilita a medição de cada componente separadamente após a síntese lógica.
+Os processadores Plasma representam A maior parte da lógica utilizada pelo meio de interconexão diz respeito ao tamanho das filas nas portas de saída do barramento.
+A Figura 15 apresenta a simulação de uma aplicação multiprocessada, utilizando a plataforma de estimativas multiprocessada descrita em VHDL.
+Apenas alguns elementos são ilustrados.
+As interfaces de comunicação dos processadores são representadas por os números de 1 a 4, e no número 5 representa o consumo de energia estimado para a aplicação.
+O número 6 representa a lista de descrições VHDL (processadores, meio de interconexão, biblioteca de estimativas, testbench e inicialização das memórias).
+Em essa simulação estão presentes quatro processadores Plasma sintetizados além de o meio de interconexão também sintetizado, executando 18 ms do hardware.
+Essa simulação levou em torno de 2 dias, executando numa máquina com processador dual core de 2.8 GHz e 2 GB de memória.
+A simulação desses componentes, de acordo com a metodologia adotada nesse trabalho, torna- se demasiadamente custosa com relação a o tempo de processamento.
+Entretanto, a simulação isolada de cada um dos componentes de acordo com a metodologia é viável, e foi utilizada para as medições.
+De essa forma, foram criados modelos de diferentes níveis de abstração, divididos em modelos funcionais e modelos detalhados.
+Os modelos funcionais utilizam descrições VHDL em nível comportamental ou estrutural (não sintetizado) e podem ser rapidamente simulados.
+Modelos detalhados utilizam descrições em VHDL em nível de portas lógicas (netlists) em conjunto com a biblioteca de estimativas e requerem alto tempo de simulação.
+A criação de quatro diferentes derivações dos componentes permitiu que todos os dados necessários para a implementação da ferramenta fossem obtidos.
+As derivações utilizadas são:·
+VHDL não sintetizado dos processadores, meio de interconexão e controle· VHDL não sintetizado dos processadores, VHDL sintetizado do meio de interconexão e controle· VHDL sintetizado dos processadores, VHDL e não sintetizado do meio de interconexão e controle· VHDL sintetizado dos processadores, meio de interconexão e controle As derivações estão listadas em ordem crescente de complexidade computacional.
+Observouse, por exemplo, que é praticamente inviável a simulação de quatro processadores Plasma em nível de portas lógicas.
+De essa forma, nas simulações que foram utilizadas para a geração de dados para a ferramenta de estimativas, um único núcleo foi simulado.
+A simulação de todos os núcleos, em conjunto com o meio de interconexão e controle (em nível de portas lógicas) foi realizada, entretanto não pode ser extendida devido a sua complexidade.
+A plataforma completa pode ser verificada em sua situação real de funcionamento através de um protótipo, implementado num dispositivo FPGA.
+A placa utilizada contém diversos componentes, como Leds, chaves, botões, conector padrão RS-232, saída VGA, slot para a inserção de memória padrão DDR-SDRAM, cartão de memória Flash, entre outros além de um dispositivo FPGA XCV2 VP30.
+Um nível superior da plataforma, descrito em VHDL realiza as amarrações entre a plataforma formada por quatro processadores, controle, meio de interconexão, e o controle de reset.
+Esse nível também implementa um controle de seleção de interface serial de cada processador.
+O controle de seleção é implementado por meio de duas chaves (onde pode- se endereçar 2 bits, ou quatro processadores) e, também, conecta Leds para cada pino de escrita dos processadores na interface serial.
+De essa forma, pode- se enviar diferentes códigos objeto para cada processador, e visualizar, independentemente, a saída de cada interface serial.
+A simulação de eventos em nível de portas lógicas da arquitetura MPSoC desenvolvida no contexto deste trabalho, apresentada no Capítulo 3, permite a realização de estimativas de tempo de execução do software e estimativas de consumo de energia da arquitetura bastante precisas.
+Entretanto, os tempos de simulação tornam- se impraticáveis, mesmo para aplicações relativamente simples, que levam algumas centenas de milhares de ciclos para executarem.
+Em este sentido, a implementação de uma ferramenta de estimativas que baseia- se na execução detalhada, em nível de ciclo da arquitetura proposta, torna- se uma idéia interessante.
+O intuito de uma ferramenta é minimizar o tempo de simulação e, também, obter resultados que permitam ao projetista a exploração do espaço de soluções de forma adequada.
+Muitos detalhes, como chaveamento de portas lógicas e a complexidade da implementação do hardware podem ser abstraídos, diminuindo- se dessa forma o tempo necessário para o término de uma simulação.
+Um simulador do conjunto de instruções (ISS) da arquitetura MIPS foi implementado.
+O simulador executa código objeto nativo, de acordo com a implementação do processador Plasma.
+Além de a execução de instruções, o simulador inclui mecanismos para estimativas de desempenho e consumo de energia.
+O mecanismo de contagem de ciclos é responsável por estimativas de desempenho.
+Além disso, mecanismos para abortar a simulação foram implementados, sendo um de eles o número de ciclos a serem executados ou o tempo de execução real do hardware, parâmetros esses informados por o usuário.
+O ISS possui estruturas e definições que caracterizam a implementação do processador em hardware.
+De essa forma, tamanho da memória, faixas de endereços específicos, estruturas como registradores e lógica de controle são bem definidos nessa implementação.
+O ISS tem como intuito emular o funcionamento do hardware.
+Algumas constantes foram definidas na implementação, com o objetivo de generalizar a estrutura do ISS.
+Essas constantes dizem respeito ao consumo de energia por ciclo, freqüência de operação do processador, latência da UART, faixas de endereço de memória e máscaras de interrupção.
+O funcionamento do simulador é relativamente simples.
+Inicialmente, a aplicação (código objeto) é carregada na memória e o ISS é inicializado (o ponteiro de memória é modificado para o endereço da aplicação).
+A seguir, as instruções são executadas uma a uma, num laço.
+Em esse laço, a rotina que executa um ciclo do processador é chamada, e o contexto do processador é atualizado.
+Quando um breakpoint1 é encontrado, a execução é interrompida, e relatórios da execução de instruções e saída da UART são gravados em disco.
+Em o mesmo laço de execução são atualizadas flags referentes ao registrador de interrupções.
+Esse registrador é alterado conforme o estado da UART, do timer e modificações em pinos das portas de entrada e saída.
+Além disso, a execução de instruções fica interrompida no caso de pausas no processador, ocasionadas por acessos a dispositivos de entrada e saída ou operações multi-ciclo.
+A principal estrutura do ISS armazena o estado (ou contexto) do processador.
+Esta estrutura representa os 32 registradores de propósito geral implementados por a arquitetura MIPS, os registradores PC2 e PC_ NEXT, registradores de resultado das operações de divisão e multiplicação (HI e Lo), registrador com o endereço de destino do salto (SKIP), um ponteiro para o endereço de memória, estado de funcionamento do processador e definição de endianness3.
+Existem vetores que armazenam os nomes de cada instrução.
+Esses nomes são utilizados para tornar mais legível a implementação de algumas funções, e também para listar nos relatórios de execução do código o número de vezes que cada instrução foi invocada.
+Algumas variáveis (ou vetores) são definidos, como o vetor SRAM que representa a memória externa do processador, cpu_ cycles armazena a contagem de ciclos e ins_ counter_ op, ins_ counter_ func e ins_ counter_ rt armazenam a contagem de cada instrução executada.
+Além de essas variáveis são definidas max_ cycles e est_ energy que armazenam o número máximo de ciclos a serem executados e a energia consumida estimada.
+Em a atual implementação funções específicas realizam a leitura e escrita em memória.
+Como periféricos são mapeados em memória nessa arquitetura, nessas funções é verificado o endereço de leitura ou escrita, e uma decisão quanto a o destino da mesma é tomada (por exemplo, Ponto onde a execução da simulação é abortada.
+Esse ponto pode ser um tempo limite de execução prédefinido, ou escrita num endereço de memória específico utilizado como trap.
+Program Counter. Forma de representação de dados, ou seja, ordem de bits numa dada arquitetura.
+Tipicamente, sistemas são entitulados como Big Endian ou Little Endian.
+ISS. Os endereços de memória são idênticos aos endereços da implementação do processador em VHDL, contudo, um endereço de trap foi reservado com o intuito de abortar a simulação de um algoritmo por software (uma escrita neste endereço causa a parada do simulador, entretanto nada acontece quando um dado for escrito em tal endereço na implementação do processador em hardware).
+A função mais importante do ISS simula a execução de uma instrução do processsador.
+Em essa função, a estrutura que representa o estado do mesmo é verificada e decisões são tomadas, para a execução da instrução corrente.
+Para isso, a operação atual é lida da memória (no ISS, do vetor SRAM) e decodificada (no ISS, desmembrada em diversas variáveis).
+Assim, é possível tomar decisões conforme o tipo de operação a ser realizada.
+Após a operação, registradores são atualizados e um novo ciclo de funcionamento do processador é executado.
+Em o final de cada iteração dessa função, são incrementados os contadores de ciclo (utilizado para estimativas de desempenho) e de consumo estimado de energia, conforme a instrução executada.
+Cada instrução gera estímulos diferentes dentro de o processador.
+Assim, o consumo de energia por ciclo varia de acordo com esses estímulos.
+Para uma estimativa dinâmica do consumo de energia, as instruções que fazem parte da arquitetura do processador Plasma foram distribuídas de acordo com diferentes classes, sendo essas:
+Arithmetic, Branches, Loads/ Stores, Logical, Moves e Shifts.
+Além disso, instruções específicas foram reavaliadas de acordo com a quantidade de dados que manipulam4.
+De essa forma, a estimativa de energia consumida por ciclo de execução do processador é definida não apenas por o tipo de instrução, mas também por os dados manipulados por ela.
+A modelagem de consumo de energia por instruções, ao invés de classes, aumentaria em muito a complexidade do simulador, além de tornar impraticável a criação de vetores para o treinamento da ferramenta para todos os casos.
+A Tabela 6 apresenta o conjunto de instruções implementado no ISS, sendo essas divididas de acordo com as classes apresentadas anteriormente.
+Este conjunto representa apenas as instruções implementadas no processador Plasma, e não inclui todas as instruções especificadas na arquitetura MIPS.
+Para cada classe de instruções foram criadas aplicações de teste, para que fossem utilizadas como vetores de treinamento da ferramenta.
+Cada aplicação (vetor de treinamento) utiliza na Algumas instruções, ao serem executadas, ocasionam a inversão de muitos bits na lógica interna do processador, enquanto outras não.
+Cada vetor de treinamento foi executado por 1ms na plataforma inicial6.
+Em o final da simulação obteve- se um consumo de energia para cada aplicação teste, conforme apresentado na Tabela 7.
+O consumo de energia reportado por o simulador foi dividido por 25000, obtendo- se o consumo de energia aproximado por ciclo, para cada classe de instruções.
+A Tabela 8 apresenta os resultados obtidos por a simulação de consumo de energia por ciclo para cada classe de instruções.
+Esses valores foram utilizados como base da ferramenta de estimativas.
+Entretanto, observouse que algumas instruções específicas de cada classe (por exemplo, instruções de deslocamento) manipulam dados de forma diferente durante a execução da instrução, excitando mais o circuito Por exemplo, para se realizar uma multiplicação, é necessário que previamente se carregue os operandos, o que é realizado com instruções de uma classe diferente da instrução de multiplicação.
+A plataforma de estimativas inicial é formada por o núcleo do processador Plasma sintetizado e convertido para uso com uma biblioteca de estimativas de energia, além de outros periféricos.
+Para a emulação da plataforma MPSoC implementada em VHDL, foi necessária a replicação de diversas estruturas do ISS, além de a criação de portas de entrada e saída para comunicação entre processadores.
+As estruturas de controle, contexto, memória, contagem de instruções e contagem de energia são independentes para cada ISS.
+De essa forma, cada processador executa um ciclo por vez num laço iterativo.
+O contexto de cada processador é passado para a função que executa uma instrução da arquitetura.
+As portas de entrada e saída, entituladas GPIOA_ IN e GPIO0_ OUT respectivamente, foram implementadas e replicadas na ferramenta, e apresentam funcionalidade semelhante a implementação em VHDL.
+Além disso, o mesmo protocolo de comunicação entre estas portas e o controle de acesso ao meio de interconexão foi utilizado para que fosse mantida a compatibilidade com os drivers8 já implementados, ou seja, as características de funcionamento do hardware que implementa o controle de acesso ao meio de interconexão foram representadas na ferramenta.
+O uso de códigos objeto torna- se transparente, e não são necessárias adaptações do código ou recompilações para uso no protótipo, simulação VHDL ou na ferramenta.
+O consumo de energia do meio de interconexão foi modelado de forma bastante simples.
+Quando não ocorre transmissão de dados, apenas o consumo estático de energia é anotado no contador de energia do meio de interconexão.
+Entretando, quando um pacote é enviado, o consumo de energia é anotado para a transmissão do pacote inteiro, que leva diversos ciclos.
+A Tabela 9 apresenta o consumo de energia do meio de interconexão, quando ocioso e durante a transmissão de dados.
+O consumo de energia apresentado foi retirado de simulações dos modelos RTL, conforme a metodologia apresentada no Capítulo 3.
+Para anotações de energia, o meio de interconexão foi simulado por 1 ms quando não foram enviados pacotes de dados, e obteve- se dessa forma o consumo estático de energia por ciclo.
+Após, foram enviados 256 pacotes9, e o valor de O valor foi escolhido com base em testes realizados em aplicações diversas O valor escolhido apresentou resultados satisfatórios e a simulação de mais pacotes não afetaria na precisão dos cálculos realizados.
+A ferramenta de estimativas foi descrita em linguagem C, e pode ser compilada com qualquer compilador ANSI.
+Durante o desenvolvimento, foi utilizado o compilador GCC 4.
+1.2, num ambiente Slackware Linux com kernel 2.6.21.5.
+Não foi implementada uma interface gráfica, portanto, a ferramenta é controlada por linha de comando.
+Invocando- se a ferramenta sem parâmetros, a seguinte mensagem é retornada, apresentando as instruções de uso.
+A ferramenta encontra- se em estado funcional e estável.
+Estruturas de controle, memória, registradores internos da arquitetura do processador Plasma, contagem de instruções e estimativas de consumo de energia foram replicados para uma emulação da plataforma completa.
+A ferramenta atualmente simula a execução de quatro processadores trabalhando em paralelo, interconectados por um controle de acesso e um barramento, sendo as diversas unidades de execução ativadas de acordo com a quantidade de códigos objeto (aplicações) disponíveis para a Considera- se o desempenho dos drivers de comunicação, latência do controle de acesso ao meio de interconexão, handshake do barramento, arbitragem e transmissão de dados em si.
+Existem diversos diretórios responsáveis por a organização e funcionamento da ferramenta.
+Diretórios objects/, reports/ e source/. Em o diretório objects/ ficam armazenados os códigos objeto (ou aplicações) a serem carregados por a ferramenta.
+Em o diretório reports/ ficam armazenados os relatórios de simulação e no diretório source/ ficam armazenados os códigos fonte da ferramenta.
+Relatórios individuais são reportados para cada processador simulado, como representado por a Figura 17.
+Em esse relatório são apresentados o número de ciclos executados no processador, o tempo de execução e uma estimativa do consumo de energia.
+Além disso, detalhes da simulação, como instruções executadas e iterações das mesmas, o IPC, ciclos gastos em entrada e saída, instruções executadas por classe e número de pacotes são apresentados.
+Além de os relatórios individuais, é reportado um relatório referente a plataforma completa.
+Esse relatório, representado por a Figura 18 contabiliza o tempo de execução total da plataforma MPSoC, o consumo de energia de cada processador, do meio de interconexão e consumo de energia global, além de o número de pacotes trocados entre os processadores.
+A comunicação entre os processadores encontra- se funcional, e os diversos processadores trocam mensagens entre si utilizando os mesmos drivers implementados para uso no protótipo.
+Além disso, foram incluídos atrasos da comunicação na ferramenta, com o objetivo de emular de forma coerente o tempo de execução de software no ambiente MPSoC.
+A estrutura mais complexa da ferramenta, além de gerar as maiores variações com relação a estimativa de desempenho e consumo de energia é o ISS, e melhorias na sua precisão aumentariam a precisão da ferramenta.
+A Tabela 10 apresenta o tempo necessário para a simulação de 1 ms de execução do hardware.
+São apresentadas três variações de arquitetura.
+Cada arquitetura possui diferentes tempos de simulação tanto na ferramenta de estimativas, quanto na simulação VHDL e o ganho em velocidade conseguido com o uso da ferramenta, comparado a simulação VHDL é apresentado na última coluna.
+Esses valores foram extraídos de simulações executadas num computador com processador dual a 2.8 GHz com 2 GB de memória.
+A simulação de quatro processadores e meio de interconexão é a mais intensa em termos computacionais.
+O uso da ferramenta de estimativas permite acelerações no processo de simulação na ordem de centenas de milhares de vezes, comparada a simulação em nível de portas lógicas.
+Em este capítulo serão apresentados estudos de caso, formados por aplicações executando em diferentes arquiteturas.
+Em um primeiro momento, serão apresentados testes com aplicações monoprocessadas e após, aplicações distribuídas.
+Os testes foram escolhidos para simular a execução de aplicações reais em sistemas embarcados, estressando dessa forma as diferentes configurações da arquitetura implementada.
+Além disso, a maior parte das aplicações aqui simuladas são utilizadas como testes em outros benchmarks como MiBench.
+As aplicações que foram simuladas tanto numa plataforma VHDL quanto na ferramenta de estimativas executaram num computador dual core de 2.8 GHz e 2 GB de memória.
+A simulação VHDL mostrou- se impraticável para a plataforma completa, composta por quatro processadores e meio de interconexão para aplicações complexas, sendo esse um dos motivos para a não realização de mais testes.
+A Tabela 11 apresenta os tempos de execução das diferentes aplicações utilizadas como benchmarks, assim como o tempo necessário para a simulação da execução em VHDL (nível de portas lógicas) e na ferramenta de estimativas.
+O ET da aplicação refere- se ao tempo de execução da mesma no hardware, com processadores e meio de interconexão operando na freqüência de 25 MHz.
+Uma aplicação baseada na implementação de um filtro Sobel foi utilizada como o primeiro exemplo para estimativas de tempo de execução e consumo de energia.
+Essa aplicação aplica um filtro de detecção de bordas numa imagem monocromática de dimensões 32x32 pixels.
+O resultado de estimativa de consumo de energia reportado por o ISS, para a execução da aplicação Sobel foi de 1.617E -- 03 J, sendo o tempo de execução da aplicação estimado em energia de 1.3279E -- 03J e o tempo de execução do software foi de 33.7394 ms.
+O erro na estimativa de desempenho da ferramenta foi de 1.092% enquanto o erro na estimativa de consumo de energia foi de 17.87%.
+Esse erro de estimativa de consumo de energia, foi um dos maiores encontrados nas aplicações testadas, e trata- se de um corner case.
+Algumas aplicações, devido a suas características, não podem ser eficientemente avaliadas para estimativas de energia num nível alto como da ferramenta proposta.
+Outra aplicação implementada foi um codificador JPEG, que conforma com a norma ISO10918, sendo implementado inicialmente para a arquitetura x86 e portado para a arquitetura MIPS.
+Esse codificador foi implementado de acordo com o padrão de referência e o fluxo de bits gerado por o codificador verificou- se conformar com o mesmo.
+Mais informações são também encontradas em.
+O codificador utilizado no experimento possui uma imagem de dimensões 32x32 pixels estaticamente alocada em memória.
+O processamento dessa imagem é feito por o codificador e o resultado (um bitstream) é armazenado em memória.
+O resultado de estimativa de consumo de energia reportado por o ISS, para a execução da aplicação JPEG foi de 11.122E -- 03, sendo o tempo de execução da aplicação estimado em 207.2952 ms.
+A simulação em VHDL reportou um consumo de energia de 11.094E -- 03J e o tempo de execução estimado foi de 205.3345 ms..
+Os tempos de simulação são apresentados na Tabela 11.
+Novamente, o erro na estimativa de desempenho da ferramenta foi baixo e o erro no consumo de energia para esta aplicação foi de 0.25%.
+Em este caso, a modelagem do processador em alto nível utilizando classificação de instruções foi bem sucedida, estimando de forma coerente o consumo de energia da aplicação e aproximando a simulação VHDL em termos de precisão.
+Outros benchmarks foram utilizados para validar os resultados fornecidos por a ferramenta de estimativas.
+A metodologia foi a mesma utilizada para as aplicações do filtro sobel e do codificador JPEG.
+Em um primeiro momento a estimativa de desempenho e consumo de energia é realizada através da ferramenta e posteriormente estes resultados são comparados aos resultados obtidos através da simulação VHDL.
+Os algoritmos baseiam- se nas implementações encontradas em, e que são utilizadas para avaliação em processadores embarcados.
+A aplicação CRC32 executa o algoritmo de CRC de 32 bits (CCITT X. 25, seqüência de verificação de nível de enlace), sobre um bloco de dados de tamanho de 16 Kbytes, estaticamente alocado na memória.
+A aplicação ISqrt executa o algoritmo de raíz quadrada com inteiros escalados dos números entre 0 a 1000.
+A aplicação ADPCM (Intel/ DVI ADPCM) codifica e decodifica o equivalente a 1 segundo de áudio.
+Para tanto, um bloco de dados com 44100 amostras de 16 bits gerado aleatoriamente é utilizado na codificação como entrada da aplicação.
+Como resultado da codificação são geradas por a aplicação 44100 amostras de 4 bits.
+Essas amostras são utilizadas como entrada para o decodificador.
+O benchmark Random é parte da aplicação ADPCM, e realiza a geração de números randômicos.
+A Tabela 12 apresenta os resultados dos diversos benchmarks utilizados para as medições de desempenho e consumo de energia.
+É importante observar que estes testes foram realizados considerando uma arquitetura monoprocessada.
+Em dois testes ocorrem erros de maior magnitude, e conforme citado anteriormente, tratam- se de corner cases.
+Um erro dessa magnitude apresenta as imprecisões possíveis numa simulação em mais alto nível, onde o modelo da arquitetura não é demasiadamente refinado, e pode não corresponder ao comportamento da implementação RTL para algumas aplicações.
+A maioria dos outros casos, entretanto, apresentou imprecisões inferiores a 4%.
+Os erros relativos a estimativa de desempenho referem- se principalmente à imprevisibilidade de algumas estruturas no controle do processador, por exemplo, predição de desvios condicionais e também ao estado do pipeline.
+Esses erros, entretanto, apresentaram- se insignificantes.
+Algumas aplicações possuem instruções que têm um comportamento que pode ser mais precisamente representado por o modelo em alto nível do processador implementado na ferramenta, e dessa forma apresentam resultados mais coerentes com a implementação do processador em RTL.
+A arquitetura MPSoC implementada possui até 4 processadores.
+Foi observado que a maioria dos MPSoC atuais possuem entre 2 e 4 processadores.
+Alguns MPSoCs contém até 16 processadores sendo a maioria microcontroladores como PICs e o 8051.
+O benchmark Broadcast é uma aplicação do tipo produtor/ consumidor, onde um produtor envia 8192 pacotes em broadcast para três consumidores.
+Esta aplicação utiliza o throughput máximo da plataforma MPSoC, que é em torno de 510204 pacotes por segundo, ou 1531 MB de dados por segundo, considerando todos os atrasos introduzidos por a comunicação e descontando- se 25% da banda utilizada para sinalização e endereçamento.
+O benchmark MP ADPCM é composto por um codificador e um decodificador ADPCM distribuídos em dois processadores.
+O primeiro processador preenche um bloco de dados com 44100 amostras de 16 bits geradas aleatoriamente e codifica 4410 amostras.
+Após, o resultado do processamento é enviado ao segundo processador, através de 735 mensagens (cada mensagem carrega 24 bits de dados).
+O segundo processador recebe as amostras, as coloca num bloco de dados, e decodifica o bloco, reconstruindo- se dessa forma 4410 amostras PCM de 16 bits.
+O processo é iterado 10 vezes (ou seja, são enviados 100 ms de áudio a cada iteração), e ocorre paralelismo entre os algoritmos de codificação e decodificação, o que diminui o tempo de execução em torno de 34.62% 1, comparado a implementação monoprocessada dos algoritmos de codificação e decodificação.
+O último benchmark consiste de um codificador JPEG distribuído entre quatro processadores.
+O primeiro processador trabalha como mestre, e além de coordenar todo o processo de codificação também é responsável por a geração do bitstream JPEG e adição de cabeçalhos.
+Os outros três processadores são responsáveis por o processamento DCT, quantização e ordenação das amostras das três componentes da imagem (luminância e duas crominâncias).
+Esse processamento é realizado em paralelo.
+Inicialmente, o processador mestre envia o tamanho da imagem aos processadores escravos através de duas mensagens de broadcast.
+Os processadores escravos aguardam em primitivas Receive bloqueantes.
+Em seguida, o processador mestre envia um bloco de 64 amostras das três componentes de imagem por broadcast aos processadores escravos, que decodificam cada um sua parte dos pacotes.
+Após o recebimento, os escravos realizam o processamento DCT em paralelo, e aguardam ordens do processador mestre para o recebimento dos resultados.
+O mestre envia sequencialmente um pacote para cada escravo, desbloqueandoos.
+Entre cada desbloqueio, o mestre recebe de cada escravo 64 amostras de 16 bits, resultantes do processamento, e realiza a codificação Huffman e geração de cabeçalhos.
+O processo é iterado até o processamento total da imagem.
+Em este estudo de caso, foi utilizada uma imagem de 32x32 pixels, resultando em 16 blocos com dimensões de 8x8 pixels.
+Foi utilizada a mesma imagem para os algoritmos JPEG monoprocessado e JPEG multiprocessado.
+O algoritmo distribuído resultou numa diminuição no tempo de processamento em torno de 58.14%, comparado a implementação monoprocessada.
+O tempo de processamento aqui citado refere- se a execução da aplicação no hardware.
+O consumo de energia da plataforma é influenciado por o consumo de energia do meio de interconexão durante a execução de algoritmos distribuídos.
+Assim, tornam- se necessárias medições e comparações entre a plataforma VHDL e a ferramenta.
+A Tabela 14 apresenta uma comparação entre as estimativas de consumo de energia do meio de interconexão da ferramenta de estimativas e da simulação VHDL.
+Medições mostram que os erros nas estimativas de consumo de energia do meio de interconexão da ferramenta são bastante baixos.
+Além disso, a representatividade do consumo de energia do meio de interconexão no consumo de energia global da plataforma MPSoC é bastante baixo.
+Isto se deve ao fato de ocorrer baixa atividade na lógica do meio de interconexão, e também por esta lógica representar em torno de 12% da lógica global.
+Em este trabalho foi apresentada a proposta de uma plataforma MPSoC para estimativas de desempenho de software e consumo de energia.
+Essa platafoma é constituída por quatro processadores MIPS e um meio de interconexão em forma de barramento.
+Uma metodologia para estimativas foi apresentada, assim como cada passo para a geração da plataforma de forma a atender diferentes necessidades de simulação.
+Observou- se, entretanto, que devido a o grande número de portas lógicas necessárias para a implementação da plataforma, sua simulação tornou- se demasiadamente custosa em termos computacionais.
+De essa forma, uma ferramenta de simulação em alto nível foi especificada e implementada, com o intuito de reduzir a complexidade computacional para a simulação de aplicações reais.
+A ferramenta de estimativas baseia- se na execução do conjunto de instruções MIPS e emulação da comunicação entre diversos processadores.
+Para o cálculo do tempo de execução de uma aplicação, foi criado um modelo matemático do processador MIPS, de forma a representar o número de ciclos necessários para a execução.
+O consumo de energia de uma aplicação foi modelado com base em simulações RTL, e um método de classificação de instruções foi utilizado de forma a abstrair detalhes do hardware e permitir uma análise em alto nível.
+Estudos de caso com algoritmos amplamente utilizados em sistemas embarcados foram criados, com o intuito de validar a ferramenta de estimativas comparada a simulação VHDL.
+A ferramenta apresentou resultados satisfatórios, e foi comprovado que será de grande importância para a análise e modelagem de aplicações embarcadas distribuídas, num curto espaço de tempo.
+A plataforma MPSoC foi prototipada num dispositivo FPGA com sucesso, e o funcionamento esperado da plataforma pode ser comprovado.
+Em essa plataforma podem ser executadas aplicações distribuídas, e os drivers de comunicação implementados podem ser utilizados por sistemas operacionais para sincronizar informações entre processadores.
+Ferramentas de estimativa são peças fundamentais para análise de cenários (ou restrições) existentes em ambientes MPSoC em níveis de abstração superiores.
+Com a análise, torna- se possível a verificação da necessidade de otimizações de uma dada arquitetura, para o atendimento de restrições de um determinado projeto.
+Essas restrições são muitas vezes difíceis de serem atendidas, segundo.
+As principais restrições existentes atualmente podem ser resu-midas em:·
+Deadlines.· Consumo de energia.·
+Área. Deadlines são restrições de tempo existentes para a execução de um determinado trecho de código, ou aplicação.
+De essa forma, para que uma aplicação cumpra com seu deadline, esta deve executar dentro de um limite de tempo estipulado conforme a necessidade do projeto.
+O consumo de energia é, na maioria dos casos, um limite imposto principalmente para o aumento da durabilidade de baterias e diminuição de dissipação de calor.
+Área é um fator que determina, entre outros fatores, o custo final de uma plataforma MPSoC.
+Para atacar essas três restrições, torna- se necessária a utilização de partes de hardware que possam ser configuradas, de acordo com a necessidade.
+O software tem grande importância na funcionalidade de um ambiente MPSoC e sua análise, através do uso de ferramentas, permite a obtenção de informações sobre as necessidades em termos de hardware para que as restrições de uma aplicação sejam atendidas de maneira mais eficiente.
+De acordo com, eficiência e flexibilidade devem ser cuidadosamente balanceadas para que os requisitos de uma aplicação possam ser atendidos.
+Processadores configuráveis são peças chaves nesse aumento de eficiência de sistemas MPSoC.
+A otimização do software, aliado a customização de hardware torna- se motivação para um trabalho futuro.

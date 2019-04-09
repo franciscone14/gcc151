@@ -1,0 +1,448 @@
+Este trabalho apresenta duas novas estratégias de gerência de buffer de um sistema de VoD com interatividade, Unique Buffer (UB) e Precise Buffer (PB).
+
+A primeira tem por idéia principal o emprego de um único buffer compartilhado por todos os clientes, e a segunda baseia-se na avaliação da quantidade de informação disponível localmente para decidir sobre sua utilização.
+
+Por meio de simulações, validamos as estratégias UB e PB e realizamos detalhadas análises competitivas com outras propostas da literatura.
+
+Comparativamente com abordagens mais convencionais, podemos obter otimizações de 5%-98% em valores de consumo de banda, pico de banda e complexidade do sistema.
+
+O serviço de vídeo sob demanda (VoD) com interatividade tem recebido crescente atenção nos últimos anos.
+
+Idealmente, para implementar este serviço, o servidor deve alocar um canal de transmissão de dados exclusivo para cada cliente, permitindo a emulação de ações de interatividade de um aparelho comum de vídeo cassete (VCR).
+
+Entretanto, como a banda do servidor é um recurso limitado, esta implementação é inviável quando muitos usuários simultâneos precisam ser atendidos.
+
+Para fins de estudo, vemos o aumento da escalabilidade desses sistemas em duas direções, técnicas de compartilhamento de banda e estratégias de gerência de buffer.
+
+As técnicas de compartilhamento de banda são algoritmos que definem a forma de atendimento de requisições provenientes de clientes que desejam visualizar objetos multim ídia de um servidor.
+
+Estes algoritmos respondem a questões como que fluxo o cliente deve escutar e por quanto tempo? deve ser aberto um novo fluxo e por quanto tempo? Que fluxos devem ser unidos e em que instante de tempo? Já as estratégias de gerência de buffer são políticas que definem a utilização do buffer devido a essas requisições.
+
+Estas políticas respondem a questões como as informações transmitidas pelo servidor devem ficar armazenadas durante toda a sessão do cliente? Quanto de informação deve haver em buffer para que o cliente abandone o fluxo sendo transmitido pelo servidor e passe a recuperar dados apenas do buffer local? Na prática, as técnicas de compartilhamento de banda são utilizadas com gerência de buffer, constituindo uma única solução integrada.
+
+Existe uma significativa diversidade de técnicas de compartilhamento de banda na literatura.
+
+Os trabalhos, por exemplo, têm uma implementação bem simples, baseada na localização do canal que transmite a informação (unidade, bloco, etc) mais próxima àquela de fato solicitada pelo cliente.
+
+As técnicas discutem a união de fluxos em andamento no sistema.
+
+A idéia é abrir um fluxo para atender à toda ação de interatividade do cliente, e a união de fluxos é conseguida pela escuta concomitante de dois fluxos.
+
+A proposta utiliza uma taxa de transmissão duas vezes maior que a normal para permitir a união de fluxos.
+
+Os trabalhos são mais recentes e baseiam-se nos paradigmas de acesso seqüencial Patching e Hierarchical Stream Merging (HSM).
+
+Estas técnicas diferenciam-se entre si na condição de que a estrutura de união de fluxos tem um determinado número de níveis permitidos.
+
+Por exemplo, quando são permitidos três níveis, um dado cliente pode escutar um outro cliente que, por sua vez, escuta um outro cliente do sistema, constituindo assim uma árvore de altura três.
+
+Em relação ao gerenciamento de buffer, temos basicamente duas abordagens formais apresentadas na literatura.
+
+A primeira traz a idéia de emprego de um buffer local para armazenar dados para visualização futura e permitir a sincronização da informação recebida a partir da escuta concomitante de diferentes fluxos de dados.
+
+E a segunda abordagem, além de permitir a sincronização da informação vinda de fluxos distintos, também tem a idéia de que, durante uma mesma sessão, o cliente deve manter armazenado em buffer local todas as unidades de dados transmitidas pelo servidor.
+
+A principal contribuição deste trabalho é o estudo de duas novas estratégias de gerenciamento de buffer, Unique Buffer (UB) e Precise Buffer (PB).
+
+A estratégia UB fundamenta-se na idéia de empregar um único buffer compartilhado por todos os clientes de uma rede local que desejam assistir a um mesmo objeto, e a estratégia PB é baseada na condição de se verificar a quantidade de informação já disponível em buffer local para decidir sobre abertura e extinção de fluxos no sistema.
+
+Por meio de simulações, validamos as novas estratégias propostas e realizamos análises comparativas detalhadas com outras propostas da literatura, utilizando diferentes métricas de performance.
+
+Dentre outras constatações, os resultados obtidos mostram principalmente que, em comparação com as abordagens mais convencionais, podemos obter otimizações no intervalo de 5% a 98% em valores médio de banda, pico de banda e complexidade do sistema.
+
+O restante deste texto tem a seguinte organização.
+
+Revisa os algoritmos de duas recentes técnicas de compartilhamento de banda.
+
+Temos as estratégias de gerência de buffer mais usadas na literatura.
+
+As novas estratégias UB e PB.
+
+Traz os mais importantes resultados de simulação obtidos.
+
+Considere um grupo de clientes recebendo fluxos de dados relativos a um objeto multim ídia armazenado em um servidor através de uma rede de comunicação.
+
+O objeto é dividido em unidades de dados u de mesmo tamanho e de duração de uma unidade de tempo.
+
+A rede tem multicast implementado (IP ou aplicação).
+
+Os clientes têm acesso não-seqüencial, podem realizar ações VCR.
+
+O cliente possui buffer local capaz de armazenar pelo menos metade do objeto requisitado e sua banda é duas vezes a taxa de exibição desse objeto.
+
+Por fim, os fluxos de dados transmitem na mesma taxa de exibição do objeto.
+
+Doravante, salvo informado diferentemente, assumimos estas suposições no restante deste texto.
+
+A seguir revisamos os algoritmos de operação de duas técnicas de compartilhamento de banda utilizadas nos experimentos deste trabalho, Patching Interativo Eficiente (PIE) e Merge Interativo (MI).
+
+Elas foram escolhidas por agregar simultaneamente eficiência e simplicida.
+
+Esta técnica é baseada no paradigma de Patching e tem, como principal premissa, a manutenção da estrutura de união de fluxos em no máximo dois níveis.
+
+Além disso, a chegada de uma requisição do cliente é o único evento que provoca uma união de fluxos.
+
+Inicialmente busca-se um fluxo multicast Sbefore, um fluxo transmitindo uma unidade de dados igual ou anterior à ur, dentro de um limiar de tempo before.
+
+Ou seja, Sbefore pode estar transmitindo desde a unidade ur até a unidade ur-before.
+
+Se Sbefore existe, então a requisição é atendida pelo mesmo.
+
+Se Sbefore não existe, é verificado se existe um fluxo multicast Safter, um fluxo transmitindo uma unidade de dados posterior à ur, dentro de um limiar de tempo after.
+
+Ou seja, Safter pode estar transmitindo desde a unidade ur+1 até a unidade ur+after.
+
+Se Safter existe, o servidor diz ao cliente para escutá-lo e abre um fluxo unicast (um patch) para transmitir as unidades perdidas inicialmente.
+
+Se Safter não existe, um novo fluxo multicast Snew é aberto para servir a requisição por ur.
+
+É ainda verificado se existe um fluxo multicast Smerge, um fluxo transmitindo uma unidade de dados anterior à ur, dentro de um limiar de tempo merge.
+
+O fluxo Smerge não pode possuir patches associados a ele, pois um dos objetivos é manter a estrutura de união de fluxos em no máximo dois níveis.
+
+Se Smerge existe, então o fluxo Snew é o seu alvo e os clientes de Smerge devem escutar também o fluxo Snew para que, eventualmente, Smerge se una ao fluxo Snew.
+
+Caso Smerge não exista, então nada mais precisa ser feito.
+
+Esta técnica é baseada no paradigma de HSM e tem sua estrutura de união de fluxos de profundidade (número de níveis) ilimitada.
+
+A seguir tem-se brevemente o algoritmo de operação, onde ressaltam-se os três eventos considerados para a união de fluxos.
+
+Requisição para unidade ur do objeto.
+
+Imediatamente abre-se um novo fluxo Snew para atender esta requisição.
+
+Simultaneamente, o servidor busca por um fluxo em andamento no sistema que esteja transmitindo uma unidade de dados posterior à ur.
+
+Seja St este fluxo.
+
+Se St existe, então o cliente de Snew também vai escutá-lo de tal sorte que Snew e St possam ser unidos mais à frente.
+
+Término de um fluxo Sj que é o fluxo alvo de um outro fluxo Si.
+
+Nesta situação, Sj termina antes de ser alcançado por Si.
+
+Os clientes de Si ficam órfãos (não possuem mais fluxo a alcançar) e os conteúdos armazenados em seus buffers, devido à escuta de Sj, são descartados.
+
+O servidor busca um outro fluxo que transmite uma unidade de dados posterior àquela atual do fluxo Si.
+
+Seja Ssubs este fluxo.
+
+Se Ssubs existe, ele se torna alvo de Si.
+
+Caso Ssubs termine antes de ser alcançado por Si, a busca por um outro fluxo Ssubs é repetida.
+
+União do fluxo Si e seu alvo Sj.
+
+Seja Sm o fluxo resultante.
+
+O servidor imediatamente busca um fluxo que esteja transmitindo uma unidade de dados posterior àquela do fluxo Sm.
+
+Seja St este fluxo.
+
+Se St existe, os clientes de Sm, que originalmente pertenciam ao fluxo Si, vão também escutá-lo para eventualmente se unir a ele.
+
+Já os clientes de Sm, que originalmente pertenciam ao fluxo Sj, não são afetados.
+
+Caso St não exista, nada precisa ser feito.
+
+Aqui revisamos duas propostas da literatura que possuem implementações bastante simples e, ainda, são consideravelmente competitivas quanto à otimização do sistema.
+
+Estas propostas são avaliadas principalmente.
+
+A principal função da estratégia SB é permitir a sincronização da escuta de dois fluxos simultâneos que transmitem o mesmo objeto.
+
+O tamanho do buffer local do cliente é determinado pelo tempo de escuta simultânea permitido para o cliente, e nunca precisa ser maior que a metade da duração total do objeto.
+
+O primeiro fluxo é utilizado para transmitir as informações (unidades de dados) que o cliente precisa visualizar instantaneamente.
+
+Já o segundo fluxo transmite unidades de dados que são visualizadas a partir de um instante futuro.
+
+As unidades de dados do segundo fluxo são armazenadas em buffer local.
+
+No instante em que a unidade de dados do primeiro fluxo alcançar a primeira unidade de dados armazenada em buffer (proveniente do segundo fluxo), o cliente deixa de escutar o primeiro fluxo e passa a ler diretamente de seu buffer.
+
+O primeiro fluxo pode então ser extinto, redundando em economia de banda do sistema.
+
+O segundo fluxo permanece ativo e tendo suas unidades de dados armazenadas em buffer local.
+
+Ilustra esta estratégia.
+
+Podemos observar as unidades de dados de dois fluxos multicast, Si e Sj, que estão sendo transmitidos simultaneamente.
+
+As unidades provenientes de Si, desde a unidade ui até a unidade uj1, são exibidas sucessivamente a partir do instante presente t, enquanto que as unidades de Sj, desde a unidade uj, começam a ser exibidas apenas a partir do instante t +.
+
+A proposta Complete Buffer (CB) fundamenta-se na idéia de que o comportamento interativo do cliente o faz naturalmente realizar acessos a unidades de dados anteriormente já visualizadas.
+
+Sendo isso verdade, a otimização de banda pode ser conseguida ao se permitir que as unidades de dados transmitidas pelo servidor sejam permanentemente armazenadas em buffer local durante uma mesma sessão, enquanto o cliente estiver visualizando o objeto em uma mesma sessão, os dados de seu buffer local não serão removidos.
+
+Quando o cliente realiza uma requisição para uma dada unidade de dados do objeto, primeiramente é verificado se a unidade de dados solicitada já não está em buffer local.
+
+Se a resposta for afirmativa, o cliente é atendido localmente, sem abertura de um novo fluxo e sem a tentativa de realizar compartilhamento com qualquer outro fluxo.
+
+Nesta estratégia o tamanho do buffer local é igual ao tamanho do objeto inteiro.
+
+Ilustra esta estratégia mostrando o buffer de um cliente após este ter realizado a escuta de três fluxos independentes em três períodos distintos de tempo.
+
+Primeiramente, no instante de tempo t = t0, o cliente escuta o fluxo Si e armazena em buffer, desde a unidade ui1 até a unidade ui2.
+
+Depois, no instante t > t0 + i, o cliente escuta o fluxo Sj e armazena em buffer desde a unidade uj1 até a unidade uj2.
+
+Finalmente, no instante t > t0 + i + j, o cliente escuta o fluxo Sk, armazenando desde a unidade u1 até a unidade uk.
+
+No instante t > t0+i+j+k, o cliente tem armazenado em buffer um total de i + j + k unidades (agrupadas em três segmentos não-consecutivos), as quais podem então ser utilizadas para atendimento de futuras requisições do próprio cliente.
+
+A proposta Unique Buffer (UB) aproveita o efeito conjunto das requisições para um mesmo objeto devido aos vários clientes existentes no sistema e localizados em uma mesma rede local.
+
+O cliente deixa de ter um buffer local exclusivo, passando a existir apenas um buffer único compartilhado, localizado em um nó (rede) de acesso, para atendimento de todos os clientes que desejam assistir a um mesmo objeto.
+
+As solicitações de um cliente no instante t podem então se beneficiar de quaisquer solicitações ocorridas em instantes anteriores a t.
+
+Dessa forma, dois efeitos são percebidos, o cliente se beneficia de suas próprias requisições anteriores, assim como na proposta original de CB, e o cliente se beneficia de requisições anteriores e provenientes de outros clientes.
+
+O tamanho do buffer único é igual ao tamanho do objeto inteiro.
+
+Ilustra um sistema no qual um servidor armazena n objetos de interesse de um total de j clientes, localizados remotamente em uma mesma rede local.
+
+Este clientes estão conectados à Internet por meio de uma rede (nó) de acesso, que possui um conjunto de k buffers únicos e tem implementada a estratégia UB.
+
+A expectativa é um alto grau de otimização da banda B do servidor.
+
+Os valores de n e j estão atrelados a situações reais.
+
+O valor de k pode ser definido como o número de objetos mais freqüentemente requisitados (populares) e estimado a partir da distribuição Zipf, que diz que a probabilidade de selecionar o objeto de categoria é igual, onde é denominado de skewfactor da distribuição.
+
+Os k buffers são alocados dinamicamente segundo as requisições dos clientes.
+
+Quando todos os k buffers estiverem alocados, as requisições de outros objetos são atendidas por meio de um buffer convencional e local do cliente.
+
+Ilustra os segmentos de dados armazenados em um dos k buffers devido a escuta de três fluxos distintos, realizadas por três clientes que vêem o mesmo objeto simultaneamente.
+
+O fluxo S1 refere-se ao cliente C1, o fluxo S2 ao cliente C2, e o fluxo S3 deve-se ao cliente C3.
+
+As unidades armazenadas no buffer podem ser indistintamente utilizadas por qualquer um dos j clientes do sistema que queiram assistir ao mesmo objeto neste instante de tempo.
+
+O compartilhamento eficiente de um único buffer, por todos os clientes de uma rede local que desejam assistir a um mesmo objeto, exige o uso de métodos específicos de acesso ao buffer.
+
+Isto porque é provável termos mais de um cliente realizando acesso simultaneamente.
+
+Esta questão pode ser modelada como o Problema do Produtor/ Consumidor.
+
+A princípio, vemos duas abordagens para sua solução.
+
+A primeira é uma proposta denominada de Software Transactional Memory, a qual baseia-se em conceitos da área de bancos de dados para controle de acesso, criando noções de atomicidade, consistência e isolamento de transações.
+
+A segunda, mais comum, relaciona-se à utilização de conceitos como semáforos e/ou travas (locks) para o controle de acesso.
+
+O armazenamento de unidades de dados no buffer único é dinâmico, é determinado exclusivamente pelo acesso dos clientes às unidades do objeto que está sendo visualizado.
+
+Diferentemente de técnicas baseadas em proxy, em UB não há necessidade de cópias de partes ou de todo o objeto do servidor multimídia para o proxy sem que o cliente tenha requisitado, também não há premissa de uso de quaisquer tipos de codificação em camadas (layer-encoded streaming) visando a melhor adaptação de qualidade dos fluxos.
+
+Uma análise competitiva mais detalhada com técnicas de proxy é considerada em trabalhos futuros.
+
+A principal motivação da estratégia PB está na tentativa de evitar que a fragmentação de informação no buffer local do cliente comprometa a otimização do sistema.
+
+A fragmentação se dá quando a informação armazenada apresenta-se em pequenos segmentos espaçados entre si, fazendo com que na maioria das vezes o cliente não seja atendido por apenas um único segmento e, assim, necessite entrar em um ciclo de leitura, ora a partir de buffer local, ora a partir de fluxos do sistema.
+
+Isto cria uma maior dificuldade para o compartilhamento de dados, pois os fluxos passam a ter uma menor duração.
+
+Evitando os malefícios da fragmentação, podemos ainda esperar que haja uma minimização da variabilidade dos requisitos de banda (traffic smoothing) e do overhead do servidor para o tratamento das mensagens entre clientes e servidor, que se traduz em complexidade do sistema e é avaliada nos experimentos adiante.
+
+Na proposta PB, a requisição somente é atendida na condição de que o tamanho da informação contígua em buffer (número de unidades consecutivas), a partir da unidade de dados requisitada, seja suficiente para evitar que o cliente entre no ciclo de leitura descrito no último parágrafo.
+
+Seja então B a variável que designa esse tamanho.
+
+Ilustra esta estratégia para um cliente que requisita a unidade ur1, sendo que ele já tem armazenado desde a unidade ur1 até a unidade ur2.
+
+Quando ur2 ur1 B, a informação é utilizada para servir o cliente.
+
+Por outro lado, quando ur2 ur1 < B, a informação é ignorada e o cliente deve escutar fluxos de dados do servidor.
+
+Para efeito de análise, resolvemos neste trabalho realizar dois conjuntos distintos de experimentos para PB.
+
+No primeiro conjunto, assumimos B = L, onde L é o tamanho médio do segmento do objeto requisitado pelo cliente quando este faz uma requisição ao servidor.
+
+O valor de L pode ser estimado dinamicamente por medição durante a operação e/ou a partir de logs de clientes.
+
+Para os experimentos seguintes, variamos B em função do tamanho de L.
+
+O objetivo é avaliar a possibilidade da identificação de um valor ideal para B.
+
+Discussões sobre a sensibilidade de PB com respeito à precisão das estimativas de L em um ambiente real são consideradas em trabalhos futuros.
+
+Nesta seção avaliamos o desempenho das estratégias de gerência de buffer, utilizando conjuntamente técnicas de compartilhamento de banda.
+
+Nos experimentos consideramos estratégias como Simple Buffer (SB), Complete Buffer (CB), Unique Buffer (UB) e Precise Buffer (PB),e técnicas de compartilhamento de banda como Patching Interativo Eficiente (PIE) e Merge Interativo (MI).
+
+Consumo médio da banda, valor de pico da banda, distribuição da banda e trabalho médio do servidor são as principais métricas aqui utilizadas para avaliação das otimizações alcançadas.
+
+Valor médio e valor de pico da banda são medidos em número de canais (fluxos) simultaneamente em uso pelo servidor para transmitir os objetos.
+
+Estas métricas são comumente utilizadas em trabalhos da literatura que visam a comparar o desempenho de técnicas de compartilhamento de banda.
+
+O comportamento interativo do cliente faz com que o consumo de banda possa variar significativamente ao longo do tempo.
+
+Portanto, é necessário avaliarmos a variabilidade da banda ao longo do tempo, o que é feito através do cálculo da distribuição da banda do servidor.
+
+Por último, o trabalho médio é aqui tomado como uma grandeza adimensional e utilizado para analisar a complexidade do sistema.
+
+O trabalho é função do número médio de mensagens recebidas pelo servidor e das operações executadas para o tratamento das mesmas.
+
+A seguir, explicamos o método de quantificação desta métrica conforme definido.
+
+A operação de maior custo no sistema é a busca por um fluxo multicast.
+
+Faz-se então a análise de pior caso e admite-se que a operação de busca seja executada em tempo O(n), onde n é o número de fluxos multicast em andamento no sistema.
+
+O servidor pode receber quatro tipos de mensagens, requisição para uma unidade de dados (DR), requisição para o término de uma união de fluxos (MR), requisição para o término de patch (PR), e requisição para fim de exibição (LR).
+
+Traz as complexidades de tempo relativas às operações devido a cada tipo de mensagem, onde O(C) denota uma complexidade de tempo constante e apresenta as equações para calcular o trabalho médio.
+
+Os valores de n e dos números médios de mensagens (por minuto) do sistema são obtidos a partir do modelo de simulação.
+
+Consideramos quatro cargas sintéticas.
+
+Cada uma refere-se a um cenário de avaliação distinto no qual um objeto multimídia está sendo transmitido.
+
+Estas cargas são obtidas por meio de um gerador proposto no trabalho e referem-se aos servidores multimídia eTeach, MANIC e Universo Online UOL.
+
+Os dois primeiros servidores são de ensino a distância e o último é um servidor de conteúdo.
+
+O gerador de carga sintética tem como entrada um trace real de sessões para um dado objeto com uma certa taxa de requisições.
+
+Sua saída é um trace sintético com estat ísticas semelhantes àquelas do trace original.
+
+Sucintamente, descrevemos sua idéia a seguir.
+
+O gerador inicialmente constrói um modelo de transição de estado, onde cada estado corresponde a um segmento de tamanho fixo do objeto.
+
+As probabilidades de início de uma sessão em cada segmento, assim como as probabilidades de transição entre os estados, são calculadas a partir do trace real.
+
+Um trace de sessões é então produzido assumindo o início de sessão sendo dado por um processo de Poisson, e o comportamento do cliente dentro de cada sessão é extraído a partir das características do cenário (trace) real.
+
+O cliente pode executar as seguintes ações VCR, Play, Stop, Pause/Resume, Jump Forwards e Jump Backwards.
+
+Para garantir um significativo espectro de análise, escolhemos cargas estatisticamente diferentes.
+
+Na Carga eTeach, o número de ações Jump Backwards é bem razoável, resultando em localidade de acesso, ocorre um grande número de retornos a unidades de dados anteriormente já visualizadas pelo cliente, o que deve favorecer às estratégias de gerência de buffer onde o cliente armazena todos os dados transmitidos pelo servidor.
+
+Outro aspecto interessante é que a maioria das unidades de dados são acessadas como primeira unidade do segmento.
+
+Seja X a variável aleatória que representa a primeira unidade acessada pelo cliente quando este faz um movimento, ou seja, quando requisita um novo segmento.
+
+Ter uma unidade i como a primeira unidade de um segmento significa que a variável aleatória X assume o valor i.
+
+Por último, a distribuição de acesso a unidades é aproximadamente uniforme.
+
+Em relação à Carga MANIC-1, o nível de interatividade (nr de requisições por sessão) é relativamente baixo.
+
+Também a distribuição de acesso é não-uniforme e apenas 24 unidades são acessadas como a primeira do segmento.
+
+Já na Carga MANIC-2, poucas unidades são efetivamente acessadas como primeiras unidades do segmento.
+
+Existe ainda alguma uniformidade na distribuição de acesso.
+
+Finalmente, para a Carga UOL há significativa localidade de acesso e a primeira unidade do objeto é bastante requisitada (popular).
+
+Os resultados de simulação são obtidos usando a ferramenta Tangram-II.
+
+Esta constitui-se em um ambiente de modelagem e experimentação de sistemas computacionais e de comunicações, desenvolvido na Universidade Federal do Rio de Janeiro (UFRJ).
+
+Em relação à técnica PIE, utilizamos valores ideais para seus respectivos parâmetros.
+
+Esses valores são obtidos em função das características de cada carga sintética, before = 10,0 s e after = merge = 117,0 s, 386,9 s, 271,9 s e 29,3 s para as Cargas eTeach, MANIC-1, MANIC-2 e UOL, respectivamente.
+
+Análises para derivação desses valores.
+
+A seguir, comentamos os dois conjuntos de experimentos realizados.
+
+Resumem os resultados obtidos considerando estas métricas.
+
+A estratégia UB é notadamente a de melhor desempenho, pois reduz significativamente os requisitos de banda média e valor de pico de banda, comparativamente às outras estratégias.
+
+Os requisitos de banda média são inferiores a 1 canal para todas as cargas consideradas.
+
+As reduções chegam até 98% em relação a SB.
+
+A estratégia SB é a menos eficiente.
+
+Ainda notamos alguma equivalência nos resultados provenientes do uso de CB e PB.
+
+No que se refere aos valores médios de banda, a diferença entre CB e PB, mantém-se inferior a 1 canal, em relação aos valores de pico, a maior diferença entre CB e PB ocorre na Carga MANIC-2, onde registramos, com a técnica MI, uma diferença aproximada de oito canais em favor de PB.
+
+Já as reduções de CB e/ou PB em relação à SB chegam a até 43,0% (valor médio) e a apenas 10,9% (valor de pico), onde evidencia-se uma menor influência sobre esta última métrica.
+
+Conforme podemos observar, a estratégia UB é aqui também a mais eficiente.
+
+As reduções chegam a até duas ordens de grandeza em relação à SB.
+
+Considerando CB e PB, podemos observar que, apesar da proximidade dos valores em ordem de grandeza, a estratégia PB mostra-se geralmente mais eficiente que CB, pois apenas na Carga MANIC-1 não ocorre redução no valor desta métrica.
+
+Por exemplo, para MANIC-2 e técnica MI, o valor obtido por PB é aproximadamente três vezes menor que aquele de CB.
+
+As reduções de CB com relação à SB não são expressivas.
+
+Há inclusive casos desfavoráveis, onde observamos aumentos.
+
+Estes casos são aqueles em que possivelmente ocorre a fragmentação da informação em buffer.
+
+Por fim, as reduções de PB em relação à SB são um pouco mais atrativas.
+
+Por exemplo, para UOL e técnica MI, o valor relativo à PB é aproximadamente duas vezes menor que aquele registrado para SB.
+
+Os resultados desta métrica também confirmam que UB é a mais eficiente.
+
+A distribuição complementar (CCDF) para a estratégia UB aparece sempre bem destacada das demais.
+
+A probabilidade do números de canais usados pelo servidor ser maior do que 2 é menor do que 0,1 para a grande maioria das cargas, enquanto que, para as outras estratégias de gerência de buffer, esta probabilidade é maior que 0,7 na maioria dos cenários.
+
+Também, a partir das curvas da distribuição, observamos que SB é a estratégia menos eficiente.
+
+Para as estratégias CB e PB, os resultados aparecem divididos e não há significativa diferença entre elas.
+
+Por exemplo, para a técnica MI, observamos que na Carga eTeach, CB mostra-se mais eficiente, por outro lado, na Carga MANIC-2, PB é mais eficiente.
+
+Aqui variamos o valor de B em função de L e observamos as distribuições complementares da banda do servidor.
+
+Também consideramos o valor de B em função do tamanho do objeto inteiro T.
+
+Observe que, PB torna-se equivalente à CB, por outro lado, PB torna-se equivalente à SB.
+
+O objetivo é então verificar a existência de um valor no intervalo que otimize a performance de PB e ainda estimar esse valor como função de L.
+
+Para efeito de maior clareza e organização da análise, assumimos então dois casos.
+
+No primeiro, não verificamos quaisquer otimizações.
+
+Isso revela que o tamanho médio do segmento L é possivelmente um valor upper bound para as cargas examinadas.
+
+No segundo caso e considerando a maioria das cargas, alguma otimização foi produzida.
+
+Inclusive, houve situações em que PB passou a ser mais eficiente que CB.
+
+O valor ideal de B L estabeleceu-se no intervalo de 25%-50% de L.
+
+Isso evidencia a importância da determinação do valor ideal de B para o emprego da técnica PB.
+
+Alguns resultados destes experimentos são ilustrados.
+
+Em síntese, considerando ambos conjuntos de experimentos, constatamos que a estratégia UB é a mais eficiente.
+
+As otimizações produzidas são bem expressivas, revelando um padrão de comportamento semelhante entre clientes independentes que assistem a um mesmo objeto, as estratégias CB e PB apresentam certa semelhança nos resultados obtidos, exceto para a métrica trabalho.
+
+Isto significa que PB tem uma menor complexidade de sistema que CB.
+
+A complexidade é estimada em função do número de mensagens trocadas entre clientes e servidor e das operações para tratamento das mesmas pelo servidor, a estratégia PB é possível de ser otimizada determinando-se um valor ideal para o parâmetro B, o qual na maioria das cargas utilizadas estabeleceu-se no intervalo de 25%a 50% de L, a estratégia SB é a mais simples, mas também é, em geral, a de performance mais sofrível.
+
+Esta desvantagem tende a tornar-se inclusive mais acentuada em cenários com alto nível de interatividade por parte dos clientes, os valores de otimização que registramos enaltecem a importância do uso das estratégias de gerência de buffer.
+
+Aqui foram avaliadas duas novas estratégias de gerência de buffer para sistemas de VoD interativos Unique Buffer (UB) e Precise Buffer (PB), operando em conjunto com técnicas de compartilhamento de banda.
+
+Por meio de simulações, utilizando cargas sintéticas obtidas de servidores reais, validamos nossas propostas.
+
+Os resultados finais, os quais englobaram diferentes métricas de comparação de performance, mostraram principalmente que a estratégia UB é a mais eficiente, e também que a estratégia PB é competitiva.
+
+Considerando abordagens mais convencionais, alcançamos otimizações de 5%-98% em valores médio de banda, pico de banda e complexidade de mensagens do sistema.
+
+Como trabalhos futuros, podemos citar uma análise detalhada do desempenho da estratégia UB quando comparada ao uso de um proxy, a avaliação das estratégias propostas usando outras cargas sintéticas, e o desenvolvimento de modelos analíticos para a análise de técnicas de compartilhamento de banda em ambientes com interatividade.
+

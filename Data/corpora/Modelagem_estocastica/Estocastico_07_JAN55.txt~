@@ -1,0 +1,524 @@
+﻿A maior dificuldade para desenvolver ferramentas de software que manipulam cadeias de Markov, principalmente de grande escala, vem da explosão do número de estados.
+
+O formalismo de Redes de Autômatos Estocásticos (SAN, Stochastic Automata Networks) propõe uma alternativa para que modelos em Cadeia de Markov possam ser descritos de uma forma mais compacta e eficiente, basicamente porque a estrutura de armazenamento é baseada em um formato esparso utilizando operações da álgebra tensorial.
+
+Devido ao fato de que o uso de técnicas de modelagem que se utilizam de álgebra tensorial, principalmente para avaliação de desempenho de sistemas paralelos e distribuídos, facilita a descrição dos sistemas e minimiza os requisitos de memória, existe um conjunto de estratégias e procedimentos numéricos que buscam também minimizar o tempo computacional gasto.
+
+Neste Trabalho Individual II, optou-se pelo estudo dos conceitos e métodos relacionados à aplicação da álgebra tensorial na descrição de modelos estatísticos baseados no formalismo SAN, focando basicamente na descrição do processo de multiplicação vetor-descritor, que é a técnica que garante a otimização numérica da solução de SAN.
+
+Com este estudo foi possível apresentar a complexidade inerente aos passos deste procedimento.
+
+Existe uma grande variedade de técnicas de avaliação de desempenho atualmente, porém para cada situação especifica pode ser mais vantajoso utilizar uma ou outra abordagem, buscando resultados mais efetivos em termos de avaliação de desempenho.
+
+Dentro deste contexto, a maior dificuldade para desenvolver ferramentas de software que manipulam cadeias de Markov, principalmente de grande escala, vem da explosão do número de estados que frequentemente ocorre quando certos modelos têm seus parâmetros aumentados.
+
+O formalismo de Redes de Autômatos Estocásticos (SAN, Stochastic Automata Networks) propõe uma alternativa para manter os requisitos de memória gerenciáveis, ou seja, ele permite que modelos em Cadeia de Markov possam ser descritos de uma forma mais compacta e eficiente, basicamente porque sua estrutura de armazenamento é baseada em um formato esparso utilizando operações da álgebra tensorial.
+
+Este formalismo possui, então, soluções numéricas eficientes que tiram proveito da estrutura de armazenamento.
+
+O formalismo SAN utiliza-se das noções de estado e de transições entre estados para representação dos eventos, assim como as Cadeias de Markov.
+
+Porém estes eventos podem estar relacionados a um único autômato, ou a vários ao mesmo tempo, ocorrendo de acordo com taxas especificas.
+
+Para este segundo caso, existem duas possibilidades de representar eventos que são disparados em mais de um autômato, ou que dependem do estado de outros autômatos para realizar uma determinada transição, taxas funcionais e eventos sincronizantes.
+
+O enfoque é dado principalmente na utilização de álgebra tensorial para representar as transições locais e sincronizadas, com suas taxas funcionais e constantes.
+
+O estudo deste formalismo sob o aspecto de eficiência na representação computacional, e a experimentação com problemas reais, torna-se essencial para atestar sua aplicabilidade.
+
+Uma das vantagens do formalismo de Redes de Autômatos Estocásticos em relação a outros formalismos é sua capacidade de fornecer uma descrição compacta da matriz de transição (gerador innitesimal) da Cadeia de Markov correspondente ao modelo em SAN.
+
+Essa descrição compacta é chamada de Descritor Markoviano.
+
+Devido ao fato de que o uso de técnicas de modelagem que se utilizam de álgebra tensorial, principalmente para avaliação de desempenho de sistemas paralelos e distribuídos, facilita a descrição dos sistemas e minimiza os requisitos de memória, existe um conjunto de estratégias e procedimentos numéricos que de alguma maneira buscam também minimizar o tempo computacional gasto.
+
+Neste Trabalho Individual II optou-se pelo estudo dos conceitos e métodos relacionados à aplicação da álgebra tensorial na descrição de modelos estatísticos baseados no formalismo SAN.
+
+O foco de estudo deste trabalho é a descrição do processo básico de solução numérica dos modelos SAN, que é a multiplicação vetor-descritor, apresentando a complexidade deste procedimento.
+
+O objetivo desta pesquisa é fornecer subsídios teóricos para futuros trabalhos, tanto na área de avaliação de desempenho, como em aplicações de outras áreas.
+
+O método de pesquisa utilizado neste trabalho baseou-se na coleta de material relativo à utilização de métodos numéricos para solução de modelos markovianos com grande espaco de estados, focando na álgebra tensorial e na descrição adotada pelo formalismo SAN para representar computacionalmente os sistemas modelados.
+
+Além disso é realizada uma descrição passo a passo das etapas constituintes do procedimento de multiplicação vetor-descritor.
+
+Este trabalho foi dividido em três capítulos (2, 3 e 4).
+
+No Capítulo 2 é feita uma conceituação do formalismo SAN, explicitando suas características para modelagem de problemas da realidade e formas de representação utilizando noções de sincronismo e paralelismo.
+
+No Capítulo 3, considerando os exemplos do capítulo anterior, são abordados aspectos relativos ao formato compacto de armazenamento do modelo SAN (baseado na soma de produtos tensoriais), formalmente chamado de Descritor Markoviano.
+
+No Capítulo 4 são apresentadas algumas abordagens para a multiplicação vetor-descritor, que resultam em minimização dos recursos computacionais envolvidos, principalmente memória e tempo de processamento, descrevendo os passos relativos a este procedimento através de um exemplo.
+
+Finalmente, nas considerações finais é apresentada uma visão a respeito da complexidade inerente aos cálculos necessários na multiplicação vetor-descritor para obtenção de solução numérica de modelos SAN.
+
+Em anexo a este trabalho, encontra-se uma revisão dos princípios básicos relativos à álgebra tensorial.
+
+Neste capítulo serão apresentados os conceitos relativos ao formalismo de Redes de Autômatos Estocásticos (SAN), um formalismo baseado em Cadeias de Markov que propicia uma forma mais compacta e modular para descrição de realidades complexas e com grandes espacos de estados a serem modelados.
+
+Logo, este formalismo mantém o poder de modelagem que se tinha com a utilização de Cadeias de Markov, porém propõe uma nova forma de representação, cujo principal objetivo é eliminar problemas como o da explosão do espaco de estados.
+
+Nas próximas seções serão expostos alguns conceitos relacionados às SAN onde poderemos observar como esta abordagem, dita modular, permite também descrever primitivas de paralelismo e sincronismo, possibilitando a descrição de sistemas atualmente ditos complexos.
+
+O exemplo de modelagem apresentado neste capítulo será também utilizado nos demais capítulos, facilitando o entendimento dos conceitos estudados neste trabalho.
+
+O princípio do formalismo SAN é descrever um sistema complexo dividindo-o em subsistemas quase independentes, pois estes interagirão ocasionalmente.
+
+Neste sistema, cada subsistema é modelado por um autômato.
+
+Um autômato é um modelo matemático com entradas e saídas discretas, ou seja, o sistema pode se encontrar em qualquer estado dentro de um número finito de estados que compõem este sistema.
+
+Nas SAN as interações entre os autômatos são modeladas através de regras de transição especificas como veremos mais adiante.
+
+A denominação de estocásticos atribuída aos autômatos neste formalismo, deve-se ao fato de que o tempo é tratado como uma variável aleatória com distribuição exponencial.
+
+O estado de um autômato resume toda a informação referente a seu passado, pois as entradas passadas são necessárias para determinar qual será o próximo comportamento adotado pelo autômato mediante novas entradas.
+
+Ou seja, para um determinado conjunto de estados, um sistema poderá assumir somente um estado a cada momento, e este estado irá variar de acordo com a nova entrada recebida.
+
+O estado individual de cada autômato é chamado de estado local.
+
+Já o estado global de uma SAN é definido como a combinação de todos os estados locais de cada autômato componente da SAN.
+
+As ligações existentes entre os estados são chamadas de transições, e estas podem ser de diferentes tipos.
+
+Vejamos um exemplo de rede de autômatos estocásticos que modela um sistema através de dois autômatos, o autômato A(1) com três estados e o autômato A(2) com dois estados.
+
+Rede de Automâtos Estocásticos.
+
+Como vimos na seção anterior, a cada unidade de tempo t transcorrida é possível verificar o estado em que cada autômato modelado se encontra.
+
+Este estado é denominado estado local, sendo que no autômato A(1) há a possibilidade de estarmos em apenas três estados (D, A ou S) e no autômato A(2) em apenas dois estados (no estado I ou no estado O).
+
+Observando o modelo, pode-se notar diferentes tipos de transições entre os estados.
+
+Estas transições existentes em cada autômato podem ser divididas em transições locais e transições sincronizadas.
+
+No exemplo, as transições locais recebem a denominação li e as transições sincronizadas são chamadas ei.
+
+As transições locais alteram o estado global pela mudanca de um estado em apenas um autômato, enquanto as transições sincronizadas alteram o estado global pela mudanca de estado em dois ou mais autômatos simultaneamente.
+
+A vantagem das transições locais é permitir que os autômatos tenham comportamentos paralelos através de eventos locais, ou seja, elas mudam somente o estado local do autômato em que ocorreram e não têm interferências por parte dos estados dos outros autômatos.
+
+Apesar de os eventos serem ditos independentes, eles são disparados um de cada vez, pois em uma escala de tempo contínua não ocorrem dois ou mais eventos ao mesmo tempo.
+
+As transições sincronizadas permitem que seja representado um certo sincronismo no disparo de transições entre os autômatos, constituindo eventos sincronizantes entre os mesmos.
+
+Sua ocorrência se dá simultaneamente em todos os autômatos envolvidos, pressupondo a existência de um autômato mestre, que coordenará a sincronização.
+
+Tem-se então um ou mais autômatos escravos, estes disparados pelo mestre correspondente.
+
+Para cada evento sincronizante têm-se a definição de um único autômato mestre, sendo as transições, nos demais autômatos, do tipo escravo.
+
+Cabe salientar, que um autômato pode ser mestre de um determinado evento sincronizante e, ao mesmo tempo, escravo em relação a outro.
+
+Vejamos a seguir o autômato global equivalente à SAN visualizada anteriormente.
+
+O autômato representado, tem cada um dos seus estados como uma dupla de estados locais de cada autômato.
+
+A configuração deste sistema a cada instante definirá seu estado global.
+
+Da mesma forma, levando em consideração a SAN, o estado global é dado pela combinação de todos os estados locais de cada um dos dois autômatos constituintes da mesma.
+
+Os eventos sincronizantes representam as possíveis interações existentes entre os autômatos, cujas taxas de ocorrência são, muitas vezes, constantes.
+
+Porém, existe outra forma de representar estas interações, utilizando taxas e probabilidades funcionais.
+
+Um outro tipo de denominação para as transições locais e sincronizadas é que ambas podem ser chamadas de transições funcionais.
+
+Isto ocorrerá quando suas taxas não forem constantes, ou seja, tem-se uma função do estado local de outros autômatos da SAN, avaliada conforme os estados atuais do modelo.
+
+Logo, as taxas funcionais podem ser colocadas tanto em transições locais como em transições sincronizadas (no autômato mestre), e estas podem ser definidas por funções que refletem a avaliação dos estados atuais da rede de autômatos estocásticos em questão.
+
+Por exemplo, se no autômato A(2) quiséssemos representar uma transição local funcional (dependente do estado interno do autômato A(1).
+
+Temos então duas taxas de transição distintas dependendo do estado em que se encontra o modelo.
+
+Como se pode notar, o uso de transições funcionais é uma primitiva poderosa do formalismo SAN, permitindo a representação de comportamentos complexos de forma bem mais compacta, a princípio em termos de modelagem.
+
+Outra possibilidade dentro do formalismo é que para cada modelo pode-se definir uma função de atingibilidade, que em poucas palavras, é uma função booleana que determina os estados atingíveis do modelo dentro do espaco total de estados.
+
+Esta função definirá, então, o espaco de estados atingível do modelo SAN.
+
+Quando esta for igual a 1, significa que todos os estados do modelo são atingíveis.
+
+Normalmente, isto não é o que acontece na prática, pois em exemplos da realidade facilmente identificamos condições para que determinados eventos ocorram ou não, dentre estas o estado de outros autômatos.
+
+Isto quer dizer que provavelmente quando estas condições não forem cumpridas alguns estados globais terão probabilidade nula ou quase nula de ocorrerem.
+
+Para o exemplo mostrado podemos supor que quando o A(1) estiver no estado A, o autômato A(2) deve estar no estado I, ou se o A(1) estiver no estado S, o autômato A(2) deve estar no estado O, por exemplo.
+
+Formalmente, as SAN são descritas através de álgebra tensorial clássica e generalizada utilizando-se da definição de dois operadores matriciais básicos, soma e produto tensoriais.
+
+Estes operadores, definidos no Apêndice A, são a base da descrição formal das redes de autômatos estocásticos.
+
+Logo, a vantagem do formalismo SAN, em relação aos outros, concentra-se principalmente na sua capacidade de fornecer uma matriz de transição (gerador innitesimal da Cadeia de Markov correspondente ao modelo global) através de uma descrição amplamente compacta e eficaz na busca de soluções numéricas.
+
+Essa descrição compacta é chamada de Descritor Markoviano, cujo detalhamento será realizado no próximo capítulo deste trabalho.
+
+Uma das vantagens do formalismo SAN em comparação a outros formalismos, como citamos anteriormente, é a capacidade de fornecer uma descrição compacta da matriz de transição (gerador innitesimal) correspondente à Cadeia de Markov associada ao modelo completo.
+
+Esta descrição compacta é chamada de Descritor Markoviano.
+
+Logo, o descritor markoviano é uma fórmula algébrica que pelo intermédio de uma fórmula matemática descreve, a partir das matrizes de transição de cada autômato, o gerador innitesimal da cadeia de Markov associada à SAN.
+
+Primeiramente é necessário que se entenda como pode-se obter a matriz de transição correspondente a um determinado autômato estocástico.
+
+Considerando a SAN descrita, e seu respectivo autômato A(1), a matriz de transição Q(1)é uma matriz quadrada de ordem nQ igual ao número de estados do autômato, neste caso, nQ = 3 (estados A, D e S respectivamente).
+
+Cada linha e cada coluna de Q(1) é associada a um estado de A(1) segundo a ordem lexicográfica dos estados.
+
+Logo, no exemplo dado, a primeira linha e a primeira coluna correspondem ao estado A, a segunda linha e a segunda coluna correspondem ao estado D e a terceira linha e a terceira coluna correspondem ao estado S do autômato A(1).
+
+Os elementos de uma matriz Q (qij) são as taxas de disparo correspondentes às transições do autômato estocástico que se está representando, transições do estado associado à linha i para o estado associado à coluna j.
+
+Obtendo-se os elementos de Q, os elementos da diagonal principal (elementos qii) devem obedecer a duas equações, sendo devido a isto, nula a soma dos elementos em cada uma das linhas da matriz.
+
+Portanto, os elementos da diagonal principal serão necessariamente negativos.
+
+Na fórmula, Q é a matriz de transição ou gerador innitesimal da cadeia de Markov correspondente à SAN.
+
+A partir do vetor, pode-se obter mais informações sobre o sistema modelado, pois trata-se do vetor solução, considerando-se uma escala contínua de tempo.
+
+Este vetor é um vetor de probabilidades que associa uma probabilidade i a cada um dos n estados da cadeia de Markov.
+
+Por intermédio deste vetor é possível obter-se os resultados estacionários do sistema modelado.
+
+Existem basicamente duas maneiras dos autômatos estocásticos interagirem, ou uma transição que ocorre em determinado autômato não afeta os estados de outros autômatos, ou uma transição dispara outras em autômatos diferentes.
+
+As transições cujas taxas dependem somente do estado do próprio autômato e não de outros autômatos, são transições constantes.
+
+As taxas das transições sincronizadas, no entanto, que modificam e dependem do estado de outros autômatos, podem ser tanto funcionais quanto constantes.
+
+Devido a estas características, as SAN podem ser tratadas separando-se as transições locais e tratando-as através da soma tensorial, incorporando também a soma de dois produtos tensoriais adicionais, relativos aos eventos sincronizantes modelados na SAN.
+
+Um descritor markoviano é expresso então em duas partes, uma parte local, que corresponde às transições locais, e uma parte sincronizante, que corresponde a todos os eventos sincronizantes do modelo.
+
+As álgebras tensoriais clássica e a generalizada são utilizadas para a representação destas transições locais e sincronizadas, como também para a representação das taxas funcionais e/ou constantes de uma SAN, como veremos nas seções seguintes.
+
+Dois exemplos do Capítulo 2, que chamaremos no decorrer deste capítulo de Exemplo 1 e Exemplo 2, respectivamente, serão utilizados para demonstrar a modelagem do descritor com e sem transições funcionais.
+
+A parte local é definida por uma soma tensorial das matrizes locais de cada autômato.
+
+Sabendo disto, e considerando novamente a SAN descrita, vejamos como são descritos os seus eventos locais.
+
+Uma matriz de transição local (Ql) será associada a cada um dos autômatos (A).
+
+A matriz de transição Q do autômato equivalente à rede de autômatos estocásticos é dada, em parte, pela soma tensorial das matrizes de transições locais.
+
+Portanto, uma matriz de transição local agrupa todas as taxas de eventos locais do autômato.
+
+Se esta SAN apresentasse apenas eventos locais, o gerador do autômato equivalente a este modelo (Q) seria simplesmente equivalente à soma tensorial das matrizes de transição locais.
+
+É relevante salientar que a soma tensorial correspondente a parte local do descritor é uma soma de produtos tensoriais diferenciada.
+
+Uma possível interpretação dos eventos locais é considerá-los um caso particular de eventos sincronizantes, onde somente um autômato é afetado.
+
+Isto significa dizer que os demais autômatos serão representados por matrizes identidade.
+
+É necessário descrever também os eventos sincronizantes deste modelo, já que os eventos locais foram descritos anteriormente.
+
+Para cada evento sincronizante descreve-se um par de matrizes (para cada autômato da SAN), uma delas descreve a ocorrência do evento sincronizante (positiva), e a outra (negativa) descreve o ajuste diagonal correspondente a cada taxa descrita na matriz de ocorrência.
+
+Os eventos sincronizantes normalmente são definidos através de um autômato mestre e de um ou mais autômatos escravos, podendo também existir autômatos que não sofrem influência de determinados eventos sincronizantes.
+
+As matrizes positivas e negativas correspondentes aos autômatos que não são influenciados por um determinado evento sincronizante serão matrizes identidade, pois não ocorrerá nenhuma mudanca de estado nestes autômatos em decorrência de tal evento.
+
+A matriz positiva correspondente ao autômato mestre contém a taxa de disparo do evento sincronizante s.
+
+A existência de probabilidade associada a uma transição tem por efeito a multiplicação da taxa correspondente pela probabilidade.
+
+As matrizes positivas dos autômatos escravos contêm uma taxa de disparo igual a um.
+
+Vejamos a parte sincronizante positiva da SAN considerando o autômato A(1) mestre para os eventos sincronizantes e1 e e2 modelados.
+
+As matrizes de ajuste diagonal, ou matrizes negativas, possuem elementos nulos e não-nulos, sendo que os não-nulos somente aparecem na diagonal principal se existirem.
+
+Somente a matriz negativa correspondente a um autômato mestre pode apresentar taxas negativas.
+
+As matrizes negativas dos autômatos escravos contêm uma taxa de disparo igual a um.
+
+Estas taxas aparecerão sempre nas diagonais principais das matrizes de ajuste diagonal, sejam no autômato mestre ou no escravo.
+
+A cada evento sincronizante, correspondem dois produtos tensoriais, um produto das matrizes positivas e outro das matrizes negativas.
+
+Sendo assim, para o exemplo teríamos matrizes negativas,considerando o autômato A(1) o mestre das sincronizações.
+
+Como podemos observar até o momento, o descritor é, em resumo, o somatório da soma da parte local com a parte sincronizante para cada autômato.
+
+As transições funcionais não trarão modicações estruturais no descritor, apenas a utilização de produtos tensoriais generalizados será necessária.
+
+Como vimos nas seções anteriores é possível construirmos uma matriz global que representa completamente um sistema, porém na abordagem SAN esta matriz nunca é gerada.
+
+Isto porque, nas SAN, são geradas matrizes individuais para cada componente combinadas com as informações referentes às interações entre estes, em um Descritor Markoviano, ou simplesmente Descritor SAN, através da soma de produtos tensoriais.
+
+Esta abordagem mantém os requisitos de memória em limites gerenciáveis e evita a explosão do espação de estados, pois apresenta um formato compacto e o descritor nunca é expandido em uma única grande matriz.
+
+No próximo capítulo veremos como é realizado o procedimento de multiplicação de um vetor por um descritor markoviano no cálculo das soluções numéricas dos modelos SAN.
+
+Os principais alvos das SAN são os problemas com grandes espaçãos de estados, sendo os métodos iterativos os mais adequados para resolvê-los.
+
+A multiplicação de um vetor de probabilidades v pelo gerador innitesimal Q é uma das operações fundamentais realizadas pelos métodos iterativos.
+
+Diferentes formas de armazenar o gerador e o vetor de probabilidades podem ser encontradas no intuito de executar este produto ecientemente.
+
+Este capítulo tratará das particularidades envolvidas neste tipo de operação bem como explorará um método de otimização dos algoritmos propostos para execução desta operação de multiplicação.
+
+Além disto, o algoritmo desta multiplicação (de um vetor por um produto tensorial) será apresentado conforme as referências, sendo previamente necessário estabelecer algumas definições sobre seqüencias finitas de matrizes.
+
+A partir destas definições o formato do descritor markoviano pode ser reescrito na forma descrita, que representa as matrizes de transição necessárias para descrever uma SAN, mostrando a representação de seu descritor markoviano.
+
+Logo, para calcular a multiplicação de um vetor v pelo termo é necessário e suciente saber como multiplicar um vetor por um fator normal.
+
+O vetor v deve ser multiplicado pelo primeiro fator normal, o resultado é multiplicado pelo segundo fator normal, e assim por diante, até o último dos fatores normais.
+
+Isto é possível gracas à propriedade de associatividade da (tradicional) multiplicação de matrizes.
+
+Além disto, a propriedade da comutatividade entre fatores normais permite a multiplicação de fatores normais em qualquer ordem.
+
+O caso mais simples de multiplicação de um vetor por um produto tensorial é quando as matrizes não apresentam elementos funcionais, apenas constantes.
+
+De acordo com a propriedade de decomposição de produtos tensoriais abaixo, todo produto tensorial de N matrizes é equivalente ao produto de N fatores normais.
+
+Como para calcular a multiplicação de um vetor pelo descritor markoviano de uma SAN é necessário saber multiplicar um vetor por um fator normal, temos por exemplo três matrizes A(1), A(2) e A(3) e o produto tensorial entre estas.
+
+Quando estas fórmulas tem que ser transformadas em um algoritmo é necessário entender a melhor maneira de tratá-las.
+
+Agora, cada um dos termos da fórmula pode ser tratado de forma independente pelo algoritmo de multiplicação.
+
+Nas próximas seções abordaremos como o algoritmo de multiplicação efetua o cálculo termo a termo.
+
+Devido à associatividade do produto tensorial, a matriz é uma matriz de blocos diagonais, onde cada bloco é simplesmente a matriz.
+
+Os blocos podem ser tratados de forma independente, pois existem nleftN blocos da matriz e cada qual será multiplicado por diferentes partes do vetor.
+
+O tamanho de cada parte seccionada do vetor (chamadas de z in) corresponde à nN.
+
+O vetor é dividido conforme nleftN.
+
+Dentro de um loop, em cada iteração considera-se apenas uma parte do vetor para multiplicar.
+
+O algoritmo para esta multiplicação, realiza a secção das partes, com tamanho nN do vetor v, multiplicando-as por Q(N).
+
+O resultado da realização da multiplicação de cada vetor zin pela matriz é armazenado em um outro vetor auxiliar denominado zout de mesmo tamanho de zin, que é acumulado em v após o término das multiplicações.
+
+Na seção anterior observamos o procedimento de divisão do vetor v em partes a serem multiplicadas independentemente.
+
+O vetor zin é preenchido com blocos sucessivos de tamanho nN.
+
+A permutação necessária para o primeiro fator normal, ao contrário, equivale a percorrer o vetor buscando um elemento em cada parte de tamanho nright1.
+
+Representa este processo.
+
+A razão desta permutação pode ser compreendida observando o formato da matriz O algoritmo divide o vetor v em partes de tamanho nright1 e monta seus vetores zin conforme nright1.
+
+As posições que comporão cada vetor auxiliar zin são retiradas do vetor v de forma não-contígua, pois a matriz Q(1) apresenta elementos espalhados na diagonal e em outras posições.
+
+O armazenamento dos resultados no vetor v é realizado de forma análoga à extração dos elementos, apenas utilizando como anteriormente um vetor auxiliar zout para armazenamento das multiplicações.
+
+O Algoritmo 42 demonstra este procedimento.
+
+Os outros fatores normais (do segundo fator normal ao último fator normal) são tratados com a combinação das duas etapas precedentes.
+
+A técnica básica consiste em aplicar a propriedade da pseudo-comutatividade do fator normal.
+
+Isto nos leva a sempre multiplicar os fatores normais.
+
+As multiplicações são feitas de acordo com a posição da matriz Q.
+
+O algoritmo 43 resume a multiplicação de um vetor v por um produto tensorial.
+
+Neste algoritmo os fatores normais são tratados do primeiro ao último.
+
+Entretanto, de acordo com a propriedade da comutatividade dos fatores normais, outra ordem pode também ser aplicada.
+
+Esta seção descreve alguns fatores que devem ser observados durante a ocorrência de elementos funcionais em um termo tensorial.
+
+Devido à ocorrência deste tipo de elementos, este é chamado de termo tensorial generalizado.
+
+A multiplicação de um produto tensorial generalizado pode ter maneiras distintas de ser realizada devido ao tipo de dependências funcionais existentes entre as matrizes.
+
+De acordo com a propriedade de decomposição de matrizes em fatores normais de produtos tensoriais generalizados, sempre é possível obter uma ordem para multiplicar os fatores normais de um termo se e somente se não há ciclos no grafo de dependências funcionais.
+
+A existência de tais ciclos não permite a utilização direta desta propriedade.
+
+Nesta seção a multiplicação de produtos tensoriais generalizados sem ciclos de dependências funcionais são tratados.
+
+A multiplicação de um vetor v por um produto tensorial (sem ciclo) é realizado de maneira similar ao caso sem elementos funcionais.
+
+Duas modicações são feitas na multiplicação implementada pelo Algoritmo 43, para calcular a ordem onde um dos fatores normais deve ser multiplicado, para avaliar os elementos funcionais das matrizes antes de suas multiplicações.
+
+Relembrando que de acordo com a propriedade de decomposição em fatores normais dos produtos tensoriais generalizados, o fator normal da matriz Qsempre deve preceder os fatores normais das matrizes Q(j)(, A,), por exemplo, os fatores normais das matrizes que dependem do autômato A.
+
+Isto dene a ordem parcial entre os fatores normais.
+
+Para certos produtos tensoriais a ordem de decomposição não necessariamente é única.
+
+Por exemplo, se duas matrizes da sequncia são constantes, uma das matrizes será certamente tratada antes da outra não importando qual.
+
+Isto se dá devido ao fato de que o produto de fatores normais de duas matrizes constantes é comutativo.
+
+A regra geral é que duas (ou muitas) matrizes não tendo dependências funcionais diretas ou indiretas estão livres para mudar de posição para serem multiplicadas.
+
+Esta regra generaliza a ausência de uma ordem precisa para multiplicação de fatores normais de um produto tensorial clássico (casos sem funções).
+
+Quando, por outro lado, existem dependências funcionais diretas ou indiretas, a ordem das matrizes deve ser corretamente definida.
+
+A ordem de multiplicação destas matrizes será regida pelas dependências funcionais existentes entre estas.
+
+A ordem de multiplicação destas matrizes também será regida pelas dependências funcionais existentes entre estas, e como podemos notar a ordem de dependência já está devidamente estabelecida.
+
+Um dos casos mais evidentes onde ocorrem ciclos é produzido.
+
+Para este caso não existe uma propriedade que permite a direta decomposição em fatores normais.
+
+Entretanto é possível aplicar a propriedade de decomposição em produtos tensoriais clássicos.
+
+Com a propriedade abaixo os casos com ciclos de dependências podem ser transformados para não mais apresentarem esta característica.
+
+Neste capítulo serão mostradas as etapas constituintes do procedimento de multiplicação vetor-descritor para um determinado modelo SAN definido, mostrando passo a passo a multipicação de cada termo.
+
+Consideremos o exemplo, que chamaremos de Exemplo 3.
+
+Primeiramente, antes de iniciar a multiplicação de cada termo do descritor deste modelo, é necessário vericarmos a definição das variáveis que auxiliam na execução dos passos do algoritmo de multiplicação.
+
+Anteriormente foram definidas na página 18, mas agora definiremos qual o efeito destas dentro do algoritmo.
+
+Existem outros vetores auxiliares denominados zout que terão as mesmas características dos vetores zin, porém armazenarão o resultado da multiplicação do vetor zin correspondente pela matriz Q.
+
+O tamanho do vetor v para cada modelo SAN, é dado pelo produto dos ni das matrizes correspondentes a cada autômato.
+
+Para o Exemplo 3 temos um vetor de 3 x 2 x 2 posições, ou seja, 12 posições.
+
+Basicamente a multiplicação do vetor v pela parte local do descritor ocorrerá com os termos.
+
+Cada termo destes será multiplicado pelo vetor v individualmente, e o resultado de cada multiplicação será acumulado em um vetor w.
+
+Após realizar as três multiplicações referentes a estes termos o valor resultante acumulado no vetor w é atribuído à v inicializando-o então com novos valores.
+
+Agora, veremos passo a passo como cada uma destas multiplicações é realizada, comecando pelo termo que pode ser reinterpretado.
+
+Tendo a matriz Q l (1) e os seguintes parâmetros, n1 = 3, n2 = 2 e n3 = 2, nright1 = 4 e nleft1 = 1.
+
+Tem-se o total de vetores auxiliares zin gerados é ni = 4, ou seja, nleft nright.
+
+Como cada vetor zin tem ni posições, neste exemplo temos três posições em cada um.
+
+Começando a geração dos zin a partir da posição 1 do vetor v, na primeira iteração temos o primeiro zin composto pela posição inicial (1) e mais duas posições que serão retiradas de intervalos nright1, ou seja, teremos mais a posição 1+ nright1 = 5 e a posição 5+ nright1 = 9, constituindo o vetor zin.
+
+Na segunda iteração, será formado o vetor zin2, porém como nleft i = 1 a posição inicial deste vetor será a posição inicial de zin1 somada à nleft 1, neste caso 1 + nlef t = 2.
+
+Agora realiza-se o mesmo procedimento de deslocamento pelo vetor v somando nright1 às posições.
+
+O vetor zin2 será formado pelas posições 2, 6 e 10 respectivamente.
+
+Mais duas iterações ainda são realizadas para gerar os vetores zin3 e zin4.
+
+Estes vetores zini serão multiplicados pela matriz Ql(1).
+
+Cada posição de um determinado zini é multiplicado por uma coluna da matriz em ordem.
+
+Por exemplo, com zin1 teremos a multiplicação deste pela primeira coluna da matriz, armazenando o resultado na primeira posição do zout1 correspondente (que é exatamente do mesmo tamanho e deve comportar as mesmas posições de zin1).
+
+Após, a segunda coluna da matriz será multiplicada por zin1 armazenando o resultado na segunda posição de zout1, e assim por diante.
+
+Ao final, cada zouti é acumulado em um vetor w (mesmo tamanho de v) nas mesmas posições de v que foram estabelecidas nos vetores zini.
+
+Nesta seção veremos passo a passo como é realizada a multiplicação pelo termo que pode ser reinterpretado como Tendo a matriz Q l (2)e os seguintes parâmetros, n1 = 3, n2 = 2 e n3 = 2, nright2 = 2 e nleft2 = 3.
+
+Tem-se o total de vetores auxiliares zin gerados é ni = 6, ou seja, nleft nright.
+
+Cada vetor zin tem 2 (duas) posições, pois n2 = 2.
+
+Comecando a geração dos zin a partir da posição 1 do vetor v, na primeira iteração temos o primeiro zin composto pela posição inicial (1) e mais uma posição retirada do intervalo nright2, ou seja, teremos mais a posição 1 + nright2 = 3, constituindo o vetor zin1.
+
+O vetor zin2 é formado pelas duas posições restantes desta primeira parte do vetor v (cujo tamanho é ni x nright2 = 4) que deve ser multiplicado pela matriz.
+
+O vetor zin1 é multiplicado pela primeira coluna da matriz e este resultado é armazenado na primeira posição de zout1.
+
+Após zin1 é multiplicado pela segunda coluna da matriz armazenando o resultado na segunda posição de zout1.
+
+O vetor zin2, da mesma forma, é multiplicado pela primeira coluna da matriz e este resultado é armazenado na primeira posição de zout2 e após, novamente, zin1 é multiplicado pela segunda coluna da matriz armazenando o resultado na segunda posição de zout2.
+
+Na segunda iteração, o vetor zin3 terá sua primeira posição dada por 1+(ni nright2) = 5, que é o salto que deve ser dado no vetor v para esta segunda multiplicação pela matriz, e sua segunda posição dada por 5 + nright2.
+
+Logo, zin é formado pelas posições 5 e 7 do vetor v.
+
+O vetor zin4 terá as posições 6 e 8 consequentemente.
+
+A multiplicação pela matriz segue o mesmo princípio da primeira iteração.
+
+Na terceira e última iteração, o vetor zin5 terá as posições 9 e 11 do vetor v, e o vetor zin6 terá as posições 10 e 12.
+
+A multiplicação pela matriz segue o mesmo princípio das demais iterações.
+
+Ao final, cada zouti é acumulado em um vetor w (mesmo tamanho de v) nas mesmas posições de v que foram estabelecidas nos vetores zini.
+
+Nesta seção veremos passo a passo como é realizada a multiplicação pelo termo que pode ser reinterpretado como Tendo a matriz Ql(3)e os seguintes parâmetros, n1 = 3, n2 = 2 e n3 = 2, nright3 = 1 e nleft3 = 6.
+
+Tem-se o total de vetores auxiliares zin gerados também é n¯i = 6, ou seja, nleft3 nright3.
+
+Cada vetor zin tem 2 (duas) posições já que n3 = 2.
+
+Comecando a geração dos zin a partir da posição 1 do vetor v, na primeira iteração temos o primeiro zin composto pela posição inicial (1) e mais uma posição retirada do intervalo nright3, ou seja, teremos mais a posição 1 + nright3 = 2, constituindo o vetor zin1.
+
+O vetor zin1 é multiplicado pela primeira coluna da matriz e este resultado é armazenado na primeira posição de zout1.
+
+Após zin1 é multiplicado pela segunda coluna da matriz armazenando o resultado na segunda posição de zout1.
+
+Na segunda iteração que é dada por nright3 n3 O vetor zin2 é formado pelas próximas duas posições do vetor v que deve ser multiplicado pela matriz.
+
+A primeira posição de zin2 é dada por 1 + (nright3 n3) = 3 e a segunda posição é dada por 3 + nright3.
+
+O vetor zin2, da mesma forma, é multiplicado pela primeira coluna da matriz e este resultado é armazenado na primeira posição de zout2 e após, novamente, zin1 é multiplicado pela segunda coluna da matriz armazenando o resultado na segunda posição de zout2.
+
+Na terceira iteração, o vetor zin3 terá sua primeira posição dada pela posição 5, e sua segunda posição dada pela posição 6.
+
+Na quarta iteração o vetor zin4 terá as posições 7 e 8, na quinta o vetor zin5 terá as posições 9 e 10 e, na sexta e última iteração o vetor zin6 terá as posições 10 e 11 consequentemente.
+
+A multiplicação pela matriz segue o mesmo princípio da primeira iteração.
+
+Ao final, cada zouti é acumulado em um vetor w (mesmo tamanho de v) nas mesmas posições de v que foram estabelecidas nos vetores zini, assim como nos casos anteriores.
+
+Tendo então toda a parte local do descritor multiplicada pelo vetor v e seus resultados acumulados no vetor w, repassado ao v para que agora possam ser realizadas as multiplicações relativas à parte sincronizante do descritor.
+
+Para cada evento sincronizante ei, ocorre a multiplicação do vetor v pelo seu descritor correspondente da seguinte maneira, com estas matrizes, e com o procedimento de multiplicação listado anteriormente, cada termo independente que compõe o descritor da parte sincronizante positiva do modelo passará pelos passos de extração de vetores auxiliares zin e armazenamento em vetores zout da mesma forma explicitada na seção anterior.
+
+Para cada evento sincronizante ei, ocorre a multiplicação do vetor v pelo seu descritor correspondente.
+
+Com estas matrizes, e com o procedimento de multiplicação listado anteriormente, cada termo independente que compõe o descritor da parte sincronizante negativa do modelo passará pelos passos de extração de vetores auxiliares zin e armazenamento em vetores zout da mesma forma explicitada na seção anterior.
+
+Ao final destas multiplicações o vetor w conterá os resultados numéricos referentes a multiplicação do vetor v pelo descritor markoviano do modelo proposto no Exemplo 3 deste trabalho.
+
+A complexidade do produto de um vetor por um termo tensorial pode ser obtida observando-se o número de multiplicações vetor-matriz executadas.
+
+Para cada iteração i do algoritmo são executadas nlefti nrighti multiplicações vetor-matriz com matrizes de tamanho ni.
+
+Supondo que as matrizes Qestão cheias, o número de multiplicações para cada produto vetor-matriz é igual a (ni)2.
+
+Comparando este número necessário à multiplicação que consiste em primeiro calcular, para então multiplicar o vetor v, temos a complexidade.
+
+A comparação apresentada supõe matrizes plenas, no entanto este não é o caso comum encontrado.
+
+Se as matrizes Q são armazenadas em um formato esparso, o número de multiplicações para cada produto vetor-matriz é, frequentemente, inferior a (ni)2.
+
+Da mesma forma, a complexidade de multiplicar uma matriz única calculada pela fórmula teremos a complexidade da ordem do número de elementos não nulos da matriz resultante.
+
+Se esta matriz for armazenada em formato esparso.
+
+Considerando agora, o produto vetor-descritor que foi o foco deste trabalho, o total de multiplicações a serem realizadas para um descritor completo e não apenas um termo do tipo produto tensorial é dada pela soma da complexidade da multiplicação da parte local (L), dos eventos sincronizados ocorrerem e do seu ajuste diagonal.
+
+Note-se que esta complexidade é função do número de elementos não nulos das matrizes de transição local (nzi(l)), bem como do número de elementos não nulos das matrizes referentes aos eventos sincronizantes (nz*i).
+
+Vale ressaltar que esta complexidade total é maior que a estimada genericamente pela complexidade do termo do tipo produto tensorial.
+
+Logo, o total de operações é 96, considerando que este modelo tem 36 elementos não nulos.
+
+Como se trata de um modelo com poucos eventos, este considerado de pequena escala, a complexidade calculada não apresenta um ganho signicativo em relação ao total de operações executadas.
+
+Porém, para um modelo de grande escala, onde temos 25000000 milhões de estados no total e 559350 estados atingíveis, além de possuir 2796750 elementos não nulos, o total de operações a serem realizadas deverá ser bastante minimizado devido às otimizações do algoritmo proposto.
+
+O valor exato destas operações não foi calculado manualmente devido à quantidade de eventos do modelo, a serem geradas para tal análise.
+
+Devido a isto também, as mesmas não foram colocadas neste trabalho.
+

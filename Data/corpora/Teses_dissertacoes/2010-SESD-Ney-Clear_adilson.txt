@@ -1,0 +1,688 @@
+Sistemas de dinâmica molecular são definidos por a posição e energia das partículas que o compõe, assim como por as interações entre estas.
+Tais sistemas podem ser simulados através de métodos matemáticos como o cálculo de forças eletrostáticas baseadas na Lei de Coulomb.
+Computar os estados através de os quais um sistema destes evolui, avaliando a interação de cada partícula, é tarefa computacionalmente dispendiosa, mesmo para um número pequeno de partículas.
+Portanto, podem- se obter benefícios ao se aplicar técnicas específicas para acelerar tais computações.
+Enquanto alguns estudos propõem o uso de algoritmos diferenciados, existem os que empregam processadores especiais ou hardware personalizado, a técnica abordada nesta Dissertação.
+Descreve- se aqui o projeto e a prototipação de uma arquitetura de hardware com potencial para acelerar uma aplicação que computa forças eletrostáticas entre partículas não ligadas.
+Dá- se ênfase especificamente aos aspectos da integração entre o hardware e a aplicação-alvo empregada neste projeto, o programa PMEMD (Particle Mesh Ewald Molecular Dynamics), parte da plataforma AMBER (Assisted Model Building with Energy Refinement).
+Os cálculos mais onerosos deste programa foram identificados e movidos para uma implementação de hardware em FPGA, criando um co-processador específico ­ o PMEMD-HW.
+A escolha de um hardware reconfigurável se deve, entre outros motivos, à facilidade de fazer evoluir o processo de projeto e obter a aceleração almejada.
+A principal contribuição deste trabalho é o domínio da tecnologia de uso de coprocessadores de hardware para acelerar aplicações nas áreas de Biologia e Biofísica.
+Um protótipo funcional está disponível, utilizando uma plataforma comercial de prototipação de hardware.
+Esta prova de conceito demonstra a viabilidade de usar com sucesso as técnicas desenvolvidas.
+Palavras-chave: Simulação por dinâmica molecular, FPGA, aceleração em hardware, desempenho, comunicação hardware-- software.
+O conhecimento dos problemas da Biologia que podem ser tratados via ferramentas da Bioinformática é parte do novo enfoque de pesquisas e atividades para biólogos e profissionais das Ciências Exatas e da Computação que buscam desenvolver soluções para os questionamentos biológicos.
+Em esse intuito, este projeto pretende contribuir para o desenvolvimento da Biologia e da Biofísica Molecular.
+Segundo Hansson, Oostenbrink e van Gunsteren, praticamente todas as estruturas biomoleculares obtidas por cristalografia de raios X ou espectroscopia por ressonância nuclear magnética (RNM) são refinadas por dinâmica molecular.
+Os dados obtidos em experiências com RNM são médias de todas as moléculas de um recipiente e de um dado tempo.
+Para conseguir reproduzir tais médias, as simulações devem ser longas o bastante para produzir uma amostra das conformações relevantes do sistema de um modo adequado.
+Por exemplo, há propriedades como o cálculo da constante dielétrica de uma solução de proteínas, em que uma simulação por dinâmica molecular de cinco nanossegundos não se mostrou suficiente para alcançar resultados satisfatórios.
+Além disso, proteínas maiores precisam de um tempo de simulação mais longo.
+Quanto maior o tempo de simulação exigido, maiores serão os requisitos em termos de poder computacional.
+Assim, ao criar um hardware específico que propicie ganhos em tempo de simulação é possível habilitar a obtenção de resultados mais confiáveis e com maior rapidez.
+Outro exemplo é o cálculo das energias livres, feito a partir de simulações por dinâmica molecular, que pode ser uma ferramenta poderosa na elaboração de drogas com auxílio de computadores.
+Em esse quesito, a farmacologia pode empregar técnicas de modelagem molecular, objetivando a predição da geometria e afinidade da ligação proteína-proteína ou da ligação de pequenas moléculas a proteínas.
+A docagem molecular tem por objetivo identificar o local de ligação na proteína, determinando a posição e orientação do ligante, e estimar a afinidade da ligação.
+A o se considerar a possibilidade de flexibilidade em ambas (ligante e proteína) as partes haverá uma complicação significativa nos cálculos de docagem molecular ­ mais uma razão para buscar a melhoria no desempenho de programas de docagem molecular, por meio de um hardware específico ou qualquer outro método.
+O presente trabalho foi desenvolvido no contexto de dois grupos de pesquisa do Programa de Pós-graduação em Ciência da Computação (PPGCC) da Faculdade de In-formática (FACIN) desta universidade:
+O Grupo de Apoio ao Projeto de Hardware (GAPH) e o Grupo de Biofísica Molecular Computacional do Laboratório de Bioinformática, Modelagem e Simulação de Biossistemas (LABIO).
+A realização desse trabalho visa à capacitação para desenvolver soluções de alto desempenho para a execução da simulação por dinâmica molecular com o ambiente AMBER, e tem como premissa a criação de uma plataforma de aceleração baseada em hardware reconfigurável atuando como coprocessador do programa PMEMD.
+Esta Dissertação teve como objetivo primário o desenvolvimento de uma arquitetura de hardware em FPGA que executará as funções mais exigentes em termos de recursos computacionais do programa PMEMD de simulação por dinâmica molecular ­ os cálculos das funções de energia.
+A contribuição está centrada no projeto e implementação do referido hardware, da comunicação entre esse hardware e o software de simulação e na análise do tempo total de execução com e sem o co-processador.
+Trabalhos paralelos, tais como os revisados no Capítulo 5, têm como alvo abordar a adaptação de software padrão de simulação por dinâmica molecular ao uso de hardware dedicado para sua aceleração.
+Em este âmbito, o software de simulação empregado nesta Dissertação é o ambiente AMBER.
+Em particular, visa- se o uso do programa PMEMD desse ambiente, que dá suporte à execução das simulações mencionadas.
+Os objetivos estratégicos atingidos no escopo deste mestrado compreendem:
+1) O domínio do processo de projeto de hardware para a aceleração de sistemas de biofísica molecular computacional;
+2) O conhecimento do processo de comunicação software x hardware em sistemas compostos de um computador hospedeiro e um hardware dedicado, com o protocolo de comunicação proposto;
+3) Proposta e implementação de uma infra-estrutura para habilitar a aceleração de atividades de simulação por dinâmica molecular via hardware dedicado baseado em FPGAs.
+Para alcançar tais objetivos, as seguintes metas foram atingidas:
+Domínio dos algoritmos do programa PMEMD, identificando as partes migráveis de maneira eficiente para o hardware;
+Compreensão das necessidades de dados a serem transferidos entre o PMEMD e o hardware dedicado;
+Projeto do hardware dedicado para executar os algoritmos indicados no passo acima;
+Definição da comunicação (transferência de dados e informações de controle) entre a plataforma criada e o ambiente de DM;
+Implementação de mecanismos de comunicação e controle;
+Obtenção de dados específicos de desempenho na comunicação entre o computador hospedeiro e plataforma co-processadora;
+Disponibilização dos dados de desempenho na comunicação;
+Disponibilização dos dados de desempenho global com comunicação e processamento na plataforma desenvolvida.
+Uma vez introduzida a motivação deste trabalho e os objetivos a que se propõe, expõe- se a seguir como o restante está apresentado.
+O Capítulo 2 define como a biologia e a computação se interligam, formando a bioinformática.
+Já o Capítulo 3 trata de um problema específico dessa área, a simulação por dinâmica molecular.
+Traz a história da técnica e as leis matemáticas que a dirigem.
+Os Capítulos 6 e 7 tratam especificamente desta pesquisa.
+O primeiro elenca os recursos escolhidos mediante análises justificadas no próprio Capítulo.
+A segunda mostra a maior contribuição deste mestrado, um co-processador criado para executar uma parte do programa PMEMD.
+Descreve a arquitetura criada, detalhando as necessidades e peculiaridades de cada módulo.
+Por fim, entrega os resultados do protótipo desenvolvido, validando sua funcionalidade.
+O último Capítulo traz considerações sobre este trabalho e apresenta diversos tópicos passíveis de pesquisa a partir deste estudo.
+A biologia é definida, segundo Gibas, como o estudo dos seres vivos, desde a interação das espécies e populações às funções dos tecidos e células num organismo individual.
+Quanto a a bioinformática, sua definição é dada por Luscombe como a conceitualização da biologia em termos de moléculas e a aplicação de técnicas computacionais (como matemática aplicada, ciências da computação e estatísticas) para entender e organizar as informações associadas às macromoléculas biológicas.
+A bioinformática se mostra como um elo entre Biologia e Computação, despontando como uma proposta concreta para a montagem e interpretação dos segredos da vida (Alexandre Queiroz apud).
+É um subconjunto de um campo maior da biologia computacional ­ a aplicação de técnicas analíticas quantitativas à modelagem de sistemas biológicos.
+O surgimento da bioinformática tem duas datas consideradas.
+Alguns ponderam seu catálogo que continha todas as seqüências de proteínas conhecidas até então, criado a partir de os trabalhos multidisciplinares sobre evolução biomolecular feitos por Margaret Oakley Dayhoff.
+Outros crêem que foi mais tarde, quando o TIGR (The Institute for Genomics Research) publicou o genoma completo da bactéria Haemophilus influenza em do alfabeto do DNA nos anos noventa ­ o que só foi conseguido graças à criação de computadores eficientes para a leitura do enorme volume de seqüências A, T, C e G, que gerou grande impulso para o desenvolvimento da bioinformática.
+A fusão desses tópicos é possível, pois a vida pode ser considerada como uma tecnologia da informação:
+A fisiologia dos organismos é determinada por os genes, que podem ser vistos, basicamente, como informação digital.
+Concomitantemente, o poder de processamento, armazenagem e a internet revolucionaram os métodos de acesso e troca de dados, o que foi de extrema importância para a bioinformática.
+como se pode observar, a bioinformática não seria possível sem os avanços nas áreas de hardware e software.
+A capacidade de processamento cada vez maior e os meios de armazenamento rápidos e de grande volume se unem a métodos matemáticos e estatísticos sofisticados, necessários para se obter resultados com maior precisão e velocidade.
+Os programas na área de bioinformática são utilizados para:
+Fazer inferências a partir de dados obtidos da biologia molecular moderna;
+Fazer conexões entre elas;
+Derivar predições importantes e relevantes.
+Com tal progresso, existe hoje um crescimento exponencial de conhecimento, observável por a quantidade de dados que estão disponíveis em bases como o GenBank e o Protein Data Bank ­ Figura 1.
+Além de essas, existem diversas outras bases como o NDB, CATH, SCOP, SWISS-PROT, EMBL, e o TrEMBL,.
+Com tantos dados, métodos computacionais se tornaram indispensáveis nas investigações biológicas.
+O que começou com uma simples análise de seqüências, hoje engloba as mais diversas matérias.
+De um modo principal, são duas abordagens:
+Comparação e agrupamento de informações e seu estudo para inferir e compreender suas relações.
+Como conseqüência do auxílio computacional, a bioinformática alcançou sucesso ao aumentar a profundidade das investigações biológicas.
+Está claro que, independentemente da aplicação, sempre há uma crescente demanda por métodos de simulação, sua precisão e exatidão.
+O campo da simulação molecular, assim como qualquer outro, se beneficia enormemente de avanços no hardwa-re computacional.
+A título de comparação, Hansson citava, em 2002, o artigo da ordem de um milissegundo.
+Utilizando um computador convencional (como um Pentium Core 2 Duo), apenas um nanossegundo pode levar 10 dias ou mais para ser simulado.
+Se for possível (e viável) alterar um sistema para verificar seu funcionamento sob novas condições, normalmente será desejável fazer- lo.
+Entretanto, muitas vezes o custo é proibitivo, o que demanda um modelo do sistema, que pode ser físico (como um modelo em escala de um edifício) ou matemático (que representa a realidade com expressões lógicas e quantitativas que são manipuladas por métodos matemáticos para saber como o sistema deve reagir).
+Para o segundo, existem soluções analíticas (que produzem o resultado exato) ou simulações (quando o sistema é muito complexo para admitir uma solução analítica).
+No caso de a dinâmica molecular, além de o alto custo e da complexidade, a velocidade com que se dão as alterações nas conformações moleculares é tal (simulações na ordem de nano ou microssegundos, com passos na ordem de femtossegundos) que apenas sua simulação pode trazer respostas a determinados problemas.
+A Dinâmica Molecular (DM) é uma técnica para modelar movimentos e interações entre átomos ou moléculas, que está em evolução desde 1957 (Alder e Wainwright apud Sheraga, Khalili e Liwo McCammon e Karplus apud Hansson, Oostenbrink e van Gunsteren e Karplus e Mccammon) ­ os resultados desse trabalho mudaram a visão de proteínas como estruturas rígidas, mostrando que são sistemas dinâmicos onde os movimentos internos e as mudanças conformacionais resultantes possuem um papel importante nas funções das proteínas.&amp;&amp;&amp;
+Atualmente, essa técnica se tornou uma ferramenta estabelecida no estudo de biomoléculas, complementar às técnicas experimentais, auxiliando no entendimento das bases físicas das estruturas e funções biológicas de macromoléculas.
+Conforme apontado anteriormente, para a DM é preferível utilizar simulações a experimentos, pois se o intuito é alcançar questões específicas sobre as propriedades do sistema a ser modelado, simulações podem prover uma grande quantidade de detalhes a respeito de o movimento das partículas.
+Um exemplo para esse caso é a busca por inibidores, ativadores e outros ligantes que permitam o desenvolvimento de fármacos As abordagens de simulação por dinâmica molecular padrão modelam proteínas como um conjunto de massas pontuais (átomos) conectados por ligações, em estruturas tridimensionais.
+As ligações, ângulos e forças entre átomos formam um sistema molecular ­ onde cada conjunto de átomos possui uma posição definida no espaço tridimensional ­ em o qual se adiciona energia por meio de aquecimento simulado.
+Então, regras de mecânica newtoniana e molecular e cálculos eletrostáticos são aplicados.
+Segundo as leis newtonianas, a energia adicionada ao sistema oferece uma força oposta que move os átomos na molécula para fora de suas conformações padrão.
+As ações e reações de centenas de átomos num sistema molecular podem ser simuladas usando essa abstração.
+As simulações por DM requerem a execução de um grande número de tarefas, como o cálculo de forças dos átomos que estão quimicamente ligados (em inglês:
+Bonded) e dos átomos que não estão ligados covalentemente (todos os outros ­ em inglês:
+Nonbonded), assim como ângulos, torção e atualização das velocidades e posições de cada átomo ou molécula do sistema sendo simulado.
+De entre essas tarefas, o cálculo de forças dos átomos não ligados tem alta demanda computacional, pois um sistema de tamanho médio pode chegar a milhões de iterações para átomos não ligados, comparada a algumas milhares de iterações para os ligados e para ângulos.
+Cada uma dessas tarefas permite calcular a energia potencial do sistema, baseada nas leis de mecânica clássica de Newton.
+Sua fórmula pode ser vista em, a qual é dividida em várias partes, que são explicadas citando principalmente o trabalho de Pascutti em.
+A Figura 2 e a Figura 3 demonstram onde tais cálculos são aplicados.
+Onde b é o comprimento das ligações químicas, é o ângulo entre duas ligações consecutivas e é o ângulo torcional para ligações com liberdade de rotação.
+Onde é o ângulo entre os planos i_ j_ k e j_ k_ l.
+Inicialmente são calculadas as oscilações de comprimento das ligações químicas, conforme, onde Kb é a constante de Hook, b é o comprimento da ligação e b0 seu comprimento de equilíbrio.
+De a mesma forma, as oscilações dos ângulos de tais ligações podem ser descritas por um potencial harmônico, onde é o ângulo entre duas ligações químicas consecutivas e K a constante de Hook para retornar ao ângulo de equilíbrio 0.
+Para um conjunto de quatro átomos é necessário um terceiro potencial harmônico, onde é o plano de fundo formado por os átomos C, C e o plano formado por os átomos C, C e N na Figura 3, e K é a constante para a restituição ao ângulo de equilíbrio 0 entre os planos.
+Considerando ainda que existam rotações, ou torções, em torno de as ligações químicas, deve- se calcular o Potencial Diedral Próprio.
+Esse potencial é definido por, em que &quot;K é a constante que determina a altura da barreira de rotação, n o número de mínimos para a torção de uma ligação química específica, o ângulo diedral para a ligação central numa seqüência de quatro átomos e é a defasagem no ângulo diedral que pode colocar na posição j igual a zero um ponto de máximo ou de mínimo «As funções da se referem apenas às interações entre átomos ligados covalentemente.
+Para todas as outras, os potenciais são dados por a lei de atração de van der Waals, avaliada por o Potencial de Lennard--Jones (onde &quot;é a profundidade do poço entre a barreira atrativa e a repulsiva e é o diâmetro de Lennard-Jones «e r é a distância entre os núcleos), e por a Lei de Coulomb (onde qi e qj são as cargas residuais sobre os átomos i e j, separados por a distância r, 0 é a permissividade do meio e é a constante dielétrica que corrige 0 para considerar a polarizabilidade do meio&quot;).
+O potencial LJ é calculado para cada possível par de partículas que interagem, obtendo a força que age sobre cada partícula.
+Já a &quot;interação eletrostática varia com o inverso da distância de separação entre os átomos, sendo, portanto, de longo alcance «Como potenciais e forças são aplicados às moléculas próximas, quando uma força tem curto alcance é inserido um ponto de corte, a partir de o qual se considera que as partículas não interagem.
+Esses cálculos são O (n²) para um dado número de partículas n ­ se tornando promissor para aceleração.
+Para forças de longo alcance também pode ser utilizado um ponto de corte, que diminui consideravelmente a quantidade de cálculos neces-sários ao mesmo tempo em que introduz um erro ­ que pode ser aceitável (como nas forças de LJ) ou não (como nas forças de Coulomb).
+Para resolver esse problema existem métodos como o Particle Mesh Ewald (PME), que divide os somatórios infinitos usados em Coulomb em duas partes ­ ambas convergindo rapidamente ­ ou o método multigrid, que tem a vantagem de não precisar das transformadas rápidas de Fourier (FFT).
+Outro ponto que pode ser analisado é o algoritmo de atualização de velocidade e posição de Verlet (VV).
+Apesar desse algoritmo também ser O (n²), o que pode sugerir a necessidade de aceleração, o VV é executado apenas uma vez por partícula e não caracteriza um gargalo, do mesmo modo que a inicialização dos dados, a construção da lista de vizinhos e os cálculos de termos covalentes e ligações de hidrogênio (que são O (n)).
+Apesar de os artifícios apresentados acima para cálculos de forças de átomos não ligados, esses ainda contribuem para quase a totalidade do tempo de execução de uma simulação.
+Assim, por a lei de Amdhal, são candidatas para aceleração por hardware.
+Os meios para obter um melhor desempenho são endereçados nos capítulos seguintes.
+Conforme Scheraga, já se passaram 50 anos desde a primeira simulação por dinâmica molecular.
+Segundo ele, pode- se considerar que a era moderna dos cálculos de dinâmica molecular, utilizando computadores, começou com os trabalhos de Alder e Wainwright, que escreveram os artigos Phase transition for a hard-sphere system e Molecular dynamics by electronic computers em 1957 e 1958.
+Em tais artigos são calculadas ao estudar a dinâmica do argônio líquido em 1964.
+Já a publicação da primeira simulação por dinâmica molecular de uma proteína foi dinâmicos onde os movimentos internos e as mudanças conformacionais resultantes possuem um papel importante nas funções das proteínas,.
+Desde então, diversos avanços em direção a sistemas maiores e tempos de equilíbrio mais longos foram feitos ao incluir uma descrição mais realística do ambiente.
+De entre eles, Karplus cita quatro:
+Inclusão de moléculas solventes explícitas ao redor de a proteína (usualmente, água);
+Adição de contra-íons (counterions);
+Tratamento mais realístico dos limites do sistema;
+Tratamento mais preciso das forças eletrostáticas de longo alcance.
+Em muitos casos, é mais fácil utilizar simulações do que experimentos para determinar certas propriedades de um sistema a ser modelado, pois simulações podem prover uma grande quantidade de detalhes sobre o movimento das partículas.
+Inclusive, em diversos aspectos das funções biomoleculares, são justamente esses os detalhes de interesse.
+Outra característica significativa da simulação é que os potenciais usados estão sob controle do usuário, de modo que, ao remover- los ou alterar- los, suas contribuições em determinar certa propriedade podem ser examinadas.
+Entretanto, de modo algum os experimentos devem ser esquecidos.
+A experimentação tem um papel fundamental na validação, comparando os resultados obtidos no experimento com o que foi simulado para testar a precisão da simulação e prover critérios de melhorias na metodologia.
+Simulações por dinâmica molecular possuem diversas aplicações.
+Hansson cita três:
+&quot;Dar vida «a estruturas moleculares, trazendo a compreensão da dinâmica natural de biomoléculas;
+Oferecer médias térmicas das propriedades moleculares ­ após a simulação de uma molécula com seu ambiente por um período de tempo, pode- se dispor das propriedades moleculares médias que se aproximam das médias obtidas experimentalmente;
+Descobrir quais conformações de uma molécula ou complexo estão termicamente acessíveis ­ usado em aplicações de docagem de ligandos (liganddocking), por exemplo.
+Como já mencionado, aplicações que se preocupam com docagem de proteínas são particularmente importantes na fabricação de fármacos.
+Inclusive, o principal método para descobrir os processos de algumas doenças é a simulação por DM.
+Ele ainda menciona o fato de que, se os dados de experimentos forem traduzidos de modo a guiar os cálculos de dinâmicas, a simulação pode combinar- los com as propriedades gerais das estruturas moleculares.
+Curiosamente, também cita três aplicações gerais para a simulação por DM:
+Usar apenas como um meio para amostragem de configuração espacial;
+Obter a descrição de um sistema em equilíbrio, incluindo propriedades estruturais e de movimento e os valores dos parâmetros de termodinâmica;
+Analisar a dinâmica realmente, visualizando o desenvolvimento do sistema durante o tempo.
+Para as duas primeiras áreas pode- se utilizar simulação de Monte Carlo ou dinâmica molecular.
+Já a última, onde os movimentos e seu desenvolvimento no tempo são o interesse principal, apenas a DM pode ser empregada.
+Os três tópicos têm demandas crescentes por métodos de simulação mais precisos e fidelidade.
+Simulações por DM também são usadas para encontrar caminhos entre conformações abertas e fechadas, que é impossível de determinar experimentalmente.
+Entretanto, a transição entre uma estrutura aberta e fechada leva em torno (acredita- se) de um milissegundo, o que inviabiliza uma simulação direta desse movimento.
+O processo de simulação do enovelamento de proteínas em formatos específicos é tão computacionalmente dispendioso que a tarefa foi incumbida para a intuição humana, de encontrar o caminho para a resposta correta muito mais rapidamente «do que milhares de computadores.
+Outras iniciativas incluem projetos como folding@ home aproveitam o tempo ocioso de processamento dos computadores ­ incluindo até mesmo chips gráficos do vídeo-game PlayStation 3 ­ com os mesmos objetivos do FoldIt, nos moldes do Seti@ home.
+Como qualquer outro ramo da ciência, o campo da simulação por dinâmica molecular se beneficia dos ganhos de desempenho obtidos com as melhorias no hardware dos computadores.
+Se antigamente só era possível executar tais simulações em supercomputadores, hoje essas são efetuadas em computadores de mesa comuns.
+A título de comparação, Hansson, Oostenbrink e van Gunsteren mostraram simulações na ordem de um microssegundo em 1998, enquanto atualmente há pesquisas como a de Shaw Que buscam criar máquinas que permitam atingir a ordem de um milissegundo de simulação.
+Outro exemplo é o uso de um computador convencional (possuindo um processador Pentium Core 2 Duo), com o qual é necessário um período de 10 dias ou mais para executar a mesma tarefa de Shaw Para a simulação por DM, tal progresso permite tempos de prova e equilíbrio maiores.
+Isso possibilita a otimização dos campos de força para reproduzir propriedades mais complexas que são baseadas em médias calculadas nas simulações (ver Capítulo 3).
+Com o aumento na capacidade de processamento, sistemas maiores e mais complexos se tornam acessíveis.
+Assim, todo o ganho de tempo é reinvestido no estudo de sistemas maiores que incluem, por exemplo, um solvente explícito e/ ou um ambiente com membrana.
+Ainda graças a o fator tempo, pode- se executar diversas vezes a mesma simulação para obter estimativas de erros de estatísticas.
+Para melhorar ainda mais o desempenho das aplicações, é possível utilizar um recurso que é cada vez mais comum:
+A aceleração por hardware dedicado.
+Hasan, Al-Ars e Vassiliadis a definem como o uso de um componente especializado para executar alguma função mais rápido do que é possível com um software sendo executado numa CPU de propósito geral.
+Se tal hardware for uma unidade separada da CPU, pode ser chamado de hardware de aceleração.
+O objetivo, nesse caso, é diminuir a carga do processador principal, obtendo ganhos de desempenho.
+Existem basicamente dois tipos de algoritmos que podem ser levados em conta quando se pensa em aumento de desempenho:
+Os que têm troca intensiva de dados (data intensive) e os que necessitam de computação intensiva (CPU intensive).
+Algoritmos que têm cálculos simples e curtos, mas que trabalham com uma quantidade muito grande de dados, sobrecaem no primeiro grupo.
+Seu gargalo está no tempo que é perdido lendo informações em disco e salvando os resultados finais.
+Já algoritmos que levam muito mais tempo calculando do que buscando e guardando dados ficam no segundo grupo (também chamado de compute bound) ­ caso das simulações por dinâmica molecular, segundo Gu e Herbordt.
+Quando há muitas operações de entrada e saída (ou essas são consideravelmente lentas), algoritmos ficam amarrados a sistemas que provêem sinais externos ­ por isso são chamados I/ O bound.
+Programas de troca intensiva de dados são bons exemplos (pois há muito acesso ao disco), sem serem únicos ­ se os dados são coletados de sensores, por exemplo, o tempo de acesso a suas informações faz com que o programa fique muito tempo em espera, caracterizando- se como I/ O bound.
+Em esse caso, métodos de aceleração têm pouco valor.
+Ao contrário de Gu e Herbordt, Yang, Mou e Dou não classificam simulações por DM apenas como tendo computação intensiva, pois há igualmente porções de troca intensiva de dados, tornando- as ideais para FPGAs.
+No caso de programas que precisam de muito poder computacional, pode- se obter aceleração com a otimização do uso de memória, maior eficiência do algoritmo, melhores bibliotecas, etc..
+Quanto a o hardware, uma maneira de se atingir um melhor rendimento é dividir os dados entre diversos processadores idênticos (o que é conhecido como Symmetric Multiprocessing ­ SMP) ou diversos computadores (o que é conhecido como agregado ou grade, dependendo da topologia, velocidade da rede e sua administração).
+Em esse caso, o programa deve ser modificado para que se quebre o problema em pequenos pedaços que serão enviados para os elementos processadores, devolvidos e combinados.
+Esse tipo de abordagem é conhecida como &quot;dividir para conquistar».
+Agregados e grades são flexíveis e têm alta vazão, mas exigem um maior cuidado em sua coordenação e manutenção.
+SMPs têm tempo de resposta individual baixo, mas são caros comparados com um agregado que tenha uma vazão similar, na opinião de Luethy e Hoover.
+Hasan, Al-Ars e Vassiliadis citam um artigo que demonstra que SMPs têm a capacidade de solucionar problemas em biologia molecular que exijam computação intensa de modo eficiente e econômico.
+Seguindo a visão de Luethy e Hoover, percebe- se que há um espaço aberto para a aceleração com o uso de processamento especializado, como aquele que pode ser obtido por o uso de hardware específico utilizando dispositivos como FPGAs ou ASICs.
+Tais chips são criados para efetuar cálculos específicos rapidamente ­ até três ordens de magnitude mais rápidos do que CPUs de uso geral, mas podem implicar custos adicionais de desenvolvimento e aquisição de materiais.
+Uma vantagem de FPGAs é ser mais flexível do que o ASICs, pois o mesmo chip pode ser reconfigurado para receber uma nova funcionalidade tantas vezes quanto se deseje.
+Entretanto, tal flexibilidade tem um custo ­ seu desempenho é menor se comparado a um circuito implementado num ASIC, já que os sinais elétricos não precisam passar por tantos transistores e alcança uma maior frequência de processamento.
+Para definir a melhor opção entre tais sistemas é necessário um benchmark público, sem o qual se torna difícil a tarefa de comparação e avaliação.
+Para simulações de DM existe um benchmark disponibilizado por os desenvolvedores do programa AMBER, para amber8.
+Bench2. Html), mas este não foi citado nos artigos examinados aqui.
+As métricas mais comuns são em segundos/ dia de simulação (na verdade, dada a capacidade computacional atual, em picossegundos/ dia) ou o tempo que leva para terminar um time-slice da simulação.
+Mas, mesmo com tais métricas, o problema de quantificar a melhora obtida persiste, pois alguns autores fazem comparações tendenciosas.
+Para quem implementa soluções, o problema está em definir o melhor algoritmo para a resolução do problema, uma vez que estes não são igualmente efetivos em plataformas distintas.
+Diferentes métodos devem ser escolhidos quando se emprega FPGAs, PCs, MPPs ou ASICs.
+Gu, Vancourt e Herbordt lembram que, num PC, técnicas baseadas em transformadas (como transformadas de Fourier, Ewald, PME, ParticleParticle Particle-Mesh (PPPM)) são preferíveis;
+Em um MPP elas causam uma sobrecarga na comunicação, então simulações com ponto de corte são mais apropriadas;
+Já num FPGA o tamanho do problema pode ser muito maior ou até mesmo inexistente.
+Tais idiossincrasias acabam por sobrecarregar o projetista, ao exigir conhecimento de cada método para escolha do que melhor se adapta a sua realidade.
+As Seções finais deste Capítulo exploram algumas características dos FPGAs como forma de acelerar o processamento de aplicações nas áreas alvo deste trabalho.
+Um FPGA é uma plataforma de hardware reconfigurável, onde um algoritmo pode ser diretamente mapeado em elementos básicos de lógica, como portas NAND ou tabelas verdade de tamanho fixo.
+Em outras palavras, trata- se de um circuito integrado que pode ser reconfigurado após sua fabricação.
+Ambos, FPGAs e processadores são dispositivos de propósito geral.
+A diferenciação entre eles se dá na granularidade com a qual uma computação é implementada.
+Enquanto processadores usam como base para implementar computações um conjunto fixo de instruções definidas na abstração denominada arquitetura do processador, num FPGA a base são dispositivos de hardware e interconexões.
+Isto acrescenta enorme flexibilidade a FPGAs em relação a processadores, ao custo de um processo de projeto mais complexo.
+FPGAs têm como características a quantidade de blocos lógicos ou de transistores, sua arquitetura interna (importante para aplicar algoritmos de reconfiguração do hardware em tempo de execução), velocidade e consumo.
+Praticamente todos FPGAs possuem elementos lógicos, lookup tables, memória, fios e outros recursos de roteamento e entradas e saídas configuráveis ­ que provêem interface com o mundo externo.
+Como o FPGA é passível de configuração, torna- se simples para o projetista criar sistemas que possuam somente e exatamente os módulos necessários para sua aplicação, sendo possível até mesmo criar módulos específicos.
+Por exemplo, sistemas de alto desempenho que perdem muitos ciclos de CPU executando determinada seção de um código, podem ter esse código reescrito em hardware.
+Para aproveitar bem as características desse dispositivo, o novo código deve ser desenvolvido preferencialmente com o máximo de paralelismo.
+Essa é uma técnica cada vez mais comum para o aumento de desempenho, pois o processamento em hardware específico é mais rápido do que se realizado puramente em software.
+Além disso, livra- se o processador principal para efetuar outras operações enquanto o periférico executa suas instruções concomitantemente.
+Assim, FPGAs se mostram como uma boa solução para várias classes de problemas na bioinformática.
+Apesar de todos os benefícios, uma aplicação em hardware implementado em FPGA é mais lenta e consome mais energia que a mesma aplicação criada utilizando um ASIC1.
+Sua frequência de operação é tipicamente bem inferior a de CPUs, o que pode ser amplamente compensado por a personalização do hardware.
+Esta diferença de frequência de operação está diminuindo gradativamente, pois arquiteturas como o FPGA Xilinx Vir1 Basicamente, ASIC é um circuito integrado projetado para uma aplicação específica, mais do que para aplicações gerais ­ assim como um FPGA.
+Entretanto, diferentemente do FPGA, depois de criada a pastilha de silício não é possível alterar- la.
+Normalmente, o FPGA é utilizado no início do desenvolvimento do hardware, e futuramente, pode ser transformado num ASIC ­ desde que haja demanda de fabricação que justifique seu custo.
+Área de chip ­ o tamanho e a complexidade do código afetam diretamente o tamanho de área requerida para programar a aplicação no FPGA, diminuindo a capacidade para paralelismo e, assim, o desempenho;
+Projetista ­ aplicações complexas necessitam de maior experiência do desenvolvedor e mais tempo para mapear- la corretamente no FPGA, de modo a obter resultados precisos com um algoritmo que não implique perda significativa na frequência alcançada por o projeto;
+Lei de Amdahl ­ se o problema a ser acelerado não ocupar a maior parte do tempo de execução, pode ser necessária uma reestruturação mais profunda na aplicação para se obter uma boa melhora no desempenho;
+Componentes ­ componentes físicos embarcados no próprio FPGA, como multiplicadores, memórias e suporte a ponto flutuante, são peças-chave para uma boa implementação mas, quando existem, são em número reduzido;
+Operações aritméticas ­ esse pode ser um ponto crítico, uma vez que a precisão, o modo aritmético (inteiro ou ponto flutuante, precisão simples ou dupla) e as operações exigidas têm um custo em espaço utilizado e eficiência que, se não (re) projetadas corretamente, podem inviabilizar o novo sistema.
+Considerando o menor risco, menor custo de desenvolvimento e a possibilidade de reconfiguração, FPGAs são uma excelente opção, substituindo gradualmente hardware de propósito geral e sendo usados inclusive como plataforma para a prototipação de ASICs.
+Além disso, FPGAs estão ficando quase tão poderosos quanto ASICs e microprocessadores, por o fato de estarem dirigindo os processos tecnológicos e por se tornarem híbridos ao embutir componentes físicos como os mencionados anteriormente.
+De o mesmo modo que portar aplicações existentes para sistemas maciçamente paralelos (Massively Parallel Processing ­ MPP) ou em grade pode ser complexo, o mesmo processo envolvendo FPGA não é uma tarefa trivial ­ com alguns agravantes.
+Por exemplo, técnicas empregadas na paralelização de um código uniprocessado, transformando- o em MPP, são mais difundidas, compreendidas e suportadas do que o mesmo processo dirigido a FPGAs.
+Assim, um bom planejamento se faz necessário.
+Herbordt Endereçam bem as necessidades de planejamento para desenvolvimento com FPGA, elencando- as da seguinte forma (o artigo ainda fornece exemplos e suas soluções):
+Reestruturação da aplicação:
+A) Usar um algoritmo ótimo para FPGA ­ deve- se escolher um método ou algoritmo que seja o melhor para FPGAs, o que não significa que será o mesmo para MPP ou PC;
+B) Usar modos apropriados ­ como linguagens HDL especificam hardware, e não software, bons modos para programação de software nem sempre são bons ou se aplicam para FPGAs.
+Por exemplo, o uso de ponteiros não é aconselhável;
+C) Usar estruturas apropriadas ­ estruturas análogas a pilhas, árvores e filas no FPGA diferem das encontradas em software;
+D) A já mencionada Lei de Amdahl;
+Projeto e Implementação:
+A) Esconder a latência de funções independentes ­ usar paralelismo, em especial sobrepondo computação e comunicação;
+B) Remoção de gargalos igualando taxas de uso ­ funções mais lentas podem ser replicadas para obter a vazão desejada;
+C) Aproveitar o hardware embarcado no FPGA ­ cada vez mais componentes físicos (ASIC ou módulos hard-- wired), como multiplicadores, são integrados aos FPGAs, o que melhora o desempenho do sistema final;
+Operações Aritméticas: A) Usar a precisão aritmética apropriada ­ definir a quantidade de bits das representações, conforme discorrido ao longo de esta Dissertação;
+B) Usar o modo aritmético apropriado ­ inteiro ou ponto flutuante, de precisão simples ou dupla, também visto ao longo deste trabalho;
+C) Minimizar o uso de operações de custo elevado ­ um FPGA trata operações aritméticas de modo diferente de um PC normal.
+Multiplicações são mais eficientes que adições, enquanto divisões são extremamente lentas ou consomem muita área para terem melhor desempenho.
+Assim, deve- se reestruturar a parte matemática pensando no custo das funções;
+Sistema e Integração:
+A) Criar famílias de aplicações, não soluções pontuais ­ apesar de não haver em HDLs um nível de parametrização comparável à orientação a objetos, deve- se levar em conta o reuso para diminuir tempo, custo e habilidade necessários para um novo projeto;
+B) Escalar a aplicação para uso máximo do FPGA ­ instanciar o máximo de elementos processadores possíveis no FPGA.
+C) O desempenho da aplicação não é sensível à qualidade da implementação ­ se uma aplicação consome 90% de seu tempo executando uma parte de seu código, reestruturar o código poderá melhorar a performance sensivelmente, sem alterar o resultado.
+como se pode perceber existe um grande potencial para aumento de desempenho em aplicações com o emprego de FPGAs ­ mas alcançar- lo demanda uma boa seleção da aplicação e de métodos de projeto para garantir um resultado flexível, escalável e portável.
+Uma vez definido o hardware, ele é produzido com o uso de uma linguagem de descrição de hardware (HDL), como VHDL e Verilog, ou arranjando blocos de funções préexistentes (os chamados blocos de propriedade intelectual ou IP).
+Mais recentemente surgiram ferramentas de desenvolvimento que suportam até mesmo o uso de linguagens de mais alto nível, como C e Java.
+Uma vez definido o hardware, é gerado um arquivo netlist que será enviado ao FPGA, deixando- o pronto para uso.
+Uma das maneiras de utilizar o FPGA é como um co-processador.
+A idéia é aproveitar a base de um algoritmo puramente escrito em software e substituir a parte que tem maior demanda computacional por estruturas de hardware específicas, descritas para um FPGA.
+Essa é a idéia que move este trabalho.
+Hasan, Oostenbrink e van Gunsteren citam o artigo de J. Shaw (Hardware accelerator for genomic sequence alignment) para demonstrar o quanto é interessante essa técnica.
+Os resultados nesse artigo mostram uma melhora média de 287% no tempo de processamento.
+Dada a natureza reconfigurável do FPGA, foram criadas técnicas para que seja possível alterar- lo também em tempo de execução.
+Tais técnicas, coletivamente conhecidas como run-time reconfiguration (RTR), consistem em dividir a aplicação em operações que podem ser implementadas em estruturas de hardware separadas.
+Essa abordagem per-mite uma alta performance, comparável com hardware dedicado.
+Apesar de não mostrar exatamente como a reconfiguração permitiu um ganho de desempenho, Hasan, Oostenbrink e van Gunsteren citam artigos que conseguiram melhoras de 64 a 330 vezes com o uso de RTR.
+Como exemplo, pode- se modificar o FPGA para que, assim que termine um tipo de cálculo, a parte responsável por o cálculo seja alterada para auxiliar nos processos que possuam maior demanda.
+Outro ponto interessante é a possibilidade de permitir que a precisão das variáveis se torne parametrizável.
+Para simulações por dinâmica molecular, há desde sistemas acadêmicos que utilizam um único FPGA, como os desenvolvidos por Gu, Vancourt e Herbordt em,, e, até supercomputadores como o Blue Protein do Centro de Pesquisa em Biologia Computacional do Japão, que está na lista do Top500 e pode ser visto na Figura 4.
+Em o meio desses extremos existem outros sistemas, como o Model (que usa 76 pastilhas ASICs para calcular o potencial LJ e forças de Coulomb), o MDGRAPE (que acelera apenas o cálculo de força e potencial, deixando o resto para o hospedeiro) e suas diversas variações, o Md Engine e o Molecular Dynamics Machine (MDM, que também usa ASIC).
+O MDM é um dos primeiros trabalhos com computadores de propósito especial, desenvolvido por Narumi, Kawai e Koishi.
+Por fim, são relacionados também os sistemas SRC MAPStation, Cray XD1 e SGI RASC, em que os aceleradores são FPGAs conectados a microprocessadores normais.
+Há ainda o ANTON, um MPP com 512 ASICs montados numa conformação torus 3 D, que afirma ser o primeiro a possibilitar simulações na ordem de milissegundos Antes de iniciar o desenvolvimento de um sistema de auxílio para a simulação por DM que utilize hardware reconfigurável, existem diversos pontos importantes que devem ser observados além de o que foi elencado até aqui.
+Um dos principais é a necessidade de considerar a precisão e a representação de variáveis.
+A precisão em DM é alterável, dependendo do estágio que se está computando, sendo que o mínimo requerido é aquele que mantêm a simulação estável.
+Há duas métricas para determinar sua qualidade:
+A flutuação das quantidades físicas que deveriam manter- se constantes e a razão de flutuação entre a energia total e a energia cinética.
+Esse problema é endereçado por Gu, Vancourt e Herbordt em, e, lembrando que FPGAs são caracterizados por o uso de dados de baixa precisão ­ provável motivo por o qual a maioria dos pesquisadores evita aplicações que requerem unidades de ponto flutuante de dupla precisão, como as simulações por DM.
+Entretanto, nesse mesmo artigo é constatado que tal precisão nem sempre é necessária, inclusive citando outras pesquisas na área ­ apesar de essa visão não ser um consenso.
+A questão é que as implementações de DM usualmente são executadas por computadores que dão pouco incentivo para não empregar dupla precisão ­ o que é um problema no FPGA, pois, se for possível reduzir a precisão sem perda significativa de qualidade, é preferível empregar os recursos que sobram para melhorar o desempenho do sistema.
+Além disso, eles lembram bem que &quot;há uma grande diferença entre, bom o bastante e, o melhor possível», ou seja, uma grande precisão resulta num melhor comportamento, que pode estar além de o que é realmente necessário ­ por exemplo, uma razão da flutuação entre energia total e energia cinética abaixo de 0,5 é considerada suficiente e alcançada com o uso de 31 bits de precisão (Figura 5), o que significa que uma maior precisão é melhor, mas desnecessária.
+É possível observar na mesma figura que empregar 40 bits traz um resultado equivalente ao uso de um datapath completo de 53 bits para 35 bits é suficiente.
+Essa é uma dificuldade que faz parte das pesquisas atuais, uma vez que apenas recentemente os FPGAs receberam recursos suficientes para abranger a aritmética de ponto flutuante.
+Um exemplo é o artigo de Dinechin, Detrey e Cret, que levantam a questão sobre se é melhor ter unidades de ponto flutuante embutidas nos FPGAs (o que sacrificaria a flexibilidade, já que seria um hardware imutável) ou ter apenas um melhor suporte para esse tipo de cálculo.
+Existem também iniciativas como o projeto FPU e FPU Double, unidades de ponto flutuante de 32 e 64 bits, respectivamente, distribuídas livremente por Al-- Eryani e Lundgren em linguagem VHDL.
+Yang, Mou e Dou ainda comentam que é preciso cuidado com a latência criada por pipelines, que pode induzir problemas como read-after-write.
+Lembram também que o aumento de desempenho não é o único ponto a ser avaliado, mas o uso de recursos, de área e a precisão da simulação devem ser igualmente considerados.
+A Tabela 1 mostra bem esse problema:
+O número maior de pipelines resultou num uso excessivo dos recursos do FPGA, o que levou à diminuição do clock e consequente aumento do atraso, sem um ganho significativo em desempenho.
+A escolha correta dos recursos disponíveis também é importante, especialmente quando tais recursos fazem parte do caminho crítico.
+Por exemplo, Gu, Vancourt e Herbordt em conseguiram uma otimização com a troca de três multiplicadores de 25 ns de latência por nove de 9 ns de latência.
+Inclusive, os próprios recursos podem ser críticos, considerando- se a quantidade de multiplicadores, registradores e BRAM existentes na plataforma.
+Até mesmo as ferramentas de síntese alteram o desempenho final, de-vido a diferenças no balanceamento entre a quantidade de slices e o desempenho resultante.
+Gu, Vancourt e Herbordt levantam algumas questões interessantes, algumas já apontadas anteriormente, que tem dirigido a maioria dos estudos existentes:
+Precisão ­ qual é a precisão necessária e qual a motivação da escolha;
+Modo aritmético ­ ponto flutuante, logarítmico, híbrido, etc;
+Código de DM ­ qual o sistema de DM será modelado (AMBER, NAMD, experimental, etc.);
+Hardware alvo ­ qual FPGA disponível e como ele é interligado com o host;
+Escopo ­ qual a variação da implementação de DM, se o método é mais apurado e computacionalmente complexo ou se será empregado um simples raio de corte, e se o manterá em software ou no FPGA;
+Design ­ configuração do FPGA.
+Uma vez tomados os cuidados necessários, é possível partir para as decisões de implementação.
+A idéia ao usar um FPGA é aproveitar sua alta capacidade de paralelismo.
+O paralelismo pode ser dividido em &quot;grão pequeno «(operações independentes envolvidas em produzir o mesmo resultado) e &quot;grão grande «(unidades que operam independentes para produzir resultados também independentes).
+Outra possibilidade é o emprego de pipelines, criando, por exemplo, vetores para cálculo das forças em cada partícula e para atualização dos movimentos (Verlet), como feito por Gu, Vancourt e Herbordt em.
+Inclusive, se os pipelines forem bem planejados, pode haver um compartilhamento de recursos entre eles.
+Especificamente para DM, o artigo de Gu e Herbordt traz diversos métodos para aumento de desempenho em FPGA.
+Em seu trabalho estão contempladas as forças de Coulomb e LJ e múltiplos tipos de átomos ­ ou seja, alguns átomos, sem apontar quais ou quantos.
+Para cálculo de forças de curto alcance foi utilizada interpolação, comparando os métodos de Taylor, Hermite e polinômios ortogonais.
+Para o problema de ponto flutuante, considerando as características da DM já elencadas, eles criam uma alternativa:
+Por fim, o artigo mostra que algoritmos baseados em grade são interessantes para mapear a função de Green, necessária para o cálculo das forças de Coulomb.
+Esse método, chamado Multigrid, é visto em diversos artigos como os de Gu e Herbort, Azizi E Cho, Bourgeois e Fernández-Zepeda.
+O multigrid se mostra excelente para FPGAs, pois tira vantagem do alto número de memórias RAM endereçadas independentemente e da eficiência para implementação de estruturas sistólicas complexas, e para dinâmica molecular, pois é rápido e preciso para cálculos eletrostáticos.
+Outro benefício é dispensar o uso de FFT 3D.
+O modo de operação do multigrid se dá em três passos principais:
+Aplicar as cargas em grades 3 D, efetuar convoluções nas grades e aplicar- las novamente nas partículas.
+O paralelismo resultante acelera a computação e diminui a quantidade de pipelines.
+Alam Têm uma abordagem diferente.
+Em seu artigo eles entendem que o uso de HDL é impraticável, considerando a complexidade da aplicação a ser acelerada.
+Os algoritmos revisados em seu artigo são os mesmos vistos até agora (método de Ewald para o problema da Lei de Coulomba mesma linguagem usada no AMBER), não demonstrando queixas quanto a a necessidade de usar FFT.
+Uma boa técnica apresentada foi o desenrolamento e achatamento de laços e sua paralelização (também comentado em).
+Em a mesma linha de pensamento, Kindratenko e Pointer tentaram se evadir do HDL.
+É interessante notar que, em ambos os casos, a ferramenta escolhida foi o SRC Carte, um ambiente de desenvolvimento específico para o processador SRC MAPstation, altamente integrado com esse hardware e seu FPGA.
+Tal ambiente disponibiliza uma versão própria de C e Fortan.
+Quanto a o problema da aritmética, nesse artigo os autores dividem os dados de 64 bits em duas palavras de 32 bits, que é mais apropriado para o FPGA.
+Em os sistemas simulados, o desempenho foi melhorado em até três vezes.
+Os autores mencionam que esse resultado depende muito da simulação, pois para um raio de corte maior o ganho pode ser de até 260 vezes.
+Assim como Alam, Scrofano e Prasanna também utilizaram o AMBER como base para aceleração.
+Entretanto, a técnica estudada foi a malha de partículas suave de Ewald (SPME), que facilita o uso de FFT 3D ­ para o qual foram empregadas bibliotecas prontas da Intel (da Intel Math Kernel Library®).
+De o mesmo modo que os outros autores, eles reclamam da falta de ponto flutuante nos FPGAs e que é necessário um correto particionamento para saber o que acelerar em hardware e o que manter em software ­ sem perder o foco, que deve ser uma melhora no sistema como um todo.
+Em seu texto, criticam a trabalho de Gu e Herbordt por estar limitado a simulações pequenas que caibam na memória do FPGA (os artigos mais atuais de Gu e Herbordt afirmam que simulações maiores são possíveis, usando acesso à memória externa) e por utilizar técnicas O (n²) que não escalam bem para encontrar pares de átomos interativos.
+Ainda, os ganhos reportados são comparados a programas de DM lentos.
+Bowers E Scrofano Aumentam a visão das investigações ao ampliar o horizonte de computadores únicos acelerados com FPGA, ao criar agregados de nós acelerados, que é a junção de diversos computadores providos de aceleradores numa rede.
+Bowers Apresentam um extenso trabalho, com muitos dados sobre paralelização, comunicação, técnicas e testes.
+Comparando os resultados de clusters acelerados e normais, Scrofano Chegaram à Tabela 2.
+Apesar de a busca por resultados que melhorem o desempenho dos sistemas discutidos aqui, tal progresso nem sempre é alcançado num primeiro momento.
+Em o trabalho de Azizi, sua solução causou uma perda de desempenho:
+O tempo de execução de certa simulação em software foi de 10 seg.,
+enquanto seu hardware precisou de 37 seg.
+­ um &quot;ganho «de 0.27 vezes.
+Entretanto, Azizi Encontram na memória e na velocidade do FPGA os gargalos de sua implementação.
+A partir de essa informação eles propõem uma melhoria no sistema memória, sem o emprego de SRAM e paralelizando seu acesso.
+Além disso, projetam resultados baseados numa freqüência de trabalho maior no FPGA.
+Ambas as alterações podem significar um ganho de 21 vezes no tempo de simulação, na mesma comparação feita anteriormente.
+O trabalho de Sartin tem objetivos paralelos aos desta Dissertação.
+Seu enfoque é o software, caracterizando uma API de comunicação do ambiente AMBER com a plataforma de hardware.
+Estão presentes diversas comparações, como diferenças entre diversas plataformas de DM (como AMBER, GROMACS, PROTOMOL, etc.), diferenças de desempenho dos programas SANDER e PMEMD, modos de uso do PMEMD (mono e multiprocessado), traçado de perfil da ferramenta e necessidades de comunicação.
+Sua pesquisa foi muito importante para o desenvolvimento desta Dissertação ­ muitos dos dados apresentados e das escolhas tomadas aqui foram baseados no trabalho conjunto com Sartin, como se pode observar ao longo de o texto.
+A integração de sua API com a arquitetura de hardware desenvolvida neste trabalho é desejada para pesquisas futuras, conforme a Seção 8.1.
+Este Capítulo apresenta os recursos empregados para a execução das atividades propostas para atingir os objetivos específicos desta Dissertação.
+Como pôde ser observado na revisão realizada neste volume, existem pesquisadores trabalhando com o ambiente AMBER, que é uma coleção de programas utilizados para efetuar e analisar simulações por dinâmica molecular.
+De entre tais programas, especificamente para a simulação existem os programas SANDER e PMEMD.
+O foco desta Dissertação é o último, por se tratar de uma versão retrabalhada do SANDER e que, apesar de dar suporte apenas às principais opções do primeiro, possui desempenho superior.
+A simplicidade do código devido a o menor número de opções e o melhor desempenho fazem parte da motivação para uso do PMEMD.
+Como o nome sugere, o PMEMD é responsável por o cálculo do Particle Mesh Ewald na simulação.
+Para a descrição de seu funcionamento, a seguir, cita- se principalmente raio de corte e um fator ERFC ­ que força os valores de seus termos, num valor finito de distância entre os átomos, a serem extremamente pequenos.
+A soma recíproca é a maior parte da energia eletrostática perdida por o fator ERFC, tendo a forma de uma transformada discreta de Fourier.
+A soma de correção remove potenciais contados erroneamente na tarefa anterior.
+Eel $= Edireta+ Ereciproca+ Ecorreção As simulações executadas por o AMBER apontam que o PMEMD chega a consumir mais de 80% do tempo de processamento em simulação, como se esperava ­ resultado compatível com um alvo de otimização, segundo a lei de Amdahl e com os trabalhos relacionados no Capítulo 5.
+O esforço de computação, detalhado na Tabela 3 como resultado de uso da ferramenta de traçado de perfil gprof, está concentrado no módulo pme_ direct_ mod (a linha Direct Ewald time na Tabela 3), mais especificamente nos dois laços internos à função short_ ene_ vec (a linha Short ene time, na mesma tabela) responsáveis por a lei de Coulomb na soma direta de (8) ­ laços &quot;Laço 1 e «Laço 2 da Figura 6.
+A investigação do perfil da ferramenta PMEMD, realizada por Sartin, aponta o Laço 1 como o de maior quantidade de repetições.
+O que não fica claro na Figura 6 é que a estrutura de ambos os laços é praticamente idêntica, existindo poucas diferenças no código.
+Assim, seria possível duplicar o hardware existente para trabalhar em paralelo (com as devidas modificações e considerando que haja espaço suficiente no FPGA) ou alterar o controlador e os módulos para que se possam executar ambos os laços com o mesmo hardware ­ sendo que, na prática, esta é a única escolha possível uma vez que os laços estão dispostos de modo sequencial.
+Considerando tais ressalvas, para simplificar o desenvolvimento, apenas o primeiro laço será abordado ao longo deste trabalho.
+Observando- se a Figura 6 pode parecer que o Laço do Laço 1 seria o candidato natural para ser acelerado, dada a quantidade elevada de repetições necessárias para sua execução.
+Entretanto, seu código é extremamente simples e não é adequado implementálo isoladamente no FPGA.
+Já o código do Laço PCH é maior e mais complexo ­ seu grande número de operações de ponto-flutuante propicia um melhor desempenho se executado numa plataforma de hardware específica.
+Portanto, esse é o foco desta Dissertação.
+O Laço PCH pode ser desmembrado em quatro partes principais.
+Cada um desses elementos foi transcrito com sucesso em hardware, como será visto no Capítulo 7.
+As partes do Laço PCH são:
+Inicialização e teste de continuidade no laço;
+Cálculo da soma direta de Coulomb utilizando EFS;
+O mesmo cálculo, com SPLINE;
+Atualização das variáveis.
+Além de os apontamentos sobre o PMEMD, Sartin desenvolveu uma API para integração de tal software com um hardware de aceleração, mas aquela não foi aplicada nesta Dissertação por ter sido avaliada e finalmente revelar- se ineficiente.
+Como nem todas as tabelas são alteradas em cada iteração, atualizar seus valores no FPGA como proposto consome tempo de processamento desnecessário.
+Não há teste para verificar se houveram modificações nas variáveis ­ e mesmo tal avaliação reduz o desempenho.
+Cada escrita ou leitura inicia e descarrega o driver de comunicação, ações que poderiam ser executadas apenas no momento de começar e encerrar o PMEMD ­ tempo dispensável que acaba por se somar à transferência de dados, através da API.
+Ainda, a API não foi preparada para trabalhar com múltiplos escravos.
+Seu desenho teve como alvo original especificamente um projeto denominado X10 GIGA2, que possui diversas particularidades como o envio de variáveis de ponto flutuante de precisão dupla, O Grupo de Apoio ao Hardware é um grupo de pesquisa e desenvolvimento da Universidade PUCRS, responsável por o projeto X10GIGA.
+Maiores informações sobre o grupo e seus projetos estão em divididas em duas palavras de 32 bits o que, portanto, exige duas escritas no FPGA.
+Nota- se a necessidade de adaptações melhores para lidar com o problema desta Dissertação.
+De o trabalho desenvolvido por Sartin em, além de os levantamentos de profiling, foi parcialmente utilizada a integração do PMEMD com os drivers da placa de prototipação DINI.
+Diversas chamadas ao driver foram reescritas, de modo a simplificar o processamento.
+Acrescentou- se também um sinal de reset, inexistente na API até então.
+Uma vez feito o levantamento de dados, é possível responder às indagações de Gu, apresentadas anteriormente:
+Precisão ­ para esse projeto foi utilizada uma precisão de 32 bits, por se estar num intervalo considerado suficiente, além de corresponder ao tamanho do barramento para comunicação entre o hospedeiro e o FPGA, o que aumenta a eficiência de comunicação entre hardware e software;
+Modo aritmético ­ ponto flutuante, IEEE-754;
+Código de DM ­ AMBER/ PMEMD, utilizado no Laboratório de Bioinformática desta universidade;
+Hardware alvo ­ está em uso a placa DN8000 K10PCI da Dini, instalada num microcomputador com processador Intel Pentium 4 de 2.40 GHz e 1 GB de memória RAM;
+Escopo ­ foi recriado o código do Laço PCH, conforme indicado por Sartin, no FPGA alvo;
+Projeto ­ em hardware utilizou- se VHDL e Verilog, por a facilidade de integração com as ferramentas empregadas (Modelsim, Xilinx ISE e Core Generator) e por a otimização do hardware final ­ estágio ainda não alcançado por compiladores mais genéricos, como SystemC.
+A plataforma de prototipação da DINI é composta por um FPGA Xilinx Virtex4 LX100, interligada ao PC hospedeiro via barramento PCI.
+Para facilitar a transferência de dados entre o hospedeiro e o FPGA, a DINI criou uma estrutura de comunicação denominada MainBus.
+De esta fazem parte o programa AETest, escrito em C+ e que traz funções para a escrita no barramento, e a descrição de módulos de hardware, responsáveis por a comunicação com a placa.
+O barramento possui 32 bits de dados e 4 bits de controle, totalizando 36 bits.
+Os módulos com a descrição de hardware são disponibilizados por o fabricante na linguagem Verilog.
+Visando acelerar o projeto e a implementação de sistemas é necessário capitalizar na construção modular de componentes complexos reutilizáveis, tanto de hardware como de software.
+No caso de o hardware, tais componentes são denominados núcleos de propriedade intelectual (mais simplesmente, núcleos, ou, em inglês, intellectual property cores, IP cores ou apenas cores).
+Em síntese, um IP core é um módulo complexo de hardware (correspondendo a dezenas de milhares ou centenas de milhares de portas lógicas equivalentes), que desempenha alguma tarefa específica e que é criado visando o reuso em múltiplos projetos.
+Em esse intuito, assim como Scrofano e Prasanna, este trabalho também emprega bibliotecas de ponto flutuante e memórias prontas, em detrimento a criação de um core inteiramente novo.
+A diferença está na escolha da ferramenta do próprio fabricante (o Xilinx Core Generator®), que origina um hardware otimizado para o FPGA específico ­ a exemplo do SRC Carte.
+Essa é uma das motivações, conforme apresentado nas Seções 6.3 e 6.4.
+Em esse quesito, as alternativas são o uso de memória interna ao FPGA (sobretudo os blocos dedicados BRAMs) ou o uso de memória externa na própria plataforma do FPGA (memórias RAM de alto desempenho), com troca de dados via acesso direto à memória (DMA) ou através do processador.
+A escolha mais natural para o acesso aos dados seria o DMA, pois não utiliza o processador principal do PC ­ não onerando o desempenho da aplicação com o overhead de comunicação e liberando a CPU do que seria uma sobrecarga.
+Entretanto, a falta de documentação acessível sobre o uso deste protocolo na plataforma adotada, somada ao nível de complexidade de seu uso, levou ao descarte desta opção.
+O uso de memória RAM externa também apresenta empecilhos.
+A quantidade de pinos e sinais de controle, a dificuldade para implementação de uma interface de comunicação, a necessidade de mapeamento de dados nas memórias disponíveis (a organização das memórias da plataforma não possui uma estrutura linear similar a uma tabela.
+De fato, a posição de qualquer elemento é dada por um endereço dividido em banco, coluna e linha) e a latência maior do que a encontrada nas BRAMs (o que causa perda de desempenho) desestimulam seu uso.
+Assim, elegeu- se o uso de BRAMs neste pro-jeto, apesar de, neste caso, o trabalho deparar- se com a limitação de tamanho físico destas no FPGA utilizado, o que restringe a quantidade de dados manipuláveis e, consequentemente, o tamanho da simulação.
+A memória externa, ao contrário, possui tamanho que permite o uso de todo o espaço de endereçamento do protocolo MainBus.
+Para as unidades de ponto flutuante, pesquisaram- se duas opções.
+A primeira foi o módulo FPU de Al--Eryani.
+Disponível publicamente na Internet e compatível com o padrão IEEE-754, alcança uma frequência de 100 MHz, opera apenas com ponto flutuante de precisão simples (32 bits) e possui as principais operações no mesmo pacote.
+Essa última característica não é interessante para o projeto desenvolvido aqui, pois todas as operações executadas são imutáveis, e requer alterações no código para que cada cálculo esteja disponível separadamente, sob pena de tomar um considerável espaço no FPGA com as áreas não utilizadas da FPU.
+Durante o desenvolvimento desta Dissertação, Lundgren disponibilizou seu projeto &quot;FPU Double VHDL «nos mesmos moldes de Al-- Eryani, mas provendo precisão dupla ­ 64 bits.
+Entretanto, este sequer foi testado, devido a o estágio avançado da Dissertação no momento em que se encontrou o projeto e considerando as vantagens expostas na alternativa apontada a seguir.
+A opção de maiores benefícios revelou- se ser o emprego da ferramenta do próprio fabricante, o Xilinx Core Generator.
+Essa aplicação gera automaticamente um hardware otimizado para o FPGA específico, a exemplo da abordagem empregada no SRC Carte.
+A vantagem é visível em espaço ocupado e em frequência máxima alcançada por os módulos da Xilinx.
+Outro ponto relevante é que os módulos gerados já possuem pipelines ­ cada core permite o envio de um novo dado a cada ciclo de relógio.
+Por fim, a migração para ponto flutuante de dupla precisão ­ que necessita de 64 bits ­ é facilitada, pois o Core Generator também cria com este grau de precisão.
+Tantas conveniências se tornaram razões para preferir esta opção em relação a as FPUs de Al--Eryani e de Lundgren.
+A arquitetura, apresentada de modo geral na Figura 7, foi construída de maneira modular, dividindo o Laço PCH conforme o levantamento efetuado na Seção 6.1.
+Os módulos correspondentes a execução proposta naquela seção são a máquina de estados, o Coulomb-EFS, o Coulomb-SPLINE e o de atualização, descritos nas próximas seções ­ à exceção de o primeiro.
+A máquina de estados é do tipo Moore, com 27 estados codificados no estilo &quot;onehot «(cada estado possui um flip-flop próprio, representando o estado atual), sendo cinco desenhados para depuração dos módulos Coulomb-EFS e Coulomb-SPLINE.
+É responsável por comandar o início e fim da execução de cada hardware e o término do laço, passando os valores das variáveis entre diversos módulos e ao escravo de controle.
+É através do escravo de controle que se efetiva a comunicação entre software alvo e hardware ­ as sinalizações para começar o processamento e verificação de sua conclusão, assim como a inicialização e recuperação das variáveis principais.
+Detalhamentos estão presentes na Seção 7.3.
+Durante a construção da arquitetura foram executados dois processos para a descrição do hardware:
+Escrita diretamente em VHDL ou Verilog e desenho a partir de esquemático.
+O VHDL foi empregado inicialmente, com o qual se compôs o módulo Coulomb-EFS.
+Por ser uma linguagem de descrição, parece- se com programação de software, o que facilita a migração dos profissionais entre as áreas.
+Uma vez conhecida a complexidade de um, elegeu- se o esquemático para a criação do outro, o Coulomb-SPLINE.
+O desenho é um método mais rápido quando o módulo a ser desenvolvido é pequeno, com poucas ligações.
+A partir de um determinado tamanho, a quantidade de fios a gerenciar (de modo a manter o desenho com fácil visualização e entendimento) e a falta de espaço disponível na folha de desenho (limitação da ferramenta ­ por assumir que o esquemático será impresso, aceita no máximo o tamanho das maiores folhas disponíveis para impressão ­ no caso, A0) se tornam fatores que dificultam o desenvolvimento.
+Como a visualização é mais simples com esquemático e a depuração é mais rápida em VHDL/ Verilog, o projeto foi continuado de modo híbrido, alternando entre ambos os métodos.
+Após terminar o desenho principal do módulo Coulomb-SPLINE, os ajustes finos foram feitos em VHDL ­ a suíte da Xilinx permite criar o arquivo VHDL a partir de o esquemático, e vice-versa.
+O mesmo processo foi aplicado para o módulo Updates.
+A Figura 8 oferece o esquemático da arquitetura desenvolvida neste trabalho, com simplificações para facilitar sua visualização.
+Por exemplo, as variáveis de inicialização e os sinais contendo os resultados no escravo de controle foram agrupados;
+Os escravos idênticos estão reunidos;
+O sinal MB_ sel (em pontilhado largo), que habilita a um determinado escravo o acesso ao MainBus, é individual para cada escravo mas é identificado por apenas um fio, pois tem a mesma funcionalidade.
+Além disso, dada a reunião dos escravos, os pinos de endereçamento das tabelas foram omitidos e seu conteúdo foi representado por fios pontilhados, indicando que ou a memória serve a mais de um módulo e/ ou o módulo recebe de mais de uma memória.
+Tanto as memórias quanto as unidades de ponto flutuante foram geradas por o Xilinx Core Generator, parte do pacote Xilinx ISE Design Suite 10.1.
+É uma ferramenta que cria blocos de propriedade intelectual (IP) parametrizáveis, otimizados para FPGAs da Xilinx e, por isso, a escolha deste projeto.
+Após a geração do bloco, a aplicação entrega, entre outros arquivos, um modelo para simulação (o wrapper, em VHDL, Verilog ou esquemático) e o arquivo de implementação, o netlist (NGC ou EDIF).
+Escravo 0 ­ Slave Control MB Target MB_ inout MB_ write_ strobe MB_ in MB_ read_ strobe MB_ out MB_ address MB_ data_ in MB_ data_ out MB_ sel_ reg MB_ write MB_ read MB_ address MB_ data_ in MB_ data_ out MB_ done MB_ clock MB_ reset MB_ clock MB_ reset run_ once_ cet run_ once_ csp run_ loop done Variáveis de inicialização resultados MB_ data_ out MB_ done nd_ cet nd_ csp nd_ update done_ cet done_ csp done_ update resultados img_ charge delr2_ vec nxt img_ j Escravo 1 ­ Slave Memory ­ ef_ tbl MB_ sel_ reg MB_ write MB_ read MB_ address MB_ data_ in State Machine run_ once_ cet run_ once_ csp run_ loop done user_ clock user_ read clock reset user_ addres user_ data_ out user_ done MB_ clock MB_ reset Coulomb EFS nd done_ tbl 1 a 8 ef_ tbl_ read Variáveis de inicialização resultados Escravo 2 ­ Slave Memory ­ eed_ cub user_ clock MB_ sel_ reg user_ read MB_ write MB_ read user_ addres MB_ address MB_ data_ in MB_ data_ out MB_ done clock reset user_ data_ out user_ done* -- não são um barramento, estão agregados para facilitar a visualização -- sinal normal (linha grossa representa um barramento) -- barramento de mesma função, proveniente de escravos distintos* -- barramento de mesma função, proveniente de e para escravos distintos* -- barramento de mesma função, para escravos distintos* -- 13 sinais (um para cada escravo)* -- módulo de controle/ cálculo -- módulo de comunicação (MainBus) -- módulo escravo Legenda:&amp;&amp;&amp;
+Todos os blocos de memória foram descritos em hardware para funcionar de maneira idêntica, alterando- se apenas o espaço disponível para dados e a largura equivalente das portas.
+Tal ação facilita o projeto da arquitetura, pois ao dominar o funcionamento de um módulo é possível replicar o conhecimento para o uso dos outros ­ parte do princípio do reuso de componentes.
+Os blocos de memória apresentam duas portas, sendo entrada e saída separadas.
+Todas as entradas possuem 32 bits de largura, condizente com o tamanho de uma variável de ponto flutuante de precisão simples.
+Já as saídas são de largura variável, conforme a necessidade de acesso aos dados ­ indo de 32 a 256 bits (ou oito palavras de 32 bits).
+São duas as principais razões para tal escolha.
+Para os módulos de cálculo, o acesso simultâneo aos dados é importante, pois garante certo grau de paralelismo.
+Já para a escrita nas tabelas, o clock da porta de entrada precisa estar sincronizado com o MainBus, enquanto o clock da porta de saída deve se sincronizar com os módulos ­ que podem empregar uma frequência diferente.
+As tabelas eed_ cub e ef_ tbl têm uma peculiaridade na porta de saída.
+Como explicado anteriormente, para que haja paralelismo na obtenção de dados, ambas as tabelas têm saídas com largura suficiente para entregar quatro e oito elementos ao mesmo tempo ­ 128 e 256 bits ­ respectivamente.
+As tabelas del_ vec e img_ frc poderiam apresentar o mesmo comportamento, oferecendo três elementos simultaneamente.
+Entretanto, há diversas memórias com o mesmo tamanho de del_ vec e img_ frc, assim estimulando o reuso.
+Além disso, o Core Generator disponibiliza, na porta de saída, profundidades 1, 2, 4, 8 e 16 vezes a da entrada, impossibilitando o acesso a apenas três endereços ­ o que deixaria um endereço sem uso, um overhead desnecessário.
+De esse modo, empregaram- se três tabelas distintas em cada caso.
+Simulações com um número maior de átomos ou um raio de corte diferente demandarão a geração de novas tabelas, para conter as novas quantidades de elementos.
+Lembrando que se deve alterar apenas o tamanho das tabelas, nada mais.
+Um ponto a ser considerado para simulações maiores é que o protocolo MainBus reserva apenas 24 bits para o espaço de endereçamento, alcançando então um máximo de 16.777.215 posições em cada &quot;escravo «do protocolo ­ ou seja, pode- se empregar tabelas com tamanho de até 16 milhões de elementos, suficientes para a maioria das simulações atuais.
+Esse valor pode ser alterado, à custa de a diminuição no número de escravos.
+A Figura 9 apresenta o símbolo esquemático com os sinais de dados e handshaking disponíveis nos blocos de memória de FPGAs Xilinx.
+Os sinais são os mesmos para as duas portas, &quot;a «e &quot;b», respectivamente:
+Addr (endereço de leitura/ escrita);
+Din (entrada de dados/ não utilizado);
+We (habilitação escrita/ não utilizado);
+En e sinit (não utilizados);
+Nd (novo dado a escrever/ ler);
+Clk (relógio de cada porta);
+Cada bloco de memória foi embalado num módulo escravo do protocolo MainBus, demonstrado no símbolo da Figura 10.
+Novamente, o intuito é o reuso de componentes, além de facilitar a programação do aplicativo-alvo (PMEMD), pois assim mantêm- se os índices originais, alterando- se apenas a identificação do escravo a ler ou escrever.
+Caso utilizasse mais de um bloco num mesmo escravo, seria necessário utilizar um offset para escolher qual a tabela destino.
+Com o uso de uma API como a de Sartin, isso ficaria transparente para o programador do aplicativo-alvo ­ mas, nesse caso, a API mencionada requer adaptação, pois não prevê tal uso.
+Entretanto, para quem descreve o hardware, se faz necessária uma lógica de controle adicional, além de diminuir o espaço de endereçamento (já que esse seria dividido por n blocos).
+Conforme os apontamentos da Seção 6.4 e a exemplo dos blocos de memória, a aritmética de ponto flutuante foi desenvolvida com o auxílio da ferramenta Xilinx Core Generator.
+Todas as operações estão em conformidade com o padrão IEEE 754, com desvios apenas em comprimentos de palavra não-padrão (non-standard wordlength ­ gerência tamanhos além de os que estão definidos na norma), números não-normalizados (não há suporte, todos são tratados como zero), modo de arredondamento (possui apenas o &quot;arredondar para o mais próximo «­ round- to nearest) e indicação de &quot;não é um número «sinalizado ou silencioso (signaling NaN e quiet NaN são tratados como quiet NaN ­ not- a- number).&amp;&amp;&amp;
+Dada a natureza das operações de soma e subtração, o Core Generator permite manter- las numa mesma estrutura, sem alteração significativa no uso de recursos ­ como se pode observar da Tabela 4, ambas as operações têm o mesmo consumo.
+Entretanto, é necessária uma lógica de controle que indique qual operação será executada naquele momento.
+Isso pode ser útil no reuso de recursos, mas não será empregado neste trabalho considerando que as operações são fixas e causaria um excesso de fios, que permaneceriam em desuso.
+Todas as FPUs foram criadas com precisão simples (32 bits), exclusivamente para o FPGA Virtex4 FX100 que se encontra na plataforma.
+A Tabela 4 mostra o tamanho de cada core gerado.
+Todos foram parametrizados de modo a obter a maior latência (número de ciclos de relógio entre a entrada de um novo operador e a obtenção do resultado, o que garante uma maior frequência de operação do hardware) e o maior paralelismo disponível (pode- se aplicar um novo dado a cada clock, tendo, assim, maior desempenho).*
+Módulo com recurso Xilinx DSP48E.
+Recurso Adição* Adição Sub.*
+Sub. Mult.*
+Mult. Divisão Raiz Fixo Flut.
+Compapara Para ração Flut.
+Fixo Slice FlipFlops Slices ocupados LUT de 4 entradas (total) Xilinx Entretanto, essa última característica implica num consumo elevado de recursos e obriga a criar registradores para guardar os resultados entre operações com tempo de execução diferentes (maiores detalhes na Seção 7.7).
+Uma opção seria aplicar uma taxa de envio de dados menor (o que habilitaria o reuso de hardware na própria FPU), até obter uma implementação completamente sequencial.
+Em esse caso, alcança- se o paralelismo ao replicar todo o módulo de cálculo ­ mas, como a memória é acessada uma vez a cada clock, não há ganhos com essa concepção.
+Poderia- se-, então, replicar também as me- mórias, mas não há espaço físico para tal no FPGA disponível no momento de escrita desta Dissertação.
+Acrescente- se a isso as necessidades de realimentações ­ o que obrigaria aos módulos adicionais esperar o resultado uns dos outros ­ e se perde qualquer vantagem dessa implementação.
+Uma peculiaridade comum a todas as unidades de ponto flutuante é o sinal operation_ rfd, que indica que a FPU está pronta para receber dados (ready for data).
+Como todos os cores foram preparados de modo a receber novos dados a cada ciclo do relógio, tal flag é assertada assim que a FPU está inicialmente pronta e depois permanece imutável, a menos que seja enviado um sinal de reset ­ configurações diferentes da escolhida podem ter outro comportamento, conforme o manual da ferramenta.
+Essa propriedade desobriga a vigiar a flag de cada core, pois se pode assumir que, quando as primeiras FPUs estão prontas, todas as posteriores também estarão.
+Assim, a respectiva porta permanece aberta nas unidades não vigiadas, diminuindo a lógica no FPGA.
+Os outros sinais, visíveis na Figura 11, são:
+A e b (operandos), operation (não utilizado), operation_ nd (new data ­ há novos dados a serem computados), operation_ rfd (explicado anteriormente), sclr (synchronous reset ­ reiniciar), ce (não utilizado), clk (relógio), result (resultado da operação), underflow, overflow, invalid_ operation, divide_ by_ zero (sinais de erro, não utilizados), rdy (ready ­ cálculo terminado).
+Outro obstáculo é a parca quantidade de unidades Xilinx DSP48E no FPGA, impedindo sua colocação em todas as unidades aritméticas.
+Além de diminuir o uso de recursos, os DSP48E melhoram o desempenho.
+Assim, se faz necessário o levantamento do caminho crítico para substituir os cores que o compõem por outros com DSP48E.
+Conforme mencionado na Seção 6.2, a DINI Group facilita a transmissão de dados entre o PC hospedeiro e a plataforma FPGA ao disponibilizar seu protocolo de comunicação denominado MainBus ­ um conjunto composto de driver (no lado do PC) e descritores de hardware (no lado do FPGA).
+A interligação entre PC e FPGA pode ser feita por os barramentos USB ou PCI, sendo que a escolha desta Dissertação recaiu no último.
+Em a especificação do MainBus existe um mestre e até 16 escravos.
+O conceito de escravo, neste caso, é um módulo no FPGA que pode se comunicar diretamente com o barramento MainBus.
+O barramento se compõe de 32 bits compartilhados para endereço e dados (bi-direcional para, utilizado tanto para a leitura quanto para gravação), mais 4 bits de controle, totalizando 36 bits.
+O controle é formado por os sinais Ale, indicando o envio do endereço, o sinal RD, para realizar leitura, o sinal WR, para realizar gravação, e o sinal DONE, que indica que o escravo terminou o processamento (seja o consumo do valor a ser registrado ou a disponibilização do dado a ser lido).
+A transferência de dados entre o MainBus e o hospedeiro é simples.
+Após iniciar o driver da placa, o software pode requisitar uma escrita ou uma leitura no barramento.
+As duas operações são divididas, no driver, em quatro partes:
+Habilitação do acesso à PCI, habilitação do acesso ao MainBus, envio do conjunto escravo/ endereço e, finalmente, efetivação da leitura ou gravação.
+A forma de onda para os procedimentos de leitura e gravação no FPGA pode ser vista na Figura 13 e na Figura 14, respectivamente.
+A o término do programa, o driver deve ser descarregado.
+As operações de inicialização e descarga do driver de comunicação com a placa foram inseridas no arquivo pmemd.
+Fpp, que é o responsável por começar e terminar a execução do PMEMD.
+Aproveitando a integração entre o driver e o PMEMD desenvolvida por Sartin em, foram acrescentadas duas primitivas para tais operações, chamadas:
+Para o envio e recebimento de dados, foram adicionadas primitivas que manipulam variáveis inteiras e de ponto flutuante.
+A operação de leitura recebe como parâmetro o valor do local de onde o dado deve ser lido e a variável para onde guardar o resultado.
+Já a de escrita é formada por o endereço e o dado a escrever:
+Para indicar o endereço onde manipular os dados, o protocolo necessita de um valor composto por o número que identifica o FPGA na placa, o número do escravo e o endereço ou índice do dado propriamente dito.
+O MainBus reserva 4 bits para identificação do FPGA, 4 para indicar o escravo e os outros 24 para decodificação dentro de o escravo.
+Tais valores podem ser alterados para, por exemplo, aumentar a quantidade de escravos ­ consequentemente diminuindo o espaço de endereçamento interno aos escravos.
+A arquitetura desenvolvida neste trabalho ocupa 12 dos 16 escravos disponíveis.
+O primeiro escravo, o escravo de controle ­ &quot;slave_ control», é responsável por a transferência de diversas variáveis, além de comandar o início do processamento e verificar seu término.
+As variáveis que ele conduz de e para o FPGA estão na Tabela 7, linhas da coluna &quot;Escravo «com valor &quot;0».
+Para controle da carga de dados na memória, cada tabela a ser manipulada conecta- se a um dos escravos restantes, conforme a Seção 7.1.
+O sinal Ale indica o envio do endereço.
+O sinal DONE indica que o dado foi consumido.
+O escravo de controle foi construído de modo a permitir a execução singular do módulo Coulomb-EFS e Coulomb-SPLINE (sinais run_ once_ cet e run_ once_ csp), ou realizar o laço completo do PMEMD (sinal run_ loop).
+A motivação para executar cada módulo em separado é facilitar a depuração tanto do hardware como da comunicação entre o hospedeiro e o FPGA.
+Cada variável, assim como os sinais de controle, possuem um endereço próprio que pode ser acessado para atualizar ou ler seu conteúdo.
+Para saber se o processamento foi concluído, deve- se apenas ler o conteúdo do sinal &quot;done».
+Apesar de ser uma solução simples, não é a melhor, uma vez que o tempo para o cálculo terminar é indeterminado, forçando a verificação contínua desse sinal.
+Assim, é necessário manter o processador num laço efetuando pooling naquele endereço, o que significa que o processador receberá uma carga desnecessária de trabalho além de não estar ciente do momento exato do término do processamento.
+O ideal seria que o programa permanecesse em espera até ser avisado por o FPGA.
+Entretanto, o protocolo MainBus não prevê tal forma de comunicação.
+Em a Tabela 7 estão as variáveis transferidas entre a plataforma de hardware e o PMEMD.
+A coluna &quot;Quantidade de variáveis/Sartin «possui a quantidade de dados que foi classificada por Sartin em, que difere do que foi adquirido por o autor desta Dissertação.
+Em parte, isso acontece porque o modelo de simulação utilizado neste trabalho é diferente, com número de partículas e raio de corte menores ­ imprescindível para caber no FPGA em uso.
+­ indica dado não utilizado.
+Os nomes das variáveis espelham os encontrados no programa PMEMD.
+Variável Escravo Tipo dens_ efs dxdr Quantidade de variáveis Sartin Autor Ponto flutuante Ponto flutuante eedtbdns_ stk Ponto flutuante eed_ stk Ponto flutuante eedvir_ stk Ponto flutuante cgi Ponto flutuante nxt_ cnt Inteiro del Ponto flutuante vxx Ponto flutuante vxy Ponto flutuante vxz Ponto flutuante vyy Ponto flutuante vyz Ponto flutuante vzz Ponto flutuante dumx Ponto flutuante dumy Ponto flutuante dumz Ponto flutuante ef_ tbl Ponto flutuante eed_ cub Ponto flutuante img_ frc 3, 4 e 5 Ponto flutuante 3 x 35.681 3 x 12.461 img.&amp;&amp;&amp;
+Charge Ponto flutuante delr2_ vec Ponto flutuante del_ vec 8, 9 e 10 Ponto flutuante 3 x 128 3 x 128 img_ j_ vec Inteiro nxt Inteiro O módulo Coulomb-EFS efetua o cálculo da soma direta de Coulomb com dados provenientes da tabela EFS, batizando, assim, o nome do módulo.
+Seu funcionamento replica o código disponível no programa PMEMD e pode ser visto na Figura 15 ­ os símbolos», 0 &quot;e», «representam o truncamento e conversão de ponto flutuante para inteiro, respectivamente.
+Deve- se perceber que esse não é o esquemático, mas sim uma visão simplificada do cálculo.
+Devem se somar à figura, ainda, diversos sinais:
+Clock ­ entrada, relógio;
+Em a Tabela 10 estão dispostos os valores de todas as variáveis que compõem essa área de cálculo.
+Os dados demonstram que há uma perda de precisão entre o que é registrado no PMEMD e o que é calculado no módulo correspondente em hardware, na ordem de 0,00000597808220703655% a 0,0000000327711997538671%.
+Esse comportamento é esperado, uma vez que o software trabalha com precisão dupla (64 bits) e o hardware com precisão simples (32 bits).
+Por fim, são apresentadas estatísticas fornecidas por a ferramenta Xilinx ISE/ XST.
+Informações sobre a frequência máxima que o hardware pode alcançar estão em destaque na Tabela 8 e os recursos que seriam consumidos no FPGA estão na Tabela 9.
+Figura 15 ­ Bloco para o cálculo de Coulomb com a tabela EFS.
+Onde», 0 &quot;é o truncamento e», «é a conversão flutuante/ inteiro.*
+See Notes below for an explanation of the effects of unrelated logic.
+Number used as logic:
+Number used as a route-thru:
+Number used as Shift registers:
+IOB Latches: Number used as BUFGs:
+Variáveis em itálico indicam entradas do PMEMD para o módulo.
+Variável Valor registrado no PMEMD delr2 Valor calculado no módulo Hexadec.
+Ponto Flutuante cgi_ cgj dens_ efs ef_ tbl_ i1 ef_ tbl_ i2 ef_ tbl_ i3 ef_ tbl_ i4 ef_ tbl_ i5 ef_ tbl_ i6 ef_ tbl_ i7 ef_ tbl_ i8 df eed_ stk eedvir_ stk De a mesma forma que na Seção 7.4, a Figura 16 apresenta o desenho simplificado que espelha o funcionamento de PMEMD, sem os sinais de controle ­ idênticos aos do Coulomb-EFS, à exceção de o comando de leitura da memória que, nesse caso, atinge a tabela de interpolação spline cúbica com função de erro complementar (erfc spline), chamada de eed_ cub, que denomina este módulo.&amp;&amp;&amp;
+Os dados de timing e uso de recursos para esse módulo, conforme levantamento oferecido por a ferramenta Xilinx ISE/ XST, estão referenciados na Tabela 11 e na Tabela 12.
+Já a Tabela 13 faz a comparação entre os valores capturados do PMEMD e do módulo.*
+See Notes below for an explanation of the effects of unrelated logic.
+Number used as logic:
+Number used as a route-thru:
+Number used as Shift registers:
+Variáveis em itálico indicam entradas do PMEMD para o módulo.
+Variável Valor registrado no PMEMD Valor calculado no módulo Hexadecimal Ponto Flutuante delr2 cgi_ cgj dxdr eedtbdns_ stk eed_ cub_ i1 eed_ cub_ i2 eed_ cub_ i3 eed_ cub_ i4 eedvir_ stk eed_ stk df Uma vez terminado o cálculo de Coulomb (seja através do módulo Coulomb-EFS ou do Coulomb-SPLINE), diversos acumuladores devem ser atualizados.
+Esse processamento é feito por o módulo Updates ­ representado simbolicamente na Figura 17.
+Esse é o único módulo onde um escravo armazena dados provenientes do FPGA nos blocos de memória ­ a tabela img_ frc ­ e que, portanto, possui um sinal adicional que sinaliza à memória para arquivar o valor correspondente.
+O controle foi incorporado ao módulo, pois, assim, o tempo perdido na escrita fica escondido, uma vez que é executado em paralelo com outras operações.
+Além disso, desonera a máquina de estados e diminui a quantidade de fios ligando- a aos escravos de memória ­ a conexão já existe, com o módulo Updates.
+Error: Pack:
+2309 -- Too many bonded comps of type &quot;IOB found «to fit this device.
+Design Summary: Logic Utilization:
+11,581 out of 10,686 out of Logic Distribution:
+Number used as logic:
+11,091 out of Number used as a route-thru:
+Number used as Shift registers:
+Number used as BUFGs:
+Variáveis em itálico indicam entradas do PMEMD para o módulo.
+Variável Valor registrado no PMEMD Valor calculado no projeto Hexadec.
+Ponto Flutuante del_ vec 1 c04 f5dc2 del_ vec 2 c0269 ed7 del_ vec 3 c0 bdacc7 df 39a8313b 3,208013658877462 e-004 dfx ba883 d68 1,0394277051091194 e-003 dfy ba5 af090 8,35188664495945 e-004 dfz baf93 bb9 1,901499112136662 e-003 vxx bb5 cb719 3,367847064509988 e-003 vxy bb3158 b4 2,706092782318592 e-003 vxz bbc9 e292 6,1610424891114235 e-003 vyy bb0 e7fd6 2,1743676625192165 e-003 vyz bba2375e 4,9504479393363 e-003 vzz bc38 a94d 1,127083320170641 e-002 dumx ba883 d68 1,0394277051091194 e-003 dumy ba5 af090 8,35188664495945 e-004 dumz baf93 bb9 1,901499112136662 e-003 Todas as unidades de ponto flutuante podem receber um novo dado a cada ciclo do relógio, conforme explicado na Seção 6.4 ­ e essa característica não foi explorada aqui, o que poderia melhorar o desempenho.&amp;&amp;&amp;
+Para tanto, é necessário um estudo do caminho crítico e da árvore de dependências, pois cada unidade tem um tempo de processamento diferente (conforme a operação a ser executada) e os operadores são necessários em tempos diferentes ­ por exemplo, a variável delrinv do módulo Coulomb-SPLINE é obtida após o segundo cálculo terminar e seu valor é requisitado tanto para o terceiro quanto para o penúltimo cálculo.
+Caso os operadores mudem, todos os resultados intermediários devem ser guardados até chegarem ao penúltimo core.
+Outro exemplo está no módulo Coulomb-EFS, onde as variáveis ind e del_ efs estão disponíveis em tempos alternados, decorrentes de uma multiplicação e uma divisão com latências próprias ­ e ambos são operadores de uma multiplicação subsequente, o que obriga a manter um até o outro estar disponível.
+Em esse caso, é possível gerar unidades de ponto flutuante com latências diversas (o que é parametrizável por a ferramenta Core Generator), tendo um enorme cuidado para inserir cada unidade em seu devido lugar de modo a ter os resultados no mesmo instante.
+Entretanto, dependendo da configuração utilizada, a inserção de novos dados pode ter uma constância diferente de uma unidade para outra, inviabilizando essa constituição.
+O tamanho das memórias intermediárias (nos diferentes estágios do pipeline) é extenso, podendo alcançar, por exemplo, 8* 32* atraso de cada core (número de índices a serem guardados da tabela ef_ tbl;
+Profundidade de bits;
+Atraso de três multiplicadores e um subtrator), ou pode ser ainda mais longo, no caso de as realimentações.
+Esses são dois pontos que requerem cuidados especiais.
+O acesso à memória pode ter seu desenho alterado, pois o design atual obtém os oito elementos ao mesmo tempo, o que não necessariamente é o melhor para uso com pipeline.
+Já as realimentações demandam que pelo menos um ciclo completo do módulo seja terminado, para preencher o pipeline.
+Havendo atenção aos tempos de latência para cada core, se podem descartar os mecanismos de handshaking.
+Uma vez terminado o processo de design, os módulos foram sintetizados para envio ao FPGA.
+Segundo os apontamentos da ferramenta de síntese Xilinx XST, a arquitetura como um todo pode ser executada até uma frequência de 166 MHz ­ na prática, os testes foram efetuados com 50 e 160 MHz.
+Entretanto, os módulos individualmente alcançam cifras bem maiores, como descrito nas Seções 7.4 a 7.6.
+Tal alteração de valo-res decorre, provavelmente, do uso excessivo de slices no FPGA ­ que, infelizmente, não pode ser diminuído dada a quantidade de operadores matemáticos e de memória necessários ao processamento do PMEMD.
+Isso acarreta problemas de roteamento e tamanhos de fios, causando atrasos para a chegada dos sinais (especialmente os dados em 32 bits) consequentemente, diminuindo a frequência atingível.*
+See INFO below for an explanation of the DCM autocalibration:
+Number used as logic:
+56,416 out of 40 out of 2 out of Number used as a route-thru:
+Number used as Shift registers:
+Number used as BUFGs:
+Number used as RAMB16s:
+346 out of 2 out of Também, diversos pontos do hardware poderiam receber amostragens, que não foram incluídas no projeto, talvez melhorando esse resultado.
+Além disso, nenhuma técnica especial de desenvolvimento (como, por exemplo, floorplaning ­ impraticável, considerando a avançada utilização de recursos no FPGA e a quantidade de interligações entre os módulos, trazendo resultados negativos) foi empregada no projeto, o que pode contribuir para a baixa frequência alcançada ­ em comparação com as possíveis em cada módulo individualmente.
+Tabela 20 ­ Comparação entre execuções do PMEMD e do módulo Coulomb-EFS.
+Variável Valor registrado no PMEMD Valor retornado por o módulo df eed_ stk eedvir_ stk df eed_ stk eedvir_ stk Para comprovar a eficácia da arquitetura desenvolvida, foram realizados testes com o PMEMD adaptado para comunicar com o co-processar carregado no FPGA.
+Os resultados demonstram que a construção está correta, havendo uma perda de precisão dado o emprego de unidades de ponto flutuante de 32 bits.
+Os valores apresentados na Tabela 20, Tabela 21 e Tabela 22 foram obtidos em diversas execuções reais do PMEMD e do hardware no FPGA, demonstrando a validade da implementação.
+Os valores da Tabela 22 são resultados da execução do laço por inteiro, com 85, 34 e 55 iterações, respectivamente.
+Além de os resultados apresentados acima, avaliou- se também o desempenho na interação hospedeiro/ protótipo.
+Para tentar diminuir ao máximo o impacto da comunicação no desempenho, a carga dos dados foi espalhada no programa PMEMD.
+Isso é possível identificando os locais onde as variáveis são alteradas e adicionando primitivas para envio ou leitura das informações.
+Entretanto, dois problemas atingiram o estudo.
+A tabela img_ charge é alterada em diversos locais no código fonte do PMEMD e nem todos esses pontos foram encontrados.
+Além disso, a tabela img_ frc não possui identificação nos elementos modificados por o FPGA.
+Em ambos os casos, isso obriga enviar todo o conteúdo da tabela img_ charge antes da execução do laço e a ler toda a tabela img_ frc após seu término, aumentando de forma significativa o tempo de execução do programa.
+Tabela 22 ­ Comparação entre execuções do PMEMD e do módulo Updates.
+Variável Valor registrado no PMEMD Valor calculado por o módulo dfx dfy dfz vxx vxy vxz vyy vyz vzz dumx dumy dumz dfx dfy dfz vxx vxy vxz vyy vyz vzz dumx dumy dumz A solução encontrada foi manter o início do Laço-PCH no PMEMD, mais precisamente a linha que encontra os índices a serem manipulados nas tabelas.
+Assim, apenas os elementos importantes são enviados ao FPGA.
+Entretanto, mesmo utilizando tal técnica, o desempenho foi impactado, assim como aconteceu a Azizi Em.
+O PMEMD executando apenas em software precisa de cinco segundos para terminar uma simulação de apenas 10 passos ou 0,02 ps..
+A mesma simulação empregando o protótipo gerado leva 4 min 6 s.
+A o remover a interação com as tabelas img_ charge e img_ frc, o tempo total cai para 2 min 23 s.
+Esse último dado serve apenas para comprovar que o excesso de comunicação degrada de modo sensível o desempenho do sistema, pois sem o conteúdo de tais tabelas o resultado não é válido.
+Dois testes foram realizados, com o protótipo sendo executado em frequências de 50 e 100 Mhz, sem alteração no tempo total de execução.
+Esses resultados comprovam que a melhoria na comunicação entre hospedeiro e protótipo é um dos principais tópicos para estudos futuros.
+Durante o percurso desta Dissertação fica claro que a demanda por aceleradores em bioinformática é alta.
+Essa é uma linha de pesquisa promissora e que pode trazer resultados importantes tanto para a área da tecnologia da informação quanto da biologia e química.
+Mesmo com todas as investigações e resultados de trabalhos paralelos, mostrados ao longo deste texto, ainda existem vários pontos que podem ser trabalhados ou aprofundados.
+O uso de hardware para melhorar a execução do programa AMBER é um ponto de interesse.
+O estudo feito por Alam Usa HLL, que atualmente gera estruturas superdimensionadas e lentas ­ linguagens HDL, como VHDL e Verilog, geram estruturas menores, pontuais e mais rápidas e, portanto, são mais indicadas na construção de aplicações com FPGA.
+O emprego de um FPGA com tecnologia mais atual e interfaces mais modernas (e, portanto, mais eficientes) de comunicação entre hardware e software pode trazer novos resultados, passíveis de avaliação na forma como afetam os ganhos revisados ao longo de a Dissertação.
+Assim, a união entre a necessidade de maior desempenho para os programas de simulação por dinâmica molecular utilizados no LABIO e a ciência e equipamentos disponíveis no GAPH gerou essa Dissertação.
+Diversos objetivos foram traçados na Seção 1.1 e, de maneira geral, todos foram alcançados.
+O processo de projetar hardware para comunicação entre software e hardware está compreendido, o que é comprovado por a arquitetura desenvolvida aqui.
+A infra-estrutura implementada se mostra funcional e eficaz, como visto nos resultados da Seção 7.8.
+As metas elencadas na Seção 1.1 também foram atingidas, como descrito extensivamente no Capítulo 7.
+Portanto, essa Dissertação documenta a criação bem sucedida de um protótipo que reproduz a atuação do PMEMD.
+O projeto é capaz de simular um sistema de aproximadamente 13.000 partículas, com resultados próximos aos de uma execução puramente com software.
+A variação percebida é causada por a aplicação de variáveis com precisão diferenciada (dupla, 64 bits, no PMEMD e simples, 32 bits, no FPGA).
+O desempenho da aplicação teve uma forte degradação, causada principalmente por a comunicação entre hospedeiro e protótipo.
+Além disso, a linha de pesquisa iniciada com esse trabalho abre um vasto campo de estudos, o que pode ser observado na lista de atividades futuras apresentada na seção abaixo.
+Enquanto esta Dissertação desenvolveu o hardware funcional equivalente à área de maior custo computacional no programa PMEMD (segundo), inclusive integrando- o a esse programa, permanecem em aberto várias opções de estudo para melhorar seus resultados.
+Alguns estão elencados abaixo:
+Aproveitamento dos pipelines internos aos cores.
+Detalhes na Seção 7.7;
+Alteração do controlador para executar o laço &quot;gêmeo «ao laco_ pch.
+Detalhes na Seção 6.1;
+Ampliação da abrangência do hardware no PMEMD.
+O tempo e a plataforma disponíveis à época da criação dos módulos aqui apresentados não permitiram englobar todo o módulo short_ ene_ vec do PMEMD.
+Avaliar os benefícios e programar o código restante do shot_ ene_ vec pode aumentar o desempenho ao manter uma maior computação no FPGA e diminuir a comunicação hospedeiro × plataforma;
+Uso da memória RAM.
+Implica na perda do paralelismo na aquisição dos dados das tabelas.
+Entretanto, pode- se buscar- los durante a execução dos cálculos, guardando- os em registradores até seu uso efetivo.
+Um ganho secundário é aumentar o tamanho das simulações, pois há mais espaço para manipular uma maior quantidade de partículas;
+Aumento da precisão da arquitetura para 64 bits.
+Todos os cores, memórias e barramentos devem ser refeitos para atingir tal precisão ­ facilmente alcançável com o uso da ferramenta Xilinx CoreGen.
+Entretanto, também provoca perda de paralelismo durante a obtenção de dados das tabelas, caso sejam geradas por o CoreGen, por limitações da ferramenta no tamanho da porta de leitura (máximo de 256 bits de largura).
+A comunicação do escravo de controle com o PMEMD também precisa alteração, pois o protocolo MainBus e a interface PCI permitem o envio de apenas 32 bits a cada interação, obrigando a executar duas operações de escrita para obter um dado.
+Além disso, o espaço do FPGA na plataforma atual pode não conter todos os módulos em 64 bits;
+Aumento da largura da interface de comunicação para 64 bits, em conjunto com o barramento PCI- e ­ para plataformas que o possuam.
+Há duas opções para isso:
+A troca completa do protocolo de comunicação, removendo toda re-ferência ao MainBus, ou alterar- lo de modo a utilizar todos os 64 bits do PCI- e ­ nesse caso escolhendo também alterar a arquitetura para 64 bits ou aproveitar para enviar duas palavras de 32 bits (se for mantida tal precisão na arquitetura) juntamente com seus dois endereços;
+Uso de Direct Memory Access ­ DMA.
+Outro ponto que pode levar a um ganho de desempenho, ao melhorar a interface de comunicação;
+Revisão do caminho crítico, substituindo os cores por outros que possuam Xilinx DSP48E, o que diminui o tempo total de execução dos módulos;
+Implementação de pedidos de interrupção (IRQ) no protocolo MainBus, evitando o uso de pooling mencionado no Capítulo 7.3.
+Além de os estudos pertinentes a plataforma, a área de software possui uma alteração importante.
+A API disponibilizada por Sartin não é empregada nesta Dissertação, conforme apontamentos da Seção 6.1.
+Essa atividade requer a adaptação da API para que trabalhe com diversos escravos, segundo explicações na seção mencionada.
+Ainda, os diversos autores pesquisados também indicam alguns temas de trabalhos na área.
+Por exemplo, Yang Sugerem o estudo sobre a precisão aritmética imprescindível em hardware para determinado tipo de simulação ­ ponto bastante discutido nos artigos revisados aqui.
+Outro tópico é o problema de read-after-write provocado por o uso de pipeline e a latência incluída.
+Mais um campo de pesquisa seria implementações paralelas com múltiplos FPGAs, o que já está sendo endereçado por alguns autores como Scrofano.
+Scheraga afirma que os campos de força ainda não estão perfeitos, já que é possível ter resultados diferentes com campos de força diferentes, sendo uma prioridade para estudos futuros.
+Também diz que é necessário um método para converter trajetorias de grão grosso para trajetórias calculadas por funções de potencial all-atom.
+Gu Indicam o uso de outros algoritmos de transformadas, como somas de Ewald ou transformadas rápidas de Fourier.
+Segundo os autores, o último já está em andamento, apesar de eles mesmos afirmarem em que é difícil implementar- lo com eficiência.
+De o mesmo modo, o uso de SMPE já foi revisado, mas por Scrofano, que, por sua vez, indica outras técnicas como o método multipólo rápido (fast multipole method).
+Luethy e Hoover aponta a falta de benchmarks como um problema para facilitar a comparação entre os diversos tipos de algoritmos e aceleradores disponíveis.
+Isso é facilmente percebido nos artigos que compõem a bibliografia revisada ­ apesar de existir um benchmark para AMBER, não utilizado em nenhum de tais artigos.

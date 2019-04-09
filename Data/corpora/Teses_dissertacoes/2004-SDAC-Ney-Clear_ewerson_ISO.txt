@@ -1,0 +1,1474 @@
+Sistemas reconfiguráveis onde o hardware pode ser alterado em tempo de execução possuem o potencial para flexibilizar hardware de forma similar a flexibilidade provida por o uso de software.
+Eles podem apresentar a vantagem adicional de poderem simultaneamente alcançar melhor desempenho e menor tamanho.
+Contudo, existem carências em dispositivos de suporte, ferramentas e fluxos de projeto para tais sistemas.
+Uma das principais carências são métodos eficientes de controle do processo de reconfiguração do hardware.
+A principal contribuição deste trabalho é a proposta e construção de um controlador de configurações de hardware implementado totalmente em hardware, em contraposição a propostas da literatura, realizadas predominantemente em software.
+Uma característica importante do controlador implementado é que este é parte do hardware do sistema, tornando o mesmo capaz de se autoreconfigurar, sem recurso a dispositivos de controle externos.
+O modelo subjacente proposto, denominado RSCM, é genérico para uma certa classe de aplicações e dispositivos, podendo ser implementado em hardware, software ou com um misto de ambos.
+Ainda no presente trabalho, apresenta- se um resumo do estado da arte em sistemas reconfiguráveis, com ênfase em sistemas dinâmica e parcialmente reconfiguráveis.
+Propõe- se o arcabouço PaDReH para projeto e gerenciamento destes sistemas.
+Além de isto, alguns critérios de classificação do processo de reconfiguração de sistemas são propostos para auxiliar a compreensão do mesmo.
+Em os últimos anos vem acontecendo uma ascensão do interesse em sistemas de hardware reconfigurável e seu emprego na concepção de sistemas complexos integrados num único circuito integrado (Ci).
+Varios fatores impulsionam tal fenômeno.
+Entre eles pode- se citar a flexibilidade proporcionada por sistemas que incorporam hardware reconfigurável e os benefícios relativos à redução do tempo para o produto chegar ao mercado (em inglês, time- to-- market).
+A existência de dispositivos que habilitam a implementação de sistemas dinâmica e parcialmente configurãveis aliada à carência de ferramentas para o projeto destes motiva o estudo do assunto.
+A semelhança entre hardware parcialmente configurável e software do ponto de vista de flexibilidade, sugere o desenvolvimento de sistemas de suporte ao hardware que desempenhem tarefas semelhantes aos de suporte a sistemas complexos de software, tais como escalonadores de módulos e sistemas operacionais.
+Em o presente trabalho apresenta- se a proposta de um controlador de configurações implementado em hardware, em contraproposta a algumas propostas anteriores, implementadas prioritariamente em software.
+O presente Capítulo organiza- se da seguinte forma:
+Em a Seção 1.1 apresentam- se algumas considerações iniciais relacionadas ao contexto do presente trabalho.
+A Seção 1.2 contém esclarecimentos sobre sistemas dinâmicamente reconfiguráveis.
+Em a mesma Seção apresentase um modelo genérico de sistema reconfigurável.
+Seguindo, as motivações para realização do presente estudo apresentam- se na Seção 1.3.
+Em a Seção 1.4, trata- se a proposta de um arcabouço para projeto e implementação de sistemas dinâmicamente reconfiguráveis (SDRs).
+A Seção 1.5 apresenta objetivos estratégicos e específicos do trabalho.
+Em o final do Capítulo, Seção 1.6, apresenta- se a organização do volume.
+Em Martin e Chang definem o termo System-on-Chip (SoC) como um sistema complexo que integra a maioria dos elementos funcionais de um produto final completo num único Ci.
+Em geral, SoCs contém processadores programáveis (Pp), memórias (M), circuitos de aplicação específica (CiAE) de alto desempenho, interfaces com periféricos, e modernamente, também lógica reconfigurável (LR) que proporcionam uma maior flexibilidade ao sistema.
+De acordo com a necessidade do sistema, processadores programáveis, circuitos de aplicação específica e as áreas reconfiguráveis podem possuir ainda módulos de entraca e saída dedicados (ESD).
+Em a Figura 1.1, apresenta- se a estrutura genérica de um SoC.
+A tecnologia de implementação de CIs permite colocar entre varias dezenas a algumas centenas de milhões de transistores num único dispositivo, viabilizando assim implementar SoCs.
+A disponibilidade de núcleos de propriedade intelectual e a disponibilidade de plataformas de prototipação rápida para validar projetos de alta complexidade tornam SoCs comercialmente viáveis do ponto de vista do projeto.
+Através dessas tecnologias, o projeto pode ser realizado em tempo reduzido, respeitando as exigências de tempo de chegada ao mercado para os produtos tecnológicos.
+De acordo com Gupta e Bergamaschi, um núcleo de propriedade intelectual (em inglês IP-Core, ou apenas núcleo) e um módulo de hardware pre-projetado e pré-verificado que pode ser utilizado na concepção de sistemas maiores e mais complexos.
+Segundo Gupta, um núcleo pode ser classificado como:
+Soft, firm ou hard.
+Soft-Os núcleos soft geralmente são descritos em linguagens de descrição de hardware, oferecendo flexibilidade e independência de tecnologia.
+Os núcleos desse tipo podem ser modificados e empregados com tecnologias de diferentes fabricantes.
+Os núcleos soft, em geral não são disponibilizados com garantias estritas de atendimento de características temporais;
+Firm -- Os núcleos firm são representados em níveis de abstração mais baixos, tipicamente como netlists que são geradas para uma dada tecnologia.
+Estes núcleos podem ser parcialmente parametrizados por o usuãrio projetista, permitindo que sua arquitetura seja adaptada às necessidades do projeto.
+Entretanto, como a netlist é específica para uma dada tecnologia, existem dificuldades para uso do componente na implementação de CIs junto a fabricantes diferentes;
+Hard -- Os núcleos hard são otimizados para uma tecnologia específica e não podem ser modificados por o projetista.
+Estes núcleos possuem um layout e planta baixa prédefinidos.
+Possuem como maior vantagem a garantia precisa dos tempos de propagação do circuito.
+Sua desvantagem é a de não permitir qualquer tipo de modificação ou personalização.
+SoCs integram processadores programáveis e memórias, obviamente, visando reprogramação, ou seja, alteração de seu comportamento após fabricação via modificação do software associado a esses componentes.
+A lógica reconjígurável permite que o hardware em si seja reconfígurado, ou seja, tenha seu comportamento alterado, de forma análoga a reprogramação de software.
+A reconfigurabilidade visa fornecer ao hardware fiexibilidade semelhante ao software.
+De essa forma, torna- se interessante integrar circuitos reconfiguráveis em SoCs porque além de a flexibilidade fornecida, também o desempenho do sistema pode ser incrementado em níveis mais elevados que aqueles obtidos via alteração do software.
+O presente trabalho envolve o estudo de problemas específicos relacionados a sistemas dinâmica e parcialmente reconfiguráveis.
+A fim de prover infra-estrutura para a operação de sistemas desta natureza, propõe- se aqui um método de controle de configurações em hardware que gerencie o processo de reconfiguração num sistema de acordo com um cronograma de reconfigurações previamente estabelecido.
+A infra-estrutura aqui proposta pretende possibilitar que um sistema, composto por diversos núcleos, seja implementado num FPGA de forma eficiente.
+Supõe- se que alguns destes núcleos são configurados dinâmicamente no dispositivo, operação esta controlada por o módulo de controle do processo de reconfiguração aqui proposto.
+Arranjos de portas lógicas programáveis no campo, em inglês, Field Programmable Gate Array.
+Ou simplesmente FPGAs, são dispositivos reconfiguráveis, ou seja, podem ter seu comportamento modificado, quando desejado, através da operação que configura/ personaliza o dispositivos para se comportar da maneira desejada, operação esta denominada configuração.
+FPGAs foram originalmente concebidos visando a prototipação rápida de sistemas, mas atualmente sua utilização transcende em muito esta finalidade e passa a incorporar produtos finais cada vez mais freqüentemente.
+O uso de dispositivos reconfiguráveis permite:
+Implementação de sistemas computacionais flexíveis a medida que seu comportamento pode ser alterado após sua fabricação, denominados sistemas de computação reconflguráoel,· implementação numa área reduzida de um sistema conceitualmente maior que esta, através de metodos que tratam hardware reconfigurável de forma semelhante a memórias, implementando o que é denominado hardware virtual.
+FPGAs baseados em RAM (em inglês, Random Access Memory) são dispositivos naturalmente reconfiguráveis.
+Pode- se pensar num FPGA baseado em RAM como um hardware personalizável a cada instante por o usuario para executar diferentes funções, através do preenchimento dos bits da memória de controle deste, em RAM.
+O processo de personalizar o hardware a cada instante recebe o nome de reconjlguração.
+Desde sua introdução, FPGAs baseados em RAM vêm prometendo ao desenvolvimento de hardware a mesma flexibilidade que o desenvolvimento de software.
+Esse objetivo ainda não foi alcançado em virtude de o fato dos FPGAs atuais habilitarem reconfiguração dinâmica e parcial de uma forma um tanto limitada ja que a arquitetura desses dispositivos não proporciona a flexibilidade desejada.
+Além disso, as ferramentas de projeto e implementação de sistemas dinâmica e parcialmente reconfiguráveis são incipientes.
+Em, Vahid evidência uma nova perspectiva onde o hardware torna- se tão fiexível quanto o software, principalmente devido a o emprego de lógica reconfigurável e também ao uso de linguagens de alto nível para criar/ desenvolver hardware.
+O advento e a vertiginosa ascensão de complexidade e uso de dispositivos de hardware reconfigurável geram a necessidade de novos paradigmas de projeto em todos os níveis de abstração, desde os inferiores aos mais abstratos.
+Sistemas reconflguráveis são aqueles onde o hardware pode, após sua fabricação, ter alterada, ainda que parcialmente, sua funcionalidade/ comportamento.
+Maestre Citam que a computação reconfigurável, sistemas computacionais que empregam lógica reconfigurável, consolida- se cada vez mais como uma alternativa de projeto viável para implementar aplicações de computação intensiva, principalmente no mercado de Processador de Sinais Digitais (em inglês, Digital Signal Processor ou DSPs) e aplicações de multimídia.
+A computação reconfigurável é uma alternativa para projeto de aplicações que envolvem redes neurais, sistemas móveis[ SMIOQL ou seja, sistemas de diversas naturezas.
+Alguns dispositivos podem ser reconfigurados apenas totalmente, dessa forma, todos os itens configuraveis do dispositivo devem receber uma configuração antes deste poder ser utilizado.
+Outros, por sua vez, podem ser reconfigurados parcialmente, onde alguns dos bits de configuração podem ser alterados de cada vez.
+Estes são chamados dispositivos parcialmente reconflguráveis.
+O estudo aqui apresentado relaciona- se especificamente a dispositivos dessa natureza.
+Como classificou Sanchez, reconfigurações podem ser dinâmicas ou estáticas.
+Se o sistema não necessita ter seu processamento interrompido (sem disrupção) para que uma reconfiguração seja realizada então ele é dito dinâmico, caso contrario, é dito estático.
+Pode- se ainda classificar dispositivos reconfiguráveis de acordo com o tamanho do grão configurável.
+Entende- se por grão a menor unidade configuravel de a qual um dispositivo é composto.
+Modernamente, se as configurações se dão no nível de portas lógicas ou funções Booleanas de até quatro entradas diz- se que o dispositivo possui grão pequeno.
+Se estas se dão sobre unidades maiores, tais como ULAs, diz- se que o dispositivo possui grão médio.
+Quando estas se dão em unidades ainda maiores, tais como um microprocessador, diz- se que o dispositivo é de grão grande.
+Um conceito importante a ser tratado em SDRs é o de densidade funcional, que representa a taxa de utilização dos recursos de um dispositivo reconfigurável, ou seja, durante a execução do sistema, qual o nível de utilização de seus recursos.
+O conceito de densidade funcional é apresentado em como o inverso do produto entre a área ocupada por o circuito e o tempo de execução do mesmo.
+A Equação 1.1 apresenta a relação entre densidade funcional (D) e o produto da área ocupada por o circuito (A) por o tempo de execução (T).
+De acordo com essa Equação, se dois circuitos ocupam a mesma área mas gastam tempos diferentes para executar, então aquele que gasta mais tempo tera uma densidade funcional menor.
+De a mesma forma, se dois circuitos gastam o mesmo tempo para executar mas possuem áreas diferentes, aquele com maior área possui menor densidade funcional.
+Conceitos similares aos apresentados por Wirthlin foram desenvolvidos de forma independente por DeHon.
+Wirthlin apresenta como um dos principais fatores que devem ser analisados para avaliar o uso de sistemas reconfiguráveis o tempo de configumção (ou reconfiguração).
+O presente trabalho envolve o estudo de problemas específicos relacionados a sistemas dinâmica e parcialmente reconfiguráveis.
+A fim de prover suporte ao desenvolvimento e operação de sistemas desta natureza, propõe- se aqui, um método de controle de configurações em hardware para gerenciar os processos de configurações num sistema de acordo com um escalonamento conhecido.
+Desta forma, pretende-se possibilitar que um FPGA possa ser utilizado de maneira eficiente por diversos núcleos, sejam eles relacionados entre si ou não.
+Tais núcleos são configurados dinâmicamente no dispositivo, operação esta controlada através do método proposto.
+Em Seções anteriores, o conceito de sistema reconfigurável foi apresentado de uma maneira um tanto restrita.
+Mais especificamente, teve- se em mente dispositivos de hardware, ern particular FPGAs baseados em RAM.
+Em a realidade, pode- se generalizar o conceito para abranger vários sistemas de naturezas distintas como sistemas reconfiguráveis.
+Coloca- se a questão de qual seria uma boa definição de sistema reconfigurável.
+A Figura 1.2 ilustra uma proposta de modelo genérico para representar os fluxos de informação de controle em sistemas reconfiguráveis.
+Região de Execução Subrregião Ativa eeeee «Il I* oa* E:
+System é utilizado para representar sistemas reeonfíguráveis.
+Dependendo do nível de abstração em que se observa o sistema, ele pode ser considerada como recanfigurável ou não.
+A Figura 1.2 ilustra o modelo proposto para representar sistemas reconfiguráveis de forma genérica, denominado Generic Reconfigurable System (GRS).
+Em a Figura, nota- se que um sistema reconfigurável é composto de três regiões:
+Região de suporte, região de transição e região de execução.
+Em todas as regiões ilustradas são encontradas configurações.
+Em este contexto, configuração consiste de um conjunto de informações que pode ser usado para personalizar o comportamento desempenhado por uma parte de um sistema reconfigurável num dado instante.
+A Região de Suporte é o repositório de configurações.
+Tipicamente, todas as configurações que um sistema reconfigurável necessita em algum momento estão presentes nesta região.
+A Região de Transição, como o próprio nome indica é um repositório onde residem temporariamente configurações em trânsito entre as regiões de execução e de suporte.
+Esta região subdivide- se em duas sub-regiões.
+A primeira de elas é a Sub-região de Configuração, em a qual encontram- se as configurações que estão sendo inseridas na região de execução.
+A segunda é a Sub-região de Descarte, que abrange as configurações em processo de desconfiguração ou que estão prontas para serem desconfiguradas, uma vez que já tiveram seu contexto salvo e não mais são necessárias no sistema em curto prazo.
+A Região de Execução corresponde ã parte efetivamente operacional do sistema reconfigurável, aquela capaz de executar trabalho útil.
+Esta região está subdividida em cinco sub-regiões, sendo duas fixas e três de natureza reconfigurável.
+As sub-regiões fixas servem ao controle do processo de reconfiguração do sistema.
+São elas a sub-região de controle de configurações e sub-região de contextos de configuração.
+As três sub-regiões reconfiguráveis são:
+Sub-região ativa, sub-região pronta e sub-região de chaveamento.
+A Sub-região de Contextos de Configuração armazena dados dinâmicamente gerados por configurações que necessitam ser comunicados a outras configurações, após sua desconiiguração.
+A Sub-região de Controle de Configurações controla o processo de inserção, remoção e movimentação de configurações entre as sub-regiões ativa, de chaveamento e pronta.
+A Sub-região Ativa engloba as configurações que produzem trabalho útil no sistema reconfigurável.
+A Sub-região Pronta engloba as configurações prontas para passarem ã sub-região ativa e que aguardam sinalização para tanto da região de controle de configurações migrando então para a sub-região ativa.
+A Sub-região de Chãueãmento agrupa as configurações que se encontram salvando contexto para comunicação com outras configurações.
+De esta sub-região as coniigurações apenas podem passar para as sub-regiões pronta ou de descarte.
+Como pode ser visto na legenda apresentada na Figura 1.2, uma configuração no modelo GRS esta sempre num dos seis estados distintos possíveis.
+Em a Figura 1.3, apresenta- se um diagrama de transição de estados que mostra a forma do iiuxo de controle de configurações em qualquer sistema reconfigurável.
+Quando uma configuração para de executar, ou seja, deixa de ser ativa, ela ou passa para o estado chaveando, caso seja necessario salvar seu contexto para comunicação, ou passa diretamente para o estado descartável.
+Configurações no estado chaveando são mantidas na sub-região de chaveamento.
+Cabe ainda, definir os processos que as configurações sofrem durante a operação do sistema.
+O processo de configuração consiste em personalizar o comportamento desempenhado por uma parte de um sistema reconfigurável num dado instante.
+Por outro lado, o processo de reconfiguração possui o mesmo objetivo e consiste no ato de sobrescrever uma antiga configuração, ou seja, &quot;repersonalizar «o sistema.
+O processo de desconjiguração consiste em permitir que uma configuração seja desfeita ou até mesmo &quot;despersonalizar o sistema».
+A seguir apresentam- se três exemplos de sistemas computacionais e considerações a respeito de os mesmos que os classificam como sistema reconfigurável, nos dois primeiros casos, e um sistema não reconfigurável no último caso.
+Um computador como um sistema reconfigurável Em um computador monoprocessado com sistema operacional multitarefa os programas (configurações armazenadas) são estocados numa área de armazenamento secundário (região de suporte).
+Quando um destes programas é carregado na memória virtual por o Sistema Operacional (SO) para ser executado, ela passa a ser um programa em processo de carga (configurando).
+Logo após ser carregado este adquire área em memória e passa ser um processo pronto para execução (uma configuração pronta) aguardando até o instante em o qual o escalonador (parte da sub-região de controle de configuração) o selecionar para execução, quando se torna um processo em execução (configuração ativa).
+Em um dado instante, esse processo em execução sera preemptado por o escalonador, ou simplesmente terminará sua tarefa, e neste instante o processo (configuração chaveando) podera necessitar salvar contexto para comunicação com outros processos que irão executar, através de pipes, sockets ou outro mecanismo. Quando
+um processo não é mais usado por o sistema, ele deve retornar a região de armazenamento.
+Então, passa a ser um programa em operação de descarga (configuração descartável) da memória e pode nesse instante salvar algumas informações sobre seu próprio contexto.
+Isto é realizado, pois na próxima vez que executar o programa pode carregar com si estas informações, que refletem o estado em o qual seu contexto foi salvo na execução anterior.
+O mapeamento conceitual de um computador monoprocessado com um sistema operacional multitarefa para o modelo GRS encontra- se resumido na Tabela 1.1.
+Com base nas observações expostas acima pode- se concluir que um computador pessoal pode ser considerado um sistema reconfigurável de acordo o modelo CRS.
+Um DISC como um sistema reconfigurável Alguns processadores contêm um conjunto de instruções dinâmico em contraproposta aos processadores convencionais, os quais possuem um conjunto de instruções fixo.
+Wirthlin e Hutchings tratam esse tipo de processador em, denominado Dynamic Instruction Set Computer ou DISC.
+Os processadores dessa natureza valem- se de técnicas de reconfiguração parcial para transformar seu conjunto de instruções.
+Cada uma das instruções do DISC é implementada na forma de um circuito independente (configuração).
+As instruções são configuradas sob demanda, de acordo com a execução do programa.
+Um controlador de configurações controla o fluxo de configurações de instruções;
+Uma memória armazena os arquivos de configuração das instruções e um computador hospedeiro encarrega- se de enviar os dados de configuração para o sistema.
+Um módulo fixo do sistema, denominado controlador global, dedica- se a controlar os contextos das instruções.
+O mapeamento conceitual de um processador com um conjunto dinâmico de instruções para o modelo GRS encontra- se resumido na Tabela 1.2.
+Com base nas observações expostas em tal Tabela pode- se concluir que o processador com um conjunto dinãmico de instruções pode ser considerado um sistema reconfigurável de acordo o modelo GRS.
+Um sistema embarcado com hardware lixo e software monotarefa fixo não pode ser modelado como um sistema reconfigurável tal como o proposto na Figura 1.2.
+Esse sistema não contém sequer uma região que possa ser dita reconfigurável.
+Toda essência do modelo GRS reside na região de execução, em a qual os sistemas são (rekonfigurados.
+O sistema embarcado com hardware fixo e software monotarefa fixo é, portanto um contra-exemplo de um sistema reconfigurável.
+Dependendo do nível de abstração em que se observa o sistema, o mesmo pode ser considerado como reconfigurável ou não.
+Pode- se melhor esclarecer esse fenômeno através do seguinte exemplo pratico:
+Atualmente nos caixas de supermercado utilizam- se computadores pessoais para registrar compras e emitir notas fiscais.
+D0 ponto de vista do usuario do sistema (i.
+e o caixa), o computador comporta- se apenas como uma máquina registradora sem qualquer característica relacionada à reconfiguração.
+Mas, do ponto de vista do responsável por o suporte técnico do sistema, o computador não é apenas uma máquina registradora e, além disso, suporta a execução de diversos programas, tais como sistema operacional, controladores de impressora etc..
+Tal informação é transparente ao usuario pois este adota um nível diferente de abstração, nesse caso um nível mais alto.
+Como a cada instante um programa diferente é executado, de acordo com o nível de abstração adotado por o supervisor, o sistema do supermercado pode ser classificado como reconfigurável.
+Hoje, pode- se notar o crescimento acentuado do interesse em computação configuravel, como evidenciado por Zhang e Ng.
+A flexibilidade proporcionada por a computação reconfigurável é um fator relevante que pode aumentar a janela de tempo em a qual o produto permanece no mercado (tempo de vida do produto).
+Como no caso de os sistemas de software, que recebem atualizações constantes, o hardware implementado em disposi tivos reconfiguráveis também pode usufruir desta estratégia para se manter útil por mais tempo.
+O ciclo de desenvolvimento de sistemas vem diminuindo em duração por pressões de mercado.
+O uso da tecnologia configurável e o reuso de núcleos de propriedade intelectual tornam o projeto de SoCs mais rapido, adequando- o as restrições do mercado.
+O tempo para o produto chegar ao mercado pode ser reduzido de maneira significativa.
+Um dos fatores mais atraentes que podem tornar o uso de computação reconfigurável uma alternativa interessante é a possibilidade de implementar numa área reduzida um sistema conceitualmente maior que esta, implementando hardware virtual.
+A principal vantagem da virtualização do hardware é a redução do custo do produto final.
+Como a relação custo/ portas equivalentes não é linear para plataformas de implementação comerciais, ou seja, uma plataforma com dez milhões de portas lógicas não custa exatamente dez vezes o custo de uma com um milhão de portas, na verdade custa muito mais.
+Em virtude de isso, muitas vezes torna- se inviável implementar um sistema utilizando plataformas de grande porte.
+Em esse caso, duas alternativas podem ser tomadas:
+Usar técnica de hardware virtual em plataformas de menor porte ou agrupar diversas plataformas de menor porte para desenvolver o sistema.
+O uso de técnicas de reconfiguração em tempo de execução (em inglês, Run-Time Reconfíguration ou RTR) pode resultar numa economia de recursos e um melhor aproveitamento da área, já que partes do sistema não utilizadas num determinado instante podem ser &quot;removidas «do hardware físico para dar lugar a uma outra parte do sistema necessária no momento.
+Desta forma, o emprego de RTR pode melhorar a densidade funcional do sistema.
+Um exemplo de sistemas que podem valer- se das características de RTR para alcançar uma maior difusão comercial diz respeito a detecção de intrusão em redes de computadores.
+Esta tarefa necessita que uma grande quantia processamento de dados seja realizada utilizando um conjunto de regras.
+Esse conjunto pode ser alterado em função de o padrão de tráfico instantâneo da rede.
+A rápida troca dessas regras bem como o alto desempenho necessario inviabilizam soluções puramente implementadas em software.
+Alguns pesquisadores demonstraram vantagens do emprego de técnicas de reconfiguração parcial.
+Hauck, em, apresenta computação reconfigurável como o verdadeiro paradigma de propósito geral, ja que a flexibilidade não é mais representada apenas por a reprogramação do software mas também por a reconfiguração do hardware, ou seja, o sistema como um todo é de propósito geral.
+Shirazi, em, estima que o uso de técnicas RTR é capaz de superar as reduzidas capacidade e desempenho de sistemas configuraveis comparados a ASICs.
+Conforme Vissers, a analise e a exploração de RTR é o maior passo para plataformas de computação reconfigurável, permitindo atender melhor a compromissos entre espaço e tempo.
+RTR carece de suporte como evidenciado por Zhang e Ng em.
+Em este contex to, o suporte refere- se principalmente a ferramentas habilitadoras de uso da tecnologia e infra-estrutura de implementação SDRs.
+Existe uma carência de ferramentas de projeto e verificação de SDRs sob a forma de ferramentas de projeto auxiliado por computador (CAD, em inglês Computer Aided Design).
+Outra carência refere- se a infra-estrutura necessária para a operação de sistemas desta natureza.
+Esta infra-estrutura compreende:
+Dispositivos de hardware (i.
+e plataformas de prototipação) que permitam RTR;
+Núcleos específicos para o controle da operação do sistema, problema este atacado no presente trabalho;
+Interfaces padronizadas entre os núcleos que compõem o sistema.
+Para criar SDRs necessita- se sobretudo de ferramentas de projeto (e.
+g geração automatizada de configurações, de interfaces de comunicação entre partes Fixas e reconfiguráveis de SDRs etc) e ferramentas de verificação (e.
+g simulação da dinâmica de reconfiguração em SDRs etc).
+Em a Tabela 1.3 apresenta- se um resumo das carências de suporte a SDRs.
+Como citado, o presente trabalho objetiva atacar uma das carências relacionadas à infraestrutura de reconfiguração para SDRs.
+Outros trabalhos paralelos visam atacar as demais carências.
+A implementação de SDRs pressupõe uma infra-estrutura composta por núcleos específicos para controle e operação de SDRs, como citado.
+De entre estes núcleos destaca- se aquele responsavel por gerenciar o processo de configuração, ou seja, controlar qual configuração deve ser inserida no hardware físico e qual deve ser &quot;removida».
+Esse núcleo realiza tarefas similares as executadas por a parte de um sistema operacional em computadores, responsavel por gerenciar memória virtual e carregar processos para executar no processador, seguindo os comandos passados por um escalonador de processos.
+Desenvolver pesquisas nesta área é importante na medida que ela se apresenta promissora para aumentar a eficiência global de sistemas e ainda apresenta muitas carências, ou seja, é um campo aberto para o desenvolvimento de trabalhos.
+As carências maiores são a falta de suporte adequado, sobretudo ferramentas de CAD e plataformas para dar suporte a sistemas dinâmica e parcialmente reconfiguráveis.
+Já que a questão do suporte de dispositivos é uma tarefa que requer maior investimento e não pode facilmente ser aplicada no contexto institucional em que se realiza este trabalho, propõe- se aqui atacar o suporte de métodos e ferramentas para sistemas dinâmica e parcialmente reconflguraveis.
+Mais especificamente, a motivação para este trabalho é o desenvolvimento de um controlador de configurações em hardware.
+Como poder- se- a notar no Capítulo 3 existem poucas implementações de controladores de configurações e alguns dos assuntos relacionados às alternativas de implementação ainda não foram tratadas de maneira detalhada.
+A maioria dos modelos propostos não passa de conceitos que jamais foram implementados e, portanto não abordam as dificuldades enfrentadas na realidade de SDRs, já que as restrições quanto a o suporte não são consideradas, tal como a arquitetura de FPGAs comerciais.
+A presente Seção contextualiza o trabalho aqui proposto.
+O objetivo é situar o leitor com relação onde se posiciona o sistema proposto dentro de o fluxo que representa o desenvolvimento e implementação de sistemas dinâmicamente reconfiguráveis.
+O presente trabalho é parte de um ambiente para desenvolvimento e implementação objetivo é permitir aos desenvolvedores gerarem um sistema complexo, conceitualmente maior que o dispositivo alvo com garantia de que o mesmo se comportarã da maneira adequada.
+Pretende-se com este ambiente obter vantagens com a utilização de técnicas de reconfiguração dinâmica e parcial de hardware.
+O sistema PaDReH divide- se em três partes:
+Módulo de captura e validação funcional de projeto.
+Este módulo responsabiliza- se por a descrição e validação do sistema no nível transacional (TLM, em inglês Transaction Level Modeling) e tradução para o nível de transferência entre registradores (RTL, em inglês Register Transfer Level).
+A descrição no nível RTL é a entrada do módulo de particionamento e escalonamento.
+Este módulo particiona espacialmente o sistema de acordo com informações tais como o comportamento do sistema e características do SoC alvo da implementação.
+Trabalhos relativos a esse módulo são apresentados por Moreno, em.
+Módulo de particionamento e escalonamento.
+Este módulo gera arquivos que descrevem o comportamento do sistema na forma de uma descrição em linguagem de descrição de hardware (em inglês, Hardware Description Language ou HDL) para o módulo de síntese fisica e infra-estrutura de reconfiguração.
+Trabalhos relativos a esse módulo são apresentados por Marcon, em.
+Módulo de síntese física e infra-estrutura de reconfiguração.
+Módulo que gera configurações totais e/ ou parciais de acordo com o particionamento, adiciona o módulo controlador parametrizado conforme as características do sistema, e gera a implementação física de uma rede de interconexão entre os núcleos.
+O submódulo de controle reconfiguração gerência a operação do sistema em tempo de execução.
+Ele recebe como entradas:
+Um grafo contendo a definição das relações de dependência entre os núcleos do sistema, fornecido por o módulo de particionomento e escalonamento, e arquivos de configuração t0 ta1 (ais) e parciais gerados por parte de o módulo de síntese física e infra-estrutura de reconfíguração.
+Trabalhos relativos a esse módulo são apresentados por Brião, em e Ost, em.
+O submódulo de controle reconfiguração, proposto nesse trabalho, faz parte do módulo de síntese física e infra-estrutura de reconfiguração como pode ser visto na Figura 1.4.
+De acordo com o fluxo supra descrito, percebe- se que os dois primeiros módulos fazem parte da fase de projeto do SDR enquanto que o último, além de as parametrizações realizadas na fase de projeto, atua também na execução/ implementação do mesmo.
+O desenvolvimento do arcabouço proposto implica abordar temas tais como:
+Particionamento de hardware em partes fixas e reconfiguráveis;
+Escalonamento de configurações para execução;
+A forma de comunicação entre configurações;
+A geração de arquivos de configuração parciais e totais;
+A configuração de dispositivos parcialmente reconliguráveis;
+A representação de informações a respeito de o cronograma de escalonamento;
+O gerenciamento da operação de configurações.
+Este trabalho trata apenas do desenvolvimento do submódulo de controlador de reconfíguração.
+Assume- se, portanto, que todas as partes referentes aos outros subsistemas encontram- se operacionais, quais sejam os arquivos de configuração, o cronograma de escalonamento e, a estrutura de comunicação entre os módulos.
+Os principais objetivos desse trabalho são desenvolver um controlador de configurações em hardware que servira como suporte ao desenvolvimento de sistemas que se valem de estratégias RTR e contribuir para sanar algumas das carências identificadas para implementação e uso de SDRs.
+Os objetivos estratégicos do trabalho proposto são:
+Dominar a tecnologia de SDRs sobre FPGAs comerciais;
+Contribuir para a redução das carências de infra-estrutura fornecida a operação de SDRs.
+Esnecwucào do swslema no nivel¡ ransacmnzl (nm) Vahdação no nwel l Relinamenlo e 1 tradução Des/ unção do snslema no nivel RTL em HDL Valwdaçãa Funcwonal_ É,~ reg &quot;uma M W-Ve&quot;?
+SDRs de acordo com o arcabouço PaDReH proposto.
+Como objetivos específicos do trabalho proposto apresentam- se:
+Desenvolver um hardware autoconfigurador para dispositivos configuraveis dinâmica e parcialmente e prototipar- lo;
+Definir a estrutura geral do ambiente para controlar a reconfiguração de núcleos de propriedade intelectual em sistemas reconfiguráveis;
+Validar a parte implementada do sistema definido, usando uma aplicação alvo selecionada;
+Desenvolver uma estratégia de controle do processo de reconfiguração dinâmica e parcial numa plataforma de prototipação comercial.
+O restante deste documento encontra- se distribuído em 6 Capítulos descritos a seguir.
+Em o Capítulo 2 apresentam- se informações relacionadas ao estado da arte em pesquisas na área de computação reconfigurável, incluindo um estudo abrangendo as tecnologias habilitadoras e ferramentas de apoio ao projeto RTR.
+A seguir, no Capítulo 3 discute- se o resultado de pesquisas relevantes relacionadas ao controle de configurações seguido por a discussão de modelos e implementações de controladores de configurações propostos na literatura.
+Informações sobre estratégias para alocação de recursos reconfiguráveis, estratégias de particionamento de hardware e políticas de escalonamento de configurações também são tratadas.
+A o final desse Capítulo, apresenta- se um resumo das principais características de um controlador de configurações que servirá de base ao modelo aqui proposto.
+Em o Capítulo 5 descreve- se em detalhe a implementação de cada um dos módulos apresentados no Capítulo 4.
+São tratados os passos de projeto, verificação e prototipação de cada um de eles.
+A o final desse Capítulo, discute- se as etapas de validação e prototipação do sistema unificado, módulo a módulo.
+O último Capítulo apresenta um resumo das contribuições deste trabalho, algumas conclusões e um certo número de propostas de trabalhos futuros.
+Reconfiguração dinâmica e parcial Em os últimos anos, diversos trabalhos de pesquisa em reconfiguração dinâmica e parcial têm sido desenvolvidos, tais como os descritos em.
+Estes apresentam soluções para problemas em diferentes áreas valendo- se dos benefícios da computação reconfigurável.
+Exemplos das áreas endereçadas são o projeto de roteadores em redes de computadores e o processamento de áudio e vídeo.
+Um conjunto distinto de trabalhos propõe métodos e ferramentas de suporte à reconfiguração parci al.
+Exemplo destes últimos são as propostas de controladores do processo de configuração.
+Para a implementação de qualquer sistema computacional complexo, seja ele dinâmica e parcialmente reconfigurável ou não, faz- se necessário suporte de hardware e software.
+No caso de sistemas RTR, o suporte de hardware é representado por plataformas de prototipação entre outros dispositivos enquanto o software é representado por ferramentas de projeto.
+Como citado anteriormente, as ferramentas de suporte ao desenvolvimento de sistemas dinâmicamente reconfiguráveis (SDRs) são poucas.
+Além disso, as existentes não satisfazem as necessidades reais dos projetistas de SDRs, de entre elas a automatização no projeto de sistemas dessa natureza para que os mesmos possam respeitar às restrições impostas por o mercado com relação a o tempo para o produto chegar ao mercado.
+Em a primeira seção do presente Capítulo apresenta- se uma proposta de classificação para o processo de configuração.
+Em a Seção 2.2 apresenta- se considerações relacionadas ao suporte a reconfiguração dinâmica e parcial evidenciando tecnologias habilitadoras, ferramentas de software para geração e manipulação de configurações parciais, e estratégias de interconexão de núcleos que permitem a reconfiguração dos mesmos durante a execução do sistema.
+Muitas vezes referencia- se o termo configuração, o processo de transferir dados de uma memória de configurações para o dispositivo de forma a personalizas- lo/ configurar- lo.
+Visando caracterizar os parâmetros que influenciam o processo de configuração, propõe- se aqui seis critérios para classificas- lo, listados abaixo e discutidos a seguir, nas próximas seis Subseções.
+Largura do caminho de dados de configuração;
+Comando do processo de configuração;
+Localização da memória de configuração;
+Tamanho do arquivo de configuração;
+Dimensão dos módulos manipulados na configuração;
+Formato do arquivo de configuração.
+De acordo com a largura do barramento através de o qual os dados de configuração são comunicados ao sistema reconfigurável, pode- se classificar uma dada configuração em configuração serial ou paralela.
+Em uma configuração serial, os dados de configuração são enviados para o dispositivo bit a bit.
+Em uma configuração paralela a configuração é realizada através do envio de n bits de dados de configuração de cada vez ao dispositivo.
+Em o caso especifico dos dispositivos da familia Virtex comercializados por a Xilinx, a configuração pode ser realizada serialmente ou ainda paralelamente com uma largura de 8 bits, modo SelectMAP segundo denominação do fabricante.
+Uma outra forma de classificar uma configuração é de acordo com o dispositivo que comanda o processo de configuração, ou seja, aquele que gera o sinal de relógio para o processo de configuração.
+Também aqui existem duas classes:
+Dependente e autônoma.
+No caso de uma configuração dependente o relógio de configuração é gerado por um dispositivo externo ao sistema/ dispositivo reconfigurável.
+Em a configuração autônoma, o relógio de configuração é gerado por o próprio sistema/ dispositivo que esta sendo configurado.
+É responsabilidade de dispositivos externos apenas armazenar as configurações e fornecer os dados de configuração segundo a taxa determinada por o dispositivo.
+De acordo com a localização da memória de configuração em relação a o sistema configurável, pode- se classificar o processo de configuração em:
+Com memória externa ou com memória interna.
+A primeira de elas dita configuração com memória externa, ocorre quando o arquivo de configuração está armazenado fora de o sistema/ dispositivo reconfigurável.
+Um exemplo da primeira classificação ocorre quando o sistema é uma plataforma de prototipação que contém um FPGA baseado em RAM, e o processo de (re) configuração se dã a partir de um computador hospedeiro conectado a plataforma via um cabo de programação.
+Em este caso, as configurações são arquivos armazenados no subsistema de memória secundaria do hospedeiro.
+A outra classificação, conjíguração com memória interna, aplica- se quando o arquivo de configuração esta armazenado em algum dispositivo (Flash, RAM, disco etc) do sistema reconfigurável.
+Em este caso, são usados recursos internos ao sistema para a transmissão de dados de configuração ao dispositivo.
+O processo de configuração também pode ser classificado de acordo com o tamanho relativo do arquivo de configuração utilizado.
+As duas classes em as quais serão divididas as configurações são:
+Configuração total e configuração parcial.
+Quando o arquivo de configuração possuir as informações necessárias para configurar todo dispositivo/ sistema a configuração é dita total.
+Se as informações forem suficientes para configurar apenas parte do dispositivo/ sistema a configuração é dita parcial.
+O penúltimo critério de classificação do processo de configuração diz respeito à complexidade dos módulos manipulados em processos de configuração.
+Uma configuração em SDRs pode ser classificada de acordo com a dimensão dos módulos manipulados.
+Uma configuração incremental constitui- se na modificação de alguns poucos bits durante o processo de reconfiguração, ao passo que uma configuração modular reflete a modificação de um núcleo (i.
+e módulo arbitrariamente complexo) inteiro do sistema.
+O último critério de classificação de configuração considera o formato dos dados de configuração.
+Duas classes são aqui apresentadas:
+Compactada e normal.
+Uma configuração dita normal é aquela onde os dados de configuração são armazenados em sua forma normal, ou seja, uma seqüência de bits de zeros e uns, sem qualquer tipo de compactação.
+Alguns dispositivos e/ ou sistemas reconfiguráveis empregam técnicas de compactação de dados de configuração, ou seja, recebem dados de configuração compactados e possuem algoritmos que descompactam estes dados e realizam a tarefa de configuração a seguir.
+Em este caso, a configuração é dita compactada.
+A necessidade de comprimir os dados de configuração cresce a medida que o tamanho de arquivos de configuração cresce além de a capacidade de armazenamento em dispositivos de memória de baixo custo.
+O crescimentos vertiginoso da densidade de dispositivos reconfiguráveis torna difícil armazenar uma única configuração numa memória &quot;barata «(Hash), pois estas não são encontradas em grandes tamanhos.
+Não é incomum que para armazenar uma configuração sejam necessarios varios dispositivos.
+Por outro lado, 0 uso de configurações compactadas implica o acréscimo de hardware/ software para realizar sua compactação/ descompactação.
+Isto gera um compromisso que deve ser avaliado para cada sistema reconfigurável a projetar/ implementar.
+Em a Tabela 2.1 é apresentado um resumo das classificações do processo de configuração propostas neste Capítulo.
+Os critérios propostos são apresentados a esquerda e suas respectivas classificações aparecem a direita.
+Zhang e Ng apresentam no estado da arte em ferramentas para reconfiguração dinâmica e parcial.
+Uma análise abrangente de suporte de software é apresentada.
+O trabalho evidência como principal carência no desenvolvimento de sistemas de natureza reconfigurável:
+A ausência de ferramentas adequadas.
+Além disso, Mesquita em salienta que a carência de dispositivos comerciais adaptados à reconfiguração parcial é outro fator importante que limita a adoção mais ampla desta tecnologia.
+Em, Compton e Hauck apresentam um resumo sobre sistemas parcialmente reconfiguráveis, abordando os principais sistemas de hardware e também ferramentas de software utilizados como suporte ao projeto.
+Em virtude de o fato de existirem bons trabalhos de revisão do estado da arte em ferramentas para reconfiguração dinâmica e parcial, sobretudo no que tange o suporte de software, no presente documento não é apresentada uma revisão mais ampla de SDRs.
+Revisa- se nessa Seção algumas ferramentas para geração de configurações parciais, além de métodos para interconexão de núcleos, ambos fatores importantes na realização da fase de síntese física e infra-estrutura de reconfiguração do arcabouço PaDReH, apresentado na Seção 1.4.
+Ainda hoje, são poucas as famílias de dispositivos semicondutores comerciais que habilitam reconfiguração dinâmica e parcial.
+Como citado em, os primeiros dispositivos que suportaram reconfiguração parcial são:
+O Clay fabricado por a National Semiconductor,;
+O Cal1024 fabricado por a Algotronix,;
+E o XC620U fabricado por a Xilinx inc,.
+Este último ainda e usado no meio acadêmico.
+Como pode- se notar no Capítulo 3, o XC620U foi usado como dispositivo alvo para a modelagem de algumas das principais propostas de controladores de configurações.
+Aparentemente, devido a o suporte precário, sobretudo de software para a síntese física destes dispositivos, eles não foram tão difundidos comercialmente e, não obtiveram sucesso comercial, muito embora tenham sido amplamente utilizados no meio acadêmico.
+Todas essas famílias iniciais estão hoje descontinuadas.
+Atualmente, dois fabricantes comercializam dispositivos que habilitam reconfiguração dinâmica e parcial.
+São eles a Atmel E a Xilinx A Atmel fabrica duas famílias que possibilitam reconfiguração dinâmica e parcial denominadas ATGOUO e AT40k.
+A série AT40K implementa a técnica denominada Cache Logic, um termo proposto por o fabricante para designar a capacidade de reconfiguração dinâmica e parcial.
+Esta técnica permite que funções sejam substituídas em tempo de execução no FPGA, enquanto o sistema continua a operar, ou seja RTR.
+Se novas funções se fazem necessárias, as antigas são sobrescritas, como apresentado no diagrama contido na Figura 2.1.
+A família AT6000 foi projetada para acelerar o desempenho de sistemas baseados em processadores, enquanto diminui o custo e o consumo de energia.
+O número massivo de registradores permite seu uso como co-processadores reconfiguráveis para Processadores de Sinais Digitais (em inglês, Digital Signal Processors ou DSPs).
+Assim como a família AT40K, a família AT6000 também possibilita a implementação de projetos valendo- se do conceito de Cache Logic.
+Dispositivos da família AT4OK possuem entre cinco mil e cinqüenta mil portas lógicas equivalentes e os da família AT600U possuem entre seis mil e trinta mil portas lógicas equivalentes.
+Usa- se o termo equivalente porque cada fabricante usa métodos diferentes para medir a densidade de seus dispositivos.
+Desta forma, uma porta lógica equivalente de dispositivos da Atmel não reflete a mesma densidade que uma porta lógica em dispositivos da Xilinx ou da Altera.
+Em, Waller evidência a diferença entre os métodos usados para medir o número de portas lógicas por diferentes fabricantes.
+Por exemplo, estima- se hoje que uma porta lógica para dispositivos Apex Altera equivale a duas portas lógicas para dispositivos Virtex da Xilinx.
+A Xilinx, uma das empresas que dominam o mercado de dispositivos configuraveis do tipo FPGA, comercializa pelo menos três famílias de dispositivos que suportam reconfiguração dinâmica e parcial.
+São elas:
+Virtex, VirtexII e VirtexII-Pro.
+Os FPGAs da família Virtex são compostos por blocos lógicos configuráveis (CLBs), blocos de entrada e saída (IOBs), blocos de memória RAM (BRAMs), recursos de relógio e roteamento programável, todos configuráveis.
+Para configurar um dispositivo da família Virtex deve- se preencher uma memória de configuração que determina o comportamento dos elementos componentes do dispositivo.
+A memória de configuração pode ser vista como uma matriz bidimensional de bits.
+Estes bits são agrupados em quadros verticais com um bit de largura, e se estendem verticalmente na forma de colunas que atravessam todo o dispositivo.
+Um quadro é, portanto, a unidade atômica de configuração, ou seja, é a menor porção de memória de configuração que pode ser lida ou escrita.
+Cada coluna de recursos é dividida num certo número de quadros.
+O maior dispositivo da família Virtex permite implementar um circuito contendo um milhão de portas lógicas equivalentes, de acordo com a Tabela 2.2.
+Nota- se que a densidade de dispositivos desta família é muito superior a apresentada por dispositivos Atmel.
+Para maiores informações sobre a família Virtex da Xilinx remete- se o leitor a.
+Os detalhes de configuração de dispositivos pertencentes a esta família foram explorados e devidamente documentados por Mesquita em.
+Os FPGAS da família Virtex permitem implementar circuitos entre quarenta mil e oito milhões portas lógicas equivalentes, como pode ser visto na Tabela 2.2.
+Dispositivos dessa família, além de os componentes basicos existentes na família Virtex, possuem colunas de multiplicadores de 18x18 bits.
+Os detalhes de configuração desta família são precariamente documentados por o fabricante.
+Algumas informações a respeito de essa podem ser obtidas em.
+Os competidores mais próximos dos FPGAS da família Virtex são os da família Stratix-Gx da Altera, que possui capacidade equivalente àqueles mas não habilita reconfiguraçào dinâmica e parcial.
+Os FPGAS da família VirtexlI-Pro constituem uma extensão da família Virtex.
+A novidade desta família é conter processadores IBM PowerPC 405 embarcados.
+Segundo os fabricantes, pela primeira vez os projetistas podem particionar seus sistemas entre hardware e software durante o ciclo de desenvolvimento de uma maneira mais ilexível, ou seja, não apenas no início do projeto.
+O maior dispositivo desta família possui quatro processadores PowerPC embarcados.
+Os FPGAs da família VirtexII-Pro são aqueles de maior densidade e maior desempenho na atualidade.
+Em a Tabela 2.2 apresenta- se um quadro comparativo entre alguns dos dispositivos que habilitam reconfiguração dinâmica e parcial.
+Em esse comparativo pode- se perceber que os dispositivos das famílias Virtex, Virtex e Virtex-Pro comercializados por a Xilinx apresentam uma densidade maior em comparação aos comercializados por a Atmel.
+As densidades dos dispositivos da família VirtexII-Pro foram obtidas através de estimativas sem considerar os processadores PowerPC embarcados.
+Considerando a diferença entre número de CLBs dos dispositivos das famílias Virtex e VirtexH-Pro pode- se estimar qual a diferença entre suas densidades, considerando também o incremento de blocos multiplicadores e blocos de memórias.
+A plataforma V2 MB1000 da Memec--Insight A arquitetura alvo para implementação dos sistemas apresentados nesse documento compõe- se de dispositivos da família Virtex-II fabricados por a empresa Xilinx, devido:
+A o fato destes encontrarem- se disponíveis no ambiente onde o trabalho proposto foi desenvolvido;
+Sua densidade habilita prototipar SoCs, ao contrario de dispositivos Atmel;
+Apesar de pouco, existe algum suporte a reconfiguração dinâmica e parcial.
+Memória ISP PROM XC18 V04 de 4 Mbits utilizada principalmente para configurar 0 FPGA no modo autônomo paralelo/ serial;
+Interface LVDS para transmissão de dados em alta velocidade, na ordem de Gbps;
+Dispositivos de interface com usuario como:
+Dois displays de sete segmentos, oito chaves e quatro botões.
+Através do módulo de expansão P160, uma placa de expansão incluída na plataforma, pode- se tanto ter acesso a pinos do FPGA quanto ter acesso a diversas interfaces de comunicação, utilizando- se o módulo de comunicação.
+De entre as possíveis interfaces pode- se citar:
+USB, Ethernet, RS232 serial, PS/ 2 para teclado etc..
+Este módulo ainda contém memórias Flash 2M x 32 e SRAM 256K x 32.
+O kit comercializado por a empresa Memec--Insight possui, além de a placa principal e módulos de expansão P160, um firmcore de um processador denominado MicroBlaze da Xilinx.
+Esse processador possui instruções que manipulam dados de 32 bits em dois modos de endereçamento e 32 registradores de propósito geral.
+O processador MicroBlaze possui uma arquitetura Harvard, ou seja, trabalha com memórias de dados e instruções separadas.
+Juntamente com o Jírmcore do processador, tem- se acesso a um ambiente de desenvolvimento denominado EDK com ferramentas de compilação e depuração de programas descritos em linguagem C bem como ferramentas de parametrização do processador e de seus periféricos.
+Em um sistema que utiliza o MicroBlaze os núcleos externos a estes podem se conectar ao processador através do CoreConnect da IBM, uma arquitetura de barramentos que permite comunicação entre o processador e perifericos.
+Conforme a especificação do barramento de periférico interno ao circuito (em inglês, On- chip Peripheral Bus ou OPB) o núcleo possui barramentos separados de 32 bits de instrução e dados.
+O processador pode acessar diretamente os blocos de memória RAM do dispositivo, utilizando o barramento da memória local (em inglês, Local Memory Bus ou LMB).
+MicroBlaze suporta multiplicações em hardware quando é implementado sobre plataformas da família Virtex e VirtexH-Pro, os quais possuem blocos específicos para realizar esse tipo de operação como apresentado anteriormente.
+Para maiores detalhes sobre o processador MicroBlaze, remete- se o leitor a.
+A geração de arquivos de configuração parciais apresenta- se como urna tarefa crucial para o desenvolvimento de SDRs.
+Os fabricantes fornecem junto com seus dispositivos ambientes de CAD para desenvolvimento de sistemas que contêm, muitas vezes, centenas de ferramentas.
+De entre estas, algumas se dedicam a geração de arquivos de configuração parciais.
+A Xilinx, por exemplo, fornece o ambiente ISE aos seus usuarios.
+Para criar um arquivo de configuração parcial o projetista pode usar a ferramenta BitGen, mas antes deve empregar no mínimo outras duas ferramentas.
+A primeira de elas é o Floorplanner para determinar a geometria da área do FPGA que conterá o módulo reconfigurável.
+A segunda ferramenta é o FPGAEditor, usado para gerar arquivos parciais com modificações.
+BitGen é um software usado apenas para gerar o arquivo binário parcial contendo a diferença entre um arquivo de configuração total original e um arquivo que contem informações relativas as modificações realizadas no FPGAEditor.
+O fluxo de geração de arquivos parciais com as ferramentas fornecidas por os fabricantes deve ser realizado, ainda hoje de forma manual.
+Por isso, trata- se de um processo demorado e complexo, passível de erros, para projetos que necessitam de diversas configurações parciais.
+Necessita- se, portanto, de ferramentas mais automatizadas para o projeto de sistemas reconfiguráveis.
+Em essa Subseção apresentam- se algumas ferramentas que tem por objetivo auxiliar projetistas na tarefa de gerar arquivos de configuração parciais.
+Em a Universidade de Washington foi desenvolvido um ambiente que visa facilitar a configuração parcial de FPGAs Xilinx, denominado PARBIT (do inglês PARtial Bltjíle Transformer).
+A partir de a execução de um conjunto de programas, o usuário pode gerar arquivos parciais para diferentes partes de um FPGA.
+São passados a ferramenta PARBIT, como argumentos, arquivos corn opções do usuário escolhendo um dispositivo alvo, a localização para inserção do módulo reconfigurável e a descrição do mesmo.
+PARBIT pode gerar arquivos apenas para dispositivos da família VirtexE da Xilinx, composta por FPGAs semelhantes aos da família Virtex com recursos de memórias mais extensos.
+A mesma equipe de pesquisadores propôs o conceito de Dynamic Hardware Plugins (DHP).
+DHPs permitem que múltiplas aplicações de hardware, ou plugins, sejam dinâmicamente carregada num único dispositivo e executem em paralelo.
+Em outras palavras, essa técnica pode ser utilizada para implementar SDRs.
+Um problema enfrentado na geração de arquivos parciais é controlar o processo de roteamento.
+Por isso é importante notar, em, a existência de uma colaboração direta com a empresa Xilinx, que adaptou uma ferramenta de roteamento para que esta aceite a imposição de restrições que viabilizam a reconfiguração parcial de maneira mais automatizada.
+JBits J Bits é urna API Java que fornece acesso direto a arquivos de configuração de dispositivos Virtex da Xilinx.
+Esse conjunto de classes Jana é fornecido por a Xilinx para que desenvolvedores possam criar seus próprios programas para manipular arquivos de configuração de dispositivos por ela fabricados.
+As modificações em arquivos de configuração incluem manipulação de funções lógicas do dispositivo e manipulação do roteamento.
+O fato do arquivo poder ser modificado diretamente possibilita o desenvolvimento de SDRs.
+Em, Raghavan e Sutton apresentam um outro ambiente para geração de arquivos de configuração parciais, denominado JPG.
+Ele é implementado em Java e emprega a API JBits.
+O ambiente JPG usa arquivos no formado XDL (em inglês, Xilinz Design Language) gerados por aplicativos fornecidos por a Xilinx e UCF (em inglês, User Constraints File) para restringir a área a ser usada no roteamento de configurações parciais.
+Este mesmo ambiente estabelece uma ligação direta entre o sistema de desenvolvimento ISE e JBits, facilitando a tarefa de geração de arquivos parciais, dependendo, portanto, da API fornecida por a Xilinx.
+JRTR (em inglês Java Run-Time Reconflguration) é uma extensão da API J Bits que fornece suporte a reconfiguração parcial.
+J RTR combina técnicas de hardware e programas que permitem modificações pequenas em arquivos de configuração de dispositivos da família Virtex de forma direta, rápida e sem interrupção de operação.
+J Bits é utilizada para leitura e escrita de arquivos de configuração.
+JRTR possui um parser para analise do arquivo de configuração.
+Segundo[ MCMOUL utilizando JRTR, o usuario pode gerar configurações parciais em qualquer instante, e então configuras- los no dispositivo durante a operação do sistema.
+Ferramentas desenvolvidas no GAPH Em, Mõller apresenta uma série de ferramentas para manipular arquivos de configurações.
+Essas ferramentas foram desenvolvidas no mesmo grupo de pesquisa, GAPH (Grupo de Apoio ao Projeto de Hardware), onde o presente trabalho se desenvolve.
+Algumas das ferramentas desenvolvidas por Mõller baseiam- se na API JBits.
+A seguir apresentam- se, de maneira sucinta, três ferramentas desenvolvidas no GAPH:
+BitPmgrammer permite acessar manipular arquivos de configuração local ou remotamente.
+Com essa ferramenta é possível visualizar o conteúdo dos arquivos de configuração bem como modificas- los.
+Os arquivos também podem ser configurados no dispositivo remotamente.
+BitAnalyzer é utilizado para a analise de arquivos de configuração.
+É possível selecionar partes de um arquivo de configuração total e gerar um arquivo parcial.
+Core Uni/ fer é utilizado para manipular núcleos de propriedade intelectual.
+Essa ferramenta permite a leitura de informações de configurações diretamente do arquivo de configuração.
+Um arquivo de configuração pode ser criado a partir de a união de áreas selecionadas de dois arquivos de configuração.
+Essas, entre outras ferramentas desenvolvidas no grupo, habilitam a manipulação de arquivos de configuração totais e parciais.
+O conjunto desenvolvido por Mõller manipula apenas arquivos de configuração gerados para dispositivos da família Virtex da Xilinx.
+Alternativas para geração de arquivos de configuração parciais Dyer Apresentam três alternativas para a geração de arquivos de configuração parciais.
+A primeira de elas emprega fluxos realizados usando apenas ferramentas fornecidas por vendedores de dispositivos reconfiguráveis.
+Estas são restritas, permitem manipulações incrementais, ou seja, de pequeno porte.
+Como mencionado anteriormente, essas ferramentas são, ainda hoje, manuais e enfrentam problemas relativos a limitação do roteamento.
+Em[ BRIUBL Brião apresenta um trabalho que emprega apenas as ferramentas fornecidas por o fabricante no desenvolvimento de SDRs.
+A segunda alternativa evidenciada por Dyer É usar a API JBits para gerar arquivos parciais.
+Segundo o mesmo autor, esta alternativa permite um alto grau de abstração, mas não fornece opções de síntese avançadas que permitam realizar otimizações relativas a potência dissipada e temporização, por exemplo.
+A terceira alternativa apresentada em, segundo os autores a melhor de elas, refiete a idéia de combinar as duas anteriores, aproveitando as melhores características de cada.
+Esse fluxo misto propõe a utilização das ferramentas fornecidas por o fabricante para realizar as tarefas de síntese e o JBits para gerar os arquivos parciais.
+Com a ascensão do desenvolvimento de SoCs, espera- se que cresça a utilização de núcleos IP (em inglês Intellectual Property) e também o reuso de hardware.
+Os desenvolvedores devem poder agrupar diversos núcleos num único sistema, de maneira mais automatizada possível para atender a demanda do mercado.
+Para isso, faz- se necessario a disponibilização de núcleos de propriedade intelectual e o emprego de estratégias de conexão de núcleos.
+A pouco tempo atras, desenvolvia- se SoCs de maneira que os núcleos deviam se adaptar a um meio de comunicação padrão anteriormente projetado.
+Modernamente, além de o meio de comunicação, também as interfaces do núcleo podem ser padronizadas.
+0s t, em, apresenta pesquisas relacionadas a padronização da interface de comunicação entre núcleos.
+A seguir, apresentam- se algumas alternativas propostas tendo em vista meios de conexão padronizados para núcleos de propriedade intelectual.
+Barramento de Palma Palma apresenta uma proposta de métodos para desenvolvimento e comunicação de núcleos de hardware no contexto de reconfiguração dinâmica e parcial.
+O fluxo de desenvolvimento proposto sofre com o problema de falta de suporte para restringir o roteamento de arquivos de configuração parciais, anteriormente citado.
+A maior contribuição do trabalho de Palma é a proposta de um barramento para interconexão de núcleos de hardware dinâmica e parcialmente reconfiguráveis.
+Define- se, nesse trabalho, um hardware fixo chamado de controlador que coordena a comunicação com o mundo externo e entre os núcleos, virtualizando os pinos de entrada e saída.
+A comunicação entre o controlador e os núcleos é realizada através de pinos implementados usando duas camadas de bujfers tristate, uma pertencendo ao controlador e outra ao núcleo conectado ao barramento.
+O controlador é na verdade um árbitro do barramento.
+O barramento localiza- se horizontalmente na parte inferior do dispositivo.
+Em a Figura 2.3 pode- se ver a estrutura do barramento proposto por Palma.
+É importante salientar que muitas das características estruturais do barramento proposto relacionam- se ao fato deste ser desenvolvido tendo como dispositivo alvo FPGAs da família Virtex da Xilinx.
+A restrição na largura, por causa de os buífers tristate também se relaciona ao dispositivo utilizado.
+A Bus Macro, ao contrário de o barramento apresentado por Palma, posiciona- se verticalmente entre módulos reconfiguráveis e/ ou fixos, ao longo de o dispositivo.
+A Bus Macro não necessita de um árbitro centralizado, pois interconecta apenas núcleos ponto a ponto.
+Quando dois núcleos devem se comunicar, isto ocorre através da Bus Macro que os interliga.
+A Bus Macro, assim como o barramento proposto por Palma, usa bujfers tristate.
+É importante observar que em recomenda- se o desenvolvimento de sistemas usando Bus Macro com apenas dois núcleos:
+Um estático e outro reconfigurável.
+Não é mencionado que não se pode desenvolver sistemas corn número de módulos maior que dois, mas tais recomendações indicam que o modelo possui restrições de uso, ainda que transitórias.
+Além disso, assim como o fluxo de projeto de sistemas reconfiguráveis de, o fluxo proposto em também apresenta varias tarefas manuais que inviabilizam o desenvolvimento de sistemas mais complexos, ou seja, existe ainda carência de automatização do processo de geração de arquivos parciais de configuração.
+As informações apresentadas em refletem uma proposta de como utilizar técnicas de projeto modular para implementar sistemas RTR.
+Em sua essência, a técnica de projeto modular foi concebida para suportar o desenvolvimento de projetos com grande complexidade, que necessitam de diversos grupos de desenvolvedores, muitas vezes em locais geograficamente distribuídos, cada um desenvolvendo uma parte do sistema.
+Em o próximo Capítulo apresenta- se considerações relacionadas ao controle dos processos de reconfigurações dinâmicas e parciais em sistemas dinâmicamente reconfiguráveis.
+Tratase algumas propostas de estrutura de controladores bem como implementações de módulos dessa natureza.
+Controladores de configurações Os desenvolvimentos na área de sistemas reconfiguráveis tem conduzido a hardware que se assemelha a software do ponto de vista de flexibilidade.
+Em virtude de isso hardware reconfigurável necessita de subsistemas que executem operações semelhantes as de um sistema operacional.
+Como citado anteriormente nesse volume, um sistema operacional gerência a operação de processos numa UCP, controlando a carga de programas a executar em memória.
+Para isto, deve interpretar informações provenientes de um escalonador de processos.
+Em SDRs, deve existir um subsistema que realize tarefas semelhantes a estas.
+Como visto na Seção 1.2.1, pode- se classificar um processador convencional como um hardware reconíiguravel onde, cada uma das instruções a ser executada reíiete uma configuração diferente.
+Desta forma, ao executar uma instrução de soma um processador é configurado para executas- la, o que determina qual deve ser seu comportamento e assim ocorre para cada uma das instruções de sua arquitetura.
+Em são discutidos metodos para gerenciamento de configurações internos a um Ci, ou seja, que não necessitam de um hospedeiro externo.
+Tais métodos são denominados gerenciamento intra-chip (em inglês, on- chíp management).
+Em tais sistemas, o controle de configuração realiza uma operação denominada autoconjiguração, termo este definido conceito de reconfigurabilidade dinâmica, pois assume que circuitos específicos no FPGA são usados para controlar a reconfiguração de outra parte do FPGA.
+Segundo, Controladores de Configurações tradicionais necessitam de um hospedeiro externo ao dispositivo reconfigurável para seu controle.
+Mas, num sistema fechado, onde todas as configurações e as possíveis seqüências de execução são conhecidas, um controlador interno ao dispositivo pode ser desenvolvido para gerenciar/ controlar o processo de reconfiguração.
+Em esse Capítulo, serão apresentados três propostas de modelos de controladores de con figuração (Seção 3.2), seguido da discussão de duas implementações (Seção 3.1).
+A seguir, a Seção 3.3 apresenta um resumo de características gerais de controladores de configuração e a comparação dos modelos e implementações estudados sob o ponto de vista destas características.
+Outras considerações sobre controladores de configurações, incluindo escalonamento de configurações e o particionamento de dispositivos reconfiguráveis finalizam esse Capítulo.
+Em essa Seção apresenta- se um breve resumo de trabalhos que propõem modelos de controladores de configuração.
+De entre eles os apresentados por Shirazi, Burns e Lysaght.
+Estes trabalhos demonstram a importância de subsistemas para controle de configurações.
+Shirazi e colaboradores propõem um modelo genérico de controlador de configurações.
+Esse modelo, apresentado na Figura 3.1, compõe- se de três partes principais (ou estágios):
+Um carregador de configurações, um monitor e um armazenamento de conjigurações.
+Em este modelo, o monitor mantém informações sobre o estado da configuração, tais como tipo e posicionamento no dispositivo reconfigurável.
+Ele também mantém informações sobre as possíveis transições para o próximo estado de configuração a partir de o estado atual.
+O monitor ainda verifica condições da aplicação que ativam reconfigurações.
+Se uma condição é satisfeita e a configuração necessária não se encontra disponível no dispositivo, então o monitor notifica o carregador para configuras- la.
+Existem três possibilidades de operação do monitor, dependendo das informações disponíveis na seqüência de reconfiguração:
+O tempo de execução de uma configuração é conhecido em tempo de compilação e a próxima configuração também é conhecida;
+Apenas a próxima configuração é conhecida;
+O tempo de execução da configuração e a próxima configuração não são conhecidos.
+Em o primeiro caso, o monitor é composto apenas por um temporizador, que indica quando uma nova configuração deve ser carregada.
+Em o segundo caso, são necessárias condições recebidas do dispositivo (Um FPGA) ou da aplicação para que a próxima configuração seja carregada.
+O último caso ainda necessita que as configurações sejam produzidas em tempo de compilação ou de execução.
+O carregador, como seu próprio nome indica, é responsavel por transportar configurações para dentro de o dispositivo.
+Quando recebe uma requisição do monitor, o carregador obtém a localização da configuração requisitada no armazenamento de configurações e então inicia o processo de configuração.
+O armazenamento de configurações possui três componentes:
+Um diretório de configurações, um repositório de dados de configuração e um agente de transformação.
+O diretório é uma tabela contendo apontadores para o início de cada configuração no repositório de dados de configuração, que armazena as configurações em si.
+O agente de transformação é necessario para minimizar o armazenamento de configurações ja que ele encarrega- se de realizar a relocação dos arquivos para diversas posições, tornando desnecessário armazenar varios arquivos com a mesma lógica para cada uma das possíveis posições de uso.
+A estrutura da Figura 3.1 apresenta o modelo genérico proposto, que contudo pode ser adaptado/ personalizado para urna aplicação específica.
+Esta constitui uma proposta um tanto simplificada da estrutura completa de um controlador de configurações, carecendo de maiores detalhamentos.
+O Grupo de Arquitetura Reconfigurável RAGE (Reconjigurable Architecture Group), da Universidade de Glasgow desenvolve pesquisas que visam analisar as aplicações de sistemas reconfiguráveis.
+Em, Burns Descrevem a estrutura de um SDR denominado RACE.
+O fluxo de dados deste sistema é esboçado na Figura 3.2.
+O controlador de hardware virtual provê a principal interface entre a aplicação e o sistema em execução.
+Chamadas para realizar uma reconfiguração ou liberar determinada ãrea ocupada por uma configuração são enviadas ao controlador de hardware virtual, que mantém um mapa da utilização do dispositivo.
+O controlador de configurações provê uma interface para o controlador de hardware virtual independente do dispositivo.
+Ele realiza alguns dos seguintes serviços:
+Realiza reconfigurações através de um gerenciador de dispositivo específico;
+Carrega dados passados da aplicação, através do controlador de hardware virtual, para registradores das configurações residentes no FPGA;
+Passa informações de estado fornecidas por o gerenciador do dispositivo para o controlador de hardware virtual.
+O gerenciador de dispositivo fornece um conjunto de instruções que possibilitam ao controlador de configurações programar/ configurar o dispositivo e comunicar- se com uma placa contendo um ou mais dispositivos reconfiguráveis.
+As propostas de e para controladores de configurações, embora genéricas, foram desenvolvidas tendo em mente um caso especial de estrutura de sistema reconfigurável, aquele onde uma aplicação corresponde a um software executando num processador hospedeiro, o controlador de configurações sendo parte do software executando no mesmo hospedeiro e o dispositivo reconfigurável sendo um uso-processador usado por a aplicação, normalmente residindo num periférico do hospedei ro.
+Entretanto, nenhuma característica dos modelos citados implica que os controladores propostos não possam ser implementados em hardware.
+McGregor e Lysaght classificam controladores de configurações em duas categorias:
+Implementados em hardware ou em software.
+Os autores salientam ainda que a escolha da melhor forma depende da natureza da aplicação reconfigurável.
+Eles sustentam que um controlador pode também ser uma mescla de software e hardware, ou seja, ter algumas das suas funcionalidades operando em software enquanto outras estão operando em hardware, sendo que estas de alguma forma trocam informações.
+Segundo Robinson e Lysaght, as sobrecargas de área em hardware ou de temporização introduzidas por um controlador de configurações podem inviabilizar o uso de técnicas de RTR.
+Estas sobrecargas podem estar associadas aos recursos necessarios, ao atraso na execução e também relacionadas ao projeto e testes de um novo controlador para cada novo sistema.
+A principal contribuição de é a proposta de um modelo genérico de controlador de configurações, detalhado na Figura 3.3, que pode ser adaptado de acordo com as necessidades do usuario.
+Em este modelo, uma configuração, denominada por os autores tarefa, pode estar no conjunto de tarefas ativas ou no conjunto de tarefas inativas.
+Tarefas estáticas estão sempre no primeiro conjunto enquanto que tarefas dinâmicas podem entrar e sair do mesmo.
+O tempo necessario para transferir uma tarefa dinâmica do conjunto de tarefas inativas para o conjunto de tarefas ativas é chamado latência de reconjíguração.
+Essas transferências só ocorrem quando uma condição pré-definida, dita condição de reconfiguração, for satisfeita.
+Em esse caso, os dados de configuração são carregados no dispositivo reconfigurável através da porta de configuração.
+O modelo de controlador de configurações proposto em baseia- se em blocos que executam operações ditintas.
+As transferências entre os blocos são controladas por protocolos de comunicação.
+Os blocos desnecessários em determinados projetos podem ser retirados sem afetar o modelo.
+Segundo os autores, uma unidade de controle de configurações para SDRs deve realizar três operações principais:
+Identificar condições de reconfiguração;
+Recuperar dados de configuração;
+Configurar o dispositivo usando os dados de configuração.
+Além de essas, algumas funcionalidades podem ser desejáveis:
+Controle de níveis de prioridade para configurações;
+Ele ainda possui am escalonador, que nos outros modelos não faz parte do sistema e apenas fornece entradas para o controlador de configurações.
+Decodificação de dados de configuração em tempo de execução;
+Transformação em tempo de execução do layout de tarefas dinâmicas, ou seja, relocação.
+O controlador central comanda a ativação e a desativação de tarefas dinâmicas.
+Este processo inicia quando um identificador de tarefa e um sinalizador são gerados na saída do escalonador.
+O sinalizador indica se a tarefa será ativada ou desativada.
+O controlador central ativa a nova tarefa dinâmica, preemptando, se necessário, alguma outra tarefa dinâmica.
+Em a desativação, o controlador central restaura alguma outra tarefa dinâmica anteriormente preemptada.
+O controlador central assegura a consistência dos registradores de estado através desse processo.
+Cada tarefa dinâmica tem duas condições de reconfiguração, correspondentes ã ativação e desativação.
+Em o modelo proposto, pode ser especificado após quanto tempo uma condição de reconfiguração deve ocorrer, entre outros fatores.
+O monitor de condições de reconfiguração é responsavel por detectar e armazenar a satisfação de condições de reconfiguração para que estas sejam processadas por o controlador central.
+O escalonador serializa requisições paralelas de reconfiguração.
+Ele recebe dados de filas de prioridade no monitor de condições de reconfiguração e cria uma única fila de saída, contendo um identificador de tarefa dinâmica e um sinal de controle para cada condição de reconfiguração.
+As tarefas dinâmicas podem ser selecionadas através de dois esquemas:
+Os registradores de estado são responsaveis por armazenar o estado de cada uma das tarefas dinâmicas.
+Condições de reconfiguração usam o estado de uma tarefa dinâmica para ordenar o escalonamento de ativação e desativação, ou seja, definir quando tais operações irão ocorrer.
+Cada tarefa tem a ela associado um registrador de estado que informa se ela encontra- se configurada no dispositivo ou não.
+O conjunto mínimo de estados suportado por esse modelo é composto por:
+A interface para preempção gerência a remoção de tarefas dinâmicas de menor prioridade para dar lugar as de maior prioridade.
+Para que a tarefa preemptada continue executando a partir de onde parou, depois da tarefa de maior prioridade executar, seu estado deve ser salvo antes da preempção e restaurado no seu retorno ao dispositivo.
+A própria tarefa executa rotinas internas para salvar seu estado (contexto) antes de &quot;sair «do dispositivo, e sinaliza ao controlador central quando terminou esse processo.
+Este fator complica o desenvolvimento de tarefas usando esquemas de preempção, uma vez que fica a cargo de a tarefa gerenciar seu contexto.
+O decodificador de dados de configuração inclui circuitos de configuração definidos por o usuario para converter os dados de configuração codificados em dados utilizaveis.
+A codificação aqui relaciona- se a compactação de dados e/ ou encriptação.
+O transformador de layout tem por objetivo maximizar a utilização do dispositivo configurável.
+Isso pode ser alcançado atrasando a decisão do posicionamento final da tarefa no dispositivo, através de técnicas de relocação de bitstreams, e/ ou mediante uso de técnicas de defragmentação de áreas reconfiguráveis.
+Após a apresentação dos modelos de controladores propostos, descreve- se abaixo algumas implementações de sistemas dessa natureza.
+Nenhuma destas implementações segue exatamente qualquer dos modelos propostos apresentados acima.
+Curd descreve a implementação de um controlador de configurações para dispositivos VirteII-Pro.
+Este controlador é específico para configurar RocketlO, transceptores de banda larga incorporados a FPGAs VirtexH-Pro.
+Um esboço da estrutura do controlador desenvolvido pode ser visto na Figura 3.
+O controlador é responsavel por comandar o processo de reconfiguração parcial, modificando os atributos do transceptor de banda larga.
+ICAP (em inglês Internal Configuration Access Port, Porta Interna de Acesso ã Configuração) é um módulo que fornece acesso interno aos pinos de configuração no modo paralelo de configuração de dispositivos Virtex e VirtexII-Pro da Xilinx.
+Através de ele, é possível enviar dados de configuração para o FPGA internamente ao próprio dispositivo.
+Esta operação não podia ser realizada em dispositivos da família Virtex, por exemplo, onde necessitava- se de um módulo externo para acessar a interface de configuração através de pinos específicos do FPGA.
+O controlador é composto por quatro módulos.
+O primeiro de eles, denominado ICAP recebe como entrada:
+Um sinal de habilitação (ce);
+Um sinal de seleção da operação a ser realizada (write);
+Um sinal de relógio;
+E um byte de dados a ser enviado para o FPGA Gera sinais de ocupado (busy) e um byte de dados (o) lidos a partir de o FPGA no caso de readback (i.
+e ler os bits de configuração do dispositivo, operação inversa a configuração).
+O segundo módulo que compõe o controlador de Curd denomina- se BRAM.
+Ele e composto por 3 BRAMs de 18 Kb:
+Duas para armazenar o código a ser executado por o processador PPC405 e uma para armazenar os dados de configuração.
+O terceiro módulo e o processador PPC4 U5.
+Principal módulo do sistema, responsavel por controlar todo o processo de configuração.
+Este módulo é implementado em software.
+Seu código fonte, armazenado nas duas primeiras BRAMs, descreve rotinas para ler dados de configuração da outra BRAM e envias- los ao gerenciador de DMA.
+O gerenciador de DMA (em inglês, Direct Memory Access, Acesso Direto a Memória) é o último componente do controlador.
+Este módulo é responsavel por gerenciar a transmissão de dados de configuração entre a BRAM utilizada como repositório de configurações e a interface de configuração do dispositivo, no caso ICAP.
+Embora os módulos do sistema sejam estruturas implementadas em hardware, a lógica de controle de configurações é representada por um código executado por o PPC4 U5.
+Em o modelo de Curd, o hardware é utilizado para armazenamento temporario de dados e gerenciamentos da transmissão dos mesmos.
+Este controlador é idealizado apenas para controlar a configuração de transceptores de banda larga (i.
+e RocketIO da VirtexII-Pro).
+Em face de isso, ele não possui componentes para realizar tarefas tais como relocação de configurações e escalonamento entre outras.
+Limita- se a modificar informações contidas numa palavra de controle que determina o comportamento dos transceptores RocketIO, recursos lixos no dispositivo.
+As configurações realizadas por esse controlados são incrementais segundo o critério Dimensão dos módulos manipulados na configuração apresentado na Subseção 2.1.
+Em, Blodget Descrevem uma proposta semelhante a apresentada na Seção anterior, ja que a lógica de controle é implementada em software.
+A estrutura deste controlador de configurações é ilustrada na Figura 3.5.
+O funcionamento desse controlador é comandado por um programa que executa no processador MicroBlaze e requisita um quadro (unidade atômica de configuração de dispositivos da família Virtex e VirtexH da Xilinx) específico.
+A seguir, a lógica de controle utiliza a interface ICAP para realizar uma operação de readbaclc e carregar os dados de configuração numa BRAM.
+Quando a operação de readbaclc termina, o programa modifica a configuração armazenada na BRAM.
+Finalmente, o ICAP é utilizado para configurar o quadro com o dado modificado.
+Blaze requisito um quadro de configuração.
+A partir de aí, a lógica de controle realiza uma operação de readback através da ICAP e carrega os dados lidos numa Eram.
+Após o readback, o programa modifica estes dados e os envia à, ICAP para reconfígurar dispositivo com a lógica modificada.
+Ainda na Figura 3.5, pode- se notar a existência de um barramento on- chip peripheral bus (OPB) do CoreConect.
+CoreCormect é uma interface de comunicação baseada na arquitetura de barramento desenvolvida por a IBM.
+O sistema de software deste controlador foi implementado em camadas para facilitar sua modificação.
+Apresenta- se um esboço da estrutura de software em camadas na Figura 3.6.
+A camada 3 é responsável por a interface com a Aplicação embarcada.
+A camada 2 comporta Apis semelhantes a JBits que possibilitam configurar ou realizar readback do dispositivo de forma parcial.
+A camada 1 possui controladores de dispositivo embarcados no MicroBlaze e um emulador de controlador de ICAP executando num computador hospedeiro.
+A camada o (zero) constitui- se do controlador de ICAP.
+As camadas 2 e 3 são independentes do hardware enquanto que as demais, o e 1, são dependentes.
+Os modelos e implementações estudadas até o presente momento diferem em sua complexidade.
+Contudo, todos possuem blocos (ou conjuntos de blocos) que desempenham um mesmo conjunto de tarefas.
+Em todos os casos existe:
+Um meio de armazenamento de configurações, com exceção da implementação de Blodget;
+A partir de essas constatações pode- se imaginar como é a estrutura geral de um controlador de configurações, apresentada na Figura 3.7, ou seja, quais são seus componentes e principalmente a funcionalidade de cada um de eles.
+Em seguida, pode- se propor uma estrutura de controlador e estudar quais são as melhores estratégias a serem abordadas e quais são viáveis.
+Com base nesses mesmos estudos pôde- se elaborar um quadro comparativo, como o apresentado na Tabela 3.1.
+Características Shirazí Burns Lysaght Curd Blodget RSCM Hanlxvare/ snftuíire\ ran aplicável\ rão aplicável Não aplicável Software Software Hardware Dispositivo alm xcszoo xcszuo xcszuu VirccxILPio Virtcxll Vlrtcxll Escalonalncnto &quot;Estático Dinâmico Nenhum Estático Preelnpcãn Não sim Não\ ran Não'Rrlocação sim Não Não Não'Armazenamento da configurações Sim sim Não sim a «de configurações Não Não Sim Nan\ ran Não um do controlador Nau aplicável Não aplicável Interno ao FPGA Interno ao FPGA Ano da publicação 199a 1997 1999 2003 2003 2003 «lmplevllelltação futura previa-ra.&amp;&amp;&amp;
+O modelo mais sofisticado prevê o uso de preempção além de a possibilidade de manipular dados compactados ou encriptados.
+Ele ainda possui um escalonador, que nos outros modelos não faz parte do sistema e apenas fornece entradas para o controlador de configurações.
+As três primeiras propostas apresentadas foram desenvolvidas visando sobretudo uma família de FPGAs descontinuada, a XC6200 da Xilinx.
+Os dois últimos modelos, no entanto, foram desenvolvidos para arquiteturas atualmente disponíveis.
+O primeiro de eles para dispositivos VirtexII-Pro da Xilinx E o segundo para dispositivos da família Virtex, do mesmo fabricante.
+Nenhuma das implementações apresentadas segue algum dos modelos propostos.
+Em o presente trabalho sera apresentado um sistema de controle de configuração que possui a maioria dos submódulos propostos nos modelos apresentados anteriormente.
+As implementações de Curt e Blodget Refletem sistemas controladores de configurações implementados parcial ou totalmente em software.
+A abordagem aqui adotada sera implementar o sistema de controle de configurações em hardware.
+Estuda- se tal abordagem com o objetivo de obter informações relevantes para futuramente elaborar um comparativo entre 0 modelo aqui proposto, em hardware, e modelos desenvolvidos em software.
+Até o presente instante é impossível estimar de maneira adequada qual das abordagens é a melhor porque nenhum sistema dessa natureza foi implementado inteiramente em hardware.
+Vistas algumas das principais propostas e implementações de controladores de configurações, algumas decisões importantes devem ser tomadas ainda no projeto do SDR.
+Estas influem diretamente na complexidade do controlador projetado e na sua eficiência.
+Em as Seções abaixo, aborda- se os seguintes temas:
+Estratégias de alocação em dispositivos reconfiguráveis;
+Particionamento de hardware;
+Políticas de escalonamento de configurações;
+Relocação de configurações A arquitetura de dispositivos reconfiguráveis ainda é a maior fonte geradora de restrição para o projeto de um sistema controlador de configurações.
+Dependendo da forma como o dispositivo deve/ pode ser manipulado o controlador podera ou não apresentar estruturas mais complexas.
+Em, apresenta- se quatro formas de modelar um dispositivo reconfigurável.
+São elas:
+Bidimensional não-paginado;
+Bidimensional paginado;
+Unidimensional não-paginado;
+Unidimensional paginado;
+O modelo bidimensional não-paginado proporciona a maior flexibilidade, pois possibilita posicionar configurações ocupando uma superfície retangular em qualquer posição do dispositivo, como esboçado na Figura 3.8 (a).
+A flexibilidade deste modelo dificulta as tarefas de escalonamento de posicionamento.
+Além disso, propicia a fragmentação externa quando uma configuração necessita de recursos que estão disponíveis no dispositivo mas não podem ser utilizados porque encontram- se dispersos.
+Uma variação desse modelo propõe paginar o dispositivo em fatias com dimensões fixas, onde as configurações devem ser posicionadas como apresentado na Figura 3.8 (b).
+A estas fatias da- se o nome de blocos.
+Um bloco é agora a unidade mínima de configuração.
+Esta estratégia facilita o escalonamento e o posicionamento e causa fragmentação interna quando uma configuração necessita de menos recursos que os disponíveis em cada bloco de tamanho fixo.
+Steinger, Walder e outros evidenciam uma outra desvantagem dos modelos bidimensionais:
+A dificuldade em prover meios de comunicação entre as configurações.
+O modelo unidimensional não-paginado restringe o posicionamento de configurações na direção vertical como esboçado na Figura 3.9 (a).
+Em esse modelo, as configurações podem estar localizadas em qualquer porção horizontal, mas devem ocupar todo espaço vertical do dispositivo.
+Este modelo sofre com problemas de fragmentação interna e também externa.
+O modelo unídimensional paginado restringe o posicionamento de configurações a blocos com ambas dimensões, vertical e horizontal, fixas como visto na Figura 3.9 (ã).
+Este modelo sofre com o problema de fragmentação interna, mas facilita muito as tarefas de escalonamento e posicionamento.
+Estes modelos são mais adequados para as restrições impostas por as tecnologias hoje disponíveis no mercado (Dispositivos Virtex, que são paginados em quadros Verticais).
+O modelo paginado (b) é o mais realista e apresenta o problema de fragmentação interna.
+Em essa figura entenda conf] como configuração 1.
+O modelo mais próximo de as características arquiteturais de dispositivos da família Virtex da Xilinx é o unidimensional.
+Isto devido a o fato dos dispositivos desta família serem paginados em quadros verticais, como apresentado no Capítulo anterior.
+Particionar um sistema consiste em separas- lo em partes menores (i.
+e configurações parciais) mantendo inalterado o seu comportamento.
+O particionamento implica portanto em manter intacta a funcionalidade do sistema e sua interface com entidades externas.
+De essa forma, o fato do sistema estar particionado é transparente a entidades externas.
+O principal objetivo do particionamento é reduzir a complexidade do projeto de um sistema, onde cada parte pode ser tratada independentemente.
+Modernamente, no âmbito de sistemas configuraveis, outros objetivos adquirem maior importancia, tal como solucionar o problema relacionado às restrições físicas do dispositivo configuravel.
+Este pode não disponibilizar recursos suficientes para implementar completamente o sistema.
+Mais especificamente, em sistemas dinâmica e parcialmente reconfiguráveis, particiona- se o hardware para que através de um cronograma de configuração das partes geradas obtenha- se um ganho de desempenho chegando possivelmente a uma melhor utilização do dispositivo.
+Segundo o particionamento de sistemas dinâmica e parcialmente reconfiguráveis pode acontecer de duas formas:
+Partícionamento no domínio espacial:
+Divide o sistema em recursos estáticos de hardware;
+Particionamento no domínio temporal:
+Divide o sistema dentro de segmentos de tempo exclusivos.
+O particionamento espacial é a abordagem classica em projetos de hardware em geral.
+O particionamento temporal explora a possibilidade de dividir o sistema no tempo, onde apenas parte deste é configurado a cada instante, enquanto outras partes são configuradas quando necessárias de acordo com a necessidade da aplicação.
+Como citado em, obter a maxima vantagem de RTR na implementação de sistemas digitais propõe o estudo de problemas tal como o particionamento de hardware.
+De forma mais específica, são necessárias técnicas para &quot;particionar «e, ainda, definir um cronograma de reconfiguração adequado, maximizando o desempenho do sistema dinãmica e parcialmente reconfigurável, considerando as restrições de área do dispositivo reconfigurável.
+Em a mesma referência, evidencia- se a importância de particionar o sistema de forma que a comunicação entre as partes geradas seja minimizada.
+De outro modo, o desempenho do sistema pode ser comprometido em face de o gargalo gerado por a comunicação entre seus componentes.
+O problema de comunicação agrava- se quando uma parte do sistema residente no dispositivo necessita comunicar- se com outra parte ainda não configurada.
+Métodos de salvamento de contexto para comunicação são necessários neste caso.
+O conceito escalonamento aplica- se freqüentemente a assuntos relacionados a software, especificamente em sistemas operacionais.
+Segundo, quando mais de um programa encontra- se apto a executar, o sistema operacional deve decidir qual de eles irá fazer- lo.
+A parte do sistema operacional responsavel por tomar esse tipo de decisão recebe o nome de escalonador.
+Cabe ao escalonador decidir, segundo uma política dada a ordem em a qual os programas serão executados por o processador.
+Mas não é tarefa do escalonador aplicar sua decisão.
+De esta maneira, um mecanismo de suporte deve ser provido para, por exemplo, carregar o programa escolhido no processador.
+Por analogia a software, em SDRs configurações correspondem a programas e o dispositivo reconfíguravel corresponde ao processador.
+O mecanismo que aplica as decisões tomadas por o escalonador é o controlador de configurações.
+Para escopo de SDRs, Vasilko define o problema de escalonamento como:
+&quot;Dado um conjunto de configurações e a área total do dispositivo reconjiguráoel, encontrar o melhor escalonamento que obedeça a restrições de precedência (ou prioridade) e que o somatório das áreas de cada uma das configurações fisicamente presentes no dispositivo não seja maior que a área total.»
+A estratégia de interromper a execução de urna configuração (processo) quando urna outra de maior prioridade encontra- se apta a executar recebe o nome de preempção.
+O escalonador pode aplicar técnicas de preempção, dependendo da política adotada.
+Seu emprego, no entanto, exige a presença de entidades responsaveis por gerenciar o estado atual de execução da configuração a ser preemptada.
+Esta entidade responsabiliza- se por armazenar o estado da configuração para que este seja &quot;retomado «quando a configuração retornar ao dispositivo.
+Como citado em, para preemptar uma configuração executando num FPGA é necessario executar uma tarefa de readback e salvar o estado da configuração para que, retornando ao dispositivo, esta continue a operar do ponto onde foi interrompida.
+O escalonamento de configurações pode ser dinâmico ou estático.
+Um sistema pode ter seu cronograma de escalonamento definido em tempo de projeto, sendo portanto fixo.
+Este modelo recebe o nome de escalonamento estático.
+De outra forma, quando as decisões são tomadas em tempo de execução o escalonamento é dito dinâmico.
+Este último modelo indica uma nova área de pesquisas ainda inexplorada.
+O fato de uma configuração residente no dispositivo realizar operações que venham a interferir no cronograma de configurações apresenta- se como a realização de saltos em software.
+Assim sendo, a técnica conhecida como predição de saltos pode também ser aqui aplicada, como citado em.
+Urna denominação para esta técnica pode ser «predição de configuração.
+A tarefa de escalonar configurações é, portanto, crucial para o desempenho de SDRs.
+Estratégias simplistas podem acarretar, por exemplo, redução da densidade funcional do sistema.
+Embora seja notória a importancia de métodos de escalonamento adequados a SDRs, a maioria das pesquisas nesta área objetivam sistemas reconfiguráveis baseados em múltiplos contextos.
+A seguir, apresentam- se algumas propostas de métodos de escalonamento.
+Propostas de Walder et al Em, Walder e Platzner apresentam quatro modelos de escalonamento.
+Estes são agrupados em duas classes.
+São elas:
+Sem preempção:
+Onde toda configuração executa até acabar sua tarefa.
+FCFS -- em inglês First Come First Semed, a configuração executa de acordo com a ordem de chegada.
+Comporta- se tal como uma fila, onde a primeira a chegar é a primeiro a executar;
+Com preempção:
+Quando uma configuração executando pode ser interrompida e removida (preemptada) do dispositivo para dar lugar a outra de maior prioridade.
+EDF -- em inglês Earliest Deadline First, onde escalona- se para execução a configuração que necessita terminar sua execução antes, ou seja, que possui uma maior necessidade do recurso.
+Os métodos sem preempção podem causar postergação indefinida.
+Em FCFS uma configuração pode tomar um tempo arbitrariamente grande para executar e as demais configurações podem ser obrigadas a esperar indefinidamente.
+Em inglês, este fenômeno recebe o nome staruation.
+O método SJF também pode causar a postergação indefinida, porque as configurações que necessitam de um tempo maior para executar podem nunca chegar a ser escalonadas.
+Isto pode ocorrer quando diversas configurações que necessitam de um tempo menor requerem recurso para executar, ou seja, sempre existe uma outra configuração que necessita de menos tempo esperando para executar.
+Em o metodo SRPT, as configurações que necessitam de um maior tempo para executar podem nunca ser escalonadas porque configurações mais rápidas sempre poderão ganhar a posse do dispositivo, em detrimento de as primeiras.
+Em a mesma referência são apresentados os possíveis estados de uma configuração num sistema que emprega técnicas de escalonamento com preempção.
+Em a Figura 3.10 apresenta- se um grafo ilustrando os possíveis estados e transições de uma configuração em sistemas com preempção.
+Então, quando escalonada para execução passa ao estado configurando e, se o processo não for interrompido, ao estado executando.
+Acontecendo uma preempção do tarefa executando ela retorno ao estado esperando.
+Antes disto, porém, deoe acontecer uma operação de readback que salva seu estado, ilustrado por o estado readback.
+Em, Steiger e outros apresentam duas heurísticas de escalonamento sem preempção denominadas horizon e stufing.
+A técnica horizon utiliza duas listas para implementar o escalonamento.
+A primeira de elas, denominada horizonte de escalonamento, contém informação sobre os intervalos vazios, onde as configurações podem ser inseridas.
+Os intervalos são representados por três valores:
+A técnica stujfing escalona configurações ern retàngulos livres de maneira arbitrária.
+Ela também utiliza duas listas:
+Uma lista de espaço livre e uma lista de reserva.
+O escalonador stuffing percorre as listas, simulando todas as futuras alocações, emulando seus términos e unindo os espaços livres, ou seja, aplica a técnica do melhor lugar (best fit).
+Um comparativo dos resultados do escalonamento da configuração sete (C7) é apresentado na Figura 3.11.
+As duas técnicas usam duas listas com conteúdos semelhantes, uma com informações sobre o estado de alocação do dispositivo e outra com informações de escalonamento sendo gerado.
+A diferença entre essas técnicas é como e quando as listas são atualizadas.
+HORIZON atualiza apenas quando uma configuração chega, ao passo que STUFFING atualiza de tempos em tempos, quando uma configuração é inserida e quando é retirada.
+Em virtude de isso, antes de inserir a configuração C7 a técnica HORIZON tem como área livre apenas aquela a esquerda da linha pontilhada.
+Pode- se notar nessa Figura que o dispositivo empregado possui largura 10.
+Em a Figura 3.11 pode- se perceber que o resultado apresentado por a segunda técnica aumenta a densidade funcional do sistema, ou seja, melhora o desempenho do mesmo.
+O preço pago por este desempenho é a complexidade para simular os futuros términos das configurações.
+As duas técnicas usam duas listas corn conteúdos semelhantes, a diferença está em como e quando elas são atualizadas.
+Horizon atualiza apenas quando urna configuração chega ao passo que stujfing atualiza de tempos em tempos, quando urna configuração é inserida e quando é retirada.
+As duas técnicas tratadas visam escalonamento de tarefas sem preempção, tal qual o modelo RSCM proposto.
+Os autores dizem que o tratamento de grafos de dependência é uma tarefa a ser tratada.
+Os mesmos já são tratados no modelo RSCM, como será visto no Capítulo 4.
+Em, Compton Definem relocação como a habilidade de determinar em tempo de execução o posicionamento de uma configuração no dispositivo configurável.
+Sua aplicação exige métodos para modificar/ adequar uma dada configuração, projetada para urna localização específica no dispositivo, de forma que a mesma possa ser inserida/ configurada numa outra localização.
+Através de relocação, pode- se reduzir substancialmente o tamanho da memória necessária para armazenar as configurações.
+Devido as técnicas de relocação, pode não ser necessario armazenar diversas configurações com o mesmo comportamento desenvolvidas para localizações diferentes no dispositivo reconfigurável.
+Segundo, uma colisão ocorre quando uma configuração a ser realizada foi projetada para ocupar uma localização que sobrepõe uma outra já residente no dispositivo.
+Quando esse evento ocorre, apenas uma das configurações pode estar residente no dispositivo num dado instante.
+A técnica de relocação resolve o problema de colisão.
+Quando duas configurações colidem, pelo menos uma de elas deve ser relocada.
+Pode ocorrer das duas necessitarem ser relocadas.
+Em a Figura 3.12 apresenta- se como relocação pode resolver um problema de colisão.
+Quando uma configuração requisitada colide com uma residente no dispositivo dois eventos podem ocorrer:
+Sem estratégia de relocação a configuração não pode ser realizada;
+A configuração requisitada é relocada para que a requisitada seja realizada.
+As manipulações apresentadas na Figura 3.13 não refletem a realidade dos dispositivos reconfiguráveis atualmente comercializados porque pressupõem a existência de dispositivos manipulaveis de maneira bi-dimensional.
+Como ja foi citado, os dispositivos hoje comercializados são particionados em colunas e uma operação de configuração exige a configuração atômica de pelo menos uma coluna de elementos.
+Atualmente, com base nos estudos realizados, pode- se admitir que a relocação de configurações poderia ser realizada apenas sob a forma de deslocamentos horizontais.
+Em, apresenta- se estudos sobre a relocação de configurações específicos para dispositivos Virtex da Xilinx.
+Em o trabalho de Mesquita foram desenvolvidas ferramentas que possibilitam a edição de arquivos e configuração bem como a geração de arquivos de configuração parciais, citadas no Capítulo anterior.
+Em, Steiner e outros dizem ter solucionado o problema de relocação de configurações para dispositivos da família Virtex da Xilinx.
+Maiores detalhes sobre como este problema deve ser tratado não são documentados por os autores.
+Em virtude de as restrições impostas por o tempo de desenvolvimento desse trabalho, maiores detalhamentos sobre relocaçào de configurações não serão aqui abordados.
+RSCM -- Uma proposta de controlador de configurações Como foi citado em e reforçado em:
+&quot;Uma arquitetura de hardware que tem a possibilidade de reconfígurar a si mesma dinâmicamente à medida que uma tarefa é executada, refinando a sua própria configuração para obter um melhor desempenho é a forma mais desajiadora e potencialmente mais poderosa de um sistema computacional configurável».
+A tarefa de reconfigurar partes de um dispositivo necessita ser controlada por uma entidade.
+Esta entidade, denominada aqui controlador de configurações, deve receber informações de uma entidade escalonadora de configurações, além de informações contendo o estado atual do dispositivo e, a partir de elas, gerenciar de maneira adequada o processo de reconfiguração.
+O principal objetivo do presente trabalho é propor e desenvolver um hardware controlador de configurações, que recebe o nome de Recon/ igurable System Configuration Manager (RSCM).
+Esta proposta limita- se ao desenvolvimento de uma implementação puramente em hardware, onde o dispositivo configurável possui internamente toda, ou a maior parte da lógica de controle de configurações.
+Esta limitação é imposta por o tempo reduzido para que se possa implementar a solução também em software, soluções mistas e realizar a comparação de compromissos.
+Parte da infra-estrutura de reconfiguração parcial, apresentada na Seção 1.4, é suposta como funcional.
+Em particular assume- se como resolvido o problema de gerar configurações parciais.
+Para maiores detalhes o leitor pode referir- se aos trabalhos propostos em e, correspondentes ao suporte para desenvolvimento de configurações parciais e a padronização da interface de comunicação entre diferentes módulos, respectivamente.
+Assume- se também que a arquitetura alvo compõe- se de dispositivos da família VirtexII fabricados por a empresa Xilinx, como anteriormente citado.
+Pressupõe- se o uso de uma arquitetura alvo onde o dispositivo é dividido num certo número de fatias iguais, cada uma podendo conter exatamente um módulo de hardware reconfigurável e uma ou mais fatias contendo hardware fixo não reconfigurável.
+Isto é suposto para que não se necessite tratar questões de fragmentação de área no dispositivo reconfigurável.
+Por outro lado, trata- se o problema relacionado a relocação de configurações, para que essas sejam &quot;configuraveis «em qualquer fatia do dispositivo, sendo a decisão de qual fatia sera ocupada tomada em tempo de execução.
+Par isso, não foi desenvolvido um módulo relocador, mas como a decisão é tomada em tempo de execução, então diversas cópias de cada arquivo de configuração devem ser armazenadas.
+O modelo de particionamento de dispositivo segue o modelo unidimensional particionado apresentado na Figura 3.9 (b) da Subseção 3.4.1.
+As implementações de SDRs contempladas no presente trabalho limitam- se àquelas em que a comunicação ocorre apenas entre duas configurações ativas, denominada aqui comunicação em linha.
+A comunicação entre uma configuração ativa e outra configuração num estado diferente recebe o nome de configumção postergada.
+Esse tipo de configuração pode, contudo sempre ser obtida no contexto de aplicações específicas utilizando, por exemplo, acesso a memória externa compartilhada por duas configurações.
+A limitação imposta aqui e não prover, na infra-estrutura de suporte a SDRs proposta, a automatização do intercâmbio de informações entre módulos reconfiguráveis que pretendam usar comunicação postergada.
+Em a Seção 4.1 do presente Capítulo apresenta- se a estrutura do sistema proposto.
+Em a Seção 4.2 apresenta- se um exemplo ilustrativo da operação do sistema RSCM.
+O diagrama de blocos do sistema aqui proposto e implementado aparece na Figura 4.1.
+O sistema é composto por seis módulos principais.
+Existe uma Memória de Configurações (MC) que armazena as configurações do sistema.
+Segue- se o módulo Autoconfigurador (AC), responsavel por comandar a tarefa de controlar a reconfiguração do dispositivo propriamente dita.
+O módulo Interface de Configuração (IC) responsabiliza- se por a interface entre a porta de configuração do dispositivo reconfigurável (porta para onde os dados de configuração devem ser enviados) e o sistema RSCM.
+O módulo responsável por monitorar eventos (sinalizações indicam a necessidade de um nova tarefa de configuração) disparados por configurações ativas é o Monitor de reconfiguração O Escalonador de Configurações (EC) determina qual a próxima configuração a ser reconfigurada.
+Para gerenciar a operação e coordenar a comunicação entre os demais módulos do sistema, existe um módulo chamado Controle Central de Configurações (CCC).
+A seguir apresentam- se mais detalhes sobre as atividades realizadas por os submódulos do RSCM.
+O Monitor de reconfiguração (MR) é o módulo do sistema RSCM responsavel por detectar/ reconhecer situações em as quais devem ser realizadas reconfigurações, denominadas condições de reconfiguração.
+Toda a operação do sistema RSCM inicia- se a partir de uma condição de reconfiguração que identifica quando o sistema necessita ser reconfigurado.
+Uma implementação do Monitor de reconfiguração deve identificar quando uma dada configuração termina sua execução (condição de reconfiguração) e notificar o Controlador Central de Configurações para que este tome as devidas providências.
+O Controle Central de Configurações (CCC) é responsável por gerenciar o fluxo de controle entre os demais módulos do sistema RSCM.
+O CCC recebe notificações de condições de reconfigurações provenientes do Monitor de reconfiguração.
+Em seguida, requisita tarefa de escalonamento ao Escalonador de Configurações e requisita tarefas de configuração ao módulo Autoconfigurador.
+O Controle Central de Configurações é composto por três partes:
+Sub-módulos de Lógica de Controle, Escalonamento e Configuração.
+Em a Figura 4.2 apresenta- se a estrutura do módulo CCC.
+O sub-módulo Lógica de Controle e responsavel por manter informações sobre o estado de alocação do dispositivo, ou seja, quais configurações encontram- se configuradas e ainda em qual das fatias.
+Também mantém informação sobre o diagrama de configurações escalonadas.
+Além disso, este módulo controla a operação dos outros dois submódulos através de sinais de controle.
+Um exemplo do estado de alocação do dispositivo, representado através da Tabela de Alocação de Recursos (TAR), encontra- se na Tabela 4.1.
+O sub-módulo Escalonamento e responsavel por:
+Escalonador de Configurações (EC) receber as notificações de condição de reconfiguração;
+Alterar a estrutura de alocação do dispositivo;
+Requisitar serviços ao Escalonador de Configurações e armazenar o código de configurações escalonadas no Buffer de Configurações Escalonadas (BCE).
+O sub-módulo Configuração responsabiliza- se por requisitar ao Autoconfigurador a configuração dos bitstreams escalonados de acordo com BCE.
+Após a tarefa de configuração esse submódulo atualiza a TAR.
+Em a Tabela 4.1 apresenta- se a um exemplo de uma Tabela de Alocação de Recursos que contém informações sobre qual bitstream parcial encontra- se configurado em cada uma das fatias reconfiguráveis do dispositivo.
+Alocação de Recursos (TAR) r Esta tabela representa um dispositivo particionado em cinco fatias.
+Em a fatia zero encontra- se configurada a configuração C3;
+em a fatia um encontra- se configurada a configuração C1 e assim por diante.
+Número da fatia Configuração dàClJlúb-IÊ O Escalonador de Configurações (EC) é o módulo responsavel por determinar dinâmicamente o cronograma de execução das configurações.
+Tal módulo recebe requisições de serviço vindas do Controle Central de Configurações.
+O escalonador possui uma estrutura de dados que contém informações sobre as dependências entre as configurações, denominada Tabela de Dependência e Descritores (TDD), como a apresentada na Tabela 4.2, onde Config indica o identificador da configuração;
+Npredec indica o número de configurações predecessoras da configuração;
+E Sue N é a sucessora N da configuração.
+A Tabela 4.2 representa o grafo de dependência apresentado na Figura 4.3.
+O número de linhas da tabela depende do número de Configurações parciais do sistema.
+Este valor consiste numa parametrização do sistema RSCM.
+Dependendo do número de configurações possíveis, do número maximo de predecessoras e do número maximo de sucessoras, esta tabela tera dimensões diferentes.
+Dependência e Descritores (TDD) e Tabela que armazena informações referentes ao escalonamento de configurações, gerada a partir de o grafo de dependência apresentado na Figura 4.3.
+O grafo da Figura 4.3 representa um cronograma de execução de um sistema dinâmica e parcialmente reconfigurável composto por seis configurações.
+As arestas que chegam a um determinado nodo recebem o nome de predecessoras desse nodo.
+Uma dada configuração só pode iniciar a execução, ou seja, pode ser escalonada para execução, quando todos os seus predecessores houverem concluído a execução, salvo na inicialização do sistema, quando a configuração zero inicia independentemente de suas predecessoras.
+As arestas que saem de um determinado nodo são ditas sucessoras desse nodo.
+Quando uma configuração termina sua execução ela deve notificar suas sucessoras, diminuindo o número de predecessoras de cada uma das suas sucessoras.
+Para um melhor entendimento, imagine que o nodo 1 termine de executar.
+Em virtude de isso, as configurações 5 e 4 não necessitam mais aguardar o término de 1.
+A configuração 5 pode ser escalonada enquanto que a configuração 4 só podera ser escalonada após o término da execução da configuração.
+TDD da Tabela 4.2.
+A função da Memória de Configurações (MC) é armazenar todos os bitstreams parciais utilizados no sistema reconfigurável.
+A princípio, MC pode ser interna ou externa ao dispositivo.
+Entretanto, conforme cresce a complexidade dos sistemas desenvolvidos, o número de configurações parciais necessárias cresce e muita memória torna- se necessária para armazenamento de configurações.
+Como arquivos de configurações parciais para dispositivos da familia Virtex-H, alvo desse desenvolvimento, tem em torno de 40 kbits, torna- se inviavel implementar uma Memória de Configurações totalmente interna ao dispositivo.
+Em a Seção 5.6 serão esclarecidos os motivos para escolha da localização da MC.
+Em caso de dispositivos de outras famílias e fabricantes, com maiores recursos internos de memória, pode- se pensar numa pequena memória interna ao dispositivo com as configurações mais usadas, tal qual uma cache de configurações.
+Tal possibilidade não sera utilizada aqui.
+Para acessar a interface com a memória de uma maneira mais adequada e simplificada é necessário desenvolver um módulo Controlador de acesso à memória.
+Tal módulo empacota a memória de configurações, tornando transparente o protocolo de comunicação específico com a mesma.
+Este módulo apresenta ao Autoconfigurador uma interface simplificada.
+De acordo com a memória a ser utilizada, é necessario desenvolver um novo controlador, adequado a nova interface física.
+Em a Figura 4.4 apresenta- se a estrutura do módulo MC, composto por uma memória acessada por meio de um Controlador de acesso à memória.
+O submódulo Inicializador de Memória, como o próprio nome indica é utilizado para inicializar a memória de configurações através da interface serial a partir de um computador hospedeiro.
+O hospedeiro acessa a Memória de Configurações através do submódulo denominado Interface serial.
+Toda parte de controle de acesso a memória encontra- se internamente ao dispositivo reconfigurável, enquanto a memória em si localiza- se externamente os dispositivo.
+RSCM r Memória que armazena as configurações utilizar das no sistema.
+O módulo controlador de acesso á memória apresenta ao Aatoconfigurador uma interface simplificada.
+O Inicíalizador de memória inicializa a memória de configurações através da Interface serial.
+Como se sabe, o tempo de reconfiguração é um fator importante que refiete diretamente no desempenho de um SDR.
+Em virtude de isso, a implementação do módulo Autoconfigurador, principal componente do sistema RSCM, deve se ater a estratégias que minimizem o tempo gasto para realizar a reconfiguração parcial do dispositivo.
+Caso contrário, a implementação do SDR podera ser comprometida.
+O Autoconfigurador é o módulo responsável por realizar a tarefa de configuração propriamente dita.
+Ele possui interface com a Memória de Configurações, Interface de Confi guração e Controle Central de Configurações conforme ilustrado na Figura 4.1.
+O Autoconfigurador recebe e interpreta requisições de reconfigurações provenientes do Controle Central de Configurações.
+De acordo com as informações recebidas junto com a requisição, AC descobre em quais posições de memória deve Ier os dados do arquivo de configuração.
+Logo após ler o arquivo de configuração da memória, AC envia os dados a Interface de Configuração, juntamente com sinais de controle.
+Como apresentado na Figura 4.5, o módulo AC é composto por três sub-módulos.
+O primeiro de eles, Lógica de Controle, é responsavel por receber a requisição de reconfiguração, selecionar a área de memória e controlar a operação dos outros dois módulos.
+O segundo submódulo, Leitor de conjigurações, é responsável por ler da memória de configurações o arquivo de configuração selecionado e armazenas- lo, parcialmente, num buffer interno.
+O último sub-módulo, Configurador, lê do buffer os dados de configuração e envia- os ao módulo Interface de Configuração, descrito na próxima Seção.
+Figurador recebe e interpreta requisições de reeonfiguraçães provenientes do Controle Central de Configurações;
+Lê o arquivo de configuração da Memória de Configurações e o envia à Interfarce de Configuração.
+A Logica de Controle recebe a requisição de reconfiguração.
+O Leitor de configurações lê a memória de configurações.
+O Configurador envia dados de configurações à Interface de Configuração.
+A Interface de Configuração e o módulo responsavel por prover a interface corn os pinos de configuração do dispositivo.
+Em dispositivos que provêem acesso interno aos pinos de configuração, tais quais os da família VirtexII e VirtexII-Pro da Xilinx, esse módulo pode ser implementado internamente ao dispositivo, possibilitando assim tempos de reconfiguração mais eficientes.
+A quantificação de tempos de configuração sera tratada no próximo Capítulo.
+No caso de os outros dispositivos, que não provêem acesso interno aos seus pinos de configuração, torna- se necessario desenvolver parte da lógica de IC externa ao dispositivo.
+Em esse caso, uma implementação razoável seria composta por fios externos ao dispositivo que transmitem os dados gerados internamente (ou lidos da memória) para os pinos de configuração do dispositivo acessados externamente.
+O módulo de Interface de Configuração possui uma interface com o Autoconfigurador, de onde recebe os dados de configuração e sinais de controle;
+E uma interface com os pinos de configuração do dispositivo.
+Para um melhor entendimento do sistema proposto nesse Capítulo, apresenta- se aqui, um esboço do comportamento de tal sistema representado desde uma condição de reconfiguração até a atualização da TAR (i.
+e Tabela de Alocação de Recursos) do sistema.
+A Figura 4.6 ilustra a execução dos seguintes passos:
+Passo 1: Um sistema dinãmica e parcialmente reconfigurável encontra- se executando.
+Em um dado instante, todas as fatias estão ocupadas com configurações executando trabalho útil;
+Passo 2: A configuração 3;
+que está executando na segunda fatia, notifica que terminou sua execução;
+Disparando assim uma condição de reconfigura ção;
+Passo 3: O Monitor de Reconfiguração reconhece a condição de reconflguração e notifica o término da execução da configuração 3 ao Controle Central de Configurações;
+Passo 4: O Controle Central de Configurações recebe a sinalização do Monitor de Reconfiguração;
+Atualiza a tabela de alocação de recursos (TAR) e solicita ao módulo Escalonador de COTZÊQUTQÇÕCS seus serviços;
+Passo 5: O Escalonador de Configurações percorre a tabela de dependência e descritores (TDD) procurando por configurações aptas a serem configuradas e envia seus códigos, caso existam, ao Controle Central de Configurações;
+Passo 6: O Controle Central de Configurações solicita ao Autoconfígurador a (re) configuração parcial das configurações escalonadas por o Escalonador de Configurações;
+Passo 7: O Autoconfígurador lê os dados de configuração da Memória de Configumções e os envia à Interface de Configuração, realizando, assim, a configuração do módulo escalonado;
+Passo 8: O Autoconjígurador acaba a reconfíguração e o Controle Central de Configurações atualiza a tabela de alocação de recursos.
+O sistema opera, agora, com a nova configuração configurada na fatia onde se encontrava configurada a configuração 3, nesse caso, a segunda fatia.
+Em o próximo Capítulo trata- se detalhadamente a implementação e validação de cada um dos módulos do sistema RSCM.
+De essa forma, apresentam- se as opções existentes para implementar cada um dos módulos e os motivos para implementas- los da forma escolhida.
+RSCM executam suas tarefas, até que uma nova configuração parcial é' reconfigurada no fatia liberada por a configuração que acabou de executar.
+O controlador de configurações RSCM O objetivo principal deste trabalho é gerar uma infra-estrutura inicial para implementar SDRs.
+Tal estrutura é composta por o controlador RSCM proposto de entre outros núcleos.
+Em o Capítulo anterior, tratou- se a estrutura do sistema proposto e o comportamento de cada um dos seus submódulos.
+No entanto, não foram tratados os detalhes de implementação do sistema, ou seja, quais estratégias foram adotadas com a finalidade de respeitar as características do sistema, definidas na proposta apresentada no Capítulo anterior.
+Assim sendo, nesse Capítulo, apresentam- se tais estratégias de implementação bem como a validação dos submódulos do controlador de configurações proposto.
+Como visto anteriormente, os sistema RSCM é composto por seis sub-módulos:
+Monitor de Reconfiguração;
+Escalonador de Configurações;
+Autoconfigurador; Interface de Configuração;
+Controle Central de Configurações; Memória de Configurações.
+Cada um desses submódulos tem sua implementação e validação detalhadas nas Seções 5.1 a 5.6 na ordem apresentada acima.
+Em a Seção 5.7 apresenta- se a validação global do sistema RSCM.
+Por último, na Seção 5.8, descreve- se as ferramentas desenvolvidas durante esse trabalho.
+A máquina de estados da Figura 5.1 compõe- se de cinco estados.
+Em o primeiro estado, E0, os sinais internos e de interface com fatias e o módulo CCC são inicializados.
+Entre esses sinais os principais são apresentados na Tabela 5.1.
+Em o estado E1 é verificado se a primeira fatia esta sinalizando que terminou sua execução.
+Se a fatia não estiver sinalizando terminei, MR passa ao estado E3.
+Caso contrario MR passa ao estado E2, onde envia o sinal de acabou e fatia_ id para CCC.
+Em esse mesmo estado, MR envia o sinal de reconhecimento (i.
+e pode_ sair) para fatia que acabou enquanto aguarda reconhecimento por parte de o CCC (i.
+e sinal ccc_ ack_ mr).
+Quando recebe o reconhecimento, MR passa ao estado E3.
+Em esse estado é verificado se existem outras fatias a serem testadas.
+Se existir alguma fatia, no estado E4, o índice de fatias é incrementado e MR retorna ao estado E1.
+Caso contrário MR passa ao estado E0, em o qual o índice de fatia é reiniciado e todo o processo se repete.
+MR testa as fatias reconfiguráveis uma a uma, verificando condições de reconfiguração.
+Sempre que uma condição é encontrada, após realizar as devidas operações, MR volta a testar as fatias, iniciando a partir de a fatia seguinte aquela onde foi detectada uma condição.
+De essa forma, todas as fatias serão testadas.
+Porém, a ordem de atendimento das condições pode não condizer com a ordem em a qual as fatias sinalizam, ou seja, pode ocorrer da fatia F1 sinalizar seu término antes de F5 fazer o mesmo, mas a condição da última ser disparada antes, porque F1 terminou depois de ser testada, por exemplo.
+Assim, F1 só será atendida quando o sistema completar o ciclo de teste de todas as fatias e novamente testar F1.
+Índice da fatia que terminou sua execução, enviado para o CCC acabou sinal utilizado para notificar o CCC que a configuração da fatia_ id terminou sua execução terminei sinal recebido de um dada fatia como sinalização de que sua execução chegou ao final pode_ sair sinal enviado a uma dada fatia para notificas- la que sua sinalização de término (sinal terminei) foi detectada índice da fatia a ser analisada.
+Para validar a máquina de estados do Monitor de Reconfiguração foram realizadas simulações, para as quais foram desenvolvidos emuladores de comportamento de fatias reconfiguráveis e da interface entre CCC e MR.
+A ilustra parte da simulação realizada.
+Forma de onda apresentada na Figura 5.2.
+A forma de onda da Figura 5.2 representa a operação de MR num sistema reconfigurável composto por três fatias.
+Durante esta simulação deve- se perceber que em 1, a configuração presente na fatia o notifica MR que terminou sua execução $= 1 i.
+e acabou $= 1) e aguarda o reconhecimento dessa notificação por parte de CCC.
+Esse reconhecimento é enviado por CCC em 4.
+Todos esses passos refietem a detecção de uma condição de reconfiguração e a notificação desse evento ao Controle Central de Configurações.
+Essas operações condizem com o comportamento desejado para MR.
+Além de simular o módulo MR, também prototipou- se o sistema em FPGA.
+Durante essa fase, pôde- se perceber que o sistema portou- se adequadamente e apresentou resultados idênticos aos obtidos através da simulação.
+Em virtude de isso, as formas de ondas relativas ã prototipação não serão aqui apresentadas.
+O resultados foram analisados através da utilização de analisador lógico de formas de ondas HP1672G comercializado por a HewlettPackard Ltd.
+O Escalonador de Configurações do sistema RSCM apresenta uma estrutura interna que mantém informações sobre a dependência entre as configurações do sistema.
+A operação do escalonador pressupõe a necessidade de percorrer esta estrutura para a seleção das configurações a serem escalonadas, de acordo com a requisição realizada por o CCC.
+Essa estrutura é estática porque os dados manipulados não podem ser perdidos/ sobrescritos, como no caso de sistemas com laços de execução.
+A única informação que sofre modificações durante a operação do sistema é o número de predecessoras de uma configuração.
+Quando uma configuração termina, o número de predecessores de cada uma das suas sucessoras é decrementado.
+Apenas esta informação pertencente a estrutura sofre modificações durante a operação do sistema, por isso esta é copiada para um vetor interno (i.
+e VDI, Vetor de Descritores Internos), passível de atualizações.
+Originalmente, RSCM aplica um escalonamento pré-definido, ou seja, emprega uma política de escalonamento estático.
+Não existe, no momento, qualquer possibilidade de escalonamento com preempção de configurações.
+O principal motivo para não empregar técnicas de preempção é não encontrar justificativas suficientes para implementar sistemas que necessitem dessa estratégia complexa.
+SDRs e o controlador de configurações têm suas complexidades aumentadas com o emprego de técnicas de preempção devido a necessidade de prover estruturas e métodos de salvamento e controle de contexto de configurações.
+A Figura 5.3 apresenta a lógica do Escalonador de Configurações como uma máquina de estados.
+Em o estado inicial EO, as variaveis internas e sinais enviados ao CCC são inicializados.
+Entre esses sinais, os principais estão listados e definidos na Tabela 5.2.
+Com informações sobre o número de predecessores de cada uma das configurações do sistema.
+Uma vez que todas as posições do vetor foram inicializadas, EC passa ao estado E4, onde aguarda CCC requisitar seus serviços através do sinal req_ ec.
+Após receber a requisição, EC passa ao estado E5, onde ocupado_ ec é ativado, o código da configuração terminada é armazenado e seu número de predecessores é restaurado para seu valor original.
+Essa restauração possibilita a realização de laços de configurações.
+Em o estado E6, o escalonador envia a CCC o reconhecimento da requisição de seus serviços.
+A partir de o estado E7 a tarefa de escalonamento é realmente realizada.
+Em esse estado, o identificador do primeiro sucessor é copiado a partir de a tabela de dependência e descritores (TDD).
+Em E8, o número de predecessores desse sucessor é decrementado e, testado em E9.
+Se for zero EC passa ao estado E12 e envia o código do sucessor encontrado para CCC junto ao sinal configurar, sinalizando que esse sucessor deve ser configurado.
+EC continua nesse mesmo estado até que CCC reconheça a notificação, através do sinal ccc_ ack_ ec.
+Após receber o reconhecimento ou se o sucessor não estiver apto a ser escalonado, EC passa ao estado E10, que é responsável por verificar se a configuração terminada possui outros sucessores.
+Se não existirem sucessores, EC retorna ao estado E4.
+Caso contrario sid é incrementado e o processo é novamente realizado, a partir de o estado E7.
+O escalonador de configurações foi validado funcionalmente e também prototipado.
+Diversos cronogramas de escalonamentos foram testados e a forma de onda apresentada na Figura 5.4 ilustra a operação do Escalonador de acordo com o cronograma apresentado na Figura 4.3.
+Cu, não depende apenas de ela e só é escalonado quando C4 termina.
+Os mesmos casos simulados foram prototipados em FPGA e apresentaram os mesmos resultados da simulação.
+Assim, pôde- se certificar o correto funcionamento do Escalonador de Configurações do sistema RSCM.
+A implementação do Autoconfigurador implicou o desenvolvimento de duas máquinas de estados e da estrutura que realiza a interface entre elas.
+A primeira máquina recebe requisições de reconfiguração de CCC, captura os dados da Memória de Configurações e os armazena num buffer interno, denominado Buffer De Palavras (BDP).
+A outra máquina lê os dados desse buffer e os envia à Interface de Configuração.
+Propõe- se aqui o desenvolvimento de um sub-módulo responsável por aplicar relocação de configurações através da modificação do arquivo de configuração parcial em tempo de execução.
+Esse módulo eliminaria a necessidade de armazenar diversas instâncias de cada uma das configurações, uma para cada fatia reconfigurável do dispositivo.
+Devido as restrições de tempo impostas por o cronograma do trabalho não foi possível implementar tal módulo até o momento.
+Além disso, a carência de documentação sobre a estrutura de configuração de dispositivos da família Virtex-ll dificultou demasiadamente o desenvolvimento dessa tarefa.
+No entanto, a relocação de configurações pode ser simulada armazenando diversas instâncias de um bitstream parcial.
+O desenvolvimento do módulo Relocador constitui uma otimização do sistema, evidenciada desde já como trabalho futuro.
+Como é necessario armazenar uma instancia de cada configuração para cada uma da fatias reconfiguráveis devido a a ausência de relocabilidade de bitstreams, foi necessario definir uma política para acessar o arquivo de configuração correto na memória.
+Cada configuração é acessada não apenas por seu identificador, mas também é aplicado um deslocamento de acordo com a fatia alvo.
+A Equação 5.1 e utilizada para acessar o arquivo de configuração desejado.
+End $= idem¡+ (id/ rat\&gt; Ncanfs) (5.1) O Endereço (End) é composto por a soma entre o identificador da configuração escalona de a (idwnf) e o produto entre a identificação da fatia alvo (id/ rat) e o número de configurações do sistema (Names).
+O comportamento do módulo que lê dados de configurações da Memória de configurações e os armazena no buffer é apresentado na Figura 5.6.
+Em essa máquina, os estados M0 e M1 aguardam a requisição de reconfiguração enviada por CCC e inicializam sinais, de entre eles os listados na Tabela 5.3.
+Em M2, calcula- se a posição do apontador para a posição inicial do arquivo de configuração.
+Em o estado M3 add é enviado para os pinos de endereço da memória e verifica- se a ocupação da memória.
+A requisição de serviços da memória é realizada no estado M4.
+Caso o arquivo não tenha terminado, no estado M12 o endereço de leitura e incrementado.
+Em o estado M13, acabou é setado para notificar a outra máquina do AC, o Configurador, que todos dados estão no buffer.
+Em seguida, a leitura da memória acaba.
+Caso contrário, A máquina de estados que lê os dados de configuração do buffer e os envia ã Interface de Configuração possui a estrutura descrita na Figura 5.7.
+Em R2, verifica- se a existência de dado a ser lido do buffer.
+Quando existir dado, AC passa ao estado R3, onde aguarda a Interface de Configuração não estar ocupada.
+A seguir, um byte da palavra de dados é selecionado para ser enviado a IC, de acordo com o sinal interno desloc.
+Os estados R4, R5, R6 e R7 servem para enviar cada um dos 4 bytes da palavra de dados para a IC.
+Em R8, o sinal operarjc é ativado, para notificar IC que um dado deve ser enviado a máquina de configuração do dispositivo.
+O sinal desloc é testado a fim de verificar se todos os bytes da palavra foram enviados.
+Se isso não aconteceu AC retorna ao estado R3.
+Caso contrario, o AC passa ao estado Rio, onde boat é incrementado.
+Em seguida, AC passa ao estado R11, onde novamente verifica- se a existência de dado a ser lido em BDP.
+Se houver, AC retorna ao estado R3.
+Caso contrário, testa- se acabou para certificar se todos os dados estavam escritos no buffer.
+Se acabou estiver ativo, o processo de configuração é encerrado e o sinal ocupado_ ac é desativado.
+Assim como os módulos anteriormente apresentados, o Autoconfigurador também foi validado e prototipado em FPGA.
+As simulações comportaram- se da forma esperada, mas durante a prototipação diversos problemas foram encontrados.
+Em virtude de isso, foram analisados todos os sinais da interface SelectMAP durante um processo de configuração utilizando o software Impact do ambiente ISE da Xilinx.
+A partir de aí, desenvolveu- se um hardware emulador de SelectMAP.
+Esse módulo portou- se de forma correta de acordo com os testes realizados.
+Um importante avanço foi obtido quando alguns eventos foram percebidos e posteriores melhorias realizadas no emulador, de entre estes:
+Identificou- se que o tempo total de configuração poderia ser reduzido a 1/3 do tempo original obtido na configuração via software.
+Isso foi possível porque os primeiros quatro pulsos de relógio de configuração possuíam uma freqüência desnecessáriamente baixa em relação a os demais que compunham o processo de configuração em si.
+Este fato é demonstrado na Figura 5.8 em 1.
+O desempenho do sistema melhora se a freqüência for sempre a mais alta para todos os dados enviados;
+Identificou- se também que os pulsos de relógio após o último pulso que envia dados de configuração eram desnecessários, de acordo com 2 da Figura 5.8.
+De essa forma, pode- se remover estes ciclos;
+Para certificar a correto funcionamento desse emulador foi implementado um sistema em duas placas de prototipação.
+A primeira de elas contém a lógica reconfigurável.
+A segunda contém o emulador SelectMAP.
+As duas plataformas foram conectadas, ligando os dados gerados por o emulador a interface SelectMAP da outra plataforma através de fios externos.
+Assim, a segunda plataforma reconfigura parcialmente o dispositivo da primeira plataforma, transformando a lógica original desta.
+Após adaptar o Autoconfigurador para se comportar de maneira análoga ao emulador, pôde- se obter o funcionamento correto do AC.
+Este é ilustrado na Figura 5.9.
+As máquinas de estados do Leitor e do Configurador do módulo AC são monitoradas nessa simulação, onde foram utilizados arquivos de configuração hipotéticos, com apenas oito palavras de dados.
+Antes dos dados de configuração propriamente ditos, é necessario enviar a IC três palavras:
+Uma palavra qualquer, nesse caso AC esta enviando sempre o endereço final da configuração;
+Uma palavra de preenchimento, sempre o valor hexadecimal FFFFFFFF;
+Uma palavra de sincronização da configuração, o valor hexadecimal AA995566.
+A máquina de configuração dos dispositivos Virtex ignora quaisquer outras palavras enviadas antes dessas três palavras.
+AC em 1, que calcula o endereço da configuração na MC em 2 e 2.
+AC lê dados de configuração de MC e envia- os para IC durante 4 a 6.
+Este processo se repete para as próximas 8 palavras de dados, terminando o processo em 11.
+Em essa simulação, os seguintes onze eventos podem ser observados.
+Em o evento 1, CCC requisita ao AC a reconfiguração da configuração C2 na fatia F 1.
+Imediatamente após, AC reconhece essa requisição.
+Em 2, é calculado o endereço correspondente ao apontador para o início da configuração e fatia desejadas.
+Logo após, esta posição de memória é lida.
+O endereço inicial da leitura (add) é inicializado em 3, enquanto que o endereço final (add_ end) é inicializado em 4.
+Em o evento 5, a primeira palavra de configuração é escrita no buífer de palavras (BDP).
+A seguir, em 6, cada um dos bytes de configuração é enviado a Interface de Configuração.
+Em 7 e 8, a segunda palavra é escrita em BDP e enviada a IC.
+Esse processo se repete até que seja verificado que o endereço atual é igual ao endereço final, em 9.
+Então, a última palavra é escrita no buffer em 10.
+Em seguida, a mesma é enviada para a IC, em 11, quando termina o processo de reconfiguração.
+Estes eventos certificam o correto funcionamento de AC.
+O mesmo comportamento obtido na simulação apresentada na Figura 5.9 foi observado na prototipação em FPGA do AC.
+Tabela 5.5: Conjunto de sinais que compõem a interface ICAP -- Esta interface permite acessar internamente a porta de configuração de disitiuos da família VirtezH e VirtezH-Pro da Xilinz.
+Segundo a mesma, clic pode possuir um frequência máxima de 33 MHZ.
+Saída 8 dados lidos do dispositivo (readback) busy saída 1 status de ocupação da máquina de configuração A freqüência maxima de configuração utilizando ICAP é 33 MHz.
+Infelizmente, até o momento não foi possível utilizar o componente ICAP no sistema.
+Para contornar o problema, foi desenvolvido um emulador de SelectMAP, conforme a Subseção 5.3.4.
+Trata- se de um módulo que configura o dispositivo através da interface externa de configuração, utilizando fios como ponte, como apresentado anteriormente.
+Esse mesmo sistema foi adaptado para enviar os dados para a ICAP e a configuração não funcionou corretamente.
+Ainda estão sendo realizados estudos para investigar se a ICAP realmente possui a mesma interface SelectMAP como informado por o fabricante ou se algum detalhe não foi mencionado por o mesmo.
+A importancia da interface interna para a configuração diz respeito a redução do tempo de reconfiguração, e para reduzir a contagem de componentes do sistema.
+Estes são fatores determinantes para a avaliação da validade de desenvolver SDRs. Como
+verificado em experimentos realizados com configurações paralelas (SelectMAP) a palavra de dados é enviada byte a byte.
+A ordem de envio dos bits de cada byte é invertida, ou seja, no caso de a palavra 01234567 a ordem de envios dos bytes é 01-23-45-67 mas o bit mais significativo de cada byte corresponde ao bit menos significativo da entrada SelectMAP (i.
+e entrada não recebe o valor hexadecimal 01, mas sim o valor hexadecimal so).
+Sendo a Interface de Configuração um módulo simples que instancia um outro módulo validado por o fabricante, não serão aqui apresentadas formas de ondas de simulação e prototipação desse módulo.
+A simulação portou- se adequadamente e a prototipação apresentou os problemas citados.
+O Controle Central de Configurações coordena a operação dos demais módulos do RSCM.
+Recebe notificações do Monitor de Reconfiguração, solicita escalonamento de configurações ao Escalonador, e solicita reconfigurações parciais ao Autoconfigurador.
+Como mencionado anteriormente, para melhor coordenar a operação dos demais módulos do sistema, CCC foi subdividido em três submódulos.
+A Lógica de Controle é composta por uma estrutura que armazena o estado de alocação do sistema, denominada Tabela de Alocação de Recursos (TAR) e um buffer que armazena as configurações escalonadas, o Buffer de Configurações Escalonadas (BCE).
+Os demais módulos, Módulo Escalonamento e Módulo Configuração são duas máquinas de estado, tratadas nas próximas Seções.
+O Módulo Escalonamento realiza a interface de CCC com MR e EC.
+Esse módulo recebe notificações de MR, solicita escalonamento e armazena identificadores de configurações a serem escalonadas em BCE.
+A máquina de transição de estados da Figura 5.10 expressa o comportamento do Módulo Escalonamento do CCC.
+Em essa máquina, diversos sinais e as interfaces com MR e EC são gerenciados, de entre eles:
+Fatiajd, acabou e pode_ sair apresentados na Tabela 5.1, ocupado_ ec, ec_ ack_ ccc, prox_ con f_ id e configurar apresentados na Tabela 5.2, e outros, apresentados na Tabela 5.6.
+Em o estado E0, alguns sinais são inicializados enquanto é verificado se EC esta ocupado.
+Quando EC não esta ocupado, CCC passa ao estado E1, onde espera uma notificação de acabou proveniente de MR.
+Após receber a notificação, CCC envia o sinal de reconhecimento para MR e armazena internamente o identificador da fatia liberada, no estado E2.
+0 reconhecimento (i.
+e ec_ aclc_ ccc), CCC passa ao estado E4, onde TAR é atualizada, inserindo vazio na posição da fatia que terminou.
+Em E5, CCC aguarda a resposta de EC, a qual pode se dar de duas formas:
+Em a primeira, nenhuma configuração é escalonada, EC é desocupado (i.
+eocupado_ ec desativado) e CCC retorna ao estado E1.
+A segunda forma é EC escalonar uma configuração, quando CCC passa ao estado E6.
+Em esse estado, verifica- se a existência de posição livre para escrever em BCE.
+Se existir, o identificador da configuração escalonada é copiado.
+A seguir, no estado E7, esse identificador e escrito em BCE.
+O reconhecimento da operação de EC é enviado no estado E8.
+O ponteiro para escrita em BCE é incrementado no estado E9.
+Então, o CCC retorna ao estado E5.
+O Módulo Configuração é a máquina de estados de CCC que lê identificadores de configurações escalonadas armazenados em BCE, procura fatias livres e requisita os serviços do AC.
+Seu comportamento corresponde à máquina de transição de estados apresentada na Figura 5.11.
+Em essa máquina, diversos sinais e interfaces com a MC são gerenciadas, de entre eles os apresentados na Tabela 5.7.
+Os demais sinais manipulados (i.
+e ocupado_ ac e ac_ ack_ ccc) já foram apresentados na Tabela 5.3.
+Em o estado inicial, RO, sinais são inicializados e a ocupação do AC é verificada.
+Quando AC não estiver ocupado, CCC passa ao estado R1, onde verifica- se a existência de configurações em BCE.
+Se existir alguma configuração em BCE, CCC segue ao estado R2 e alterna- se em laços com o estado R3, procurando uma fatia livre.
+Quando encontra, copia seu identificador e sai do laço, passando ao estado R4.
+Em esse estado, CCC requisita serviços do AC e aguarda seu reconhecimento.
+Após receber esse reconhecimento (i.
+e O Controle Central de Configurações foi validado e prototipado em FPGA.
+Em a Figura 5.12, apresenta- se a forma de onda que expressa o comportamento do Controle Central de Configurações obtido tanto durante a simulação funcional quanto durante a prototipação.
+Acompanhando o conteúdo do sinal TAR, pode- se monitorar o gerenciamento da ocupação das fatias do sistema.
+Em este caso, foram utilizadas duas fatias reconfiguráveis.
+De a mesma forma, acompanhando o sinal BCE, pode- se observar o gerenciamento da lista de configurações escalonadas por o EC.
+Em essa forma de onda é importante ressaltar sete eventos.
+Em o evento 1, MR notifica CCC que a fatia F0 foi liberada.
+Em 2, CCC envia um sinal de reconhecimento para MR.
+Em 3, CCC requisita os serviços do escalonador e envia o identificador da configuração que terminou de executar, nesse caso C0.
+Em 4, TAR é atualizada, ou seja, a fatia F0 recebe o valor que indica que ela esta livre.
+Como o sistema só possui seis configurações, adotou- se a constante &quot;7 «para indicar que uma fatia esta livre.
+O evento 5 representa o recebimento de pedidos de configuração provenientes do EC.
+Em esse caso, EC requisita a configuração de C1.
+Em 6, CCC envia o sinal de reconhecimento para EC e armazena o identificador a configuração escalonada em BCE.
+Em o evento 7, CCC requisita ao AC a configuração de C1 na fatia livre FU.
+Para essa prototipação, os módulos EC e MR foram integrados ao CCC, provendo assim uma validação mais realista.
+Acompanhando os sinais que revelam o comportamento do EC, pode- se perceber que o mesmo cronograma obtido na validação do EC aparece aqui.
+O tamanho da Memória de Configurações deve ser definido de acordo com o tamanho do sistema a ser implementado.
+Devido a o fato da implementação do RSCM utilizar dispositivos da família VirteX-II da Xilinx disponíveis na plataforma de prototipação V2 MB1000 da Memec--Insight, num primeiro instante pode- se notar a existência de três possibilidades para armazenamento utilizando os recursos dessa plataforma:
+Utilizar os blocos de memória RAM (BRAM) internos ao FPGA;
+Empregar a memória dinâmica (SDRAM) disponível na plataforma;
+Usar a memória estática (SRAM) disponível no módulo de expansão P160 que acompanha a plataforma.
+Após avaliar as capacidades de cada uma da tres opções pode- se descartar a memória BRAM já que esta pode proporcionar no maximo 80 kbytes para o dispositivo escolhido para armazenamento.
+Bitstreams parciais possuem tamanhos na ordem de 3 Ukbytes dependendo, é claro, do tamanho do núcleo.
+Assim, o uso de BRAMs internas é insuficiente para desempenhar o papel de Memória de Configurações.
+Ao contrário de a BRAM, as demais memórias apresentaram- se suficientes para desempenhar o papel da MC.
+A SDRAM pode armazenar 32 Mbytes enquanto que a SRAM pode armazenar 1 Mbytes.
+Essas duas alternativas são tratadas a seguir.
+Para utilizar uma das memórias (SRAM ou SDRAM) é necessário implementar controladores que provejam acesso eficiente e simplificado às mesmas.
+Primeiramente, desenvolveu- se um controlador para memória SRAM.
+Como essa memória possui uma interface simples, porém assíncrona, o módulo de controle de acesso à memória SRAM constitui- se de uma máquina de transição de estados, cujo principal objetivo é respeitar às restrições temporais impostas por a SRAM.
+Em a máquina de transição de estados apresentada na Figura 5.13 expõem- se a funcionalidade do controlador de acesso à SRAM.
+O estado SO, responsabiliza- se por aguardar a requisição de serviços da memória e por detectar o tipo de serviço, ou seja se é uma leitura ou uma escrita.
+Os estados S1 e S2 realizam a leitura da memória e os estados S3 e S4 realizam uma escrita.
+Um cliente para essa memória deve se comportar da seguinte forma:
+Requisitar o serviço desejado, setando req, we e endereco adequadamente, até que o controlador notifique que a memória esta ocupada através do sinal busy.
+Em seguida, deve- se aguardar até que a memória desocupese para capturar o dados em caso de leitura ou, certificar- se que o dado foi armazenado, em caso de escrita.
+O endereçamento possui largura de 18 bits e os dados, 32 bits de largura.
+O controlador foi desenvolvido para receber um relógio de operação de 25 MHz ou próximo deste.
+O sinal we seleciona o tipo de operação, sendo a escrita ativa em we $= 1.
+Também estudou- se um controlador de acesso a memória SDRAM.
+Adaptou- se um de simulação e prototipação pôde- se verificar o correto acesso à memória de configurações.
+Em a Tabela 5.8 apresenta- se um comparativo entre as duas alternativas de implementação da MC.
+Em ela percebe- se que o controlador de acesso ã memória SDRAM é uma ordem de grandeza maior, o que sugere a necessidade de analisar compromissos entre capacidade de armazenamento, velocidade de acesso e área ocupada por o controlador.
+A memória SDRAM é síncrona e opera a uma freqüência maxima de operação de 133 MHz, mas possui uma interface complexa, onde as operações realizadas baseiam- se em palavras de programação que determinam o comportamento da memória.
+A memória SRAM possui interface simples, mas tempo de acesso alto.
+XC2 V1000. Um bloco lógico configurável do um dispositivo da família Virtex é composto por duas fatias.
+A escolha para este trabalho recaiu sobre o controlador de SRAM, pois a dificuldade para integrar o controlador SDRAM comprometeria o cronograma de desenvolvimento deste trabalho.
+A necessidade de inicializar a Memória de Configurações com os arquivos parciais determina o desenvolvimento de um módulo que se responsabiliza por essa tarefa.
+O módulo Porta Serial é usado para carregar a memória de configurações com bitstreams parciais a partir de um computador hospedeiro.
+A lógica de controle desse sub-módulo não é apresentada aqui porque embora esse módulo faça parte do controlador RSCM, seu comportamento não influi na principal atividade do sistema, o controle de configurações em SDRs.
+Mais A Porta Serial possui interface com um sistema composto por um módulo de hardware e um programa executável, cuja interface grafica é ilustrada na Figura 5.14.
+O módulo de hardware, denominado serialinterface, é instanciado no sistema que reside no FPGA, enquanto que o software executa num computador hospedeiro.
+Através de eles, é possível transmitir dados entre o hospedeiro e o FPGA.
+A Porta serial do RSCM instancia o serialinterface e define um protocolo próprio para acesso a memória.
+Através desse protocolo, o usuario pode ler e escrever na memória bitstreams parciais.
+Uma seqüência de controle deve ser enviada através do software para definir a operação a ser realizada.
+Esta seqüência é composta por três campos:
+Um byte que define o tipo de operação;
+Dois bytes informando o número de palavras de 32 bits a serem lidas ou escritas;
+Três bytes informando o endereço inicial para leitura/ escrita.
+A seqüência hexadecimal 00 000A 000003 comanda a leitura de 10 palavras de 32 bits da Memória de Configurações a partir de a posição 3 da memória.
+No caso de a escrita, após enviar a palavra iniciada por 01 o usuário deve enviar todas as palavras de 32 bits indicadas no segundo campo, caso contrario a operação não sera finalizada.
+A interface com PS foi validada funcionalmente e prototipada em FPGA.
+Ambas tarefas apresentaram os resultados esperados.
+Em a Figura 5.14, apresenta- se um exemplo da operação do módulo PS e sua interação com o software que envia dados do computador hospedeiro para a porta serial da plataforma.
+Esse software foi desenvolvido por bolsistas do grupo de pesquisa GAPH (Grupo de Apoio ao Projeto de Hardware), onde esse trabalho é realizac o.
+P 'l'Us UA UE nc Gd m:
+DF 1m i-palavrão àà 12 13 14 posição inicial ou U5 mímalavras no nn no CIearReceNer clearnmsnnmer l VH sem!
+PS uma palavra de sincronização da interface serial, a seqüência para escrever cinco palavras na memória, a partir de a posição zero, Em seguida as cinco palavras foram enviadas.
+Para verificar a correta operação de PS, foi também enviada uma seqüência para leitura dos dados escritos.
+A memória de configurações pode ser acessada para inicialização do sistema por o módulo PS e, também para configuração por o módulo AC.
+Em virtude de isso, o multiplexador para acesso à memória foi desenvolvido.
+Um sinal seleciona qual dos módulos, PS ou AC, pode comunicar- se com o controlador de acesso à memória, SRAMCTLR.
+Como esse módulo constitui- se apenas de alguns poucos fios, não sera aqui apresentada a sua validação.
+Depois de validar e prototipar cada um dos componentes do sistema RSCM individualmente, os módulos foram sistematicamente integrados em grupos, com a realização de validações das interfaces entre os mesmos.
+De essa forma, pôde- se simular e prototipar o sistema por completo.
+Essa tarefa apresentou as respostas esperadas, parcialmente descritas nesta Seção.
+Para o teste que segue foi adotado um sistema com três fatias e seis configurações.
+Foram utilizados arquivos hipoteticos compostos por oito palavras de configuração, sendo que as identificações da configuração e da fatia foram inseridas nas palavras de dados para facilitar os testes.
+Durante a prototipação do sistema, foram usados bitstreams reais, para evitar danificar o FPGA com bitstreams inválidos.
+Em a Figura 5.15 apresenta- se urna forma de onda que reflete o comportamento do sistema RSCM.
+Não serão abordados aqui os detalhes do funcionamento interno do sistema porque esses já foram tratados nas Subseções anteriores.
+AC e enviadas para IC.
+VDI expressa o número de dependências pendentes de cada uma das configurações, manipulada por EC.
+Em todos os testes realizados foi utilizado um relógio de operação com freqüência de 24 MHz.
+Até então, não se abordou a possibilidade de aumentar a freqüência de operação porque num primeiro instante não se objetiva alcançar o maximo desempenho do sistema como um todo, mas sim a operacionalidade do mesmo.
+Mais uma vez, antecipa- se uma tarefa como sugestão de trabalho futuro, qual seja, a realização de estudos para aumentar o desempenho do sistema RSCM.
+Durante o desenvolvimento do RSCM foram desenvolvidos três recursos que auxiliam o desenvolvedor a utilizar o sistema para o controle de configurações em SDRs.
+O primeiro e a parametrizabilidade do código VHDL do RSCM.
+Os segundo e terceiro são programas para gerar o conteúdo da Memória de Configurações.
+Como mencionado anteriormente, o sistema RSCM deve ser parametrizado antes da síntese do SDR através do pacote rscm_ pkgmhd.
+Para gerar esse arquivo o desenvolvedor pode utilizar a ferramenta G eradorPkg.
+Desenvolvida em linguagem C+, esta ferramenta não possui interface grafica e comunica- se com o usuario através de linhas de comando, principalmente, através de um arquivo que contém informações sobre o escalonamento de configurações do sistema.
+Esse arquivo contem uma lista de vértices seguidos por suas ligações, representando um grafo tal qual o ilustrado na Figura 4.3 do Capítulo 4.
+A parametrização do sistema RSCM, ou seja, definição do escalonamento a ser adotado e do tamanho das estruturas internas se da apenas em tempo de projeto.
+Em virtude de isso, para as modificações serem aplicadas, necessita- se de uma síntese do sistema.
+Idealmente a parametrização deveria poder ser realizada em tempo de execução, mas ate o presente momento tal estratégia não foi adotada, pois eomplicaria o desenvolvimento do sistema tornando- o inviável para o tempo de desenvolvimento disponível.
+Duas outras ferramentas foram desenvolvidas para gerar os dados que devem ser escritos na MC.
+O usuario pode criar os arquivos de configuração no formato hexadecimal a partir de os arquivos de configuração parciais em formato RBT, utilizando a ferramenta bin2hew.
+Tal ferramenta foi desenvolvida em linguagem C+ e também não possui interface grafica.
+Basta ao usuário executar o programa em linha de comando e passar como parâmetro o arquivo de configuração RBT.
+A saída é um arquivo com o nome resultadatxt.
+A outra ferramenta desenvolvida gera o conteúdo da memória de acordo com a estrutura ilustrada na Figura 5.5 apresentada no Capítulo anterior.
+Tal ferramenta denomina- se GeradorM C e foi desenvolvida em linguagem Java.
+GeradorMC não possui interface gráfica e recebe como entrada um arquivo que contém a lista ordenada de todas as configurações parciais do sistema.
+Como saída, é gerado um arquivo com todo o conteúdo a ser escrito na memória, com área de ponteiros e dados de configuração.
+Esse arquivo deve ser utilizado como entrada no programa da porta serial apresentado na Figura 5.14.
+Em o próximo Capítulo, apresenta- se estudos de casos do sistema RSCM que corrobo ram para a certificação de seu funcionamento.
+Também apresenta- se os resultados deste trabalho, e um conjunto de possíveis desdobramentos futuros.
+Estudos de Caso Como anteriormente citado, SDRs são sistemas computacionais flexíveis na medida que seu comportamento pode ser alterado após fabricação.
+Além disso, podem ser implementados numa área reduzida, proporciona uma economia de recursos ja que partes desse sistema podem ser configuradas dinâmicamente sob demanda da aplicação.
+Um exemplo típico de sistemas dessa natureza e apresentado na Seção 6.2, onde um processador com um conjunto de instruções variável e implementado.
+Esse exemplo tem como principal finalidade enfatizar a importancia do emprego de técnicas RTR no desenvolvimento de sistemas de hardware.
+Em este Capítulo, apresenta- se o estudo de caso elementar usado para validar o sistema RSCM, na Seção 6.1.
+Após a discussão do processador reconfigurável, na Seção 6.2, apresenta- se, na Seção 6.3, alguns dados quantitativos sobre o sistema RSCM implementado.
+O projeto Leds é um sistema implementado para realizar a prova de conceito do controlador de configurações RSCM.
+Sua operação não realiza qualquer outra tarefa senão prover o acompanhamento passo a passo da operação do controlador de configurações.
+Os detalhes de sua estrutura são tratados a seguir.
+Em a Figura 6.1 apresenta- se a estrutura do sistema Leds.
+Este é composto por cinco módulos, de os quais três são fixos, não reconfiguráveis, enquanto os outros dois são reconfiguráveis.
+Os tres módulos fixos são:
+Interface com usuário:
+Módulo que apresenta nos displays de sete segmentos da plataforma o identificador da configuração residente em cada urna das duas áreas reconfiguráveis.
+Decodificador: Módulo que interpreta o identificador dos bitstreams contidos nas áreas reconfiguráveis e provê a passagem de sinais entre as áreas reconfiguráveis e o controlador RSCM.
+Este módulo é responsavel por gerar informações para a Interface com o Usuário.
+RSCM: Controlador de configurações do sistema¡ ¡ l_ I Porta SeIeCIMAP reset!
+Os outros dois módulos do sistema são representados por as duas áreas reconfiguráveis, em as quais os bitstreams parciais do sistema são inseridos.
+A lógica de todas as configurações do sistema é composta por urna máquina de estados que conta por um determinado período de tempo, aproximadamente 10s, enviando um identificador próprio para a área fixa.
+Após esse período, notifica que terminou sua execução e aguarda o reconhecimento do RSCM, transmitido através do Decodificador.
+Cada urna das cinco configurações implementadas possui seu próprio identificador.
+Durante a operação do sistema pode- se acompanhar a reconfiguração de bitstreams parciais, observando os displays, que indicam qual bitstream esta em cada uma das áreas reconfiguráveis.
+Se a seqüência de reconfigurações se der de acordo com o cronograma de escalonamento escolhido e os bitstreams se comportarem corretamente, pode- se concluir que o controlador RSCM funcionou da forma para qual foi implementado.
+Foi implementado um sistema utilizando duas plataformas V2 MB10 U0, a primeira de elas apenas com o controlador RSCM, e a segunda corn o restante dos módulos.
+Essas duas plataformas foram conectadas através de fios, que implementam a interface entre os sinais transmitidos entre o RSCM e as áreas reconfiguráveis.
+Além disso, os sinais de configuração gerado por o RSCM foram conectados a interface de configuração SelectMAP da segunda plataforma.
+Acompanhando a operação do sistema, pôde- se verificar o correto funcionamento do mesmo.
+A partir de esta constatação conclui- se que o controlador de configuração RSCM comporta- se da forma esperada.
+Além de validar o RSCM, pôde- se obter estimativas do tempo gasto durante a reconfiguração do sistema Leds, uma medida importante para definir os compromissos que validam a utilização de técnicas RTR, de acordo corn o tempo gasto para reconfigurar o sistema.
+Como citado por Wirthlin, em sistemas reconfiguráveis dotados de um núcleo controlador de configurações, o tempo usado por este para modificar o sistema pode ou não contribuir para o tempo total de execução das tarefas para as quais o sistema foi originalmente concebido.
+Como os tempos de reconfiguração total práticos encontram- se hoje na ordem de ms e os parciais na ordem de us, a operação do controlador de configurações é portanto crítica, podendo inviabilizar ou viabilizar o uso de técnicas RTR.
+Configurações composta por 460 palavras de dados foram reconfiguradas no sistema com tempos na ordem de ps..
+A partir de aí, foram obtidos os tempos de inicialização da reconfiguração e o tempo para enviar cada palavra a interface ICAP.
+O tempo de inicialização corresponde ao intervalo utilizado para buscar a primeira palavra da memória, já que as demais leituras são escondidas por sua sobreposição ã tarefa de reconfiguração, tal qual um pipeline.
+O tempo de inicialização obtido foi 884 ns.
+O tempo para enviar cada palavra obtida foi de 748 ns.
+Substituindo estes valores na Equação 6.1 do tempo de reconfiguração, obtém- se os valores correspondentes, específicos para o sistema RSCM em questão, conforme descrito por a Equação 6.2.
+Este mesmo procedimento foi realizado com informações obtidas através de uma reconfiguração utilizando o software Impact, no modo Paralelo.
+Observou- se que o tempo gasto para configurar cada uma das palavras do bitstream é 8,44;
+Ls. O tempo de inicialização é de aproximadamente 160ms.
+De essa forma, pôde- se definir uma equação específica para os sistemas configurados através do software Impact, a Equação 6.3.
+O tempo de inicialização utilizando o software Impact é grande por causa de a baixa freqüência utilizada, como visto na Figura 5.8.
+Tm $= 160m3+ (6.3) Com as Equações 6.3 e 6.2 foi criado o grafico apresentado na Figura 6.2.
+Este compara os tempos de reconfiguração, utilizando os dois métodos citados, de acordo com o tamanho do arquivo de configuração.
+Um arquivo de configuração total para dispositivos da família VirtexII da Xilinx possui 127.581 palavras de 32 bits.
+Como citado, os dispositivos dessa família são particionados em colunas de elementos e estas, por sua vez, são divididas em quadros verticais.
+Um quadro é a unidade atômica de configuração que necessita de 153 palavras de configuração para o dispositivo XC2 V1000.
+Este é número mínimo de palavras de um bitstream parcial para o dispositivo usado.
+Infelizmente, nenhuma ferramenta para geração de arquivos parciais do conhecimento do autor habilita gerar um arquivo com esse tamanho mínimo.
+Os menores arquivos gerados, até o presente momento, possuem 460 palavras, suficientes para configurar três quadros.
+Em o grafico da Figura 6.2 nota- se que o tempo de reconfiguração utilizando o Autoconfigurador do sistema RSCM é sempre significativamente menor que aquele obtido utilizando o software Impact.
+Esta Seção apresenta um estudo de caso mais elaborado que o anterior, enfatizando a importancia do emprego de técnicas RTR em sistemas programáveis.
+O sistema que compõe esse estudo denomina- se RSR, sendo um processador dinâmica e parcialmente reconfignravel.
+O processador R8 faz parte de uma família de processadores, concebida com a finalidade de dar suporte ao ensino de conceitos de arquitetura e organização de computadores a nível de graduação e pósgraduação.
+Este processador é uma máquina Von Neuman, com memória de dados e instruções conjunta.
+Ele possui uma arquitetura load-store, onde as operações lógico/ aritméticas são executadas entre registradores, e as operações de acesso à memória só executam ou uma leitura ou uma escrita de uma posição de memória.
+Devido a a característica load/ store, o processador deve ter um conjunto de registradores de trabalho, para reduzir o número de acessos à memória.
+Todas as instruções do processador R8 possuem exatamente o mesmo tamanho, e ocupam 1 palavra de memória.
+Cada instrução contém o código da operação e o (s) operando (s), caso exista (m).
+R8 é um processador de 16 bits pois manipula dados e endereços com uma largura de 16 bits.
+A execução de cada instrução é realizada em 3 ou 4 ciclos de relógio, ou seja, todo programa executado por o processador possui CPI (i.
+e Ciclos Por Instrução) entre 3 e 4.
+O processador possui um banco de 16 registradores de uso geral e 4 flags de estado:
+Negativo, zero, carry, overflow.
+Cada endereço de memória corresponde a um identificador de uma posição onde residem 16 bits de conteúdo (i.
+e o endereçamento de memória é a palavra).
+De essa forma, o processador R8 é praticamente uma máquina RISC, faltando, contudo algumas características que existem em qualquer máquina RISC, tal como pipelines.
+O conjunto de instruções do processador realiza:
+Operações lógicas e aritméticas binãrias (e.
+g soma, subtração, E, Ou exclusivo);
+Operações lógicas e aritméticas com constantes curtas (Soma, subtração);
+Operações unarias (e.
+g deslocamento à direita;
+A esquerda e inversão);
+Carga de metade de um registrador com uma constante;
+Inicialização do apontador de pilha e retorno de subrotina;
+Operação vazia (e.
+g NOP ou no operation);
+Suspensão da execução de instruções (e.
+g HALT);
+Leitura de posição de memória para um registrador;
+Armazenamento de dado de um registrador numa posição de memória;
+Saltos e chamadas de sub-rotina com endereçamento relativo com deslocamento curto ou longo (contido num registrador) e endereçamento absoluto (a registrador);
+Inserção e remoção de valores em o/ do topo da pilha de dados.
+O processador R8 conta ainda com um conjunto de registradores de controle de 16 bits, em acréscimo aos 16 registradores de uso geral.
+O registrador Ir (instruction register) armazena o código de operação da instrução atual e o (s) operando (s) da mesma.
+O registrador PC (program counter) é o contador de programa.
+O SP (stack pointer) armazena o endereço do topo da pilha e controla a chamada e retorno de sub-rotinas.
+O banco de registradores do processador possui uma porta de escrita e duas de leitura, que habilitam a realização de uma escrita e duas leituras de forma simultâneas.
+O projeto emprega conceitos de processadores que contém um conjunto de instruções dinâmico;
+Demoninados Dynamic Instruction Set Computers ou DISCS, tratados por Wirthlin e Hutchings, em.
+Tal projeto propõe o desenvolvimento de um processador dinâmica e parcialmente reconfigurável, baseado na estrutura do processador R8 e numa versão simplificada do controlador de configurações RSCM proposto.
+O principal objetivo desse sistema é possibilitar a implementação de um processador com um conjunto de instruções variavel e expansível.
+Além de as instruções padronizadas do processador R8, o RSR agrega outras instruções destinadas a controlar a execução de coprocessadores reconfiguráveis.
+Esses coprocessadores são configurados no sistema de acordo com a demanda definida por o software do RSR;
+E podem executar as mais diferentes tarefas;
+Tais como operações aritméticas complexas e entrada/ saída de dados em altas taxas.
+Em a Figura 6.3 apresenta- se um diagrama de blocos do processador reconfigurável RSR.
+O sistema compõe- se do processador RSR, da memória de programa e dados, do controlador de configurações RSCM e dos coprocessadores dinâmica e parcialmente reconfiguráveis.
+A interface entre esses módulos é composta por os sinais apresentados na Tabela 6.1.
+IOce sinal enviado do processador para o coprocessador, habilitando a operação do último.
+IOrw sinal enviado do processador para o coprocessador, selecionando o tipo de operação a ser realizada.
+Diferenças entre o processador R8 e o processador RSR Para implementar o sistema RSR foi necessário adequar o processador R8 original, inserindo interfaces com os coprocessadores reconfiguráveis e com o controlador de configurações RSCM.
+Ainda, criaram- se cinco novas instruções para o processador que habilitam seleção, inicialização, sinalização, leitura e escrita nos coprocessadores reconfiguráveis (SELR, INITR, DISR, RDR e WRR).
+A Tabela 6.2 apresenta as instruções adicionadas ao conjunto de instruções do processador R8 adaptando- o ao sistema RSR.
+RSCM. Estas são bloqueantes, e aguardam o término da operação do RSCM, sinalizada por ack_ reconf.
+As demais instruções dedicam- se a manipular os coprocessadores.
+Instrução Descrição SELR imed8 Instrução que seleciona para uso o coprocessador identificado por imed8.
+Se e coprocessador não estiver configurado, e RSCM o (zonfrgura e gera o ack_ recon f.
+Caso contrário RSCM realiza a reconfiguração do coprocessador de forma transparente ao processador RBR.
+Como imed8 é armazenado em RRECONF, instruções subseqüentes de acesso a um coprocessador inrplicitamente endereçam o mesnro coprocessador até a execução da próxima instrução DISR imedr?
+Lnfornra ao controlador RSCM que o coprocessador identificado por I Oaddress pode ser removido do sistcrna.
+IOaddrcss recebe irned8 e o sinal rcq_ rcmoire e ativado.
+Após realizar suas tarefas, o controlador ativa ack_ reco' nf notificando o prec dor quanto a o término de sua operação.
+Der identificado por o operando da instrução, p ao barramento IOaddress.
+O sinal¡ Oreset e ativado, solicitando a inicialização do coprocessador.
+O processador deve aguardar o sinal IOack vindo do coprocessador.
+WRR Rsl, Resebe 3 dados de 16 bits no coprocessador.
+Essa instrução habilita o sinal IOce para acesso ao coprocessador identificado por RRECONF, e atribui 1 ao sinal IOrw, selecionando uma operação de escrita.
+O conteúdo do registrador Rsl é enviado para o barramento I 0data_ out..
+A seguir, o processador aguarda o sinal I Oack e escreve o conteúdo de Rs2 no barramento IOdataJJut.
+Novamente, o processador aguarda que o sinal IOack.
+RDR Rsl, Rtl Lê dados de 16 bits enviados por o coprocessador.
+Tal instrução habilita 10138 e atribui 1 ao sinal IOrw, selecionando urna operação dc escrita.
+O conteúdo do registrador Rsl e enviado para o barramento lOdataJrut, aguarda Em seguida, seta IOrw para zero, selecionando operação de leitura do processador.
+O coprocessador (leve escrever sua saida no barramento I 0data_ in do processador, que espera IOack e escreve o dado lido no registrador Rtl.
+Como citado acima, as instruções de leitura e escrita no coprocessador, sempre iniciamse por a escrita de uma palavra de 16 bits.
+Esta palavra pode ser utilizada como um controle da operação do coprocessador selecionado.
+RSCM porta de¡ C É, configuração do FPGA a AC a CCC Legenda:
+Comparando a Figura 6.4 com a Figura 4.1, apresentada no Capítulo 4, nota- se que o Monitor de Reconfiguração (MR) e o Escalonador de Configurações (EC) foram substituídos por o processador reconfigurável.
+As interfaces do Controle Central de Configurações (CCC) sofreram mudança.
+Por isso, o comportamento e a estrutura desse módulo teve de sofrer modificações.
+Em a Figura 6.5, apresenta- se a nova máquina de estados do Controle de Central de Configurações adaptado para o sistema RSR.
+Pode- se notar que a máquina da Figura 4.1 e externamente simples porque foi projetada para um caso simples de aplicação, no caso um SDR que possui apenas uma área reconfigurável.
+De essa forma, muitas das estruturas internas do CCC foram removidas tal como o Buffer de Configurações Escalonadas.
+Para essa implementação, não é necessário utilizar duas máquinas de estados como na versão original do CCC.
+R=8  R. CCC verifica a necessidade de reconfigurar o coprocessador selecionado e o reconfigura, se necessário.
+Em seguida, avisa RSR que terminou a operação.
+E3, CCC requisita os serviços do Autoconfigurador e, em E4 aguarda AC terminar a tarefa de reconfiguração.
+Finalmente, no estado E2, CCC envia o sinal a R8R, notificando que a tarefa solicitada foi concluída.
+Para testar o funcionamento do sistema RSR foi utilizado o programa descrito no Apêndice A. 1.
+Pôde- se verificar o correto funcionamento do sistema, já que a operação do programa apresentou as respostas corretas.
+Além de desenvolver os módulos apresentados na Figura 6.3 foram desenvolvidos cinco coprocessadores, listados abaixo.
+Z-avg: Coprocessador que calcula a média entre dois valores;
+4-avg: Coprocessador que calcula a média entre quatro valores;
+Sqrt: Coprocessador que calcula a raiz quadrada de um valor de 32 bits e apresenta uma resposta de 16 bits;
+Multi: Coprocessador que executa a multiplicação de dois valores de 16 bits, gerando uma resposta em 32 bits;
+Div: Coprocessador que executa a divisão entre dois valores de 16 bits, gerando uma resposta em 32 bits.
+Para cada um dos coprocessadores desenvolvidos em hardware foi desenvolvida uma versão em software.
+Executando programas que utilizam esses recursos por determinado tempo, pôde- se obter um comparativo entre o desempenho global do sistema quando se utiliza apenas rotinas desenvolvidas em software e, quando se utiliza coprocessadores implementados em hardware.
+O código dos programas que realizam as mesmas tarefas dos coprocessadores multi, div e sqrt apresenta- se nos Apêndices A2, A3 e A4 respectivamente.
+No caso de o coprocessador multi, observou- se que programas que realizam mais que 750 operações de multiplicação possuem um melhor desempenho quando comparado as rotinas implementadas em software.
+Esse resultado pode ser visto na Figura 6.6.
+O mesmo experimento foi realizado para os coprocessadores div e sqrt.
+Programas que realizam mais de 260 operações de divisão possuem um melhor desempenho quando utilizam o processador div em vez de a rotina implementada em software, como pode ser visto na Figura 6.7.
+Em a Figura 6.8, nota- se que apenas 200 operações de extração da raiz quadrada ja validam o uso do coprocessador sqrt em contraproposta à implementação em software.
+A curvas referentes a operação dos coprocessadores implementados em hardware representam uma abordagem do pior caso.
+Isso porque se admite que o sistema possui uma única área reconfigurável.
+Se o sistema possuir diversas áreas reconfiguráveis, o tempo de reconfiguração pode ser ocultado.
+Para melhor entender a importância do uso dos coprocessadores em contraproposta às rotinas em software pode- se imaginar um sistema de software que aplica uma série de filtros em imagens.
+Se esses filtros aplicam multiplicações, divisões, médias de valores e raízes quadradas constantemente, muito tempo podera ser ganho utilizando os coprocessadores de alto desempenho, ainda mais se esses filtros são aplicados a diversas imagens ou se as mesmas forem grandes.
+Duas das mais importantes vantagens do processador implementado utilizando técnicas de reconfiguração dinâmica e parcial são o aumento da densidade funcional e da flexibilidade do sistema, que pode ser modificado facilmente, através da adição de outros coprocessadores.
+Em a Tabela 6.4, apresentam- se tempos de configuração de dispositivos XC2 V10 U0, nos diferentes modos.
+Todos os valores apresentados correspondem ao tempo gasto para configurar o dispositivo totalmente, enviando todas as 127.581 palavras de configurações, seja no modo paralelo ou serial.
+Com exceção do tempo relacionado à operação do Autoconfigurador do sistema RSCM, os demais foram obtidos da referência.
+Pode- se notar, nesta Tabela, que os maiores tempos de configuração foram obtidos quando o dispositivo é configurado no modo dependente.
+Isso se da devido a o fato destas configurações serem realizadas através de cabos que transmitem dados de um processador hospedeiro para a porta de configuração do dispositivo em baixa velocidade.
+Em o modo autônomo, os dados foram transmitidos através de barramentos internos da plataforma, a partir de uma memória PROM.
+Quando a plataforma é inicializada, os dados são transferidos dessa PROM para a porta de configuração do dispositivo a partir de comandos gerados por o próprio FPGA, se o modo autônomo é utilizado.
+Outro fator importante a ser notado é o fato da freqüência de configuração nos modos autônomos ser de 6 UMHZ.
+Segundo fabricante da PROM, a freqüência máxima de configuração é 33 MHz.
+Contudo, foi possível configurar o dispositivo utilizando a PROM com uma freqüência superior aos 33 MHz.
+A diferença de desempenho entre as configurações autônomas e aquela realizada por o Autoconfigurador do RSCM é causada por o gargalo da memória de configurações, cujo controlador de acesso opera a 241 MHz apenas.
+O Autoconfigurador do sistema RSCM, reconfigura o dispositivo no modo paralelo autônomo, e opera a uma freqüência quase três vezes menor que a opção que utiliza a From.
+Como a interface ICAP ainda não funcionou adequadamente, o RSCM não apresentou o melhor desempenho, mas superou em duas ordens de grandeza a alternativa usual de configurar parcialmente o dispositivo através de software operando no hospedeiro.
+Obviamente, não é possível, configurar o dispositivo totalmente de maneira interna, dessa forma o valor apresentado na Tabela corresponde apenas a uma estimativa obtida através da Equação 6.2.
+Por outro lado, a configuração utilizando a From não pode ser realizada parcialmente, ou pelo menos, não sem o emprego de um hardware intermediário entre PROM e FPGA.
+Sendo assim, essa opção não pode ser empregada num sistema que controla configurações.
+Em o próximo Capítulo, apresentam- se as contribuições do trabalho, seguidas das conclusões obtidas e de sugestões para trabalho futuro.
+Considerações finais A principal contribuição desse trabalho é a proposta e implementação de um controlador de configurações implementado em hardware.
+Sendo de uso geral para escalonamento estático de reconfigurações, RSCM pode ser utilizado por sistemas reconfiguráveis com uma ampla faixa de características desde que empreguem uma política de escalonamento estático.
+A simplificação ou reformulação do sistema RSCM basico para ambientes específicos é simples e foi apresentado um estudo de caso de tal adaptação para o projeto RSR, descrito na Seção 6.2.
+O trabalho realizado contribui também de forma estratégica para o desenvolvimento e a implementação de SDRs.
+Através de ele, pôde- se melhor entender o processo de configuração parcial de dispositivos reconfiguráveis.
+Em um primeiro instante, apresentou- se conceitos relativos a reconfiguração dinâmica e parcial.
+A seguir, a proposta de um modelo genérico de sistema reconfigurável, o modelo GRS, foi apresentada na Seção 1.2.1.
+Ainda no mesmo Capítulo, um fluxo de desenvolvimento e também um conjunto de ferramentas necessárias no projeto SDRs foi apresentado, na Seção 1.4.
+PaDReH é uma proposta de arcabouço para projeto e implementação de SDRs.
+Para que o leitor pudesse entender melhor o processo de configuração, uma proposta de critérios para classificar os processos de reconfiguração foi apresentada na Seção 2.1.
+Os modelos e implementações de controladores de configurações forneceram o embasamento necessario para melhor entender a tarefa de controle de configurações em SDRs.
+Além disso, um comparativo entre esses modelos e implementações foi realizado, como apresentado na Seção?
+Isto também possibilitou a proposta de um modelo de estrutura geral para controladores de configurações, apresentado na Figura 3.7.
+Em este trabalho, pôde- se compreender o cenário atual do desenvolvimento de sistemas dinâmica e parcialmente reconfiguráveis.
+Ficou evidenciada a falta de ferramentas para o projeto e suporte a implementação de sistemas desta natureza.
+Embora diversos estudos sejam realizados enfatizando RTR, os fabricantes ainda não disponibilizam dispositivos que hãbilitem a sua reconfiguração dinâmica e parcial de uma forma mais facilmente integravel ao fluxo de projeto tradicional de sistemas computacionais.
+O fluxo de projeto convencional não se adequa corretamente a0 projeto de SDRs e, na grande maioria dos casos é necessario utilizar estratégias alternativas para desenvolver SDRs, tal como o fluxo de projeto modular, proposto por a Xilinx.
+A necessidade de um subsistema para suporte a operação de SDRs é evidente.
+RSCM é uma proposta que visa suprir a necessidade de um controlador de configurações implementado em hardware, ocasionando baixa sobrecarga de área do dispositivo reconfigurável.
+Propostas anteriores como e, são de uso mais específico que o RSCM.
+Um de eles, é específico para configurar os transceptores de dispositivos Virtex e o outro aplica apenas reconfigurações incrementais.
+O RSCM é utilizado para controlar a reconfiguração de núcleos IP arbitrariamente complexos.
+RSCM teve sua implementação em hardware como objetivo inicial de investigar tal abordagem.
+Implementações anteriores de controladores de configurações foram em software.
+Esta investigação poderia apresentar melhores resultados se as outras implementações fossem melhores documentadas ou ainda se pudessem ser acessadas sem maiores restrições, até mesmo para a realização de simulações.
+Como os autores não apresentam resultados sobre suas implementações, tais como tempos de reconfiguração e área ocupada, não foi possivel elaborar um comparativo entre as implementações em software e hardware.
+De essa forma, é difícil estimar qual seria a melhor estratégia de implementação de um controlador de configurações.
+Foi possível implementar um sistema de controle de configurações de forma completa, com a possibilidade de ser parametrizado de acordo com o SDR a ser implementado.
+O controle de configurações é um processo complexo que requer o gerenciamento de diversos fatores, tais como o estado de operação do SDR, o uso de escalonamento de bitstreams pré-definido, o armazenamento de bitstreams parciais e também o controle do processo de configuração.
+Ainda não foi possível abordar quantitativamente o desempenho do controlador RSCM, como seria necessario.
+O objetivo primordial deste trabalho foi prover um controlador reutilizãvel e operacional.
+Acredita- se que tal objetivo tenha sido plenamente atingido.
+Outros estudos ainda devem ser realizados para melhor entender como desenvolver e implementar SDRs, de maneira a difundir esta estratégia de implementação.
+O controle de configurações ainda carece de maior capacidade de controle, sobretudo no que diz respeito a implicações relacionadas a sua implementação em hardware ou software.
+Por isso, uma tarefa importante a ser realizada é procurar maiores detalhes sobre as implementações em software, ou até mesmo desenvolver um controlador de configurações em software.
+Esta última alternativa é uma opção vista como extremamente interessante.
+O desenvolvimento de outros SDRs, como estudo de caso, também constitui um possível trabalho futuro.
+Até mesmo prover variações do processador RSR reconfigurável poderá representar um avanço significativo nas pesquisas da área que contribui para a certificação da importância de empregar técnicas RTR no desenvolvimento e implementação de sistemas de hardware.
+Uma possível variação do RSR deve lidar com mais de uma área reconfigurável.
+Para isso, o CCC personalizado para o RSR com uma área deve ser ligeiramente modificado.
+Outro caminho é trabalhar com instruções não bloqueantes na R8R, para aumentar o desempenho de software que pode iniciar a configuração de coprocessadores antes de serem necessarios para amortizar o tempo de reconfiguração.
+Melhorar o desempenho do controlador RSCM é uma tarefa importante, que implica em maiores estudos sobre a interface ICAP, a fim de tornas- la funcional e, adotar a alternativa mais eficiente de memórias de configurações.
+Os módulos desenvolvidos também podem ser modificados de maneira a possuírem um melhor desempenho e também representarem uma menor sobrecarga de área.
+A relocação de bitstreams é outro tópico importante a ser tratado.
+Um módulo relocador deve ser anexado ao controlador RSCM, de maneira a reduzir a quantia de memória necessária para armazenamento de configurações.
+O estudo de técnicas de relocação em dispositivos Virtex pode contribuir para obtenção de informações sobre a arquitetura de configuração dos dispositivos desta família, informações estas muito escassas.
+Em, Platzner Dizem ter solucionado o problema de relocação de bitstreams para dispositivos da série Virtex da Xilinx, mas maiores detalhes não são fornecidos.
+A maioria das estruturas que armazenam informações internas no RSCM são implementadas em hardware, tais como a Tabela de Dependência e Descritores e a Tabela de Alocação de Recursos.
+Isso implica numa tarefa de ressíntese do sistema toda vez que estas estruturas devem ser modificadas.
+Uma outra tarefa importante é prover meios mais práticos de parametrizar o controlador de configurações, tornando- o mais fiexível e, portanto mais reutilizável.
+A dificuldade em verificar o correto funcionamento de SDRs aponta para o estudo de técnicas para simular o comportamento de sistemas desta natureza.
+Até então, o sistema deve ser prototipado para que se possa verificar seu funcionamento.
+A descrição de SDRs em níveis mais altos que RTL sugere o estudo de técnicas para utilizar outras linguagem de descrição, tal como SystemC.
+Modelar um sistema para controle de configurações em alto nível de abstração constitui uma alternativa interessante como trabalho futuro.

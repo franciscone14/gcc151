@@ -1,0 +1,830 @@
+Circuitos aritméticos são parte fundamental de sistemas digitais, uma vez que cada porção de informação processada por estes deve ter sido codificada previamente sob a forma de números, e que a aritmética é a forma por excelência de proceder à manipulação sistemática de números.
+Existe uma grande quantidade de esquemas de codificação usados em sistemas digitais, mas três formas de representação se sobressaem por serem usadas na maioria maciça das situações:
+Números sem sinal, números inteiros e a representação de ponto flutuante.
+Os dois primeiros são mais simples e mais universais, mas algumas aplicações exigem o recurso à faixa estendida de valores e à precisão incrementada de representações de ponto flutuante.
+Embora o uso de hardware de ponto flutuante em FPGAs tenha sido por muito tempo considerado inviável ou relegado ao uso apenas em dispositivos e plataformas de alto custo, esta não é mais a situação atual.
+Este trabalho descreve o processo de projeto, a implementação física e uma avaliação preliminar de unidades de processamento de ponto flutuante de precisão simples em hardware para uma arquitetura de processador MIPS.
+Exploram- se várias implementações completas que têm a forma de coprocessadores fortemente acoplados.
+Estes coprocessadores ocupam apenas 4% de um FPGA de tamanho médio, enquanto o processador em si ocupa 3% do mesmo dispositivo.
+O processo de exploração do espaço de soluções de projeto descrito aqui considera as figuras de mérito área, desempenho e potência e considera variações na escolha da ferramenta de síntese, do método de geração a unidade de ponto flutuante e questões arquiteturais tais como estratégias de uso de relógios.
+Os experimentos conduzidos mostram reduções de mais de 20 vezes na contagem do número de ciclos de relógio do processador, para módulos de aplicação típicos que usam ponto flutuante de forma intensiva, quando comparado com processamento de representações de ponto flutuante emulado em software.
+Palavras Chave: Hardware de ponto flutuante;
+FPGA; Exploração do espaço de projeto;
+Projeto GALS;
+Prototipação; Processador embarcado.
+A crescente demanda por aparatos eletrônicos diminutos, eficientes e com múltiplas funcionalidades motiva pesquisas em busca de novas metodologias de desenvolvimento de sistemas embarcados.
+Sistemas embarcados geralmente realizam tarefas pré-definidas com requisitos bastante específicos.
+Desempenho mínimo, máxima área em silício, máximo consumo de energia, confiabilidade mínima e, principalmente, custo máximo, são restrições que devem ser levadas em consideração na pesquisa e no projeto de sistemas embarcados.
+Tais requisitos são baseados fortemente na aplicação alvo de um sistema, que pode envolver características tais como computação em tempo real, processamento de imagens e de áudio, processamento digital de sinais, entre outros.
+Muitas aplicações, estimuladas por o aumento na demanda por novas funcionalidades e aperfeiçoamento de outras, exigem cada vez mais o processamento de ponto flutuante.
+O atual estado da arte de dispositivos VLSI tornou o custo da área em silício mais acessível.
+Por esta razão, coprocessadores de ponto flutuante vêm sendo adicionados ao hardware de processadores embarcados, aumentando o seu poder computacional.
+Isto vem acontecendo até mesmo em processadores para aparelhos eletrônicos móveis, que são alimentados por fontes de energia bastante limitadas.
+Certamente neste caso, o máximo consumo de energia deve ser uma das principais restrições do sistema embarcado.
+Com o avanço dos dispositivos VLSI, os FPGAs tornaram- se uma opção atraente para o projeto de sistemas digitais.
+Até pouco tempo atrás, estes dispositivos eram deixados em segundo plano, devido a a baixa disponibilidade de área e ao seu baixo desempenho.
+Hoje em dia, sua flexibilidade e a atual oferta de módulos de hardware, disponibilizados sob a forma de núcleos sintetizáveis, diminuem o tempo de projeto e permitem alcançar rapidamente os requisitos de um sistema embarcado.
+Processadores podem ser conectados a dezenas de outros módulos de hardware, inclusive coprocessadores de ponto flutuante.
+Este trabalho tira proveito deste fato e procura explorar extensamente o espaço de projeto de um processador embarcado capaz de executar aplicações que fazem uso de números em aritmética de ponto flutuante.
+Colocação do Problema Aparatos eletrônicos agregam cada vez mais capacidade de processar aplicações complexas, tais como as aplicações multimídia.
+Correspondendo a amplo segmento das aplicações embarcadas, aplicações multimídia utilizam recursos que podem exigir o emprego de aritmética computacional que suporte uma ampla faixa de representação dos números e que garanta, ao mesmo tempo, a precisão de cálculos numéricos e o desempenho global do sistema embarcado.
+Em estes termos, entre as alternativas de aritmética existentes, a aritmética de ponto flutuante apresenta- se como a mais indicada para dar suporte satisfatoriamente a grupos específicos de aplicações.
+Em o passado, a maioria maciça de sistemas embarcados dotados de processadores programáveis utilizava processadores comerciais que não possuíam hardware dedicado para executar operações de aritmética de ponto flutuante.
+Isto se deve principalmente ao acréscimo na área em silício do processador que tal unidade traria, onerando o seu custo final, o que sempre tem impacto altíssimo em sistemas embarcados.
+Além disso, este acréscimo também pode acarretar um potencial aumento na potência dissipada e/ ou no consumo de energia, restringindo sua aplicabilidade.
+Desta forma, outras soluções eram empregadas tais como a emulação em software das instruções de ponto flutuante e a aritmética de ponto fixo.
+Contudo, estas soluções apresentam limitações que acabam por restringem o seu uso em diversos sistemas.
+Motivação A utilização de unidades de ponto flutuante em hardware no projeto de dispositivos móveis depende fortemente dos requisitos da aplicação, tais como o deadline das operações de tempo real, precisão nos cálculos realizados, desempenho, etc..
+Como comentado anteriormente, a utilização destas unidades aumenta a área em silício de um processador, o que por sua vez pode aumentar, de forma significativa, a dissipação de potência e/ ou consumo de energia do mesmo.
+O acréscimo na ocupação da área em silício é hoje um problema menor, dada a evolução da chamada lei de Moore.
+Esta dita que a cada dezoito a vinte e quatro meses duplica- se a densidade de dispositivos VLSI, tornando o custo relativo da área em silício cada vez mais baixo.
+Por outro lado, a dissipação de potência e o consumo de energia são cada vez mais aspectos críticos de projeto.
+Diversas pesquisas recentes exploram a eficiência energética e a eficiência térmica.
+Estudos de eficiência energética permitem minimizar o consumo de energia e prolongar o tempo de funcionamento dos sistemas embarcados.
+Estudos de eficiência térmica garantem o funcionamento correto do sistema sem comportamentos espúrios provocados por a eventual geração de calor em excesso no circuito integrado devido a a dissipação de potência.
+Pode- se afirmar que o uso de unidades de ponto flutuante em processadores embarcados é cada dia mais viável.
+Certamente há implicações a serem avaliadas antes de se optar por o uso de tais unidades.
+Apesar de apresentar vantagens, sua dissipação de potência e seu consumo de energia, se não tratados adequadamente, podem restringir o uso de tais unidades.
+Este fato tem sido a motivação de diversos estudos, este trabalho não constituindo exceção.
+Objetivos Partindo da motivação, este trabalho possui os seguintes objetivos estratégicos:
+Para alcançar os objetivos estratégicos, derivam- se os seguintes objetivos específicos:
+Propor e implementar coprocessadores de ponto flutuante compatíveis com o conjunto de instruções MIPS-I de processadores embarcados;
+GALS dotados de pelo menos uma técnica de redução do consumo de energia e dissipação de potência em FPGAs;
+FPGAs as diversas organizações &quot;processador/ coprocessador de ponto flutuante «implementadas;
+Note- se que este trabalho não tem como objetivo o projeto de unidades de processamento de números de ponto flutuante em hardware.
+Utilizam- se implementações destas unidades disponíveis no domínio público e/ ou geradores automáticos de hardware.
+Contribuições As contribuições deste trabalho compreendem:
+Estrutura do Restante do Trabalho O restante deste documento está estruturado da seguinte forma.
+O Capítulo 2 apresenta alguns conceitos fundamentais, incluindo o padrão IEEE-754, que normatiza o uso da aritmética de ponto flutuante, a arquitetura MIPS-I, base do processador empregado neste trabalho, e conceitos básicos sobre dissipação de potência e consumo de energia.
+O Capítulo 3 descreve o estado da arte no uso de unidades de ponto flutuante em processadores embarcados, bem como um breve estado da arte em técnicas para a redução do consumo de energia e dissipação de potência.
+Além disso, apresentam- se os estados da arte em técnica GALS de projeto e de interfaces de comunicação assíncrona.
+O Capítulo 4 apresenta os materiais e métodos utilizados na pesquisa proposta.
+Apresentam- se o processador e as unidades de ponto flutuante empregadas neste trabalho.
+O Capítulo aborda ainda os métodos e recursos usados para medição da dissipação de potência e consumo de energia.
+O Capítulo 5 apresenta a implementação dos coprocessadores propostos.
+A implementação das organizações oriundas da integração destes coprocessadores ao processador adotado é assunto do Capítulo 6.
+Em este Capítulo também se apresentam as implementações das organizações não-síncronas.
+As simulações realizadas, a prototipação destas em FPGAs, bem como os métodos utilizados para validação de todas as organizações implementadas, são o tema do Capítulo 7.
+O Capítulo 0 apresenta os resultados experimentais, incluindo estimativas de ocupação de área e da frequência de operação, métricas de desempenho e medidas de dissipação de potência e de consumo de energia.
+Por fim, o Capítulo 9 conclui esta Dissertação, tecendo considerações finais sobre os resultados obtidos e dando direções para trabalhos futuros.
+Este Capítulo apresenta alguns conceitos básicos necessários ao desenvolvimento do presente trabalho.
+A Seção 2.1 apresenta o padrão IEEE-754, a norma praticamente universal para a representação de números em ponto flutuante.
+A Seção 2.2 apresenta, em termos gerais, as principais características da arquitetura MIPS-I de processadores programáveis.
+Por fim, a Seção que valem para dispositivos CMOS.
+O Padrão IEEE-754 O padrão IEEE-754 foi criado por a ANSI/ IEEE e tem como objetivo normatizar a representação binária de números racionais.
+Tal representação é conhecida como ponto flutuante.
+Em este padrão definem- se regras a seguir para a implementação de hardware e software, incluindo formatos de representação, operações aritméticas e de conversão, modos de arredondamento situações de exceção e seus respectivos tratamentos.
+Existem dois formatos principais de representação de números de ponto flutuante com estrutura fixa:
+O formato de precisão simples, de 32 bits e o formato de precisão dupla, de 64 bits.
+Existem também extensões para estes dois formatos (os formatos variáveis) que não serão abordados no presente trabalho.
+A Figura 1 ilustra os dois formatos fixos da norma 754.
+Os dois formatos possuem os mesmos campos que, porém apresentam tamanhos distintos.
+O campo &quot;s «é utilizado como bit de sinal do número como um todo, sendo` 0 'para representar um número positivo e` 1' para um número negativo.
+O campo &quot;e «é o expoente e &quot;m «é a mantissa, ou parte fracionária, do número racional a ser representado.
+Vale ressaltar que valor do expoente é um número representado em notação polarizada, uma notação que representa uma faixa de inteiros entorno de 0, positivos e negativos.
+Portanto, não é necessário armazenar o sinal do mesmo.
+A notação polarizada facilita operações de comparação entre números, incluindo comparações de magnitude e de igualdade.
+A notação polarizada também é conhecida como notação por excesso de valor.
+Em esta notação, o menor valor que o expoente pode assumir é representado por o vetor &quot;e «contendo apenas zeros, correspondendo ao valor mais negativo possível na notação polarizada.
+Em precisão simples os limites dos valores do expoente são dados subtraindo 127 do binário puro associado ao vetor de bits &quot;e «em precisão dupla subtrai- se 1023.
+Também conforme a norma, a mantissa tipicamente representa a parte fracionária de um número normalizado.
+Trata- se de um número cujo valor está no intervalo de racionais[ 1,2) (fechado à esquerda e aberto à direita) e seu bit mais significativo não é representado, sendo sempre` 1'.
+Este bit também é conhecido como hidden bit.
+A normalização garante um máximo de precisão nas operações aritméticas.
+A partir de os campos &quot;s», &quot;e «e &quot;m «dos formatos, é possível derivar a Equação 1 que representa um número real normalizado em ponto flutuante.
+A variável Peso utilizada nesta equação é a polarização e tem valor 127 na representação de precisão simples e 1023 em precisão dupla.
+A Tabela 1 apresenta cinco casos de valores que podem ser representados no padrão por os formatos de precisão simples e dupla.
+Além de valores do tipo &quot;Racional», utilizado para a representação de números racionais, o padrão permite a representação de valores especiais.
+&quot;Not-a-Number», detalhado mais adiante, é utilizado para indicar resultados inválidos.
+É utilizado também no tratamento de exceções.
+&quot;Infinito «é utilizado nos resultados de operações que ultrapassam os limites superiores definidos por o padrão.
+Números representados como &quot;Não normalizado «não empregam o hidden bit.
+De este modo, é possível representar valores menores do que os limites inferiores definidos por o padrão.
+&quot;Zero «é utilizado para representar o valor 0, que este não pode ser normalizado.
+Todos os bits de sua mantissa e expoente são preenchidos com` 0'.
+A Tabela 2 apresenta os diferentes formatos normatizados por o padrão e os valores para os parâmetros que os definem.
+A norma IEEE-754 provê operações aritméticas (adição, subtração, multiplicação, divisão e raiz quadrada) além de operações de conversão (de ponto flutuante para inteiro e vice-versa, entre formatos de representação) e de comparação (igualdade, maior e menor que, etc).
+Como resultados de operações aritméticas realizadas em equipamentos reais não podem possuir uma precisão infinita, é sempre necessário truncar, ou arredondar, tais resultados.
+A norma define quatro modos de arredondamento:
+Para zero, onde se arredonda para o valor imediatamente anterior, ou menor, em casos de resultados positivos e para o valor imediatamente posterior, ou maior, em resultados negativos;
+Para cima e para baixo onde se arredonda o resultado para o maior e menor valor relativo respectivamente;
+E para o mais próximo que arredonda para o valor imediatamente acima ou abaixo dependendo da proximidade com o resultado.
+Este último é o modo recomendado por a norma.
+São previstas no padrão cinco exceções:
+&quot;operação inválida», &quot;divisão por zero», &quot;overflow», &quot;underflow «e &quot;valores inexatos».
+Todas estas exceções dever ser sinalizadas quando detectadas e medidas devem ser adotadas para os seus respectivos tratamentos, como sinalização em qualificadores, disparo de interrupções, ou ambos.
+A exceção &quot;operação inválida «aplica- se a operações aritméticas para as quais não existe correto possível, tais como divisão por zero e raiz quadrada de um número negativo.
+O resultado de tais operações é definido como NaN, ou Not-a-Number.
+Existem dois tipos de NaN:
+QNaN e SNaN, quiet e signaling respectivamente.
+SNaN indica operação inválida somente se um dos operandos for SNaN.
+SNaN é um tipo especial de operando, como números complexos por exemplo.
+As demais operações inválidas devem sempre ser sinalizadas QNaN.
+A exceção &quot;divisão por zero «ocorre quando um número não- zero e finito é dividido por o número zero, resultando num valor não representável.
+A exceção &quot;overflow «é sinalizada sempre que o resultado de uma operação excede o valor máximo que pode ser representado por o expoente.
+A exceção &quot;underflow «ocorre quando o valor do resultado é tão pequeno que não pode ser representado de forma normalizada a não ser como o número 0, ainda que este não seja o resultado correto da operação.
+Isto causa perda de precisão quando o resultado vem a ser utilizado em outra operação aritmética.
+A exceção &quot;valores inexatos «ocorre nos resultados das operações devido a os arredondamentos e às restrições do expoente e de precisão.
+Organização MIPS-I O projeto MIPS começou a ser desenvolvido em meados de 1981 na Universidade de Stanford por uma equipe de doutorandos e de mestrandos chefiada por John Hennessy.
+Em 1984, convencido do potencial do processador, Hennessy licenciou- se da universidade durante um ano para tornar- se um dos fundadores da MIPS Computer Systems, empresa responsável por o desenvolvimento dos primeiros microprocessadores comerciais MIPS.
+O primeiro MIPS comercial, o R2000, foi lançado em 1985.
+Mais tarde, no ano de 1992, a MIPS Computer Systems foi adquirida por a Silicon Graphics Computer Systems.
+Em o inicio da década de 90 o MIPS começou a ser licenciado para terceiros.
+O licenciamento se mostrou próspero devido a a simplicidade destes processadores.
+Sendo mais eficiente a um custo mais acessível, passou a ser utilizado em diversos dispositivos que até então utilizavam processadores de arquitetura CISC.
+Empresas como a Silicon Graphics, NEC e Acer, adotaram os processadores MIPS em seus desktops.
+Porém, devido a a competição de processadores Pentium por a Intel e devido a a falta de suporte ao MIPS por parte de Microsoft em seus sistemas operacionais, os processadores MIPS caíram em desuso em computadores.
+Já em dispositivos embarcados a situação é outra.
+Com o licenciamento, o MIPS tornou- se amplamente empregado no mercado de sistemas embarcados.
+Versões da sua arquitetura têm sido usadas em diversos dispositivos, tais como:
+Impressoras, televisores, consoles de jogos, PDAs, set-top boxes, entre outros.
+Com o sucesso do MIPS, recentemente várias gerações de processadores são oferecidas na forma de núcleos sintetizáveis para o projeto de soluções embarcadas.
+Devido a o conhecimento generalizado por parte de projetistas da arquitetura MIPS e devido a o amplo ferramental de desenvolvimento, o MIPS permanece ainda hoje como um dos processadores embarcados mais utilizados na indústria.
+Tipicamente, organizações MIPS-I empregam um pipeline de 5 estágios:
+Busca, decodificação, execução, acesso à memória e escrita no banco de registradores.
+Em este pipeline, se não houver conflitos entre instruções executando simultaneamente, a cada ciclo de relógio conclui- se a execução de uma de elas.
+A organização MIPS-I foi projetada para operar com até quatro coprocessadores.
+O coprocessador denominado CP0, de uso obrigatório, é utilizado para controle do sistema, realizando tarefas como o gerenciamento de memória, controle de interrupções e exceções, prever diagnósticos, etc..
+Geralmente este coprocessador é implementado juntamente com o processador.
+O coprocessador denominado CP1 é reservado para o processamento em hardware de números em ponto flutuante.
+Este coprocessador deve ser compatível com o padrão IEEE-754 e deve possuir seu próprio banco de registradores de 32 posições com uma largura de 32 bits, designados comf0 af31.
+Os coprocessadores CP2 e CP3 podem ser utilizados na implementação de funcionalidades adicionais.
+Em a Figura 2 pode- se observar a organização da família MIPS-I com seu processador, memória, e coprocessadores CP0 e CP1.
+O MIPS-I possui no total 111 instruções onde o código objeto de cada uma destas ocupa exatamente 32 bits.
+São 21 instruções aritméticas, 8 instruções lógicas, 8 de manipulação de bits, 12 de comparação, 25 de controle de fluxo (saltos), 15 de leitura de memória, 10 de escrita na memória, 8 de movimentação de dados entre processador e coprocessador e 4 instruções miscelâneas.
+Existem três formatos de instrução:
+Imediato, salto e registrador.
+A Figura 3 mostra os formatos e sua codificação.
+Os três formatos têm um campo em comum:
+O campo de opcode, utilizado para identificar a instrução no estágio de decodificação do processador.
+Os formatos imediato e registrador ainda têm em comum os campos rs e rt, utilizados para a especificação dos registradores fonte e destino.
+Em as instruções com o formato imediato o campo offset pode conter valores entre 0 a 65535 para variáveis do tipo inteiro sem sinal ou valores entre 32768 a 32767 para inteiro com sinal.
+Em as instruções com o formato salto o campo index é utilizado como inteiro com sinal para as instruções de saltos relativos ou é utilizado, através de seus cinco bits menos significativos, para a seleção de um dos 32 registradores de propósito geral.
+O formato registrador é utilizado apenas em instruções lógico-aritméticas.
+O campo rd seleciona outro registrador destino.
+O campo sa determina o número de bits a deslocar nas operações de deslocamento.
+Finalmente, o campo function é utilizado para especificar a operação específica em instruções lógico-rritmeticas, uma vez que neste formato todas as instruções possuem opcode idêntico.
+Dissipação de Potência e Consumo de Energia O projeto de sistemas digitais tradicionalmente contempla o desempenho, em particular de processadores.
+Com o crescente aumento da densidade dos dispositivos VLSI é possível desenvolver sistemas cada vez mais complexos que permitem atender a demanda por alto desempenho.
+Porém, altos níveis de desempenho de processadores podem trazer com si altos consumo de energia e dissipação de potência.
+Tão altos, que a densidade da potência dissipada e concomitante geração de calor vêm rapidamente alcançando níveis comparáveis a reatores nucleares.
+Este fato acaba por diminuir a confiabilidade e a expectativa de vida dos circuitos integrados e também por aumentar os custos de arrefecimento.
+Os altos níveis de dissipação de potência e de consumo de energia dos processadores têm sido determinantes no projeto de sistemas embarcados, principalmente em aparatos eletrônicos móveis, uma vez que estes utilizam fontes de energia limitadas, como baterias recarregáveis, por exemplo.
+Dissipação de potência tornou- se o terceiro eixo no espaço de otimização sendo adicionado às restrições de desempenho e ocupação de área em silício.
+Portanto, é necessário encontrar soluções de projeto para a minimização dos problemas ocasionados por a dissipação de potência.
+Potência e energia são definidas em termos de trabalho que um sistema realiza.
+Energia é a quantidade total de trabalho que um sistema realiza ao longo de um determinado período de tempo, enquanto que potência é a taxa em o qual o sistema realiza trabalho.
+As Equações 2 e 3 apresentam os termos formais para o cálculo da potência e da energia de um determinado sistema.
+Em estas equações:
+Watt de potência média.
+Para funcionarem durante um mês sem recargas, as técnicas de redução empregadas devem fazer esta dissipação cair para 5 mW.
+Este Capítulo apresenta revisões do estado da arte relacionadas à pesquisa proposta.
+A Seção 3.1 apresenta uma revisão sobre o espectro de possíveis soluções para sistemas que necessitam de processamento de ponto flutuante.
+Em a Seção 3.2 apontam- se exemplos para demonstrar como é cada vez maior a utilização de unidades de ponto flutuante em dispositivos embarcados e/ ou móveis.
+A Seção 3.3 apresenta alguns estudos que utilizam FPGAs para a implementação de soluções que empregam ponto flutuante em hardware.
+Em seguida, a Seção em circuitos CMOS.
+Finalizando o Capítulo, a Seção 0 discute técnica GALS de projeto e interfaces assíncronas de comunicação que podem ser utilizadas nesta técnica.
+Processamento de Ponto Flutuante Em o passado, uma unidade de ponto flutuante em hardware representava um custo adicional considerável em relação a a unidade de processamento bem como ao sistema como um todo, tornando sua utilização restrita.
+Porém, o atual estado da arte da fabricação de circuitos integrados aumentou consideravelmente o desempenho e a densidade de circuitos integrados (CIs), tornando relativamente muito menos dispendioso o seu uso.
+Portanto, pode- se considerar que num futuro próximo, unidades de ponto flutuante estarão presentes em qualquer sistema que possa se beneficiar com o seu uso.
+Isto inclui diversas classes de sistemas embarcados, até mesmo aparatos eletrônicos móveis, se o problema da dissipação de potência e do consumo de energia forem adequadamente controlados.
+Para colocar o trabalho em perspectiva, a Figura 4 apresenta o espectro de opções de projeto para sistemas que possam se beneficiar do uso de representações de ponto flutuante.
+Cada opção possui benefícios e desvantagens e a escolha de uma determinada opção deve basear- se fortemente nos requisitos da aplicação alvo do sistema embarcado[ INA96, PAP04, A emulação em software é a opção mais direta, uma vez que o compilador simplesmente transforma as operações de ponto flutuante num conjunto equivalente de manipulações utilizando números inteiros.
+Esta é a opção mais empregada em processadores embarcados.
+Entretanto, o principal problema é seu baixo desempenho, que provém do código de máquina extenso e lento gerado por o compilador.
+Transformar uma especificação de ponto flutuante em ponto fixo pode resolver o problema do desempenho da emulação em software, ao custo de se reduzir a portabilidade.
+Em ponto fixo não existe um campo de expoente e a posição da vírgula (fixa) deve ser armazenada e gerenciada separadamente.
+Sua vantagem é a facilidade de implementação, bem como a eficiência das operações aritméticas, uma vez que seu formato, similar à representação de números inteiros, é bastante simples.
+De isto resulta menor área em silício e alto desempenho, já que o hardware para implementar operações aritméticas inteiras possui um porte bastante reduzido se comparado com outras opções.
+Ponto fixo é uma solução atraente para sistemas embarcados de baixa dissipação de potência, sendo utilizada em processadores de diversos fabricantes.
+Todavia, ponto fixo logo perde suas vantagens quando os números a serem manipulados possuem uma diferença muito grande em suas magnitudes.
+Quando isso ocorre são necessários grandes deslocamentos nas mantissas dos números e diversos incrementos ou decrementos na posição da vírgula (correspondente ao expoente em ponto flutuante), antes da execução de qualquer operação.
+Este fato quando ocorre, acaba degradando significativamente o desempenho global do sistema.
+Além disso, apesar de apresentar uma precisão satisfatória, sua reduzida faixa de representação de números pode acabar restringindo o uso em determinadas aplicações.
+A próxima opção, adotada na pesquisa proposta, é o uso de um processador dotado de uma unidade de ponto flutuante em hardware.
+Esta opção pode aumentar consideravelmente o desempenho de um sistema.
+Existem estudos que afirmam que esta opção oferece um ganho da ordem de 20 a 100 vezes em relação a a emulação em software, dependendo da operação empregada.
+Outros estudos afirmam ainda que processadores embarcados comerciais executando aplicações, tais como a computação de um filtro FIR, conseguem um aumento de desempenho em aproximadamente duas ordens de grandeza:
+4,8 Mflops (milhões de operações em ponto flutuante por segundo) para a emulação em software e 380 Mflops para um processador dotado de uma unidade de ponto flutuante em hardware.
+Apesar de o desempenho proporcionando por esta opção, a adoção de uma unidade de ponto flutuante pode acarretar um aumento significativo na ocupação de área do processador e também em sua dissipação de potência.
+Problemas específicos, tais como radares e simulações de dinâmica molecular, podem se beneficiar de forma significativa utilizando FPGAs para a implementação de paralelismo em grãofino.
+No entanto, esta opção pode levar a um grande tempo de projeto e a redução da flexibilidade e da portabilidade.
+Por fim, os virtualmente infinitos graus de liberdade do projeto de Circuitos Integrado para Aplicações Específicas (do inglês, Application Specific Integrated Circuits ou ASICs).
+Em esta opção se obtém as maiores otimizações na área, desempenho e dissipação de potência.
+Contudo, poucas aplicações embarcadas estão habilitadas a enfrentar os custos de projeto e fabricação de máscaras oriundos do fluxo de projeto ASIC.
+Utilização Comercial de Ponto Flutuante Como comentado anteriormente, o atual estado da arte em fabricação de circuitos integrados tornou menos dispendioso o emprego de unidades de ponto flutuante.
+Por este motivo, é possível perceber o crescente uso de tais unidades em processadores embarcados comerciais.
+Máquinas digitais de uso profissional estão empregando a tecnologia HDR (do inglês, High Dynamic Range), ou Grande Alcance Dinâmico, que utiliza ponto flutuante para representar precisamente os níveis de luminosidade de suas fotografias.
+Com esta técnica, por exemplo, é possível alcançar 100.000 níveis de luminosidade, ao contrário de os 200 níveis atuais.
+O software embarcado de câmeras digitais, utilizado para o tratamento de imagens que empregam a técnica HDR, exige o processamento maciço de aritmética de ponto flutuante.
+Navegadores de GPS, incluindo aparelhos topográficos, estão empregando processadores embarcados que possuem unidades de ponto flutuante.
+Desta forma, podem realizar com rapidez e alta precisão os cálculos responsáveis, não somente por a navegação, mas também por a geração de mapas 3D.
+Codificadores e decodificadores de áudio foram desenvolvidos para utilizarem ponto fixo ou emulação de ponto flutuante e trabalham satisfatoriamente utilizando tais representações.
+Porém, ponto flutuante vem sendo cada vez mais considerado para áudio de alta fidelidade.
+Sua maior precisão evita a propagação de erros entre os diversos estágios de codificação e decodificação, e sua ampla faixa de representação evita distorções harmônicas oriundas da digitalização do sinal de áudio.
+Consoles de jogos de ultima geração estão empregando unidades de ponto flutuante para os cálculos realizados nas diversas técnicas utilizadas para a geração da parte gráfica de jogos, tais como a renderização de polígonos, efeitos de morphing, mapeamento de texturas, efeitos de luz e sombra, entre outros.
+A console portátil PSP da Sony possui um circuito integrado denominado Allegrex.
+Sua organização inclui um processador baseado no MIPS-32 R4000, uma unidade de ponto flutuante vetorial, e dois processadores adicionais para as aplicações do tipo multimídia e DSP.
+A console Playstation 3, também da Sony, possui em sua plataforma de hardware um acelerador gráfico NVIDIA modelo RSX, responsável por cálculos de ponto flutuante maciços, e um processador Cell da IBM.
+Este processador é constituído de um processador PowerPC e de 8 SPEs, ou elementos de processamento sinergético, que também podem efetuar cálculos de ponto flutuante.
+O desempenho resultante para esta console é de 218 Gflops.
+Fabricantes de processadores específicos para notebooks e laptops, disponibilizam modelos que trazem em seu hardware unidades de ponto flutuante, tais como o Atom da Intel, Nano da Via e Semprom da AMD.
+A ARM disponibiliza, para o projeto de dispositivos do tipo handheld, processadores com barramento de dados que permitem a utilização de seu coprocessador de ponto flutuante FPA10-A.
+Ponto Flutuante em FPGAs Em o passado, FPGAs foram evitados no projeto de hardware de ponto flutuante devido a a baixa disponibilidade de área e ao seu baixo desempenho.
+Atualmente, FPGAs estão sendo considerados mais do que uma plataforma de prototipação.
+Seus fabricantes têm disponibilizado modelos de baixo custo e baixo consumo de energia para a indústria de eletrônicos, que os tem utilizado cada vez mais em sistemas embarcados fabricados em pequenas quantidades.
+Além disso, diversas pesquisas acadêmicas e científicas estão empregando este tipo de dispositivo para o processamento maciço de cálculos em ponto flutuante.
+As propostas de e produzem casos para justificar a inclusão de unidades de ponto flutuantes embarcadas em FPGAs sob a forma de núcleos de hardware dedicados.
+No entanto, tais propostas parecem não ter tido espaço nos principais fabricantes de FPGAs.
+Quando os recursos de um FPGA eram mais escassos, alguns autores propuseram formatos de ponto flutuante configuráveis e bibliotecas de módulos de ponto flutuante.
+Em os autores propõem um formato parametrizável, não compatível com o padrão IEEE-754, específico para o projeto DSP em FPGAs.
+Em encontra- se a proposta de uma biblioteca de módulos parametrizáveis para a construção de operadores de ponto flutuante adaptados para a aplicação em questão.
+Outros trabalhos, tais como, afirmam que um grande desempenho em computação de ponto flutuante pode ser obtido em FPGAs, projetando- se operadores básicos de ponto flutuante de forma otimizada.
+Tais trabalhos adotam o reuso de núcleos de hardware, abordagem igualmente usada neste trabalho.
+Finalmente, existem trabalhos que propõe a integração de processadores embarcados e unidades de ponto flutuantes em FPGAs.
+Esta proposta forma uma solução completa, tal como investigada na pesquisa proposta aqui.
+Em o autor integra instruções de ponto flutuante personalizadas ao processador soft Nios da Altera para a aceleração do processamento de MP3.
+Sua arquitetura é especifica para tal aplicação.
+Em aumenta- se o desempenho de um processador soft Microblaze com a integração de até oito coprocessadores de ponto flutuante, cada um controlado por um processador Picoblaze reconfigurável.
+A integração é baseada fortemente no uso do ambiente EDK.
+Além disso, a configuração dos controladores de coprocessadores exige codificação em linguagem de montagem.
+Outro trabalho demonstra como acelerar computação de ponto flutuante a partir de uma unidade de ponto flutuante específica para um determinado FPGA acoplado ao processador embarcado PowerPC.
+Novamente, o ambiente EDK é utilizado, o que pode diminuir a flexibilidade da abordagem.
+A pesquisa proposta no presente trabalho emprega um processador embarcado de código aberto, possibilitando a otimização da interface processador/ coprocessador em baixo nível de abstração.
+O trabalho também explora o processador acoplado a várias unidades de ponto flutuante distintas, o que favorece o rápido projeto de blocos, dezenas de os quais podem ser prototipados em FPGAs.
+Redução da Dissipação de Potência e do Consumo de Energia A potência em circuitos digitais construídos com tecnologia CMOS pode ser dividida em três componentes principais:
+Dinâmica, de curto-circuito e estática.
+A potência dinâmica é o resultado da carga e descarga das capacitâncias dos circuitos, sendo tradicionalmente a que mais contribui para o consumo total de um circuito integrado:
+Em torno de 45%.
+A potência de curto-circuito está associada à transição dos níveis de tensão numa porta lógica, quando ambos os transistores (N e P) conduzem simultaneamente por um breve período de tempo.
+Corresponde de 10% a 15% da potência dissipada.
+A potência estática é definida como aquela resultante da dissipação devido a corrente de fuga nos transistores e nas junções P-N (em inglês, leakage current).
+Portanto, existem três formas de atacar o problema da dissipação de potência em circuitos do tipo CMOS, uma para cada tipo de componente responsável por dissipação de potência.
+Os números citados aqui para o percentual de potência dissipada em cada componente devem ser colocados em perspectiva.
+Estes valores estão mudando drasticamente à medida que se avança em tecnologias profundamente submicrônicas e podem/ devem inverter em breve.
+Em este trabalho abordam- se somente as técnicas que reduzem a potência dinâmica de um circuito.
+As técnicas que visam a redução da potência de curto-circuito e da potência estática demandam soluções em nível de transistores e por este motivo não serão abordadas.
+A potência dinâmica é o resultado da carga e descarga das capacitâncias do circuito, e por esta razão a frequência com a qual tais capacitâncias são carregadas e descarregadas reflete diretamente na dissipação de potência.
+Portanto, a frequência de relógio aplicada no circuito, é um fator que contribui majoritariamente para a potência dinâmica.
+A potência dinâmica pode ser calculada aplicando- se a Equação 4.
+Em esta equação, do circuito, corresponde à probabilidade de chaveamento do total de portas lógicas corresponde à frequência de relógio aplicada ao circuito, capacitiva total do circuito, e corresponde à carga corresponde à tensão de alimentação aplicada ao circuito.
+As técnicas que reduzem a potência dinâmica abordadas neste trabalho devem ser necessariamente prototipáveis em FPGAs, uma vez que se pressupõe o uso deste tipo de dispositivo na pesquisa proposta.
+Por este motivo, o presente trabalho aborda técnicas como clock gating e DFS.
+Chaveamento de Relógio.
+A árvore de distribuição do sinal de relógio é responsável por mais de 40% da dissipação de potência de um circuito do tipo CMOS.
+O chaveamento de relógio (do inglês, clock gating) é uma técnica bem conhecida e amplamente utilizada que desconecta o sinal de relógio de circuitos que se encontram inativos.
+Desta forma, diminui- se significativamente a atividade de chaveamento destes circuitos, reduzindo a dissipação de potência.
+A Figura 5 ilustra duas formas de se implementar a técnica de chaveamento de relógio.
+A primeira (a) desconecta diretamente o sinal de relógio de sua árvore de distribuição.
+Esta implementação é utilizada principalmente em projetos de ASICs.
+A segunda implementação (b) utiliza multiplexadores para forçar o registrador a armazenar o seu próprio conteúdo.
+De esta maneira, a lógica combinacional permanece em seu estado atual, minimizando a atividade de chaveamento.
+Esta implementação é bastante utilizada em FPGAs, onde a árvore de distribuição do sinal de relógio é pré-definida.
+Em estes dispositivos, qualquer lógica adicional na rede de distribuição pode causar escorregamentos significativos no sinal de relógio e, como consequência, os tempos de setup e de hold dos registradores podem ser violados ou difíceis de controlar, acarretando riscos de mau funcionamento do circuito.
+A técnica de chaveamento de relógio pode ser aplicada em grão-pequeno ou em grãogrande, como se observa na Figura 6.
+Em grão-pequeno é possível obter um controle maior de unidades de hardware menores.
+Entretanto, existe um acréscimo de área proveniente da multiplicação de módulos necessários para o controle local do sinal de relógio.
+Além disso, dependendo do padrão da aplicação da técnica, as unidades de hardware podem não ser todas desativadas ao mesmo tempo.
+Por este motivo, a atividade de chaveamento pode ser maior em relação a a técnica aplicada em grão-grande.
+Em grão-grande, obtém- se um controle menos detalhado, porém, com a vantagem de se desconectar o sinal de relógio de uma área de hardware maior, diminuindo de forma mais simplificada a atividade de chaveamento.
+Variação Dinâmica da Frequência de Operação A técnica de variação dinâmica da frequência de operação (do inglês, dynamic frequency scaling) tem como objetivo controlar a frequência do sinal de relógio de um sistema digital em tempo de execução.
+Desta forma, é possível adaptar (diminuir ou aumentar) sua frequência conforme os requisitos das aplicações que o sistema executa, considerando também as mudanças no ambiente onde se insere o sistema.
+Aplicações de tempo real geralmente são de baixa latência, uma vez que seus cálculos precisam ser realizados adequadamente dentro de o intervalo de um tempo disponível.
+Muitas vezes esta baixa latência é obtida aplicando- se uma alta frequência de operação no sistema digital.
+De forma contrária, aplicações que não exigem alto desempenho computacional permitem a diminuição da frequência de operação do sistema digital.
+Sabe- se que o aumento da frequência de operação pode acarretar aumento na dissipação de potência (ver Equação 4) e consequentemente aumentar o consumo de energia.
+A diminuição da frequência de operação, apesar de reduzir o consumo de energia, acarreta a degradação do desempenho das aplicações.
+O desafio no projeto de sistemas embarcados dotados da técnica DFS tem sido a obtenção de um método de controle dinâmico que, dados os requisitos das aplicações e as mudanças em seu ambiente, defina a frequência de operação que permita o melhor compromisso possível entre a latência das aplicações e o consumo de energia do sistema.
+A Figura 7 ilustra um método geral para a variação dinâmica da frequência do sinal de relógio de um sistema.
+Em este método, um monitor analisa constantemente o estado atual do sistema, que pode incluir, por exemplo, exame da carga de trabalho do processador, da carga da bateria de alimentação ou da temperatura do circuito integrado.
+Conforme estes dados, o monitor define uma nova frequência e envia sinais de controle para o controlador de frequência, que por sua vez altera a frequência do sinal de relógio do sistema.
+Vale ressaltar ainda que considerações acerca de a implementação do controlador de frequência devem ser realizadas, uma vez que o a frequência do sinal de relógio deve ser alterada adequadamente, a fim de prevenir qualquer prejuízo no funcionamento e no desempenho do sistema.
+Com o emprego de técnicas DFS a frequência de operação pode ser diminuída, por exemplo, quando a bateria apresentar um baixo nível de carga.
+Desta forma, o consumo de energia é reduzido, prolongando- se o tempo de funcionamento do sistema embarcado.
+Quando a temperatura do circuito integrado alcançar um limite crítico, a diminuição da frequência evita que o circuito integrado apresente um mau funcionamento, proveniente do calor provocado por a alta dissipação de potência.
+Ou ainda, quando a carga de trabalho do processador estiver baixa, podese diminuir a frequência para economizar a carga da bateria.
+Projeto GALS e Interfaces Assíncronas O uso de um sinal de relógio global no projeto de sistemas digitais é a principal característica do estilo síncrono de projeto.
+Entretanto, com o constante avanço dos dispositivos VLSI, problemas como a distribuição, escorregamento e dissipação de potência do sinal de relógio, são cada vez mais difíceis de se resolver.
+Conforme, a complexidade de sistemas VLSI coloca em risco paradigmas consolidados, entre eles o uso do estilo síncrono, pois os circuitos resultantes tendem a se tornar menos confiáveis, devido a os limites de potência e ao custo para manter sua robustez, em relação a o esforço de projeto exigido.
+Com o objetivo de superar as limitações do estilo síncrono de projeto, diversas pesquisas estão retomando o interesse no desenvolvimento de circuitos assíncronos[ AMD05, SPA02, COR00], onde não se assume o pressuposto de discretização do tempo, isto é, o tempo é tratado como uma variável contínua.
+Esta abordagem reduz os problemas de escorregamento e de dissipação de potência do sinal de relógio.
+Porém, o projeto de sistemas puramente assíncronos esbarra ainda na falta de ferramental adequado para a automatização do processo de desenvolvimento.
+Devido a as limitações do estilo síncrono de projeto, a falta de ferramentas para suportar circuitos totalmente assíncronos, e a grande popularidade do estilo síncrono de projeto, alguns trabalhos propõem soluções intermediárias entre os dois paradigmas.
+O objetivo é manter as ferramentas do projeto síncrono e eliminar, ou simplificar, o uso de sincronização através do sinal de relógio.
+Entre tais propostas pode- se destacar o uso de sistemas globalmente assíncronos e localmente síncronos, do inglês, Globally Asynchronous, Locally Synchronous ou GALS.
+Como se observa na Figura 8, a aplicação da técnica GALS consiste no particionamento de um determinado módulo de hardware em diversos sub-módulos, ou ilhas síncronas, onde cada uma possui seu próprio relógio.
+A transferência de informações entre tais submódulos é efetuada empregando- se uma interface de comunicação assíncrona.
+Como vantagem desta abordagem cita- se a redução dos problemas relacionados ao controle da distribuição e do escorregamento de um relógio global, uma vez que de cada sub-módulo possui seu relógio local.
+Outra vantagem em potencial é a redução do consumo de energia, já que frequência do sinal de relógio de sub-módulos que não executem tarefas críticas pode ser diminuída.
+A principal desvantagem desta técnica é que, dependendo da quantidade total de submódulos derivados do particionamento, pode ocorrer degradação no desempenho global do sistema devido a a sobrecarga de comunicação entre estes.
+O projeto GALS, portanto, implica descobrir um particionamento que mantenha ao máximo as características e propriedades originais do sistema e também em definir qual método, ou interface, será utilizado para a troca de informação entre os domínios.
+A literatura classifica os estilos de projeto GALS de acordo com os métodos utilizados para a transferência de dados entre os diversos sub-módulos.
+Todos estes estilos devem prover formas de evitar fenômenos tais como a metaestabilidade decorrente da diferença de frequência e/ ou fase entre módulos que comunicam.
+Tais estilos são classificados em três categorias:
+Relógio pausável, assíncrono e quase síncrono.
+O estilo relógio pausável faz uso de interfaces para a comunicação entre os sub-módulos que podem alongar (do inglês, stretch) ou pausar o sinal de relógio para que a transferência de dados ocorra.
+Em esta categoria pode- se citar as técnicas &quot;clock stretching «e &quot;gated clock».
+Estas técnicas utilizam componentes não-síncronos, tais como mutex, C-element e elementos de atraso.
+Em o estilo assíncrono são utilizados circuitos conhecidos como sincronizadores.
+Em esta categoria é possível identificar os seguintes tipos de sincronizadores:
+Phase Locked Loop (PLL) ou Delay Locked Loop (DLL) para ajustar as fases das frequências de operação de sub-módulos que se comunicam;
+Em o estilo quase síncrono existe uma relação de frequência e/ ou fase bem conhecida entre os sinais de relógios dos sub-módulos.
+Em este caso não há necessidade do uso de sincronizadores, protocolos ou interfaces de comunicação.
+A técnica GALS constitui uma abordagem natural no projeto de sistemas num único chip (do inglês, System-on-Chip).
+Além de sanar alguns dos problemas do estilo síncrono de projeto, constitui uma alternativa interessante para a redução do consumo de energia.
+A perda de desempenho, causada por a sobrecarga de comunicação pode ser bastante minimizada se uma análise correta do particionamento do processador for realizada e se mecanismos especializados de comunicação forem empregados, tais como filas bem dimensionadas.
+Alguns estudos apontam uma degradação de 7% a 20% no desempenho geral de um sistema do tipo GALS devido a a sobrecarga de comunicação.
+Esta degradação é função da quantidade total de unidades funcionais de um sistema, ou seja, ocorre devido a a taxa de comunicação entre as diferentes unidades entre as quais comunicações devem ser sincronizadas.
+Algumas técnicas são propostas para amenizar este problema, sendo possível reduzir até 94% da degradação.
+Independente da degradação ou não do desempenho, o emprego de técnicas GALS traz o benefício potencial de redução do consumo total de energia elétrica.
+Em, os autores afirmam que uma redução de até 20% no consumo de energia é possível.
+Este Capítulo descreve o conjunto de recursos usados, reutilizados ou produzidos de forma automática e empregado no trabalho aqui proposto Como elemento processador adotou- se a organização de código aberto Plasma, apresentada a seguir, na Seção 4.1.
+As Seções 4.2 e 4.3 apresentam respectivamente a unidade de ponto flutuante de código aberto FPU100 e unidades de ponto flutuante geradas com o auxílio da ferramenta CoreGen da Xilinx.
+Tais unidades foram adotadas na implementação de coprocessadores que permitem a exploração do espaço de projeto de um processador embarcado dotado de capacidade de processamento de ponto flutuante em hardware.
+A Seção 4.4 apresenta recursos e métodos utilizados para a medição de potência em FPGAs.
+A Organização Plasma Diversas instâncias de arquiteturas MIPS existem disponíveis para o projeto de sistemas embarcados.
+Tais módulos são distribuídos, por exemplo, como núcleos de hardware sintetizáveis, implementados em linguagens de descrição de hardware, tais como VHDL ou Verilog.
+Através do reuso destas distribuições pode- se facilmente modificar o projeto original ou adicionar outros núcleos de hardware ao processador, incluindo periféricos de comunicação, controladores de memória, e coprocessadores.
+Assim, diminui- se o tempo de projeto e se alcançam requisitos para um sistema embarcado.
+A organização denominada Plasma foi adotada neste trabalho.
+O Plasma é compatível com a organização MIPS-I, foi descrito em VHDL e possui código aberto.
+Diferentemente de muitos processadores RISC, sua organização de memória é do tipo Von Neumann e não Harvard, ou seja, instruções e dados compartilham a mesma unidade de memória e o mesmo barramento.
+Esta organização implementa todas as instruções da arquitetura MIPS-I, com exceção das instruções de load e store desalinhado, uma vez que tais instruções são patenteadas.
+O Plasma é disponibilizado com compilador C (GCC) e sistema operacional com suporte para aplicações em tempo real.
+Inclui periféricos tais como porta de comunicação serial bidirecional, controlador DDR SDRAM, interface de comunicação MAC Ethernet e interface Flash.
+Possui um temporizador e controlador de interrupções, porém nenhuma de suas versões possui unidade de gerenciamento de memória e tampouco coprocessador de ponto flutuante, ou CP1.
+Sua versão de coprocessador de controle, ou CP0, prevê somente as estruturas destinadas ao tratamento de algumas exceções e a habilitação das interrupções.
+Em a Figura 9 observa- se o processador Plasma e sua interface de comunicação com a memória de instruções e dados.
+Unidade de Ponto Flutuante FPU100 A FPU100 é uma unidade de ponto flutuante de código aberto descrita em VHDL.
+Ela é compatível com o padrão IEEE-754, porém dá suporte somente ao formato de precisão simples.
+A FPU100 provê cinco operações aritméticas:
+Adição, subtração, multiplicação, divisão e raiz quadrada.
+As operações de adição e subtração possuem uma latência de 7 ciclos de relógio, a multiplicação 12 e a divisão 35 ciclos de relógios.
+O código fonte responsável por a operação de raiz quadrada foi removido no escopo deste trabalho, por não fazer parte do conjunto de instruções de ponto flutuante da arquitetura MIPS-I..
+A unidade dá suporte aos quatro modos de arredondamento da norma e todas as exceções são assinaladas quando detectadas e seu tratamento é deixado para o software.
+Operações de comparação e de conversão entre ponto flutuante e inteiro, e vice-versa, não estão disponíveis.
+A Figura 10 mostra o diagrama de blocos do módulo FPU100.
+Além de os sinais clk_ i e rst_ i, sua interface de entrada possui:
+Dois sinais de 32 bits, opa_ i e opb_ i, que representam os operandos;
+O sinal fpu_ op_ i de 3 bits para a seleção da operação desejada;
+Rmode_ i, de 2 bits, utilizado para determinar o modo de arredondamento do resultado;
+Unidades de Ponto Flutuante CoreGen O software Coregen é uma ferramenta de geração automática parametrizável de módulos de hardware específicos para FPGAs da Xilinx.
+Entre as parametrizações possíveis na geração dos módulos de hardware, há a definição de interfaces de dados, tamanho em bits de portas de entrada e saída, protocolos de comunicação, latência, etc..
+Com o auxílio desta ferramenta gerou- se módulos de hardware para adição, subtração, multiplicação e divisão em ponto flutuante, além de módulos para a conversão entre números de ponto flutuante e inteiros e de comparação de números em ponto flutuante.
+Geraram- se duas versões destes módulos no Coregen:
+Uma versão com a latência mínima permitida por a ferramenta em todas as operações, e outra versão com a latência máxima permitida.
+A partir de a geração destes módulos implementaram- se duas unidades de ponto flutuante, uma unidade de latência mínima e outra de latência máxima.
+Apesar de o CoreGen também permitir a parametrização do formato de precisão conforme a IEEE-754, todos os módulos foram gerados somente com precisão simples para permitir comparação com a unidade FPU100.
+Ainda com a finalidade de minimizar diferenças no coprocessador de ponto flutuante, as interfaces das duas unidades implementadas foram mantidas idênticas à unidade FPU100, excetuando- se os sinais start_ o e ready_ i na versão de latência mínima, uma vez que todas as suas operações são executadas em apenas um ciclo de relógio.
+Em a Figura 11 pode- se visualizar o diagrama de blocos da unidade de ponto flutuante implementada com o auxílio da ferramenta CoreGen.
+Medidas de Potência em FPGAs Esta Seção apresenta os fundamentos necessários para o cálculo prático da potência dissipada por o FPGA durante a avaliação das diversas organizações prototipadas, bem como seus respectivos consumos de energia.
+A Seção 0 contém uma breve base teórica sobre um método que permite o cálculo da dissipação de potência de um FPGA e de seu consumo de energia.
+A Seção 0 apresenta o método específico aplicado e os recursos utilizados no presente trabalho, para a obtenção das medidas.
+Método de Medida A medição da dissipação de potência no presente trabalho baseia- se no método utilizado no trabalho de Becker &amp; Huebner, onde se estuda a avaliação da dissipação de potência de FPGAs para circuitos prototipados e também para circuitos reconfigurados dinamicamente.
+Este trabalho também analisa a potência dissipada por o FPGA durante a reconfiguração, parcial ou completa, de um circuito previamente prototipado.
+Para calcular a potência dissipada por o FPGA, estes autores utilizaram o sistema de medição apresentado na Figura 12.
+Em este sistema, utiliza- se uma placa de prototipação, um osciloscópio e um computador.
+A placa de prototipação possui um slot para um resistor shunt, que é conectado em série com a fonte de alimentação do FPGA.
+Medindo a tensão instantânea sobre este resistor, e sendo conhecida a sua resistência com precisão, é possível calcular a potência instantânea (dissipada por o FPGA.
+Esta potência pode ser calculada através da Equação 5.
+Em esta Equação, é tensão de alimentação do núcleo do FPGA, é tensão medida sobre o resistor shunt, e é a sua resistência.
+Para calcular a potência média dissipada () por um circuito, prototipado no FPGA, durante um determinado período tempo, aplica- se a Equação 6.
+Esta Equação é baseada numa integral definida aplicada sobre uma função contínua.
+Em o esquema proposta na Figura 12 utilizouse o osciloscópio para acumular valores instantâneos de tensão (determinada taxa ao longo de o período de tempo, onde) amostrados com uma.
+Assim, os valores de potência média realmente computados são aproximados e atingem o valor da Equação 6 apenas para uma taxa de amostragem infinita.
+Em a prática, taxas de amostragem altas, mas viáveis, podem levar a erros desprezíveis, como será detalhado na Seção 0.
+O tempo pode ser definido e controlado por software no computador hospedeiro.
+As amostras armazenadas no osciloscópio são transferidas para o hospedeiro, que possui um software para o cálculo da potência média dissipada.
+Além disso, o hospedeiro também é responsável por configurar o FPGA da placa de prototipação.
+O consumo de energia, por outro lado é definido matematicamente, através da Equação 7 como a integral da dissipação de potência deste no intervalo de tempo em que estava em operação.
+No caso de se trabalhar com amostragem, produto de pode ser aproximada por o por.
+Recursos de Medida Em este trabalho, descarta- se o uso de estimativas da dissipação de potência para FPGAs, uma vez que ferramentas comerciais disponíveis atualmente não possuem uma precisão satisfatória ou necessitam de uma quantidade muito grande de dados de simulação para obter tal precisão.
+Sendo assim, optou- se por a medição real da dissipação de potência.
+Para alcançar este intento, adquiriu- se a plataforma ML550 da Xilinx, que contém um FPGA da família Virtex-5, modelo XC5 VLX50T-1, 4 osciladores e 2 circuitos sintetizadores de relógio, totalizando 8 fontes do sinal de relógio, além de outros dispositivos e periféricos.
+Este plataforma foi concebida especificamente para a medição da dissipação de potência.
+Por esta razão, o fabricante incluiu em seu projeto circuitos integrados que possuem em seu interior resistores shunt de alta precisão que possibilitam o cálculo da dissipação de potência do FPGA.
+Estes resistores estão conectados em série com os reguladores de tensão que alimentam o FPGA como mostra a Figura 13.
+Como se observa nesta Figura, o FPGA usa três linhas de alimentação:
+VCCINT, a tensão de alimentação do núcleo do FPGA que implementa a lógica dos módulos de hardware;
+VCCAUX, a tensão de alimentação de módulos auxiliares tais como DCMs, controlador JTAG, drivers LVDS, etc.;
+E VCCO, a tensão de alimentação do anel de pads dos pinos de entrada e saída do FPGA.
+Portanto, através dos três resistores de precisão é possível calcular separadamente a potência dissipada em cada uma das três fontes de alimentação do FPGA.
+Em este trabalho optou- se somente por a medição da tensão sobre o resistor de precisão conectado ao VCCINT, uma vez que o mesmo é responsável por a maior parte da potência (estática e dinâmica) dissipada por o FPGA.
+Além de o mais, a infraestrutura definida para a prototipação das organizações possui uma interface de dados reduzida e utiliza apenas um DCM e dois buffers para o sinal de relógio.
+Por estes motivos, as tensões sobre os resistores de precisão conectados ao VCCAUX e VCCO não precisam ser medidas.
+A partir de a medida das tensões sobre os resistores de precisão, é possível calcular a dissipação instantânea da potência do FPGA.
+Para o cálculo desta dissipação, a Xilinx sugere a Equação 8.
+Em esta Equação, P é a potência em Watts;
+V é a tensão do regulador;
+Vs é a tensão medida no shunt resistor e Rs é a sua resistência.
+Ressalta- se ainda, que a potência dissipada por o resistor shunt é desprezível e, portanto, não é considerada na Equação 8.
+A medida das tensões sobre os resistores shunt é efetuada através de pinos que dá acesso volt.
+VCCAUX e VCCO demandam ambos 2,5 volts.
+Os resistores de precisão possuem todos 10 m e 0,1% de tolerância.
+Substituindo estes valores na Equação 8 deriva- se a Equação 9.
+Para efetuar a medição da tensão no resistor de precisão utilizou- se o osciloscópio Agilent Infiniium DSA80000B.
+Este equipamento permite medições de sinais de alta frequência e dá suporte a medidas de sinais com frequências de até 4 GHz.
+Sua taxa de amostragem é de no máximo 40 Gsa/ s e sua memória de armazenamento é capaz de armazenar um total de 64 milhões de amostras.
+A configuração da taxa de amostragem e o número de amostras armazenadas em memória são efetuados automaticamente por o osciloscópio, e embora ambos estejam intrinsecamente relacionadas, é possível configurar- los manualmente.
+Em este trabalho, configurou- se manualmente a taxa de amostragem, sendo a mesma configurada para a maior taxa possível.
+Desta forma é possível aproximar ao máxima as Equações 6 e 7.
+A definição da maior taxa de amostragem possível é função do número de amostras necessárias para uma determinada amostragem, sendo que este número não pode exceder o tamanho da memória disponível no osciloscópio:
+64 milhões de amostras.
+Entende- se por amostragem o conjunto de amostras armazenadas na memória do osciloscópio para um determinado circuito prototipado em FPGA durante o tempo de execução de um algoritmo em hardware.
+Grandes intervalos de tempo exigem um grande número de amostras e se a memória disponível for excedida torna- se necessário utilizar taxas de amostragem menores.
+O osciloscópio alerta quando se escolhe de um par taxa/ tempo de amostragem que extrapola o tamanho da sua memória.
+A amostragem da tensão sobre o resistor de precisão durante o tempo de execução de um algoritmo em FPGA deve ser efetuada no osciloscópio através de uma janela de amostragem.
+Tal janela é definida como o intervalo de tempo em que o módulo, ou circuito, prototipado executa sua computação.
+Para implementar esta janela, deve- se criar junto ao circuito um sinal de gatilho, que indica ao osciloscópio o início e o fim da computação.
+Em este trabalho, implementou- se um módulo de hardware adicional responsável por detectar, no barramento de dados da organização Plasma, valores pré-determinados para identificar o início e o fim da computação, &quot;1 BABABAB «e &quot;1 CACACAC «na base hexadecimal, respectivamente.
+Tais valores são escritos na memória RAM da organização Plasma através de instruções sw (store word) inseridas no início e no fim do código fonte de todas as aplicações desenvolvidas.
+Quando se detecta no barramento de dados o valor &quot;1 BABABAB», atribui- se o nível lógico` 1' ao sinal de gatilho.
+O mesmo permanece neste nível até que se detecte o valor &quot;1 CACACAC», quando então imediatamente vai para o nível lógico` 0'.
+Ressalta- se que somente as amostras presentes no visor do osciloscópio podem ser exportadas para arquivo e, por esta razão, a &quot;janela de amostragem «deve ser ajustada para o tamanho exato do visor do osciloscópio.
+Este ajuste é realizado configurando- se a escala horizontal do osciloscópio.
+Em a Figura 15 observa- se um exemplo deste ajuste.
+Se a computação for executada em laço infinito, ou por um determinado número de vezes, é possível calcular a média das amostragens efetuadas através da janela de amostragem.
+Desta forma, é possível obter resultados mais precisos.
+O osciloscópio disponibiliza uma série de funções matemáticas que podem ser aplicadas nos sinais medidos em seus canais.
+Uma de elas é a função média.
+O osciloscópio permite que se calcule uma média de até 65536 janelas de amostragem.
+Após o calculo da média das amostragens, é possível exportar as amostras armazenadas na memória do osciloscópio para um arquivo no computador hospedeiro.
+O arquivo exportado possui a extensão &quot;tsv «(tab separated values) e apresenta como conteúdo linhas que são divididas em duas colunas:
+A primeira coluna contém o instante, em segundos, de todas as amostras;
+A segunda coluna contém os valores, em Volts, das tensões amostradas sobre o resistor de precisão conectado ao VCCINT.
+Este é o valor que deve substituir a variável Vs na Equação 9.
+As amostras da segunda coluna do arquivo são lidas por um programa denominado calcPOT (código fonte no Apêndice D), desenvolvido no escopo deste trabalho com o objetivo de calcular:
+A Equação 10 é aquela sugerida por a Xilinx para o cálculo da potência instantânea dissipada.
+A Equação 11, utilizada para o cálculo da energia consumida, foi baseada na Equação 7.
+A integração foi implementada através do somatório dos valores absolutos da primeira amostra até a última (i $= n).
+O, ou período de amostragem (inverso da frequência de amostragem), é colocado em evidência e multiplica o somatório.
+Isto ocorre porque o mesmo é base da área de todas as amostras do sinal, tal como se observa na Figura 16.
+A potência média dissipada, calculada através da Equação 12, é a divisão da energia consumida por o tempo de execução de um determinado circuito prototipado no FPGA (no caso deste trabalho, de uma aplicação sendo executada na organização Plasma).
+A potência instantânea máxima dissipada é a maior potência entre todas as potências instantâneas dissipadas, calculadas para uma determinada amostragem.
+Em este Capítulo são detalhados os três coprocessadores implementados durante a pesquisa propostos por o Autor.
+A Seção 5.1 apresenta os detalhes de uma implementação-base que foi utilizada na implementação de todos os coprocessadores.
+Obviamente cada coprocessador demanda alterações nesta base, sendo as mesmas devidamente relatadas em suas respectivas Seções.
+A Seção 5.2 apresenta a implementação do coprocessador que emprega a unidade FPU100, denominado de HFP100.
+A Seção 5.3 apresenta os coprocessadores que empregam as unidades de ponto flutuante de latência mínima e máxima gerados com o auxílio da ferramenta, denominados respectivamente de HFPmin e HFPmax.
+Finalizando o Capítulo, a Seção 5.4 apresenta as estimativas de ocupação de área e da frequência de operação oriundas das ferramentas de síntese lógica e física.
+Implementação Base dos Coprocessadores Não se encontra na literatura informações detalhadas sobre a implementação de um coprocessador de ponto flutuante para um processador compatível com a organização MIPS-I..
+Por este motivo, a implementação de um CP1 para o processador Plasma partiu do zero.
+Entre as informações não encontradas, a de maior relevância diz respeito à transferência de dados entre o processador e coprocessador e entre o coprocessador e a memória.
+Para determinar esta informação, estudou- se a transferência de dados entre o Plasma e sua memória RAM.
+Este estudo compreendeu a análise das instruções de sw (store word) e lw (load word), bem como dos seus respectivos comportamentos nas interfaces de dados do Plasma e da memória RAM.
+Desta forma foi possível definir um procedimento para a transferência de dados entre o CP1 e Plasma e entre o CP1 e memória RAM.
+Sabe- se ainda que o CP1 deve contemplar os formatos de precisão simples, dupla e possíveis formatos de precisão estendida, conforme previsto por o padrão IEEE-754, e que deve possuir um banco de registradores de 32 posições que armazene palavras de 32 bits.
+Portanto, a implementação minimalista de um CP1 para o Plasma deve empregar três módulos:
+Um banco de registradores, uma unidade de ponto flutuante e um módulo de controle.
+O banco de registradores empregado é o mesmo utilizado por o processador MR2, alvo de estudos nas disciplinas de graduação da PUCRS.
+Como unidade de ponto flutuante empregou- se as três unidades de ponto flutuante:
+A unidade FPU100 e as duas unidades implementadas com o auxílio da ferramenta CoreGen.
+O módulo de controle, responsável por a decodificação das instruções de ponto flutuante, por o controle da unidade de ponto flutuante, do banco de registradores e de outras estruturas adicionais, tais como registradores e multiplexadores, foi implementado partindo- se do zero.
+O módulo de controle denominado control_ unit, é basicamente uma máquina de estados, que além de ser responsável por o controle de todos os módulos, é responsável também por a execução das instruções de ponto flutuante do conjunto do MIPS-I que não são providas por as unidades de ponto flutuante.
+Estas instruções compreendem:
+As operações de valor absoluto e de valor negado de um número;
+As operações de conversão e comparação entre números;
+A operação de movimento de conteúdo entre registradores do banco de registradores do CP1;
+e as operações de transferência de dados entre a CP1 e Plasma, e entre a CP1 e a memória RAM.
+O funcionamento da máquina de estados do módulo control_ unit baseia- se nos campos do formato das instruções, observado na Figura 17, e é relativamente simples.
+A máquina de estados permanece em estado de espera até que receba uma instrução de ponto flutuante.
+Uma instrução de ponto flutuante é identificada por o valor &quot;11», na base hexadecimal, no campo opcode do formato da instrução.
+Após a detecção de uma instrução de ponto flutuante ocorre a decodificação da mesma, através dos campos format e function.
+Também após esta detecção é efetuada a sinalização de coprocessador ocupado.
+O banco de registradores é indexado, através dos campos ft, fs e fd, e os operandos são determinados.
+A operação desejada é sinalizada e executada por a unidade de ponto flutuante, ou por os módulos adicionais quando a operação não é provida por a unidade de ponto flutuante.
+A máquina de estados aguarda o término da operação para então armazenar o resultado no banco de registradores.
+Por fim, ocorre a sinalização de coprocessador não ocupado.
+Em a Figura 18 alguns sinais da interface de dados do CP1 foram abstraídos, uma vez que as versões, síncrona e assíncrona, da organização denominada Plasma-HFP demandam diferentes interfaces.
+Suas respectivas interfaces serão abordadas e detalhadas no Capítulo 6 a seguir.
+Coprocessadores HFPmim e HFPmax Os coprocessadores denominados por o Autor de HFPmin e HFPmax empregam, respectivamente, as unidades de ponto flutuante de latência mínima e de latência máxima, implementadas com o auxílio da ferramenta CoreGen.
+Com o intuito de minimizar possíveis alterações na implementação-base, as interfaces destas unidades de ponto flutuante foram mantidas idênticas à interface da unidade FPU100, excetuando- se os sinais start_ o e ready_ i na unidade de latência mínima.
+A exclusão destes sinais no HFPmin exigiu pequenas modificações na máquina de estados do módulo de controle control_ unit da implementação base.
+Além disso, outra modificação necessária na implementação-base de ambos HFPmin e HFPmax, residiu na exclusão dos módulos adicionais responsáveis por as operações de conversão e comparação entre números, uma vez que tais operações são realizadas por as unidades de ponto flutuante implementadas com o auxílio do CoreGen.
+Ressalta- se que apesar de as modificações efetuadas, os funcionamentos dos coprocessadores HFPmin e HFPmax permanecem iguais ao funcionamento do coprocessador HFP100.
+Em a Figura 19 observa- se o diagrama de blocos do coprocessador HFPmin proposto.
+O diagrama de blocos do HFPmax é similar, diferindo apenas nos sinais start_ o e ready_ i existentes na unidade de ponto flutuante.
+Estimativas Iniciais de Ocupação de Área e da Frequência de Operação Após a validação em nível de simulação das três implementações do CP1, determinaram- se suas estimativas de ocupação de área e da frequência de operação em ferramentas de síntese.
+Tais estimativas permitiram posteriormente definir qual das versões do CP1 seria a mais adequada para a organização denominada Plasma-HFP-GALS.
+Para a geração destas estimativas utilizou- se as ferramentas Xilinx ISE Design Suite 11.4 (engine de síntese XST) e Synplicity Synplify Premier DP C2009.
+03, utilizando em ambas as ferramentas suas configurações padrões de síntese.
+Como dispositivo alvo empregou- se os FPGAs Virtex-4 XCV4 FX100- 10 e Virtex-5 XC5 VLX50T-1.
+A Tabela 3 lista as estimativas de ocupação de área e da frequência de operação provenientes das duas ferramentas de síntese para os três coprocessadores, para o processador mlite e para o banco de registradores Reg_ bank_ MR.
+Reg_ bank_ MR.
+O total de LUTs é de 84352 e 28800 para os dispositivos XC4 VFX100- 100 e XC5 VLX50- 1 respectivamente.
+Synplify Coprocessador -- Sub-módulo Freq. (
+MHz) Area (LUTs) Freq. (
+MHz) Area (LUTs) -- Controle HFPmin -- CoregenMin -- Controle HFPmax -- CoregenMax -- Controle Mlite Reg_ bank_ MR Observando- se esta Tabela conclui- se que as três unidades de ponto flutuante adotadas representam a maior parte da ocupação de área dos coprocessadores implementados, sendo pouco maiores que a área ocupada por o processador Plasma.
+Além disso, percebe- se que os coprocessadores HFPmin e HFPmax tiveram suas estimativas de operação drasticamente reduzidas, o que não ocorre ao coprocessador HFP100.
+Não foi possível determinar a causa para esta ocorrência, porém, todas as desconfianças recaem sobre um possível caminho crítico demasiadamente longo no coprocessador.
+Um fato importante a ser observado é a grande disparidade entre os valores obtidos por as ferramentas ISE e Synplify para as sínteses dos coprocessadores utilizando o Virtex4 como FPGA alvo.
+Para os coprocessadores HFPmin e HFPmax observam- se valores sensivelmente melhores na ocupação de área quando se utiliza o ISE.
+Isto pode ser explicado por o fato do software e das unidades CoregenMin e CoregenMax serem disponibilizados por a Xilinx, fabricante do FPGA Virtex4.
+Acredita- se que a ferramenta ISE pode posicionar as unidades e realizar um roteamento de uma forma mais otimizada que a ferramenta Synplify, quando são utilizados componentes disponibilizados por o seu fabricante.
+Por outro lado, o Synplify apresenta valores significativamente melhores na questão da área quando o projeto utiliza somente código HDL genérico.
+Isto pode ser devido a o fato do Synplify ser projetado por uma empresa especializada tão somente em ferramentas de CAD, provavelmente possuindo algoritmos de posicionamento e roteamento melhores do que o ISE.
+Obviamente, pode- se afirmar que esta não é uma explicação plausível para o problema, porém, é importante ressaltar que se tentou de todas as formas possíveis, através de configurações e parametrizações de síntese, buscar uma redução na ocupação de área dos coprocessadores na ferramenta ISE.
+No entanto, não houve sucesso nesta tentativa, uma vez que as reduções obtidas foram insignificantes perto de os resultados obtidos por o Synplify.
+Outro fato que deve ser observado é a grande disparidade nas estimativas da frequência de operação, para a qual também não se tem uma explicação plausível para a causa.
+Uma das possíveis causas pode ser devido a o uso, por o ISE, de multiplicadores hard, disponíveis no sílicio do FPGA, algo que o Synplify poderia não estar utilizando.
+Ressalta- se que todas as análises realizadas sobre a Tabela 3 foram hipotéticas, sendo que até o término da escrita deste documento não se teve uma comprovação técnica para cada uma das hipóteses aventadas nesta Seção.
+Investigações que comprovem ou descartem estas hipóteses são relevantes e devem ser realizadas no futuro, uma vez que de elas podem se ajuizar possíveis pontos de melhoria nos coprocessadores.
+Este Capítulo detalha as organizações propostas no escopo deste trabalho.
+Tais organizações resultam da integração dos coprocessadores do Capítulo 5 à organização Plasma original.
+A Seção 6.1 detalha a implementação e três versões da organização denominada PlasmaHFP.
+A Seção 6.2 apresenta detalhes de implementação, tais como a aplicação da técnica GALS, otimizações e modificações que resultaram na organização não síncrona denominada Plasma-HFPGALS.
+A Seção 6.3 detalha a implementação da organização denominada Plasma-HFP-GALS-LP, resultado do emprego de uma técnica que visa a redução da dissipação de potência e do consumo de energia.
+Organização Plasma-HFP A proposta geral da organização denominada Plasma-HFP, aparece na Figura 20.
+Geraram- se três organizações por a integração de cada um dos três coprocessadores de ponto flutuante do bem como no processador mlite.
+Em a organização Plasma original as modificações compreenderam a adição de quatro multiplexadores.
+Estes são controlados diretamente por o CP1 e utilizados nas instruções de transferência de dados entre o Plasma e a memória.
+As modificações no mlite compreenderam a implementação das instruções swc1, lwc1, mtc1 e mfc1, e também das instruções de salto condicional bc1t e bc1f.
+As instruções swc1 e lwc1, baseadas nas instruções sw e lw já existentes no processador, foram implementadas no mlite somente para o cálculo do endereço de acesso à memória RAM.
+Desta forma, evita- se que o conteúdo armazenado no banco de registradores do mlite, exigido para este cálculo, tenha que ser transferido para o CP1, economizando ciclos de relógio e área em hardware.
+Não se implementou a decodificação do restante das instruções de ponto flutuante no processador mlite, pois isto já é efetuado por o CP1.
+Adicionalmente, criaram- se no mlite os sinais fetch e FPcond, que serão explicados a seguir com o detalhamento da interface do CP1.
+Conforme a Figura 20 ilustra, o CP1 possui em sua interface de entrada os seguintes sinais (abstraem- se aqui os sinais clk e rst):
+O sinal fetch, utilizado para diferenciar instruções de dados, uma vez que a organização Plasma utiliza a organização de memória Von Neumann;
+O sinal data_ in, de 32 bits, para as instruções provenientes da memória RAM ou para os dados provenientes do processador mlite.
+Sua interface de saída possui:
+O sinal busy, para indicar que o CP1 está em operação;
+O sinal FPcond para indicar o resultado das operações de comparação;
+O vetor de sinais bus_ mux (4 bits), utilizado para o controle de todos os multiplexadores (multiplexador do sinal data_ in do CP1, multiplexadores dos sinais data_ write e mem_ byte_ en da memória RAM e multiplexador do sinal mem_ data_ r do processador mlite);
+E por fim, o sinal de saída data_ out, de 32 bits, utilizado para o retorno da leitura de registrador do banco de registradores do CP1.
+Com o objetivo de explorar o espaço de projeto do processador embarcado com coprocessador de ponto flutuante, integrou- se separadamente cada um dos três coprocessadores interface de comunicação e a mesma funcionalidade, porém com características distintas em termos de ocupação de área, frequência máxima de operação e latência.
+Organização Plasma-HFP-GALS Sabe- se que um sistema digital totalmente síncrono é limitado por o módulo de hardware que apresenta a menor frequência de operação.
+Além de o mais, o acréscimo de módulos a um projeto tende a reduzir a frequência máxima do novo sistema.
+De esta maneira, o desempenho dos módulos de hardware com maior frequência máxima de operação acaba sendo diminuído, o que degrada o desempenho global do sistema.
+Para superar esta limitação, podem- se empregar técnicas de projeto para alcançar uma maior frequência de operação em alguns ou todos os módulos do sistema digital.
+A implementação da organização denominada Plasma-HFP-GALS incluiu, além de a aplicação da técnica GALS, a seleção do CP1 mais adequado para esta nova organização e modificações, tanto neste CP1 selecionado como também na organização Plasma-HFP, que foi utilizada como base para a implementação da organização Plasma-HFP-GALS.
+A definição de qual coprocessador empregar entre os três desenvolvidos baseou- se em estimativas da frequência de operação.
+Dada a frequência de operação do mlite, optou- se por evitar coprocessadores com frequência de operação inferior a este processador.
+Conforme a Tabela 3 da Seção 5.4, o coprocessador HFPmax alcançou a maior estimativa da frequência de operação e, por este motivo, foi selecionado para integrar a organização Plasma-HFP-GALS.
+Apesar de apresentar uma alta latência, este coprocessador recebeu otimizações que aumentaram significativamente sua frequência de operação.
+Operando em frequências maiores, suas instruções de ponto flutuante têm suas latências diminuídas e, assim sendo, maiores desempenhos podem ser alcançados por a organização Plasma-HFP-GALS.
+Otimização do CP1 Implementado Apesar do coprocessador HFPmax apresentar uma frequência de operação maior que a do processador mlite, foi possível ainda obter uma estimativa de frequência de operação maior, uma vez que, conforme a Tabela 3 da Seção 5.4 do Capítulo anterior, sua unidade de ponto flutuante possui uma estimativa de frequência de operação de aproximadamente 343 MHz.
+Através dos relatórios de síntese, se pode analisar a organização do coprocessador HFPmax.
+Descobre- se então que seu caminho crítico (inicio na interface de entrada do banco de registradores e fim na interface de saída da unidade de ponto flutuante) é muito longo.
+Isto pode ser explicado em parte por os grandes multiplexadores em cada saída do banco de registradores, associado ao caminho combinacional da unidade de ponto flutuante.
+Para resolver este problema, inseriram- se registradores na interface de entrada da unidade de ponto flutuante.
+Esta solução teve um grande impacto na estimativa da frequência de operação do coprocessador, praticamente dobrando- a para aproximadamente 240 MHz.
+Analisando o banco de registradores, descrito em VHDL de forma genérica, percebeu- se que sua ocupação de área era em torno de dez vezes maior que a do banco de registradores utilizado por o processador mlite.
+Verificando o banco deste processador, constatou- se que o mesmo emprega módulos de memória embarcada disponibilizados nos FPGAs da Xilinx e Altera.
+O projeto destes módulos de memória embarcada foram concebidos de forma otimizada, conferindo ao banco do mlite um desempenho maior que o banco utilizado no HFPmax.
+Por esta razão, adotou- se o banco de registradores do processador mlite no coprocessador HFPmax.
+Estas duas soluções, o registro das entradas da unidade de ponto flutuante e a troca do banco de registradores, associadas às alterações realizadas na máquina de estados do módulo de controle do coprocessador, permitiram alcançar uma estimativa de 342,35 MHz, frequência de operação quatro vezes maior que a estimativa da frequência de operação do processador mlite.
+Este processo permite maximizar o desempenho da arquitetura Plasma-HFP-GALS.
+Aplicação da Técnica GALS de Projeto Conforme a Seção 0, a aplicação da técnica GALS de projeto compreende duas fases:
+O particionamento do sistema em sub-módulos que possuem seus próprios domínios de relógio, e a escolha da interface de comunicação assíncrona.
+Avaliando o processador mlite, verificou- se que o particionamento do mesmo resulta em complexo reprojeto que não justifica a aplicação da técnica GALS de projeto.
+Por esta razão, a organização Plasma-HFP-GALS, baseada na Plasma-HFP, foi particionada em dois domínios de relógio:
+Um domínio para o processador e sua memória RAM, e outro para o coprocessador HFPmax.
+A interface de sincronização denominada 2 FF foi selecionada para a comunicação entre os dois domínios, uma vez que seu uso é muito simples e a que produz o menor número de alterações no hardware entre as alternativas possíveis.
+Em a Figura 21 é possível observar o diagrama de blocos da organização Plasma-HFP-GALS proposta.
+Entretanto, o emprego de técnicas GALS de projeto exige considerações de temporização específicas.
+Dois problemas surgem com o emprego destas.
+Primeiro, há o acréscimo de dois ciclos de relógio na latência dos sinais onde se inserem os registradores adicionais.
+Isto é problemático somente na transferência de dados de um domínio de maior frequência para um de menor frequência de operação.
+Segundo, existe a diferença de frequências de operação entre os diferentes domínios de relógios, o que poderia redundar em múltiplas execuções da mesma instrução por o CP1 (de maior frequência), uma vez que o processador mlite (de menor frequência) gerência a busca das instruções na memória RAM.
+O primeiro problema acrescenta dois ciclos do relógio do coprocessador à latência de todos os sinais deste que interagem com o domínio do processador mlite:
+Busy, data_ out e sinais de controle dos multiplexadores.
+Assim sendo, a organização pode funcionar de modo incorreto, uma vez que os dados contidos nos referidos sinais atingem seus destinos com o atraso de dois ciclos de relógio.
+A Figura 22 ilustra um problema que pode ser causado nesta situação:
+Em ela o processador mlite é pausado por o CP1 através do sinal mem_ pause, que por sua vez está conectado ao sinal busy por meio de 2 FF;
+Assim, o processador é pausado com o atraso de dois ciclos de relógio, ocasionando a perda de duas instruções por o CP1, uma vez que o mlite se encontra ainda realizando buscas durante estes dois ciclos de relógio.
+O segundo problema pode fazer com que uma determinada instrução de ponto flutuante seja executada múltiplas vezes por o CP1.
+Sendo o processador mlite o gerenciador da memória RAM e possuindo uma frequência de operação menor que o CP1, a instrução lida da memória permaneceria no barramento de dados por um tempo maior que o tempo de execução da instrução no CP1.
+Por exemplo, assuma- se que o CP1 possui uma frequência de operação de 250 MHz e o processador mlite uma frequência de 25 MHz.
+Instruções de baixa latência, tais como as instruções mtc1, mfc1, lwc1 e swc1, que duram dois ciclos de relógio, seriam executadas indevidamente por três vezes no CP1, exatamente como se observa na Figura 23.
+Modificações no Plasma-HFP e no HFPmax A solução para ambos os problemas está em pequenas modificações no Plasma-HFP e também no coprocessador HFPmax.
+A solução adotada para o primeiro problema consiste na transferência, do HFPmax para o processador mlite, da lógica do sinal busy e dos sinais de controle dos multiplexadores.
+Desta forma, evita- se o acréscimo de dois ciclos de relógio nestes sinais.
+A solução do segundo problema consiste na implementação de um novo protocolo de comunicação entre o processador mlite e o CP1.
+A implementação deste protocolo exigiu:
+A já citada exclusão do sinal busy;
+A adição dos sinais fp_ instr e data_ from_ cp1, tanto no mlite como no CP1, conforme a Figura 21;
+a implementação de uma máquina de estados no mlite para o controle do sinal fp_ instr;
+E a modificação da máquina de estados do módulo de controle do CP1 para o controle do sinal data_ from_ cp1.
+O sinal fp_ instr é utilizado por o protocolo com o seguinte propósito:
+Em sua borda de subida, para a indicação de instrução de ponto flutuante e para notificar ao CP1 que o mlite foi pausado corretamente;
+Durante o seu nível lógico '1', para permitir ao CP1 o tempo necessário para que a instrução seja executada;
+Em sua borda de descida, para que o CP1 não execute uma determinada instrução por diversas vezes.
+A Figura 24 ilustra esta situação e é esclarecida a seguir.
+A execução de uma instrução de ponto flutuante opera da seguinte maneira:
+O CP1 detecta a instrução mtc1 e aguarda que o sinal fp_ instr confirme a presença de instrução de ponto flutuante e a notificação de processador pausado;
+O CP1 inicia a execução da instrução de ponto flutuante;
+O CP1 termina a execução da instrução de ponto flutuante;
+Restam ainda alguns ciclos de relógio para o CP1;
+o CP1 aguarda a borda de descida do sinal fp_ instr, evitando que a instrução seja executada novamente;
+O mlite retoma sua execução.
+O número de ciclos de relógio do processador em que o sinal fp_ instr deve permanecer em nível lógico '1', para que a instrução seja executada adequadamente, é função da latência das instruções de ponto flutuante do CP1 e da relação de frequências da organização Plasma-HFPGALS.
+Entende- se &quot;relação de frequência «como a razão entre as frequências de operação do coprocessador e do processador.
+Em o exemplo da Figura 25, para uma instrução que possua uma latência de 12 ciclos, e a organização Plasma-HFP-GALS possuindo uma relação de frequência 8, são necessários no mínimo 3 ciclos do processador para que esta instrução seja devidamente executada.
+Como não foi implementada uma solução para a definição automática do número total de ciclos de relógio necessário para cada instrução de ponto flutuante, conforme as frequências empregadas, é necessário definir manualmente para todas as relações de frequência empregadas, o número total de ciclos de relógio necessário para cada instrução de ponto flutuante.
+Esta definição é realizada através de constantes (ver Figura 26) no código fonte do processador mlite, em tempo de projeto.
+Em esta Figura é possível verificar que instruções apresentam uma latência resultante cada vez menor conforme se aumenta a relação de frequência.
+A definição dos números, embora seja manual, possibilita o desempenho máximo da organização Plasma-HFP-GALS.
+Parte de uma solução que possibilitaria uma definição automática, seria a implementação de um protocolo de comunicação do tipo Req (mlite)\&gt; Ack (CP1).
+Porém, esta alternativa acresceria à latência de todas as instruções de ponto flutuante dois ciclos de relógios, devido a os registradores de sincronização no sinal Ack, o que acarreta a perda de desempenho da organização Plasma-HFP-GALS.
+O sinal data_ from_ cp1 é utilizado por o CP1 somente para indicar ao processador mlite, o instante em que o retorno de dados oriundos das instruções mfc1 e swc1 devem ser amostrados.
+Obviamente, devido a o método 2 FF, estas instruções passam a ter uma latência de quatro ciclos de relógio e não mais os dois ciclos da organização Plasma-HFP.
+Organização Plasma-HFP-GALS-LP Com o intuito de reduzir o possível aumento na dissipação de potência e no consumo de energia da organização Plasma-HFP-GALS gerado por o coprocessador de ponto flutuante, decidiuse por a avaliação do emprego de técnicas que visem esta redução.
+A nova organização foi denominada de Plasma-HFP-GALS-LP, onde LP é acrônimo para Low Power (baixa potência).
+O requisito adotado neste trabalho dita que as técnicas empregadas devem ser prototipáveis em FPGAs da Xilinx, uma vez que este tipo de dispositivo foi utilizado para a validação das organizações e também, posteriormente, para a medição da dissipação de potência e do consumo de energia.
+Empregou- se a técnica de chaveamento de relógio (em inglês, clock gating) e a técnica de controle dinâmico de frequência (em inglês, dynamic frequency scaling).
+O diagrama de blocos da organização Plasma-HFP-GALS proposta encontra- se na Figura 27.
+Aplicação de Técnicas de Redução da Dissipação de Potência/Consumo de Energia É importante ressaltar que inicialmente instituiu- se que as técnicas de redução da dissipação de potência e/ ou consumo de energia a empregar neste trabalho seriam as técnicas de chaveamento de relógio e de controle dinâmico de frequência (DFS).
+Entretanto, devido a limitações explicadas a seguir, a utilização da técnica DFS foi descartada deste trabalho.
+Para a implementação da técnica de chaveamento de relógio em FPGA utilizou- se componentes disponibilizados no FPGA.
+Os FPGAs da família Virtex-5 da Xilinx disponibilizam um componente denominado BUFGCE dedicado à implementação da técnica de chaveamento de relógio.
+Com o emprego desta técnica é possível alcançar uma redução de até 30% do consumo da potência dinâmica de um circuito digital em FPGA.
+Em a Figura 28 observa- se um exemplo da utilização deste componente.
+O emprego da técnica DFS em FPGAs é bastante restrito, dado que os componentes destinados ao gerenciamento dos sinais de relógio em FPGAs Xilinx, tais como o digital clock manager (DCM), ou gerenciador digital de relógio, não permitem o controle dinâmico da frequência em tempo de execução.
+Por este motivo e também devido a o fato da definição manual do número total de ciclos de relógio do processador em que o sinal fp_ instr deve permanecer em nível lógico` 1' para cada uma das instruções de ponto flutuante ser efetuada em tempo de projeto, não foi possível implementar a técnica de controle dinâmico de frequência em FPGA.
+Xilinx da família Virtex-5.
+Modificações na Organização Plasma-HFP-GALS A implementação da técnica de chaveamento de relógio exigiu a criação do sinal clock_ enable no processador da organização Plasma-HFP-GALS, conforme mostra a Figura 27.
+Este sinal controla o componente BUFGCE, que por sua vez controla o chaveamento do sinal de relógio do coprocessador de ponto flutuante.
+Para a lógica de controle do sinal clock_ enable, foi utilizada, e modificada, a máquina de estados de controle do sinal fp_ instr, já existente no processador.
+A habilitação deste sinal é função da existência, ou não, de uma instrução de ponto flutuante para a execução no CP1.
+A lógica de controle do sinal clock_ enable é bastante simples.
+Inicialmente o sinal clock_ enable se encontra desativado, desligando o sinal de relógio do CP1.
+Em o instante em que a máquina de estados decodifica uma instrução de ponto flutuante, o processador é pausado e o sinal clock_ enable é ativado.
+O componente BUFGCE possui uma latência de 1 ciclo de relógio para ligar o sinal de relógio, e por este motivo, decidiu- se não utilizar um sincronizador no sinal clock_ enable.
+Desta forma, o BUFGCE é ligado dois ciclos de relógio do processador antes que o coprocessador receba a indicação da existência de uma instrução de ponto flutuante, tempo suficiente para que este componente libere o sinal de relógio.
+Com o sinal de relógio ligado, o CP1 recebe através do sinal fp_ instr a indicação de que o mlite está devidamente pausado e que existe uma instrução para ser executada.
+A o término da execução e após a borda de descida do sinal fp_ instr, o sinal clock_ enable é desativado e o sinal de relógio do CP1 torna a ser desligado.
+Adicionalmente, ressalta- se que não foi analisado o caso da utilização de uma relação de frequência inversa.
+De fato, presume- se que a organização funciona adequadamente se o número total de ciclos de relógio do processador em que o sinal fp_ instr deve permanecer em nível lógico` 1' para cada uma das instruções de ponto flutuante for definido adequadamente conforme as novas frequências.
+Este Capítulo reportará os meios utilizados para a validação dos diversos módulos de hardware implementados neste trabalho, desde as simulações dos coprocessadores e organizações implementadas, detalhadas na Seção 7.1, até as prototipações em FPGAs dos mesmos, detalhadas na Seção 7.2.
+Simulação Primeiramente validaram- se as unidades de ponto flutuante que foram posteriormente empregadas na implementação dos coprocessadores compatíveis com a organização MIPS-I..
+Esta validação ocorreu por meio de a estrutura de simulação que acompanha a distribuição da unidade FPU100, que além de validar esta unidade também foi utilizada para a validação das unidades HFPmin e HFPmax, geradas com o auxílio do CoreGen.
+Após a implementação dos coprocessadores, validaram- se os mesmos em nível de simulação.
+Esta simulação teve por objetivo a verificação da funcionalidade das instruções de ponto flutuante lógico-aritmético, bem como das instruções de transferência de dados entre processador, coprocessador e memória RAM.
+Para realizar esta verificação criou- se um testbench, que consiste de uma máquina de estados capaz de interagir com interface de dados do coprocessador.
+Esta máquina de estados efetua a leitura de instruções de ponto flutuante, em código de máquina, existentes num arquivo de teste, de extensão &quot;hex», e as envia ao coprocessador sob teste.
+Este arquivo, criado com o auxílio do simulador do conjunto de instruções da MIPS-I denominado Mars, contém todas as instruções de ponto flutuante previstas por a organização MIPS-I..
+A validação ocorreu assegurando- se o correto funcionamento das instruções de ponto flutuante nos sinais internos dos coprocessadores, que são visualizados nas formas de ondas geradas por a ferramenta de simulação Modelsim SE 6.
+1 f..
+Procurando obter uma simulação mais realista, optou- se por o modelo de simulação timed, que permite agregar às simulações os tempos de atraso dos componentes que compõem o substrato tecnológico do FPGA.
+Este modelo é gerado por meio de a ferramenta de síntese lógica e física, após a etapa de &quot;posicionamento e roteamento», e consiste basicamente de dois arquivos:
+Em seguida, ocorreu a validação em nível de simulação das organizações resultantes das integrações dos coprocessadores validados à organização Plasma.
+Para esta validação criou- se um programa de teste, desenvolvido em linguagem C, em substituição ao arquivo criado com o auxilio do Mars, utilizado anteriormente na validação dos coprocessadores.
+Este programa foi criado com o intuito de verificar a interação entre processador e coprocessador, bem como de testar todas as instruções de ponto flutuante previstas por a MIPS-I, incluindo todas as possíveis variações de cada uma destas instruções.
+O arquivo contendo o código fonte deste programa pode ser visto no Apêndice A. O programa de teste é executado por o processador mlite e, para tanto, deve ser carregado na memória RAM da organização Plasma.
+Isto é feito utilizando- se o software ram_ image, disponibilizado juntamente com a distribuição Plasma, que permite a cópia de uma imagem do código de máquina de um determinado programa para a memória RAM da organização Plasma.
+Este software recebe como entrada dois arquivos:
+O arquivo responsável por implementar a memória RAM da organização Plasma (ram_ xilinx.
+Vhd) e o arquivo contendo o código de máquina de um determinado programa (prog_ teste.
+Hex). Este código de máquina é obtido compilando- se este programa no compilador Gnu GCCelfmips, que acompanha a distribuição Plasma.
+O ram_ image gera como saída um novo arquivo denominado «ram_ image.
+Vhd &quot;contendo todas as instruções existentes no arquivo «prog_ teste.
+Hex». A Figura 30 ilustra o fluxo utilizado para carregar programas na memória de instruções da organização Plasma.
+O arquivo «ram_ image.
+Vhd &quot;gerado a partir de o programa de teste deve substituir o arquivo «ram_ xilinx.
+Vhd «na síntese das organizações a serem testadas, para a geração do modelo de simulação timed.
+A simulação destas organizações utilizou a mesma estrutura de simulação utilizada para a validação dos coprocessadores, porem, algumas modificações foram realizadas para se adequar a validação de tais organizações.
+Como o programa de teste já se encontra armazenado na memória RAM da organização, não é necessário anexar à simulação um arquivo &quot;hex «de teste, como ocorre na validação dos coprocessadores.
+Portanto, uma máquina de estados para realizar a leitura deste arquivo não se faz necessária.
+Por esta razão, tal máquina foi excluída do testbench.
+Outra alteração diz respeito à interface de dados das organizações implementadas.
+Como o programa de teste, que se encontra na memória RAM, não faz uso de memória externa, a interface de dados existente para este fim não se justifica.
+Por este motivo, as organizações foram encapsuladas num par entidade/ arquitetura denominado top, que possui apenas duas portas de entrada:
+O sinal de relógio, clk, e o sinal de reset, rst.
+Em a Figura 31 observam- se as alterações realizadas na estrutura criada para a validação dos coprocessadores, que redundaram numa estrutura para a validação das organizações implementadas.
+A validação também ocorreu assegurando- se o correto funcionamento das instruções (principalmente as que transferem dados entre processador, coprocessador e memória RAM) nos sinais internos das organizações, que são visualizados através das formas de ondas geradas por a ferramenta de simulação.
+Prototipação Após a validação de todos os coprocessadores em nível de simulação, validaram- se os mesmos em nível de prototipação.
+Inicialmente prototipou- se tais coprocessadores utilizando o FPGA Xilinx Virtex-4 XCV4 FX100- 10 existente na plataforma DN8000 K10PCI da Dinigroup.
+Posteriormente, quando se adquiriu a plataforma de modelo ML550 da Xilinx, prototipou- se utilizando o FPGA Virtex-5 XC5 VLX50T-1.
+Para a prototipação dos coprocessadores criou- se uma estrutura similar ao testbench utilizado em sua simulação.
+Em esta estrutura criou- se um vetor de instruções contendo as instruções de ponto flutuante existentes no arquivo &quot;hex «de teste gerado com o auxílio do Mars.
+Uma máquina de estados efetua a leitura das instruções neste vetor e as envia, uma a uma, ao coprocessador prototipado.
+Para validar- lo, assegura- se o correto funcionamento das instruções de ponto flutuante em seus sinais internos, que são visualizados através das formas de ondas geradas por a ferramenta ChipScope Para o.
+Esta ferramenta permite que se observem os sinais internos dos módulos de hardware prototipados no FPGA em tempo de execução.
+A Figura 32 apresenta a estrutura de prototipação criada para a validação dos coprocessadores implementados.
+Para a validação em nível de prototipação das organizações resultantes das integrações dos coprocessadores implementados à organização Plasma, utilizou- se a mesma abordagem empregada em suas simulações.
+Ou seja, prototipou- se no FPGA as organizações encapsuladas no top somente com os sinais clk e rst, e com o arquivo «ram_ image.
+Vhd», gerado por o ram_ image a partir de o programa de teste desenvolvido em linguagem C. A validação ocorreu assegurando- se o correto funcionamento das instruções (principalmente as que transferem dados entre processador, coprocessador e memória RAM) nos sinais internos das organizações, que também são visualizados através das formas de ondas geradas por a ferramenta ChipScope Para o.
+A Figura 33 apresenta a abordagem utilizada para a validação das organizações implementadas neste trabalho.
+Este Capítulo apresenta os resultados obtidos na pesquisa proposta por o Autor.
+A Seção 8.1 apresenta as diferentes latências das instruções de ponto flutuante nas organizações implementadas, enquanto a Seção 8.2 expõe estimativas de ocupação de área e da frequência de operação destas organizações, dados oriundos das ferramentas de síntese lógica e física empregadas.
+O desempenho das organizações é apresentado na Seção 8.3 e suas respectivas densidades computacionais na Seção 8.4.
+Finalizando o Capítulo e completando os dados de exploração do espaço de projeto, a Seção 8.5 apresenta as medições da dissipação de potência e do consumo de energia das organizações executando diferentes aplicações intensivas em instruções de ponto flutuante.
+Latência das Instruções de Ponto Flutuante As organizações construídas possuem diferentes latências para as mesmas instruções de ponto flutuante, uma vez que os coprocessadores empregados possuem diferentes latências de computação para estas.
+Tal latência é resultado da soma de latências da instrução em questão do coprocessador de ponto flutuante particular e da latência das operações de controle do mesmo coprocessador para esta instrução.
+A Tabela 4 lista as latências de todas as instruções de ponto flutuante nas organizações Plasma-HFP100, Plasma-HFPmax, plasma-HFPmin e Plasma-HFP-GALS.
+Em a Tabela 5 encontram- se as latências das instruções de ponto flutuante emuladas em software.
+Somente as latências das instruções de adição, subtração, multiplicação e divisão foram consideradas, uma vez que tais instruções são as mais relevantes e as que possuem as maiores latências de entre as demais, supostamente menores.
+Estimativas de Ocupação de Área e da Frequência de Operação Para a geração de estimativas de ocupação de área e da frequência de operação utilizou- se o ambiente Xilinx ISE Design Suite 11.3 (ferramenta de síntese XST).
+Em função de as disponibilidades de plataformas de prototipação, selecionaram- se como dispositivos-alvo os FPGAs Virtex-4 XCV4 FX100- 10 e Virtex-5 XC5 VLX50T-1.
+A Tabela 6 lista as estimativas para as cinco organizações, acrescidas das estimativas para a organização Plasma.
+Nota- se que a capacidade do dispositivo Virtex-5 é aproximadamente a metade da capacidade do dispositivo Virtex-4.
+É importante destacar que a Tabela 3, apresentada na Seção 5.4, possui somente as estimativas de ocupação de área e da frequência de operação para os coprocessadores implementados no contexto deste trabalho, que agora constituem as organizações que compõem as estimativas apresentadas na Tabela 6.
+Desempenho das Organizações Para avaliar o desempenho das organizações, desenvolveram- se quatro aplicações em linguagem de programação C:
+As funções seno e cosseno e filtros FIR e IIR.
+Os Apêndices B e C deste documento contêm o código fonte das aplicações, escritos em linguagem C. As duas primeiras aplicações baseiam- se em expansões da série de Taylor das funções seno e cosseno, sendo ambas implementadas para o cálculo dos dez primeiros termos de cada série.
+As duas últimas aplicações são filtros do tipo passa- baixas, criados com quatro coeficientes e com frequência de corte definida em 4 KHz.
+As quatro aplicações foram executadas nas organizações:
+Para avaliar o desempenho das aplicações em cada organização, primeiramente determinou- se o número total de ciclos de relógio necessários para a execução de cada uma destas aplicações.
+O número total de ciclos para o seno e cosseno é determinado através do instante em que é realizada a leitura do operando da memória RAM até o instante em que o resultado final é armazenado na memória RAM.
+Para os filtros FIR e IIR este número é definido por o total de ciclos de relógio necessários para o cálculo de uma amostragem.
+Ou seja, do instante em que se realiza a leitura do dado amostrado na RAM até o instante em que o resultado do cálculo efetuado sobre esta amostragem é armazenado na RAM.
+Tais números foram obtidos nas simulações das organizações através da implementação de um contador de instruções.
+Para determinar o início e o fim desta contagem, utilizou- se o mesmo expediente empregado na implementação da janela de amostragem, detalhada na Seção 0: A leitura dos valores &quot;1 BABABAB «e &quot;1 CACACAC», respectivamente, no barramento de dados das organizações.
+Em a Tabela 7 se encontra o número total de ciclos de relógio para as quatro aplicações.
+Observando a Tabela, percebe- se expressiva discrepância nos números de ciclos de relógio necessários para a emulação dos filtros FIR e IIR.
+Investigando tal ocorrência, determinou- se inicialmente o número total de instruções de ponto flutuante existentes em cada uma destas aplicações.
+A Tabela 8 apresenta tais números, incluindo também os dados de seno e cosseno.
+Em seguida, analisou- se o código fonte de ambos os filtros com o objetivo de determinar o tipo de instruções de ponto flutuante empregadas em cada uma destas duas aplicações.
+Verificouse então, que o filtro FIR possui 5 adições e 5 multiplicações de ponto flutuante, enquanto que o filtro IIR possui 8 adições e 9 multiplicações.
+Em ambos os filtros, o restante das instruções corresponde, em sua grande maioria, a instruções de acesso à RAM.
+O filtro IIR apresenta um número significativamente maior de instruções aritméticas em relação a as demais instruções de ponto flutuante, não obstante possuir um número menor de instruções de ponto flutuante.
+Por este motivo e devido a a latência das instruções aritméticas empregadas (Tabela 5), a emulação do filtro IIR demanda um número de ciclos de relógio maior que a emulação do filtro FIR.
+Em as organizações com CP1 isto não ocorre devido a a enorme redução de latência das instruções aritméticas de ponto flutuante (Tabela 4).
+De posse do número total de ciclos de relógio necessário para a execução de cada aplicação (Tabela 7) e atribuindo- se uma frequência de operação para cada uma das organizações é possível derivar o tempo de execução destas aplicações.
+As frequências de operação das organizações são atribuídas levando- se em conta suas estimativas de frequência de operação (Tabela 6) e, principalmente, a limitação física dos osciladores disponíveis na plataforma ML550.
+Tais tempos de execução encontram- se na Tabela 9 abaixo.
+De posse da Tabela 9, calcula- se as acelerações alcançadas por as quatro organizações, nas quatro aplicações desenvolvidas.
+A Tabela 10 apresenta tais acelerações, calculadas em relação a a emulação das instruções de ponto flutuante e em relação a as organizações entre si.
+Densidade Computacional Brunelli et al.
+Propuseram o conceito de densidade computacional de uma implementação de hardware em FPGA.
+Este cálculo pode ser feito usando a Equação 14.
+Em esta Equação, é a frequência de operação do sistema computacional, éo número de ciclos de relógio necessário para a execução de uma determinada aplicação neste sistema, e é o número total de LUTs necessário para a implementação do sistema computacional em FPGA.
+Os resultados da Tabela 11 foram gerados para o FPGA Xilinx Virtex-5 XC5 VLX50T-1, empregando- se a ferramenta XST para síntese lógica.
+A Tabela 11 apresenta o cálculo da densidade computacional para as quatro aplicações em todas as organizações, sendo que um maior valor de densidade denota um melhor compromisso entre área em hardware e desempenho.
+Medição da Dissipação de Potência e do Consumo de Energia Seguindo a técnica descrita na Seção 4.4 foi possível medir as tensões sobre o resistor de precisão existente na plataforma ML550 durante a execução das quatro aplicações nas organizações prototipadas no FPGA XC5 VLX50T-1.
+As aplicações são carregadas na memória RAM das organizações em tempo de projeto.
+Assim, quatro sínteses de uma mesma organização seriam necessárias.
+Como se sabe, as etapas de posicionamento e roteamento da síntese física não são determinísticas e, por este motivo, o hardware gerado pode diferir de uma síntese para outra.
+Portanto, é necessário que se utilize somente uma síntese para cada organização, a fim de se evitar discrepâncias nos cálculos posteriores.
+Deve- se então gerar uma solução que permita a alteração das aplicações nas organizações em tempo de execução, sem realizar novamente a síntese.
+A Figura 34 ilustra a solução empregada neste trabalho.
+A solução consiste na implementação de uma estrutura que compreende:
+Quatro memórias RAM, cada uma contendo uma das quatro aplicações;
+A inclusão de um multiplexador no data_ read, sinal de retorno das instruções de leitura da memória RAM;
+E a inclusão de dois demultiplexadores nos sinais enable e byte_ we, ambos controlados por o processador e responsáveis por o controle da memória RAM.
+O restante dos sinais da interface de dados, data_ write e address são sinais de entrada em comum para todas as memórias RAMs e, por esta razão, não necessitam de demultiplexadores.
+A seleção das aplicações é realizada, em tempo de execução, através de uma micro-chave externa existente na plataforma ML550.
+Para permitir uma análise do que seria a utilização da técnica DFS, não implementada neste trabalho, igualmente se faz necessário alterar a frequência de operação das organizações em tempo de execução.
+De forma análoga à solução anterior, a seleção da frequência de operação é realizada também através de uma micro-chave existente na plataforma ML550.
+Através deste dispositivo é possível selecionar as frequências existentes dentro de o espectro definido por o Autor:
+Esta Dissertação teve como objetivo maior a avaliação do impacto da adoção de um coprocessador de ponto flutuante num processador embarcado.
+Para alcançar este intento empregou- se a organização Plasma e implementou- se diversos coprocessadores de ponto flutuante distintos.
+A integração destes coprocessadores ao Plasma resultou em diversas organizações.
+Além disso, implementou- se uma organização não-síncrona, operando em três relações de frequência, e uma organização não-síncrona dotada de uma técnica de redução da dissipação de potência.
+Estas implementações permitiram explorar o espaço de projeto de um processador embarcado capaz de executar aplicações que fazem uso de números em ponto flutuante.
+Conclusões Através dos resultados obtidos neste trabalho, conclui- se que a adoção de um coprocessador de ponto flutuante deve depender fortemente da quantidade de cálculos em ponto flutuante da aplicação alvo do sistema embarcado que se pretende projetar.
+As restrições de projeto também devem ser consideradas, uma vez que estas informações irão definir qual organização, dentro de o espaço de projeto, permitirá a obtenção do melhor compromisso entre os requisitos de desempenho, ocupação de área em silício e consumo de potência.
+A frase &quot;quantidade maciça de cálculos em ponto flutuante», muitas vezes repetida no decorrer deste trabalho, não deve ser traduzida como o número absoluto de instruções aritméticas de ponto flutuante existentes numa aplicação.
+Em a realidade ela representa a proporção do total de instruções aritméticas de ponto flutuante perante o total de instruções lógico-aritméticas utilizadas para o controle do fluxo de execução da aplicação.
+Quanto maior for esta proporção, ou seja, quanto maior for o número de instruções de ponto flutuante em relação a o número das demais instruções lógico-aritmética, maior será o ganho em desempenho.
+Quanto menor for esta proporção, maior será o tempo despendido no controle de fluxo de execução da aplicação e, consequentemente, um ganho menor em desempenho será obtido.
+A determinação desta proporção poderia ter sido mais bem explorada, uma vez que a mesma é mandatória na definição do emprego ou não de um coprocessador de ponto flutuante em hardware.
+Assim sendo, a análise e implementação de uma fórmula que determine precisamente a proporção da aplicação alvo do sistema (fórmula esta que poderia ser nomeada de taxa ou densidade de IPF -- instruções de ponto flutuante -- ou algo similar), mostra- se um desafio importante a ser enfrentado no futuro.
+Isto é particularmente relevante se forem considerados outros requisitos além de o desempenho, tais como ocupação de área e dissipação de energia e/ ou consumo de energia.
+Sob o ponto de vista do requisito de desempenho das aplicações, a adoção de um coprocessador de ponto flutuante em hardware constitui uma alternativa bastante atraente, desde que tais aplicações demandem uma quantidade maciça de cálculos em ponto flutuante (ou possuam uma alta taxa ou densidade de IPF), conforme já se sabe.
+O uso de um coprocessador, principalmente se aliado à técnica GALS de projeto, pode trazer um aumento de até 2195% no desempenho das aplicações, em relação a a emulação em software das instruções de ponto flutuante.
+Ou seja, uma aceleração máxima de aproximadamente 22 vezes.
+Excetuando- se a organização Plasma-HFP100, o acréscimo de área decorrente da adoção do coprocessador em todas as demais organizações é de aproximadamente 250%.
+É um acréscimo significativo, em relação a ocupação de área do processador Plasma, que certamente não pode ser desprezado.
+Porém, se houver área disponível em FPGA, o desempenho alcançado por tais organizações justifica o emprego do coprocessador.
+Sendo suas ocupações de área similares, pode- se afirmar que a escolha de uma das organizações existentes depende exclusivamente do seu desempenho.
+Em este caso, por motivos óbvios e a não ser por outras questões como a dissipação de energia e/ ou consumo de energia, deve- se empregar a organização de maior desempenho e descartar as demais.
+A organização Plasma-HFP100 é a maior organização em termos de ocupação de área, cerca de 370% maior que o processador Plasma e de 150% maior que as demais organizações.
+A latência de suas instruções de ponto flutuante é baixa, porém a sua estimativa de frequência de operação é baixa em relação a as demais:
+25 MHz.
+Sua grande ocupação de área e baixa frequência de operação praticamente o descartaria do espaço de projeto não fosse uma vantagem interessante:
+Seu código HDL é genérico, o que permite sua prototipação em qualquer FPGA e mesmo o porte para ASICs, ao contrário de as demais organizações, que empregam módulos de hardware específicos (gerados com o CoreGen) para os FPGAs utilizados no escopo deste trabalho.
+Com relação a o consumo de potência das organizações, ainda parece cedo para retirar conclusões.
+A análise dos dados obtidos está em andamento e novas medidas ainda estão sendo coletadas.
+Desde já se percebe que as organizações dotadas de CP1 têm uma clara vantagem energética em relação a o uso de emulação de ponto flutuante, o que já se esperava para FPGAs.
+Nota- se que a potência média dissipada varia muito pouco em todas as implementações, demonstrando que o tempo de execução nestas é o principal fator determinante de gasto total de energia por a aplicação.
+Levando- se em conta todas as considerações tecidas até aqui, conclui- se que a organização Plasma-HFP-GALS 8x apresenta- se como a melhor opção para aplicações que possuem uma alta taxa ou densidade de IPF.
+Isto pode ser comprovado por o fato de que tal organização possui a maior densidade computacional de entre as demais.
+Observando os resultados obtidos para a organização Plasma-HFP-GALS-LP, verificou- se que o mesmo possui uma dissipação, dependendo da aplicação, entre 0,5% a 1,5% maior que a Plasma-HFP-GALS 8 x, organização em a qual foi baseada.
+Analisando o código fonte do coprocessador da Plasma-HFP-GALS-LP, percebeu- se que os módulos de hardware dos operadores que o compõe, gerados a partir de o Coregen, já possuem recurso para desligar o sinal de relógio quando não se encontram em funcionamento.
+Desta forma, a Plasma-HFP-GALS-LP não apresentou qualquer ganho com a técnica de chaveamento de relógio implementada.
+O pequeno acréscimo na dissipação de potência pode ser explicado por o hardware adicional proveniente do controlador de chaveamento de relógio.
+Importante ressaltar que os resultados obtidos até meados de julho de 2009 foram publicados na conferência ReConFig' 09.
+Trabalhos Futuros Conforme a Seção anterior, um trabalho a ser realizado futuramente é a implementação da fórmula, ou equação, que determine precisamente a proporção de instruções aritmética de ponto flutuante perante as instruções lógico-aritméticas utilizadas para o controle do fluxo de execução da aplicação alvo do sistema.
+Como comentado na referida subsecção, esta implementação tornase mandatória devido a sua importância na verificação da aptidão de uma determinada aplicação alvo se beneficiar com o emprego de uma unidade de ponto flutuante em hardware.
+Uma possível abordagem inicial seria a determinação, em tempo de compilação, do total de ambos os tipos de instruções existentes na aplicação alvo do sistema.
+Outro trabalho interessante a ser realizado no futuro seria a implementação de um mecanismo de ajuste dinâmico, em tempo de execução, do estado do sistema embarcado.
+Este ajuste se daria a partir de uma série de informações oriundas do contexto, ou ambiente, em que este sistema embarcado está inserido.
+Levando- se em conta o fato de que sistemas embarcados convergem para dar suporte a múltiplas funcionalidades, tal mecanismo poderia fazer uso da taxa ou densidade de IPF.
+Previamente equacionadas, estas podem servir para decidir se uma determinada aplicação deve ser executada empregando- se emulação, diminuindo assim a dissipação de potência e privilegiando o consumo de energia, ou se deve ser executada por o coprocessador de ponto flutuante, beneficiando o desempenho.
+Outras informações poderiam ser levadas em consideração, tais como o nível de energia disponível em suas baterias, requisitos de tempo real, entre outros.
+Adicionalmente, existe a possibilidade de se empregar mais de um coprocessador (obviamente se houver área em silício disponível).
+Em este caso, seria possível selecionar o coprocessador mais adequado para determinados requisitos de desempenho e de dissipação de potência e/ ou consumo de energia.
+O mecanismo trabalharia de forma autônoma ajustando o estado do sistema, objetivando a obtenção do melhor compromisso possível entre os requisitos de projeto e das aplicações alvo.
+Desta forma, os recursos disponibilizados por o sistema embarcados seriam mais bem explorado e, consequentemente, suas utilizações seriam maximizadas.
+Em o projeto em nível de transação entre registradores, citam- se o uso de sincronizadores do tipo fast-flops e a implementação de um mecanismo de controle que permita o emprego de técnicas DFS.
+O sincronizador 2 FF empregado neste trabalho dificulta a implementação de um mecanismo ou protocolo de comunicação que permita o controle dinâmico das frequências de operação das organizações não-síncronas.
+Além disso, o emprego da técnica DFS em FPGAs é bastante restrito, uma vez que os componentes destinados ao gerenciamento dos sinais de relógio, tais como o DCM, por exemplo, não permitem o controle dinâmico da frequência em tempo de execução.
+Uma possível alternativa é apresentada na Figura 35.
+Em esta alternativa utiliza- se DCMs configurados, em tempo de projeto, para a geração de diferentes frequências de relógio, sendo seus respectivos sinais de relógio multiplexados por os componentes BUFGMUX, disponíveis nos FPGAS Xilinx da família Virtex-5.
+Desta forma, um determinado módulo de hardware pode ter a frequência do seu sinal de relógio alterada dinamicamente.
+Obviamente, este controle deve ser realizado dentro de o universo das frequências definidas por os DCMs empregados.
+Outros futuros aperfeiçoamentos nos coprocessadores podem incluir o suporte a precisão dupla, e o tratamento de exceções previstas por a norma IEEE-754.
+Precisão dupla é requisito de algumas aplicações que não podem tolerar erros devido a o uso de poucos bits de precisão do formato precisão simples.
+De o ponto de vista de exceções de ponto flutuante, os recursos de hardware apenas sinalizam as exceções, relegando seu tratamento para o software do sistema.
+O sistema operacional que acompanha a distribuição Plasma, não utilizado nesta pesquisa, pode ser alterado para incluir em seu kernel o tratamento de exceções.

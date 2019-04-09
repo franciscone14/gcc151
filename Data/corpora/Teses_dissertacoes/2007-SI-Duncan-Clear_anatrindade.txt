@@ -1,0 +1,580 @@
+Xen é um paravirtualizador que permite a execução simultânea de diversas máquinas virtuais (VM), cada uma com seu próprio sistema operacional.
+O consumo dessas VMs se dá em diferentes níveis de recursos.
+Com o objetivo de melhorar a performance do Xen, é interessante verificar qual a melhor alocação de recursos para uma dada máquina Xen, quando várias VMs são executadas, e quais são os respectivos parâmetros.
+Para auxiliar a eventual reconfiguração de parâmetros, este trabalho propõe um processo completo de descoberta de conhecimento em banco de dados (processo de KDD) para capturar dados de desempenho das VMs, organizar- los num modelo analítico e aplicar técnicas de mineração para sugerir novos parâmetros.
+Inicialmente são obtidos dados de desempenho de cada VM, onde a estratégia empregada é a execução de benchmarks sobre cada sistema operacional.
+Esses dados são armazenados num data warehouse propriamente modelado para armazenar registros de captura de métricas de benchmarks.
+Os dados armazenados são convenientemente preparados para serem utilizados por algoritmos de mineração de dados.
+Os modelos preditivos gerados podem, então, ser enriquecidos com instruções em alto nível de reconfigurações.
+Tais modelos buscam sugerir, dada uma configuração vigente, qual o melhor conjunto de parâmetros de configuração para modificar o ambiente, e alcançar um ganho global de desempenho.
+O processo proposto foi implementado e testado com um conjunto significativo de execuções de benchmarks, o que mostrou a qualidade e abrangência da solução.
+Palavras-Chave: Xen, KDD, Data Warehouse, Preparação de Dados, Mineração de Dados.
+A virtualização de sistemas operacionais (SO) é uma prática que tem sido explorada para permitir a execução simultânea de múltiplos SOs numa única máquina física.
+Xen é um paravirtualizador que oferece tal recurso.
+A arquitetura deste é representada como uma camada de abstração sobre o hardware, a qual permite a execução de diversas máquinas virtuais (VM) paralelas, cada uma com seu próprio SO.
+Sua empregabilidade, motivada por a economia de recursos físicos, ganha destaque em data centers que, em função de sua demanda no fornecimento de serviços, podem compartilhar, para vários clientes, uma mesma infra-estrutura computacional.
+Com o objetivo de propor melhorias no que se refere à performance do Xen, uma importante questão a ser endereçada é:
+Qual a melhor alocação de recursos para uma máquina Xen quando várias VMs estão sendo executadas?
+Para tanto, torna- se fundamental saber com precisão o desempenho dessas VMs.
+Uma boa prática para avaliação de desempenho de sistemas operacionais é através da utilização de benchmarks, os quais buscam extrair métricas e resultados relacionados ao desempenho das mesmas.
+Com essas métricas, espera- se poder predizer características de desempenho e, a partir de essas, sugerir novos parâmetros de configuração, para que seja possível alcançar um ganho de desempenho.
+Este trabalho propõe um processo de descoberta de conhecimento em banco de dados (processo de KDD) para contribuir na avaliação de desempenho e na sugestão de parâmetros para a reconfiguração do Xen.
+Para tanto, dados de execuções de benchmarks sobre os sistemas operacionais virtualizados são compilados e organizados num data warehouse (DW) propriamente modelado.
+Esses dados, após uma preparação adequada, são utilizados por técnicas de mineração de dados que produzem modelos preditivos que indicam, dada uma configuração vigente de uma máquina Xen, quais parâmetros de configuração merecem ser alterados para atingir um ganho de desempenho.
+O processo proposto é testado com um número significativo de execuções de benchmarks, para mostrar a qualidade e abrangência da solução.
+Esta pesquisa está inserida num projeto de parceria, onde os esforços em reconfigurar o Xen são endereçados por duas pesquisas complementares.
+Este trabalho está estruturado conforme segue.
+O Capítulo 2 apresenta uma revisão sobre o referencial teórico, abordando os contextos de virtualização e de processo de KDD.
+Em o Capítulo 3 é apresentado o cenário desta pesquisa, caracterizando o problema e relatando a solução para o mesmo, onde é apresentado o processo de KDD construído.
+O Capítulo 4 apresenta a etapa de data warehousing do processo de KDD, apresentando como os dados são capturados e armazenados num ambiente de DW desenvolvido.
+Em o Capítulo 5 é mostrado como técnicas de mineração de dados podem fazer uso dos dados contidos no DW para sugerir parâmetros de reconfiguração do Xen.
+O Capítulo 6 apresenta os trabalhos relacionados a esta pesquisa.
+Em o capítulo 7 são apresentadas as conclusões e trabalhos futuros e, em seguida, as referências bibliográficas.
+Para contextualizar a pesquisa, este capítulo apresenta uma revisão bibliográfica sobre a virtualização de sistemas operacionais e sobre o processo de KDD.
+Primeiramente é apresentado o paravirtualizador Xen, destacando suas características e mostrando como o desempenho do mesmo pode ser avaliado e melhorado.
+Em seguida é relatado o processo de KDD, explorando cada uma de suas etapas.
+Virtualização é uma técnica que permite que múltiplos sistemas operacionais possam coexistir numa única máquina física, cada um executando numa máquina virtual.
+Como extensão à virtualização, existe a técnica denominada paravirtualização.
+Esta última caracteriza- se por ser uma camada de abstração existente entre o hardware e as VMs (onde cada VM tem seu próprio sistema operacional).
+Esta camada é responsável por permitir o gerenciamento de instruções privilegiadas dos sistemas operacionais em relação a o hardware.
+Xen é um paravirtualizador que permite a execução simultânea de múltiplos sistemas operacionais com o compartilhamento de um mesmo hardware.
+A Figura 1 ilustra a arquitetura do Xen, onde observa- se que o mesmo é uma camada acima de o hardware, no caso suportando 4 VMs.
+Vale ressaltar que o Xen não se limita à utilização de apenas 4 VMs, relata experimentos efetuados com até 100 VMs.
+A utilização do Xen é motivada por a potencial economia de recursos físicos que o mesmo pode proporcionar.
+Essa abordagem torna- se vantajosa quando os recursos computacionais disponíveis para o ambiente virtualizado são bem aproveitados por cada VM, contribuindo para que as mesmas apresentem um desempenho mais satisfatório.
+Sabendo- se que cada VM suporta um conjunto distinto de aplicações, e que cada aplicação consome diferentes níveis de recursos computacionais, é interessante que esses sejam adequadamente distribuídos no ambiente.
+Para tanto, alguns critérios de medições devem ser estabelecidos.
+No caso de o Xen, e sugerem que tais critérios sejam focalizados em desempenho da CPU, de gerenciamento de memória e de dispositivos de E/ S de cada sistema operacional virtualizado.
+Embora esses níveis de desempenho possam ser fornecidos por o próprio sistema operacional, existem outras abordagens para extrair métricas de desempenho, como é o caso de benchmarks para sistemas operacionais.
+Análise de Desempenho por Benchmarks Para identificar, antecipadamente, quais níveis de consumo cada sistema operacional é capaz de consumir, sem que haja necessidade de executar aplicações reais, é possível configurar o ambiente disponibilizando diferentes limites de consumo para cada VM.
+Como os benchmarks buscam estressar a capacidade operacional de cada sistema, ao executar um benchmark para cada sistema operacional virtualizado, é esperado que o limite de consumo atribuído para cada VM seja totalmente utilizado.
+Existem distintos benchmarks para medir desempenho de sistemas operacionais, de entre os quais pode- se destacar Unixbench, LmBench e Iozone.
+Cada benchmark realiza medições em diferentes aspectos.
+Os dois primeiros, por exemplo, focalizam suas medições em CPU e memória, e o último em E/ S. A forma padrão com que esses benchmarks apresentam seus resultados é via relatório tabular, contendo métricas de desempenho e os respectivos valores encontrados.
+Cada benchmark faz uso de critérios próprios para apresentação e disposição dos resultados.
+A Figura 2 ilustra um exemplo de resultado de uma execução do benchmark Unixbench, a qual mostra o resultado de desempenho de uma VM num ambiente com quatro VMs paralelas.
+Seu formato de apresentação é estruturado conforme segue e indicado na Figura 2: (a) as cinco primeiras linhas apresentam informações quanto a as configurações do benchmark e do ambiente sobre o qual este foi executado; (
+b) em seguida são listadas diferentes métricas, os valores encontrados, suas respectivas unidades de medida e a forma de medição das mesmas; (
+c) logo abaixo é apresentado um resumo das informações, de onde são listadas as métricas mais relevantes contendo:
+O nome da métrica (test), o valor ideal a ser reportado (baseline) o valor encontrado (result), e um índice que representa o percentual de aproveitamento do valor encontrado em função de o valor ideal (index) (vale ressaltar, que tanto a classificação de relevância, como os valores apresentados são efetuados de acordo com algum critério do próprio benchmark); (
+d) por fim, é apresentado o desempenho total do sistema, através do somatório (sum) e da média (average) dessas métricas.
+Byte UNIX Benchmarks i686 Gnu/ Linux Start Benchmark Run:
+Wed May 16 17:30:03 UTC 2007 1 interactive users.
+Para cada VM analisada é produzido um relatório similar ao apresentado na Figura 2, cada um com seus respectivos valores encontrados para cada métrica.
+Os resultados do benchmark podem ser analisados sobre diferentes óticas.
+Como cada métrica apresenta desempenho em diferentes aspectos, pode- se selecionar apenas aquelas que atendam aos critérios previamente estabelecidos.
+Por outro lado, também é possível analisar a performance total do sistema operacional reportado:
+No caso de o benchmark apresentado no exemplo, por o valor da média (avarege, Figura 2 d).
+De posse dos resultados individuais de cada sistema operacional, é possível obter o desempenho global do ambiente virtualizado, através da soma dos resultados de desempenho de cada VM.
+Analisar o conjunto de resultados e, a partir de eles, inferir sobre a adequada distribuição das VMs no ambiente virtualizado, não é uma tarefa trivial de ser efetuada manualmente.
+Em esse sentido, é conveniente fazer uso de algum suporte computacional que dê um adequado apoio para a análise de desempenho, apresentando sugestões para distribuição de recursos nas VMs.
+O processo de descoberta de conhecimento em base de dados (KDD ­ Knowledge iterativas que endereçam a tomada de decisão, especialmente quando de a existência de um grande volume de dados.
+Conforme ilustrado por a Figura 3, o processo de KDD propõe que, a partir de uma coleção distinta de dados (a), seja constituído um data warehouse (c) para que, com os dados de ele, sejam utilizadas técnicas de mineração de dados (e) para produzir conhecimento útil ao objetivo para o qual esse processo esteja sendo endereçado (f).
+A qualidade do conhecimento útil fornecido depende da qualidade dos dados utilizados.
+Para tanto, as etapas de transformação (b) e preparação (d) são primordiais para garantir essa qualidade.
+Estas etapas, juntas, consomem em torno de 85% de todo o processo de KDD.
+A transformação visa coletar dados que sejam relevantes ao problema e adequadamente transformar- los para serem inseridos no ambiente de DW.
+A preparação tem por objetivo preparar os dados já acomodados no DW de modo que, ao executar um algoritmo de mineração sobre esses dados, os mesmos sejam especialmente úteis para atender o problema endereçado.
+Embora cada etapa que compõe o processo de KDD seja suficientemente abrangente para ser tratada individualmente, existe uma forte relação de dependência entre elas.
+Assim, para que seja efetuada uma correta transformação dos dados, é necessário ter um ambiente de DW corretamente modelado.
+De a mesma forma, para que os dados sejam apropriadamente preparados, é preciso ter como alvo um algoritmo de mineração selecionado para atender ao problema e alcançar o objetivo esperado.
+Em um DW são inseridas instâncias provenientes de distintas bases de dados, buscando manter um histórico dos registros.
+Os dados contidos no DW devem estar organizados em contextos que auxiliem à tomada de decisão estratégica.
+DW, por sua essência, são construídos de forma a satisfazer sua estrutura multidimensional.
+Um modelo analítico, que representa essa estrutura multidimensional, possui dois tipos de tabelas:
+Fato e dimensão.
+Entende- se por dimensão as perspectivas de uma base de dados que possam gerar registros referentes às características do problema modelado.
+Essas são, tipicamente, organizadas em torno de um termo central, ou tabela fato, a qual contém os atributos chave das dimensões e atributos que representem valores relevantes ao problema.
+Existem três tipos principais de modelo analítico:
+Modelo Estrela ­ o modelo estrela caracteriza- se, basicamente, por conter uma única tabela fato e várias dimensões;
+Modelo Floco de Neve ­ o modelo floco de neve se difere do modelo estrela por admitir que as tabelas dimensões formem hierarquias, com relacionamentos entre si;
+E Modelo Constelação de Fatos ­ de uma forma mais abrangente, no modelo constelação de fatos é possível dispor de mais de uma tabela fato, as quais possuem suas próprias dimensões, e tais dimensões, também podem formar hierarquias, com relacionamentos entre si.
+O que determina a correta escolha do modelo analítico a ser modelado para o DW é tanto as características do problema, como as características de suas bases de dados.
+Embora o modelo mais usual seja o estrela, determinadas características do problema podem demandar a aplicação de outros tipos de modelo.
+Em o que tange ao modelo floco de neve, sustenta que este modelo deve ser utilizado com cautela, uma vez que a hierarquização aplicada pode não ser clara para o usuário do modelo.
+Um dos processos mais importantes para a construção de um DW é a etapa de extração, transformação e carga (Etc) das fontes de dados para o DW.
+Esta etapa busca aumentar a qualidade dos dados a serem inseridos no repositório.
+Em o processo de KDD, a Etc está representada por a etapa de transformação (Figura 3 b).
+A extração é a primeira fase do processo de Etc, a qual visa percorrer as distintas bases de dados e capturar apenas os dados significantes ao domínio.
+Em a fase de transformação, os dados capturados podem sofrer algum tipo de tratamento, ajustando possíveis conflitos de tipificação e eliminando ruídos ou possíveis conteúdos irrelevantes ao DW.
+Por fim, é feita a devida carga dos dados já transformados no ambiente de DW, obedecendo à estrutura definida no modelo analítico.
+Para apoiar a etapa de Etc, defende a criação de um DSA (Data Staging Area), uma área temporária à disposição dos dados extraídos e que estão passando por o processo de transformação.
+Em essa área os dados devem ser mantidos antes de serem efetivamente carregados no DW.
+O processo de construção do DW juntamente com a efetivação da etapa de Etc é chamado de processo de data warehousing.
+Com esse, os dados são adequadamente inseridos no DW construído que, portanto, já admite a manipulação por ferramentas OLAP para pivoteamento de dados, roll-up, drill-down e slice&amp; dice, operações essas típicas de ambientes de processamento analítico de dados.
+Além de essa abordagem analítica, os dados podem ser utilizados por algoritmos de mineração de dados.
+A mineração de dados é a etapa do processo de KDD que converte dados brutos em informação.
+A mineração de dados divide- se em diferentes técnicas:
+Descritivas e preditivas.
+A primeira sumariza relações entre dados, tendo como objetivo aumentar o entendimento a respeito desses.
+A segunda tem o objetivo de apontar conclusões quanto a os dados analisados, prevendo valores para um dado atributo de interesse.
+Técnicas preditivas de mineração de dados, especialmente tarefas de classificação, buscam construir modelos preditivos que apresentem a melhor combinação de relacionamentos entre um conjunto de atributos, denominados atributos explanatórios, e um dado atributo de interesse, denominado atributo preditivo.
+A classificação descreve e distingue o atributo preditivo, tal que os modelos resultantes possam ser utilizados para predizer a classe cujos atributos explanatórios pertencem.
+A fim de que esse modelo seja produzido, o classificador passa por uma etapa de treinamento.
+O treinamento do classificador é feito a partir de uma seleção de dados denominada conjunto de treino.
+Este consiste em registros cujo atributo preditivo deve ser previamente fornecido para que seja constituído um modelo de classificação.
+Após o treinamento, é aplicado o conjunto de teste, o qual consiste numa seqüência de registros cujos atributos são o mesmo do conjunto de treino, mas o valor atributo preditivo não é conhecido.
+É a partir de o treinamento que o classificador produz modelos preditivos para o conjunto de teste.
+Existem diferentes técnicas que podem representar um classificador, como árvores de decisão, redes neurais, redes bayesianas, entre outros.
+Uma árvore de decisão, por exemplo, é um grafo cujos nodos internos são compostos por os atributos explanatórios, e os nodos folha por valores para o atributo preditivo.
+A idéia é dividir os atributos explanatórios, baseado em testes de condição, até que o nodo folha seja atingido indicando, assim, qual o valor do atributo preditivo.
+O C4.
+5 é um popular algoritmo que implementa árvores de decisão.
+O ambiente Weka chama de J48 a implementação do C4.
+5. Embora ferramentas de mineração de dados, como o Weka, sejam capazes de se comunicar diretamente com um DW, pode não ser conveniente utilizar os dados em sua forma bruta, assim como pode não ser conveniente que todos os atributos sejam utilizados.
+Para que um algoritmo de mineração possa ler os dados a serem minerados, os mesmos devem ser convertidos em algum formato que o mesmo seja capaz de interpretar.
+No caso de o Weka, o formato preferencial para interpretação dos atributos a serem minerados é a partir de um por o mesmo.
+A Figura 4 exemplifica um arquivo no formato arff.
+Esse tipo de arquivo é composto de atributos e instâncias para estes atributos.
+A primeira entrada deste arquivo (a) determina o nome do mesmo.
+Em seguida (b), são declarados todos os atributos que compõe o arquivo.
+Estes atributos podem ser de dois tipos:
+Contínuos ou categóricos.
+Quando contínuo, basta informar o tipo de valor aceito (c):
+Em o exemplo, real.
+Quando categóricos, é necessário Atributo3.
+Após a declaração, são inseridas as instâncias (e) do arquivo, obedecendo à ordem declarada dos atributos e separando os mesmos por vírgula.
+Todas as entradas precedidas do sinal@ (arroba) são mandatórias para a correta formatação do arquivo.
+Para utilizar o algoritmo J48, a ferramenta Weka permite que o conjunto de treino e o conjunto de teste sejam fornecidos em arquivos individuais.
+Entretanto, a opção padrão sugere a utilização do método de validação cruzada (cross-validation).
+Esse método, ao ler um arquivo arff, divide o mesmo em conjunto de treino e conjunto de teste.
+É sugerido, como padrão, que o mesmo seja dividido em dez partes, sendo que uma dessas partes é escolhida, aleatoriamente, para ser usada como conjunto de treino, enquanto as outras nove partes são utilizadas como conjunto de teste.
+É possível determinar em quantas partes deseja- se dividir o arquivo.
+Entretanto, em é relatado que diversos experimentos mostraram que a divisão em 10 partes apresenta os resultados mais satisfatórios.
+A qualidade do resultado fornecido por o algoritmo pode ser verificada por a matriz de confusão (confusion matrix) fornecida.
+A partir de o número total de instâncias contidas no arquivo, essa matriz mostra, para cada valor do atributo preditivo, o número de instâncias que foram classificadas corretamente e o número de instâncias que foram classificadas erroneamente.
+A Tabela 1 mostra como essa matriz é apresentada onde, no caso de o atributo preditivo conter apenas dois valores, têm- se:
+O número de instâncias classificadas como verdadeiros positivos (Vp);
+O número de instâncias classificadas como verdadeiros negativos (VN);
+O número de instâncias classificadas como falsos positivos (FP);
+E O número de instâncias classificadas como falsos negativos (FN).
+Com os resultados da matriz de confusão é possível determinar a acurácia do modelo, ou seja:
+Quão satisfatória foi a classificação.
+A acurácia é calculada por:
+A forma de apresentação dos dados contidos no arquivo a ser interpretado por o algoritmo de mineração pode ser fundamental para que este algoritmo retorne resultados com melhor acurácia.
+Para tanto, é sugerido que os dados a serem minerados passem por uma conveniente etapa de preparação para a mineração (a qual não deve ser confundida com o processo de Etc).
+Esta busca trabalhar com os dados que já estão contidos no DW e adequar- los para a mineração.
+Mesmo que a preparação de dados seja bastante trabalhosa, demandando bastante tempo, este esforço deve ser endereçado por contribuir fortemente para o grau de confiabilidade dos resultados obtidos por os diferentes algoritmos de mineração empregados.
+Assim, a conveniente preparação dos dados para a mineração é um ponto importante a ser endereçado.
+Tan propõe uma série de etapas que auxiliam tal preparação:
+Agregação ­ essa etapa busca sumarizar os dados em diferentes perspectivas como, por exemplo, combinando dois ou mais objetos num único objeto, reduzindo o escopo a ser minerado;
+Suavização ­ a suavização dos dados visa eliminar possíveis ruídos que possam estar presentes no conjunto de dados analisado;
+Redução de Dimensionalidade ­ a redução de dimensionalidade busca sumarizar num volume menor de dados, atributos que possuem uma grande quantidade de valores distintos;
+Seleção de Atributos ­ essa técnica visa eliminar atributos (colunas) que possam ser redundantes e irrelevantes ao objetivo da mineração, onde o subconjunto selecionado seja tão representativo quanto seriam os dados originais;
+Criação de Atributos ­ essa técnica permite que, baseado em valores de atributos já existentes, seja possível criar outros atributos que, num escopo menor, possam melhor representar- los;
+Discretização ­ a discretização permite transformar atributos contínuos em atributos discretos.
+Além de alguns algoritmos de mineração não aceitarem valores contínuos (no caso de a classificação, é essencial que, pelo menos, o atributo preditivo seja discreto), alguns valores contínuos podem estabelecer alguma relação de ordem entre si que sejam desnecessárias ou até perturbadoras;
+E Transformação de Atributos ­ a transformação de atributos busca aplicar alguma regra que seja inferida sobre os valores de um dado atributo como, por exemplo, normalizar uma escala de valores.
+Este capítulo apresentou uma revisão bibliográfica dos assuntos endereçados nesta pesquisa.
+Foi discutido o conceito de virtualização e apresentado o Xen, um paravirtualizador que permite a execução simultânea de distintas VMs, cada uma com seu próprio sistema operacional, oferecendo acesso às instruções privilegiadas do hardware.
+Para tanto, foi mostrado como a utilização de benchmarks pode ser útil para avaliar o desempenho dessas VMs.
+Foi discutido, também, o processo de KDD, o qual endereça a tomada de decisão.
+Foi enfatizado que a qualidade dos resultados obtidos com o processo de KDD está diretamente relacionada à qualidade dos dados que compõem o DW e à qualidade dos dados a serem minerados.
+Assim, entende- se que essas são etapas que merecem especial atenção.
+Em o capítulo seguinte é relatado como um processo de KDD pode auxiliar na reconfiguração de ambientes virtualizados.
+A Figura 5 apresenta uma típica atuação do Xen, onde se tem, no exemplo, quatro VMs, sendo que cada uma dessas VMs têm níveis diferentes de consumo de recursos (ex:
+CPU e memória), ilustrado por a altura de cada VM.
+As linhas tracejadas representam a disponibilidade de recursos para o ambiente.
+Parte- se do pressuposto que, ao inicializar uma máquina Xen, os recursos disponíveis sejam igualmente alocados para todas as VMs.
+Essa alocação está representada por a Figura 5 a, onde percebe- se que a VM 2 está subutilizando os recursos a ela disponíveis, enquanto que a necessidade de consumo da VM 3 é maior do que o limite à sua disposição, não sendo possível atender a toda sua demanda.
+Para melhorar a performance global do Xen, espera- se que os recursos possam ser adequadamente redistribuídos.
+Este modelo ideal está representado na Figura 5 b, onde é possível notar, por a linha tracejada, que os recursos computacionais foram distribuídos proporcionalmente à demanda de cada VM, sem excesso ou escassez, respeitando a disponibilidade global do ambiente.
+Para que a distribuição desses recursos computacionais seja efetuada corretamente, é importante ter conhecimento sobre a demanda de recursos de cada VM e a disponibilidade de recursos para o ambiente como um todo.
+Para tanto, uma possível estratégia é fazer uso de resultados de testes de desempenho sobre cada VM, os quais podem ser obtidos através da execução de benchmarks sobre cada sistema operacional virtualizado.
+Dada a diversidade de configurações que possam ocorrer nesses ambientes, pode- se ter um grande volume de resultados de benchmarks.
+Examinar, interpretar e aferir esses resultados manualmente para que, a partir de eles, seja possível apontar uma adequada distribuição de recursos, não é uma tarefa trivial de ser realizada.
+Em esse sentido, é conveniente empregar algum suporte computacional que enderece e auxilie esse processo.
+O objetivo desta pesquisa é propor um processo de apoio à reconfiguração de ambientes virtualizados, baseado num processo de KDD.
+O processo de KDD construído é ilustrado na Figura 6.
+Este processo abrange um total de 12 etapas, conforme segue.
+Primeiramente são executados benchmarks sobre distintas configurações do ambiente virtualizado por o Xen (a), de onde se obtém dados de configuração e desempenho (b) desse ambiente.
+Após passarem por um processo de extração, transformação e carga (c), estes dados são armazenados num DW especificamente projetado para este contexto (d).
+A partir desse DW, os dados precisam ser preparados (e) para serem utilizados por algoritmos de mineração de dados (f).
+Estes algoritmos buscam identificar padrões e apontar, através de modelos preditivos (g), características quanto a o desempenho computacional do ambiente virtualizado.
+Com efeito, esses modelos são enriquecidos (h) para que, ao serem lidos por um subsistema de reconfiguração apresentem, dada uma configuração vigente de uma máquina Xen (j), e seguindo possíveis políticas de SLA (service level agreement) (k), qual a melhor maneira de reconfigurar os seus parâmetros (l).
+Para melhor explicar esse processo de KDD, estas etapas são agrupadas nos seguintes contextos:
+Fonte de dados (etapas a e b);
+Data warehouse (etapas c e d);
+Mineração de dados (etapas de e à g);
+Apresentação (etapa h);
+E efetivação da reconfiguração (etapas de i à l).
+Com esse processo, a contribuição desta pesquisa pode ser vista sobre dois aspectos.
+O primeiro, o data warehousing de métricas a partir de benchmarks (etapas da à d).
+O segundo, a descoberta de padrões para a mineração, onde as métricas armazenadas são convenientemente utilizadas para, a partir de elas, poder predizer características que enderecem a reconfiguração de um dado um ambiente (etapas de e à h).
+Cabe ressaltar que esta pesquisa está inserida num projeto de parceria, o qual conta com a soma de esforços entre duas pesquisas complementares que convergem em direção a a reconfiguração dinâmica do Xen.
+Em esse sentido, a efetivação da reconfiguração, que cobre os esforços correspondentes às etapas da a (l) da Figura 6, são objeto da pesquisa proposta por.
+Por se tratarem de pesquisas complementares, tais etapas são endereçadas para retratar a relação de dependência que apresentam com o restante do processo.
+A pesquisa de apresenta o desenvolvimento de um subsistema de reconfiguração que monitora uma dada máquina Xen e verifica se a mesma alerta alguma situação para reconfiguração.
+Baseado nos resultados dos modelos preditivos gerados, o subsistema infere sobre a máquina Xen vigente alterando, em tempo de execução, seus parâmetros com as instruções recomendadas.
+Em este capítulo foi apresentado o cenário desta pesquisa, mostrando como é feita a alocação de recursos para as VMs do Xen, e mostrando qual o cenário ideal de distribuição desses recursos para melhorar seu desempenho.
+Em esse sentido, o problema consiste em como capturar dados de desempenho e, a partir de eles, inferir sobre a correta distribuição dos recursos.
+Para tanto, como contribuição da pesquisa, foi apresentado um processo completo de KDD para auxiliar a reconfiguração do paravirtualizador Xen.
+Este processo trata questões de data warehousing para métricas de benchmarks e de descoberta de padrões para a reconfiguração.
+Estas etapas são abordadas, respectivamente, nos dois capítulos seguintes, onde são apresentados os métodos utilizados e seus respectivos resultados.
+O processo de data warehousing de métricas de benchmarks busca permitir que sejam carregadas, no DW desenvolvido, distintas métricas de diferentes execuções de benchmarks.
+Esse data warehousing é representado por os contextos de Fonte de Dados e de Data Warehouse (que englobam as etapas da à d) do processo de KDD proposto (Figura 6), os quais são relatados nesse capítulo.
+São apresentados os métodos para planejamento de execuções de benchmark e para a modelagem do DW.
+Para cada método são apresentados os testes realizados, com dados desta pesquisa que corroboram a adequação do método proposto.
+As etapas que compõem o processo de KDD construído atuam sobre os dados obtidos das execuções de benchmarks e sobre os cenários em que estes foram executados.
+São esses conjuntos de dados que formam a fonte de dados deste processo de KDD.
+As execuções de benchmarks buscam simular situações reais, mapeando circunstâncias que possam ocorrer quando o sistema estiver operando com aplicações nas VMs.
+É preciso que se obtenha um número satisfatório e consistente de resultados de benchmarks, a fim de mapear o maior número de situações possíveis.
+Para tanto, esses são executados em larga escala e sobre diferentes cenários.
+As execuções devem ser planejadas buscando englobar um conjunto de configurações que representam o ambiente analisado.
+No caso de a avaliação de ambientes virtualizados, devem ser catalogadas, tipicamente, configurações referentes ao sistema operacional, ao hardware, ao paravirtualizador e ao próprio benchmark utilizado.
+Além disso, devem ser definidas configurações que dizem respeito às próprias execuções, ou seja, que buscam simular aplicações sendo executadas nos sistemas operacionais virtualizados.
+Assim, respeitando as configurações de ambiente, o planejamento de execução de benchmarks deve representar:
+Limites de Consumo de CPU ­ esse limite objetiva simular um ambiente cujas aplicações estejam consumindo um determinado percentual de CPU disponível para o ambiente.
+Como exemplo, uma VM pode ter aplicações que, ao total, consomem apenas 85% do total de CPU disponível.
+Assim, deve ser especificado um conjunto limitado de valores que seja capaz de representar aplicações sendo executadas;
+Total de VMs ­ deve ser definido o total de VMs que são carregadas para um dado ambiente;
+Limites de CAP ­ o percentual de CPU definido acima é válido para o ambiente como um todo.
+De essa forma, cada VM recebe uma fatia desse total.
+A essa fatia é atribuído o nome de CAP (topo).
+Valores de CAP simulam diferentes necessidades de consumo das aplicações que estejam executando em cada VM.
+É preciso definir um valor mínimo de CAP, bem como intervalos entre esses valores.
+Posteriormente, é interessante que sejam definidas todas as combinações possíveis de CAP para cada percentual de CPU;
+Limite de Memória ­ além de valores de CAP, para cada VM deve ser alocada uma fatia do total de memória disponível para o ambiente como um todo.
+Para tanto, é conveniente que também seja adotada alguma estratégia de distribuição;
+E Número de Configuração ­ cada conjunto de configurações deve ser identificado com um número distinto de configuração.
+Os benchmarks são executados em cada VM de uma dada configuração.
+Em outras palavras, cada configuração suporta, pelo menos, tantas execuções de benchmarks quanto o número de VMs alocadas.
+Um mesmo benchmark pode ser executado diversas vezes sobre uma mesma configuração, assim como podem ser executados benchmarks distintos.
+Cada benchmark reporta o os valores encontrados para cada métrica no dado instante de tempo em que foram executados.
+Para atender às necessidades do projeto de parceria que esta pesquisa se enquadra, o planejamento das configurações segue o seguinte critério:
+Para um único ambiente de execução, foram definidos percentuais de CPU que variam entre 70% e 100%, com intervalos de 5 em 5.
+Adotou- se essa política por considerar- se que, dadas as características do Xen, não haveria aplicações que consumissem menos de 70% do total de CPU disponível;
+O ambiente definido para os testes conta com 280 MB a serem distribuídos entre as VMs.
+A distribuição dessa memória obedece a uma estratégia, definida por o projeto de parceria, que limita em sete combinações distintas, conforme exemplo da Tabela 4.
+Em essa tabela, para cada VM é ilustrada as diferentes combinações de memória definidas.
+As combinações dos valores de CAP e de memória são alocadas para cada VM conforme exemplo das Tabelas 3 e 4, optando por não realizar a permutação desses valores nas VMs (ver Seção 5.2).
+Assim, dadas as 136 combinações de CAP e considerando que para cada uma dessas combinações há 7 distribuições de memória, puderam ser planejadas um total de 952 configurações distintas para execuções de benchmarks.
+Como os benchmarks são executados sobre cada VM, e cada configuração conta com 4 VMs, esse planejamento permite que obtenha- se um total 3.808 execuções de benchmarks.
+A Tabela 5 exemplifica uma pequena parte desse planejamento, representado por:
+Ambiente ­ são definidas variações de configuração, como memória disponível, escalonador utilizado, hardware, entre outros;
+CPU ­ é utilizados 85% de CPU VMs ­ o planejamento conta com 4 VMs paralelas;
+CAP ­ para cada VM é atribuído um valor de CAP, cujas combinações de valores são:
+E; Memória ­ o planejamento de distribuição de memória apresentado na Tabela 2 é alocado para cada VM;
+Configuração ­ São definidas 14 configurações.
+Para cada célula de configuração vs.
+Memória há uma execução de benchmark (simular ao apresentado na Figura 2, capítulo 2) que retorna métricas e seus respectivos valores para o contexto analisado.
+Kernel: 2.6.16.33/ Memória Disponível:
+280 MB/ Benchmark:
+Unixbench 3.11 VMs Memória (MB) Memória (MB) Configuração Ambiente É importante ressaltar que o benchmark adotado para tais configurações foi o Unixbench.
+A escolha do mesmo se deu por dois motivos:
+É opção do projeto de parceria trabalhar apenas com métricas de CPU e de memória (as métricas do Unixbench atendem a essa características);
+E as execuções de benchmarks para cada configuração demandam muito tempo (não haveria tempo hábil para executar mais de um benchmark, como LmBench e Iozone, em cada configuração).
+Além disso, apesar de o planejamento, puderam ser executados benchmarks apenas para 70%, 85%, 90% e 100% de CPU e, para os dois últimos, as execuções se deram para um total de 21 e 29 combinações de CAP, respectivamente.
+Assim, têm- se um total de 77 combinações de CAP que geraram 539 configurações, totalizando em 2.156 execuções de benchmarks.
+Para que os dados de execução de benchmarks e de suas respectivas configurações sejam adequadamente armazenados, é construído um DW.
+Assim, a modelagem do DW é uma importante etapa para compor o cenário desse processo de KDD.
+O modelo analítico construído é baseado no esquema floco de neve, focalizado num cenário de captura de métricas de benchmarks.
+Este modelo, ilustrado na Figura 7, possui dimensões que denotam:
+Entendeu- se ser o esquema floco de neve o mais conveniente, pois o perfil típico do usuário desse modelo domina a estruturação proposta, principalmente, para configuração do ambiente.
+Para os experimentos realizados, o modelo apresentou- se suficientemente abrangente, sendo capaz de armazenar uma série de execuções para diferentes configurações e benchmarks.
+Cada conjunto das dimensões de configuração de ambiente (Figura 7 a) é organizado em quatro níveis, onde os três primeiros especificam a configuração de cada característica.
+Esta solução permite acomodar quaisquer detalhamentos que as propriedades necessitem para melhor caracterizarem os fatos.
+Para que seja possível associar um fato a uma combinação de configurações, o quarto nível é uma tabela ponte, na terminologia de, que agrupa diferentes conjuntos de configurações.
+Assim, as dimensões de ambiente são organizadas como segue:
+Propriedade ­ dimensões Benchmark, Hardware, SistemaOperacional e Paravirtualizador.
+Os atributos que compõem essas dimensões são:
+Código da propriedade e descrição da propriedade;
+Configuração da Propriedade dimensões ConfiguracaoBM, ConfiguracaoHW, ConfiguracaoSO e ConfiguracaoPV.
+Os atributos que compõem essas dimensões são:
+Código da configuração e descrição da configuração, além de a referência da propriedade a que pertence;
+Valores de Configuração de cada Propriedade dimensões ValorConfigBM, ValorConfigHW, ValorConfigSO e ValorConfigPV.
+Os atributos que compõem essas dimensões são:
+Código do valor de configuração e valor da configuração, além de a referência da configuração da propriedade a que pertence;
+E Grupo ­ dimensões GrupoConfBM, GrupoConfHW, GrupoConfSO e GrupoConfPV.
+É composta por o código do grupo e referências para valores de configuração de cada propriedade e tabela fato.
+As dimensões de configuração (Figura 7 b) comportam características referentes ao planejamento efetuado para cada configuração (tais configurações são semelhantes ao planejamento exemplificado na Tabela 5), onde são estabelecidas as três seguintes dimensões:
+Configuracão ­ essa dimensão busca representar as características de cada configuração.
+Os atributos que compõem essa dimensão são:
+Código da configuração, tipo da configuração, percentual de CPU e total de VM;
+MaquinaVirtual ­ essa dimensão busca representar as características de cada máquina virtual em cada execução, além de a referência à configuração.
+Os atributos que compõe essa dimensão são:
+Número da VM (indicando qual VM está sendo analisada), memória, CAP e média (esse atributo indica o valor referente a a performance total de cada VM, conforme exemplo da Figura 2 no capítulo 2);
+E DataExec ­ essa dimensão identifica a estampa de tempo (timestamp) em que as execuções de benchmarks foram efetuadas para cada configuração.
+Os atributos que compõem essa dimensão são:
+Código e estampa de tempo para uma dada execução.
+As dimensões de métricas (Figura 7 c) armazenam características de cada métrica, reportada por cada benchmark.
+Tais dimensões são:
+GrupoMetrica ­ Alguns benchmarks, como o LmBench, utilizam critérios próprios de agrupamento de métricas, reportando o mesmo nome de métrica em diferentes grupos.
+Entendeu- se ser conveniente reproduzir esses agrupamentos no modelo para garantir a abrangência do mesmo.
+Os atributos que compõem essa dimensão são:
+Código do grupo de métricas e descrição do grupo;
+Metrica ­ Para cada registro do grupo de métricas, as mesmas são agrupadas em diferentes contextos, onde essa dimensão contém todas as características referentes às métricas reportadas por cada benchmark.
+Os atributos que compõem essa dimensão são:
+Código da métrica, nome da métrica e tipo da métrica (indicando o aspecto medido como, por exemplo, CPU e memória);
+E UnidadeMedida ­ nessa dimensão são identificadas as unidades de medidas utilizadas para cada métrica, em cada benchmark.
+Benchmarks distintos podem possuir um mesmo nome de métrica ou métricas equivalentes, porém com unidades de medida distintas.
+Os atributos que compõem essa dimensão são:
+A tabela fato desse modelo representa os valores medidos para cada métrica em seu respectivo contexto.
+Este é composto por um identificador, por os atributos-chave das dimensões, caracterizando o cenário em cada métrica foi capturada, e por dois atributos numéricos que representam o valor medido para cada métrica e seu índice correspondente (estes valores são calculados e fornecidos por o benchmark).
+Com a estruturação proposta, o DW é capaz de acomodar execuções de diferentes benchmarks em diferentes contextos de configurações.
+O modelo analítico desenvolvido busca englobar todo o cenário em que as execuções de benchmarks são efetuadas.
+Entretanto, caso haja alguma evolução no processo de execução, outras situações podem ser exploradas.
+Esse modelo pode evoluir de acordo com os cenários de execuções em que o processo se encontra.
+Sendo assim, caso haja novas abordagens que não estejam previstas nos contextos de configuração de ambiente, configurações e métricas, o modelo apresentado é capaz de ser estendido ou modificado, sem apresentar ônus para as características já presentes, mantendo os princípios usados na sua concepção.
+No que se refere aos resultados reportados por os benchmarks, não há uma uniformização na apresentação dos mesmos, nem um formato padrão para intercâmbio de resultados.
+Além disso, para que o DW seja alimentado, é necessário complementar os resultados das execuções de benchmark com os dados de configuração.
+Para garantir a consistência dos dados do DW, é feita uma análise cuidadosa nos valores resultantes das execuções de benchmarks e nos parâmetros contidos no planejamento de execuções, de forma com que os dados dessas duas fontes sejam adequadamente relacionados.
+Esse processo pode se beneficiar bastante caso tenha um nível de automação maior como, por exemplo, o proposto em e em.
+Para as dimensões de ambiente, a conveniência da estruturação em 4 camadas pode ser observada com o exemplo da Tabela 6, a qual reporta exemplos de conteúdo referentes ao Paravirtualizador.
+O cabeçalho desta tabela apresenta os nomes das dimensões (Paravirtualizador, ConfiguracaoPV, ValorConfigPV e GrupoPV).
+Para cada dimensão são apontados os seus atributos e exemplos de respectivos registros.
+Em essa tabela é possível observar que, para um dado paravirtualizador Xen, existem quatro aspectos de configuração, sendo que cada um desses possui uma ou mais variações de valores:
+Há duas diferentes versões;
+Três distintos valores para memória utilizada;
+Dois possíveis escalonadores (Credit e Sedf);
+E um valor para a memória do Domínio 0.
+Essas características ainda podem ser combinadas entre si em diferentes situações.
+Em esse sentido, a finalidade da utilização de grupos mostra- se mais evidente pois, conforme o exemplo, as configurações podem estar agrupadas em diferentes perspectivas, onde cada uma pode fazer parte de um ou mais grupos, contendo as seguintes configurações:
+Grupo 01 ­ Versão:
+3.0.4; Memória:
+476 MB;
+Escalonador: Credit;
+Domínio0: Grupo 02 ­ Versão 3.0.4;
+Memória: 470 MB;
+Escalonador: Sedf;
+Domínio0: Grupo 03 ­ Versão 3.0.2;
+Memória: 440 MB;
+Escalonador: Sedf;
+Domínio0: Grupo 04 ­ Versão:
+3.0.2; Memória:
+476 MB;
+Escalonador: Credit;
+Domínio0: Exemplos de conteúdo das dimensões de ambiente relacionadas à Hardware, Benchmark e Sistema operacional são ilustrados nas Tabelas 7, 8 e 9, respectivamente.
+Em o cabeçalho dessas tabelas estão dispostos os nomes das dimensões, seguido de seus atributos e respectivas instâncias.
+Em a Tabela 7 observa- se que, para uma máquina Xeon, as configurações disponíveis são memória e processador (2.4 GHz).
+Ambas as configurações são identificadas por o grupo 01.
+A Tabela 8 mostra que, para o benchmark Unixbench pode haver duas versões, as quais pertencem, respectivamente, aos códigos de valores de grupo 01 e 02.
+A Tabela 9 mostra que, para o sistema operacional Linux, é definida uma configuração de Kernel, a qual é identificada por o grupo 01.
+Tabela 9 ­ Exemplo de registros nas dimensões de ambiente de sistema operacional Sistema Operacional ConfiguracaoSO ValorConfigSO GrupoConfSO Cód Sistema Operacional Cód Conf Cód Configuração Cód Valor Cód Conf Cód Valor Cód Grupo Cód Valor Cód Conf Cód Linux Kernel Exemplos para registros das dimensões de configuração estão ilustrados nas Tabelas 10 e 11.
+A Tabela 10 mostra exemplos de registros para a dimensão DataExec.
+Já a Tabela 11 exemplifica um conjunto de dados para as dimensões Configuracão e MaquinaVirtual, de acordo com o exemplo de planejamento da Tabela 5, para as configurações 239, 241, 243, 245, 281, 283, 285 e 287.
+O cabeçalho da Tabela 11 identifica essas dimensões, seguido de seus atributos e respectivas instâncias.
+Para cada registro da dimensão Configuracão há quatro registros na dimensão MaquinaVirtual.
+Tabela 11 ­ Exemplos de registros para as dimensões Configuracão e MaquinaVirtual Configuracão MaquinaVirtual Código Config Tipo Configuração Total Código Config Número Memória Média Para as dimensões de métricas, os exemplos de registros são apresentados nas Tabelas 12 e 13.
+A Tabela 12 ilustra exemplos de registros para a dimensão UnidadeMedida, os quais reportam as unidades de medida utilizadas por o Unixbench.
+O cabeçalho dessa tabela indica o nome da dimensão e os atributos que compõe a mesma.
+Já a Tabela 13 exemplifica um conjunto de registros para as dimensões GrupoMetrica e Metricas.
+O cabeçalho dessa tabela indica o nome da dimensão, seguido de seus atributos e respectivas instâncias.
+No caso de o exemplo, são ilustradas apenas as 6 métricas do Unixbench que foram reportadas no resumo das informações deste benchmark (Figura 2 c).
+Como esse benchmark não faz uso de agrupamentos, o nome do grupo de métricas foi definido com o nome do próprio benchmark.
+Dadas as 2.156 execuções do benchmark Unixbench, considerando que cada resultado desse benchmark produziu um total de 27 métricas e seus respectivos valores, a Tabela Fato com os dados desta pesquisa conta com um total de 58.212 registros.
+Este capítulo apresentou o data warehousing do processo de KDD construído para reconfiguração do Xen.
+Foi mostrado como é efetuado um planejamento de execuções para obter resultados de diferentes cenários de configuração de ambiente.
+Foi construído um DW focalizado em captura de métricas de benchmarks para acomodar os diferentes valores de métricas reportados por cada benchmark, em cada cenário de execução.
+Esse modelo, para os testes realizados, mostrou- se abrangente, sendo capaz de acomodar todos os dados planejados e necessários para esta pesquisa.
+Fazendo uso desses dados organizados, o capítulo seguinte apresenta como a mineração de dados pode ser útil em sugerir parâmetros de reconfiguração para o Xen.
+Os contextos de mineração de dados e de apresentação, que englobam as etapas de (e) a a (h) do processo de KDD proposto (Figura 6), caracterizam a descoberta de padrões para a mineração.
+Essa última tira proveito da organização dos dados de execução de benchmarks no DW para, a partir de eles, extrair padrões que auxiliem na reconfiguração de ambientes virtualizados (contexto de efetivação da reconfiguração, etapas de (i) a a (l) da Figura 6).
+Em este capítulo são relatadas as etapas de mineração de dados e de apresentação, enfatizando a preparação de dados para a geração de modelos preditivos, e como esses modelos gerados são enriquecidos para que possam ser utilizados por o subsistema de reconfiguração.
+Para cada etapa são apresentados os métodos aplicados e respectivos testes realizados.
+A mineração de dados, nesta pesquisa, é aplicada para identificar se é possível melhorar a performance de uma dada máquina Xen, e como isso deve ser feito, indicando uma reconfiguração adequada para seus parâmetros.
+São utilizadas tarefas preditivas, focalizadas em algoritmos de classificação, para indicar, dada uma configuração de uma máquina Xen vigente, quais novos conjuntos de configuração podem fornecer melhora de desempenho.
+Como esta pesquisa não tem por objetivo desenvolver um novo algoritmo de mineração de dados para gerar os resultados esperados, para testar essa abordagem é utilizado, como sistema de apoio, o algoritmo J48 do ambiente Weka.
+Assim, os esforços empregados concentram- se na preparação dos dados para a mineração, a fim de que os mesmos contribuam para uma adequada produção de modelos preditivos que auxiliem na reconfiguração do Xen.
+Por estar sendo utilizada uma tarefa preditiva, optou- se em realizar a preparação dos dados para a mineração em duas etapas.
+Em a primeira, os dados são preparados para definir o atributo preditivo.
+Em a segunda, os atributos explanatórios são preparados e organizados num arquivo do tipo arff para serem lidos por o algoritmo de mineração.
+Em ambas as etapas, faz- se uso conveniente das técnicas de preparação discutidas na Seção 2.2.4.
+Para definir o atributo preditivo, considera- se necessário efetuar um mapeamento entre todas as configurações, de modo a identificar se a alteração de uma dada configuração para outra traz vantagens, ou não, na reconfiguração.
+Esse mapeamento é feito considerando o desempenho global de cada configuração, como segue:
+Primeiramente são coletados todos os valores do atributo média da dimensão MaquinaVirtual do DW;
+Para obter o desempenho global, é aplicada a técnica de transformação de atributos, efetuando o somatório do atributo média de todas as VMs que fazem parte de uma dada configuração;
+A partir desse somatório, cada configuração é comparada com as demais, duas a duas, onde se tem uma configuração inicial e uma configuração alvo (ex:
+Aplicando a técnica de criação de atributos, a comparação entre as configurações é feita com algum critério definido como benefício.
+Em o caso, como ponto de partida, pode- se usar a diferença entre o somatório de cada configuração alvo e o somatório da configuração inicial.
+De posse desses resultados, é elaborada uma matriz quadrada, para todas as configurações estabelecidas, cujo objetivo é mapear o efeito da mudança de configurações.
+As células dessa matriz contêm valores 0 ou 1.
+Em esse caso é aplicada a técnica de transformação de atributos, verificando o resultado da diferença entre a configuração alvo e a configuração inicial.
+Caso a diferença seja maior do que zero, significa que houve melhora de desempenho, e a célula correspondente da matriz é alimentada com 1;
+caso a diferença seja menor ou igual a zero, significa que a configuração inicial apresenta um desempenho melhor ou equivalente à configuração alvo, e a célula correspondente da matriz é alimentada com 0.
+O valor de cada célula da matriz vai dizer se mudança da configuração inicial (eixo x), para a configuração alvo (eixo y) é benéfica, e esse será o atributo preditivo.
+Como efeito, essa matriz deve ser capaz de produzir um grafo dirigido, necessariamente acíclico, com as mudanças de configurações que são benéficas.
+Como a definição do atributo preditivo é efetuada considerando- se uma configuração inicial comparada com as configurações alvo, é apropriado que a preparação dos demais atributos, os quais irão compor o arquivo para a mineração, siga o mesmo princípio.
+Por questões de simplicidade e portabilidade, os dados devem ser dispostos num arquivo do tipo arff.
+Esse arquivo deve conter, em cada registro, dados que representam a configuração inicial, dados que representam a configuração alvo, e o valor do atributo preditivo correspondente.
+A preparação desses atributos segue os seguintes critérios:
+Os atributos que compõem o arquivo arff devem ser aqueles que correspondem aos parâmetros de configuração que tem- se interesse de alterar:
+Caso não seja objetivo alterar configurações de hardware, atributos desse tipo não devem ser utilizados.
+Em esse caso é aplicada a técnica de seleção de atributos;
+O arquivo ainda pode conter apenas os atributos selecionados que atendam à uma determinada categoria.
+Como exemplo, pode- se querer apenas os atributos que correspondam às execuções de 85% de CPU.
+Para selecionar apenas essas instâncias, é aplicada a redução de dimensionalidade;
+É conveniente verificar se os valores dos atributos selecionados, quando numéricos, merecem ser tratados como valores ordenáveis.
+Caso não seja conveniente que os mesmos apresentem alguma relação de ordem, aplica- se a técnica de discretização para que esses se tornem categóricos;
+E Alguns atributos podem ser utilizados individualmente ou tratados como a combinação de seus valores para a configuração (ex:
+CAP e memória).
+Se não for conveniente representar- los individualmente, aplica- se a técnica de criação de atributos, a fim de definir valores que representem cada combinação.
+Seguindo esse procedimento, o algoritmo de mineração aplicado sobre esse arquivo pode, então, ser capaz de produzir modelos preditivos que indiquem quais parâmetros de configuração, se alterados, podem representar melhora de desempenho para uma dada configuração.
+A saída do classificador é uma árvore de um ou mais níveis onde podem aparecer valores para um ou mais atributos explanatórios e, no último nível, constam 1 ou 0, identificando se a reconfiguração é benéfica ou não.
+Em este tipo de saída, os atributos explanatórios que não aparecem na mesma, são considerados irrelevantes por o classificador para predizer o atributo preditivo.
+A qualidade dos modelos pode ser medida não apenas por a acurácia dos mesmos, mas analisando os valores apresentados na matriz de confusão.
+Embora os valores de Vp e VN representem as situações que foram classificadas corretamente, os valores de FN e FP também devem ser analisados.
+Os falsos negativos produzidos por o modelo não prejudicam a qualidade da máquina Xen na reconfiguração, pois o subsistema apenas não fará uso dessas reconfigurações.
+Por outro lado, os falsos positivos, para o problema endereçado, podem ser considerado como o erro de classificação mais crítico.
+Esses erros podem induzir o subsistema em reconfigurar uma dada máquina Xen para alguma configuração desvantajosa.
+Em esse sentido, um aprimoramento na definição do benefício numa alteração de configuração pode endereçar essa questão.
+Para o teste da etapa de mineração, são utilizados os dados do teste para o DW, apresentados no capítulo anterior.
+Para tanto, é preparado o atributo preditivo, gerado o arquivo arff, executado o algoritmo e analisada a credibilidade da solução.
+Para a preparação do atributo preditivo, são coletados os valores do atributo média de cada VM das 539 configurações definidas e, para cada configuração, é efetuado o somatório das médias das VMs.
+Para exemplificar, a Tabela 15 ilustra resultados desse processo para as configurações 239, 241, 243, 245, 281, 283, 285 e 287.
+Todas essas configurações são comparadas entre si.
+Essa tabela está dividida em configuração inicial, configuração alvo e resultado.
+Os valores de somatório correspondem à soma dos valores do atributo média de cada VM das configurações citadas.
+Para fins de simplificação, os valores para cada VM não estão reportados nessa tabela, mas podem ser conferidos na Tabela 11.
+O resultado apresenta a diferença entre o somatório da configuração alvo e o somatório da configuração inicial.
+Em as transições cujo valor da diferença é maior que zero, o atributo preditivo correspondente é 1 e, caso contrário é 0.
+Com os resultados dos atributos preditivos mapeados para cada configuração definida, é produzida uma matriz quadrada de tamanho 539.
+Para exemplificar o efeito das transições dessa matriz, a Figura 8 ilustra um grafo acíclico dirigido para as configurações apresentadas na Tabela 15.
+As arestas do grafo indicam as transições que apresentam melhora de desempenho.
+Nota- se que o grafo tem um único ponto de partida:
+A configuração 239, o que significa que, no exemplo, o desempenho desta configuração sempre pode ser melhorado.
+Por outro lado, os nodos 281 e 287 são os pontos finais do grafo.
+Essas duas configurações são vistas como ideais nesse contexto, não podendo ser melhoradas.
+A transitividade entre as transições não estão representadas no grafo.
+O projeto de parceria desta pesquisa demanda que a reconfiguração do Xen seja feita em tempo de execução.
+Em esse sentido, o arquivo arff é preparado apenas com os atributos dos parâmetros que podem ser alterados dinamicamente, podendo- se escolher os seguintes:
+Com uma série de experimentos efetuados, detectaram- se algumas perturbações.
+Essas mostraram que os atributos CAP e memória, por serem numéricos, estavam sendo tratados, por o algoritmo de mineração, como valores ordenáveis.
+Contudo, constatou- se que os mesmos não apresentam relação de ordem, necessariamente, na maioria dos casos.
+Assim, optou- se por discretizar- los, tornando todos categóricos.
+Além disso, os valores de CAP são armazenados individualmente para cada VM.
+Como cada combinação de valores de CAP é única, é interessante que o CAP seja trabalhado como a combinação de valores para cada configuração, e não tratados individualmente.
+Assim, aplicando as técnicas de criação de atributos e discretização, foi definido um atributo categórico para cada combinação de CAP.
+O conteúdo desse atributo é correspondente à primeira configuração pertencente a uma dada combinação de CAP.
+De maneira análoga, os valores de memória para as VM são tratados como um conjunto, e não individualmente.
+Aplicando as técnicas de seleção de atributos e discretização, para cada combinação de memória é assumido o valor da memória da primeira VM, o valor categórico para o atributo que representará tal combinação de memória é 110).
+A Figura 9 mostra uma versão simplificada da estruturação do arquivo Arff_ 85 preparado, com alguns dados selecionados que correspondem às configurações subseqüentes:
+Configuração 239 ­ CAP 239 e Memória 70;
+Configuração 241 ­ CAP 239 e Memória 90;
+Configuração 243 ­ CAP 239 e Memória 110;
+Configuração 245 ­ CAP 239 e Memória 130;
+Configuração 281 ­ CAP 281 e Memória 70;
+Configuração 283 ­ CAP 281 e Memória 90;
+Configuração 285 ­ CAP 281 e Memória 110;
+Configuração 287 ­ CAP 281 e Memória 130;
+Os dados para esta figura estão estruturados em blocos, os quais correspondem às seguintes configurações iniciais: (
+a) 281, (b) 283, (c), 285 e (d) 287.
+Cada uma dessas configurações iniciais tem as configurações 239, 241, 243 e 245, respectivamente, como alvo.
+Cada arquivo arff preparado é carregado no ambiente Weka e, sobre eles, é executado o algoritmo J48, utilizando o método de validação cruzada.
+Os modelos preditivos produzidos classificam situações que demandam, ou não, reconfiguração.
+Para os experimentos efetuados, os modelos fizeram uso do atributo CAP_ Alvo como raiz, derivando um ou mais atributos até atingir o atributo preditivo.
+A Figura 10 ilustra as diferentes situações produzidas por o classificador, quais sejam:
+CAP inicial; (
+b) Para um dado valor de CAP alvo (239), são verificados os diferentes valores de memória alvo (c) Para um dado valor de CAP alvo (281), são verificados diferentes valores de CAP inicial e, para um dado valor de CAP inicial, diferentes valores de memória inicial;
+CAP inicial e, para um dado valor de CAP inicial, diferentes valores de memória alvo;
+E (e) Para um dado valor de CAP alvo (302) são verificados os diferentes valores de memória alvo e, para um dado valor de memória alvo, diferentes valores de CAP inicial.
+A interpretação dos resultados é dada como segue.
+De acordo com Figura 10 a, conclui- se que, para quaisquer configurações de memória inicial dos CAPs iniciais 246, 253 e 267, a reconfiguração para o CAP 232, independente da configuração de memória alvo, é recomendada, enquanto a reconfiguração para o CAP 232 não é recomendada quando o CAP inicial for 260, 274 e 281.
+Com relação a a Figura 10 b, a reconfiguração para o CAP alvo 239 é recomendada, para quaisquer configurações de CAP e memória inicial, quando a memória alvo for 110, somente.
+A Figura 10c indica que a reconfiguração do CAP inicial 239 para o CAP alvo 281, com quaisquer valores de memória, é recomendada, exceto quando a memória inicial for 110.
+Por a Figura 10d é possível constatar que, partindo- se do CAP inicial 253, é recomendado reconfigurar para o CAP alvo 246, com quaisquer combinações de memória inicial, quando a memória alvo for 90, 110 e 130.
+Por fim, a Figura 10e mostra que, para quaisquer valores de memória dos CAPs iniciais 225, 232, 239, 246 e 253, é recomendado reconfigurar para o CAP 302 se a memória alvo for 100.
+O resultado completo para o arquivo Arff_ 85 é apresentado no Anexo A. CAP que cada arquivo preparado contém, do que o seu número de instâncias.
+Por outro lado, a acurácia específica para as predições positivas é praticamente a mesma do que a acurácia do modelo, não parecendo haver algum tipo de distorção ou tendência nas árvores produzidas que desconsiderem, significativamente, mudanças benéficas de reconfiguração.
+Contudo, testes mais exaustivos atuando, principalmente, no critério do benefício em reconfigurar, merecem ser feitos.
+O formato apresentado na Figura 10 não é confortável para que o subsistema de reconfiguração desenvolvido por o interprete, pois o mesmo precisa de uma estrutura de dados suficientemente simples e eficiente para não onerar sua execução.
+Assim, é objeto, para integração dessas pesquisas, definir um protocolo de comunicação adequado, o qual pode ser estabelecido, por exemplo, em formato XML.
+Para tanto, faz- se necessário enriquecer os modelos de gerados, etapa (h) da Figura 6, de maneira que o subsistema de reconfiguração possa identificar, rapidamente, uma situação de uma dada máquina Xen e configurar- la de acordo com os parâmetros sugeridos.
+O enriquecimento dos modelos preditivos constitui- se de instruções em alto nível para a reconfiguração do ambiente.
+Cada modelo preditivo enriquecido segue o modelo EventoCondição-Ação.
+Os eventos são capturados por o subsistema, descrevendo quais situações iniciam procedimentos para reconfiguração.
+As condições servem para selecionar o modelo preditivo adequado, já existente, e explorar- lo.
+Essas aparecem como um conjunto de parâmetros que representam as condições que possam sofrer alterações, os quais irão definir em que configuração atual a máquina Xen se encontra.
+As ações definem quais parâmetros de reconfiguração devem ser modificados, e como isso deve ser feito.
+Essas assumem o conjunto de configurações alvo disponível para a configuração inicial selecionada.
+Caso exista mais de uma opção, o subsistema avalia se tais configurações são convenientes, considerando políticas de SLA que possam estar definidas, e seleciona a que entender ser a mais conveniente.
+Para melhor interpretar os resultados dos modelos preditivos gerados, os mesmos são organizados no formato apresentado por a Tabela 19.
+Esta contém em todo, ou em parte, os resultados mostrados na Figura 10 e é estruturada da seguinte maneira:
+Para uma dada configuração inicial são apresentadas apenas as configurações alvo benéficas para a reconfiguração.
+Esses resultados de configuração alvo são enriquecidos de modo que apenas os conteúdos de CAP e memória que se diferem da configuração inicial são indicados para a reconfiguração.
+Vale ressaltar que essa tabela não apresenta de forma exaustiva todas as possibilidades de configuração de memória inicial cuja reconfiguração é benéfica, sugeridas por o modelo.
+Assim, o conteúdo da Tabela 19 corresponde a:
+O subsistema de reconfiguração avalia as instruções sugeridas e, de entre as que não violam regras de SLA, elege a que considerar mais apropriada.
+É importante ressaltar que as combinações de configurações de CAP e memória não são permutadas entre as VMs, de modo que as diferentes distribuições não estão reportadas nos modelos preditivos.
+Como conseqüência, o subsistema de reconfiguração torna- se responsável por avaliar a distribuição dessas combinações e aplicar a configuração adequada, pois o custo computacional necessário é menor do que o custo que o subsistema teria em percorrer todas as combinações de instruções, e selecionar a mais adequada.
+Em este capítulo foram apresentadas as etapas referentes à descoberta de padrões para a reconfiguração do processo de KDD proposto.
+Foi relatado como o dados contidos no DW são preparados para que possam ser utilizados por o algoritmo de mineração.
+O algoritmo escolhido foi o J48 do ambiente Weka.
+A preparação se deu em duas etapas:
+A primeira para o atributo preditivo e a segunda para os atributos explanatórios.
+A preparação foi conduzida de maneira que o resultado do algoritmo de mineração indicasse, dada uma configuração vigente, um conjunto de novas configurações a serem aplicadas para que haja ganho de desempenho.
+Cada percentual de CPU definido no planejamento gerou um arquivo distinto para a mineração.
+Em virtude de a preparação definida, os modelos preditivos gerados para tais arquivos apresentaram uma acurácia satisfatória.
+Foi apresentado com esses modelos são enriquecidos para que o subsistema de reconfiguração possa interpretar- los e, de maneira rápida e eficiente, reconfigurar uma máquina Xen de acordo com os parâmetros sugeridos.
+Em esse capítulo são apresentados alguns trabalhos relacionados ao tema desta pesquisa.
+Esses trabalhos são relatados a seguir.
+Em a seção subseqüente é feito um estudo comparativo entre esses trabalhos e a proposta endereçada por esta pesquisa.
+O trabalho apresentado por relata um projeto para auxiliar na reconfiguração de ambientes de aplicações multi-camadas, em tempo de execução, sem que tal reconfiguração viole algum SLO (service level objective).
+Para tanto, é medido o desempenho de tais aplicações com o benchmark Rubis, o qual retorna 220 métricas.
+De essas 220 métricas, são selecionadas apenas 12, as quais apresentam alguma relação com os SLOs definidos.
+A execução desse benchmark é efetuada sobre diferentes configurações de ambiente.
+Com os resultados para os diferentes cenários, é elaborado o conjunto de treino para o classificador.
+Enquanto os atributos explanatórios correspondem ao ambiente analisado e às métricas utilizadas e seus respectivos resultados, o atributo preditivo diz respeito ao grau de satisfação que tais resultados apresentam em relação a o SLO.
+Assim, com a utilização dos algoritmos de classificação C4.
+5, LogitBoost e Redes Bayesianas, foram produzidos modelos preditivos que indicam situações que representam gargalos.
+A o identificar alguma dessas configurações-gargalos, o sistema pode ser reconfigurado para outras que não o sejam.
+Em é apresentado um método analítico para medir desempenho de aplicações multi-camadas.
+A estratégia utilizada é, a partir de diversas combinações de parâmetros de configurações de ambientes, executar o benchmark Rubis e RUBBoS para coletar métricas.
+Assim como no trabalho anterior, este objetiva reconfigurar o ambiente, aplicando as configurações que apresentam melhor desempenho.
+Propõe a execução do benchmark Rubis sobre diferentes configurações de ambiente para extrair métricas de desempenho.
+O objetivo é, a partir de os resultados de cada métrica, definir políticas de SLA.
+Para tanto, são utilizados os algoritmos C4.
+5 e Random Tree, onde os atributos explanatórios são as métricas e seus valores, e o atributo preditivo é um atributo binário.
+O modelo preditivo gerado indica quais valores de métricas estão de acordo com políticas de SLA.
+O trabalho apresentado por propõe métodos analíticos para capturar o relacionamento entre métricas de desempenho obtidas dos benchmarks TPC-W e Rubis para ajustar políticas de SLA, definindo novos SLOs, em ambientes de data centers que se beneficiam com paravirtualizadores, como o Xen.
+A idéia é capturar métricas de desempenho e, com métodos analíticos, analisar os ambientes para que, a partir de seu comportamento, possam ser definidos novos SLOs para manter atualizadas as políticas de Em é sugerida a reconfiguração dinâmica para melhorar o desempenho de ambientes virtualizados.
+A abordagem é focalizada em capturar o desempenho de sistemas com diferentes configurações e, a partir de métodos analíticos que comparam um dado resultado de desempenho com políticas de SLA, definir uma nova configuração que apresente melhora de desempenho para o ambiente.
+A Tabela 20 mostra uma comparação entre os trabalhos relacionados, em relação a os aspectos que esta pesquisa endereça (apresentado na última coluna dessa tabela).
+Tais aspectos são os seguintes:
+Objetivo ­ o que o trabalho se propõe a testar:
+Reconfiguração do ambiente analisado ou definição de políticas de SLA.
+Diferentes objetivos implicam em distintos requisitos a serem atendidos;
+Ambiente Analisado ­ qual tipo de ambiente é alvo:
+Ambientes virtualizados como, por exemplo, utilizando o Xen, ou ambientes multi-camadas, com aplicações cliente-servidor;
+Métricas ­ quais as fontes para obtenção das métricas:
+Podem ser obtidas de distintos benchmarks;
+Modelo Analítico de Dados ­ se a proposta organiza os dados num DW para facilitar sua manipulação;
+Preparação de Dados ­ se a proposta emprega algum procedimento para a preparação a fim de melhorar a qualidade da solução;
+E Análise das Métricas ­ qual a abordagem adotada para análise das métricas:
+Não fica claro, nos trabalhos acima, se é adotado ou proposto um processo completo de KDD, em especial nas etapas de preparação de dados e seu apropriado armazenamento num DW.
+A preparação de dados é percebida apenas em.
+Por outro lado, os trabalhos que utilizam mineração de dados, e, utilizam o algoritmo J48 do Weka para atender a seus objetivos.
+Como pode ser observado na Tabela 20, esta proposta é a única que endereça a reconfiguração de ambientes virtualizados com análise das métricas através de técnicas de mineração de dados.
+Além disso, o uso de um DW e o emprego rigoroso de técnicas de preparação de dados aumenta a qualidade desta solução.
+Este trabalho apresentou o Xen, um paravirtualizador que permite a execução simultânea de diversas VMs, cada uma com seu próprio sistema operacional.
+Para tirar proveio de sua estrutura, foi apresentada uma maneira ideal para realocação dos recursos consumidos por as VMs, a fim de que seja obtido um desempenho mais satisfatório, onde a abordagem adotada é a de execuções de benchmarks para capturar métricas de desempenho das VMs.
+Para auxiliar a reconfiguração de parâmetros, foi construído um processo completo de KDD para capturar dados de execuções de benchmarks, organizar- los num DW e aplicar técnicas de mineração para sugerir novos parâmetros.
+Essa pesquisa está inserida num projeto maior, onde a efetivação da reconfiguração é objeto de outra pesquisa complementar, que propõe um subsistema para interpretar os parâmetros sugeridos e realizar a reconfiguração.
+Para o data warehousing do processo de KDD, foi apresentado um planejamento para execuções de benchmarks, os quais englobam diferentes configurações que possam ocorrer para o ambiente analisado.
+O modelo analítico desenvolvido para armazenar as métricas de benchmarks foi modelado para comportar quaisquer variações de configuração de ambiente em que esses benchmarks sejam executados, bem como para comportar métricas de distintos benchmarks.
+A organização desses dados num DW permite que, sobre os mesmos, sejam efetuadas consultas analíticas para obter detalhamentos em diferentes perspectivas.
+A etapa de descoberta de padrões para a reconfiguração, do processo de KDD, apresentou como os dados contidos no DW podem ser utilizados por técnicas de mineração de dados, a fim de inferir sobre novos parâmetros de reconfiguração para o Xen, onde o algoritmo utilizado foi o J48 do Weka.
+Para que esse algoritmo pudesse produzir resultados que sugerissem, seletivamente, novos parâmetros de configuração para uma dada máquina Xen vigente, foi feito uso rigoroso de técnicas de preparação de dados.
+A preparação dos dados se deu em duas etapas:
+A primeira, para definir o atributo preditivo, e a segunda, para preparar os atributos explanatórios.
+Para a preparação, o critério adotado foi de comparar o desempenho entre uma dada configuração inicial, com possíveis configurações alvo.
+Assim, puderam ser gerados modelos preditivos que indicassem conjuntos de parâmetros que apresentam melhora de desempenho para uma dada configuração do Xen.
+Os modelos preditivos produzidos não são confortáveis para que o subsistema de reconfiguração os possa interpretar.
+Em esse sentido, apresentou- se como os mesmos podem ser enriquecidos com instruções em alto nível que indiquem quais parâmetros de configuração merecem ser alterados, onde tais instruções são de simples interpretação e eficientes para a reconfiguração.
+A proposta desta pesquisa mostrou- se abrangente por propor um processo completo de KDD, endereçando todas as etapas inerentes a tal processo.
+Embora cada uma dessas etapas sejam suficientemente amplas para serem individualmente tratadas, entendeu- se que endereçar o processo como um todo é fundamental para atender aos objetivos propostos.
+Não foram encontrados trabalhos com essa abordagem, para esse tipo de problema, ou seja, que utilizasse um processo de KDD, empregando técnicas de mineração de dados para a reconfiguração de ambientes virtualizados.
+Além disso, entendeu- se que o uso de um DW e o emprego rigoroso de técnicas de preparação de dados corroboraram para a solução como um todo.
+Por se tratar de um tema abrangente, endereçando todas as etapas que compõem o processo de KDD, essa proposta pode ser beneficiada se sejam agregadas novas características.
+Assim, no que refere- se ao data warehousing de métricas de benchmarks, as seguintes abordagens seriam benéficas:
+Para o teste da Fonte de Dados, o planejamento poderia considerar diferentes tipos de hardware de modo que, nas etapas subseqüentes, pudessem ser endereçadas a migração de VMs entre máquinas;
+Para o planejamento definido, podem ser executadas mais vezes o mesmo benchmark, bem como ser executados outros benchmarks.
+Assim, o volume de resultados de desempenho poderia colaborar para a futura produção de modelos preditivos;
+E O processo de Etc dos resultados de benchmarks para o DW poderia ser aprimorado caso recebesse um nível maior de automação.
+Em o contexto de descoberta de padrões para a reconfiguração, embora os modelos preditivos tenham apresentado uma acurácia satisfatória, os mesmos poderiam ser beneficiados se adotassem os seguintes critérios:
+A preparação do atributo preditivo poderia ser abordado de maneira um pouco distinta:
+Hoje a preparação é feita através da comparação entre uma configuração alvo e uma configuração inicial, onde o valor da diferença entre o desempenho dessas duas configurações determina o atributo preditivo.
+Existe, entretanto, diferenças mínimas, cujo custo para a reconfiguração pode não valer a pena.
+Em esse sentido, caso fosse adotada uma margem para essa diferença na determinação do atributo preditivo, a acurácia dos modelos poderia ser melhorada;
+E A adoção de políticas de SLA é, atualmente, verificada por o subsistema no momento da reconfiguração.
+Essas poderiam ser analisadas e preparadas para serem endereçadas também na mineração de dados.

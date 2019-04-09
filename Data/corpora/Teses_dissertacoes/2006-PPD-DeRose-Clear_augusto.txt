@@ -1,0 +1,633 @@
+Em um sistema de processamento paralelo heterogêneo, a redução do tempo de resposta das aplicações pode ser alcancáda se for levada em consideração a natureza heterogênea do ambiente computacional.
+Este trabalho enquadra- se neste contexto e descreve o modelo cujo objetivo é otimizar o desempenho de aplicações paralelas MPI executadas sobre máquinas agregadas heterogêneas.
+Para isto, desenvolve- se uma estratégia de escalonamento global dos processos que compõem a aplicação, a qual visa realizar um mapeamento equilibrado de processos aos nós no início da execução (estático), de modo a balancear a carga e tendo por consequência a minimização do tempo de execução.
+Isto se dá de forma transparente ao usuário e é gradativamente refinado ao longo de as execuções da aplicação, através de um &quot;ciclo de adaptação «apoiado por a análise automática de informações de monitoração obtidas em execuções prévias da mesma.
+Para avaliar o modelo, foi desenvolvida uma ferramenta que implementa o método proposto.
+Esta ferramenta foi instalada e configurada no Centro de Pesquisa em Alto Desempenho (CPAD) localizado na PUCRS e uma análise de algumas aplicações paralelas executadas através da ferramenta, no agregado principal do CPAD, é apresentada.
+Palavras-chave: Escalonamento.
+Balanceamento de carga.
+Máquinas Agregadas Heterogêneas. Monitoração.
+Atualmente, o Processamento de Alto Desempenho é considerado uma ferramenta fundamental para as áreas de ciência e tecnologia, especialmente em campos como Bioinformática, Meteorologia, Química e Física, entre outros.
+Sua importância estratégica é caracterizada por a quantidade de iniciativas em pesquisa e desenvolvimento, nesta área, financiadas por governos e organizações de todo o mundo.
+Um exemplo é a definição nos Estados Unidos de um conjunto de aplicações prioritárias -- Grand Challenge Applications, ou aplicações de grande desafio as quais possuem grande impacto econômico e científico e têm uma demanda muito grande por alto desempenho computacional, exigindo muitos investimentos do governo para resolver- las.
+O processamento de alto desempenho, contudo, nos dias atuais, está fortemente dependente de técnicas e conceitos provindos do processamento paralelo e distribuído, a fim de prover o desempenho necessário a estas aplicações.
+O processamento paralelo e distribuído, em essência, consiste em juntar dois ou mais processadores, fazendo- os trabalhar em conjunto para resolver o mesmo problema.
+Os sistemas de alto desempenho disponíveis atualmente abrangem desde processadores fortemente acoplados, conhecidos como MPPs (Massively Parallel Processors), até conjuntos de computadores interligados por redes convencionais.
+A contínua inovação na tecnologia de hardware reduz o tempo de comunicação entre os processadores e a latência de acesso à hierarquia de memória para, desta forma, suportar a computação neste novo ambiente.
+Infelizmente, a infraestrutura de software (e.
+g linguagens de programação, compiladores, sistemas operacionais e ferramentas de otmização de desempenho) disponível nos dias de hoje ainda não acompanha o estado da arte do multiprocessamento em hardware.
+Desde a década de 1990, vem- se observando uma tendência na substituição dos caros supercomputadores com arquiteturas proprietárias por agregados.
+De essa forma, um agregado ou máquina agregada -- em inglês conhecido como cluster -- é atualmente uma das arquiteturas mais utilizadas na obtenção de alto desempenho.
+Máquinas agregadas são sistemas computacionais de alto desempenho construídos a partir de componentes de prateleira.
+Os computadores, chamados nós, podem ser servidores SMP (Symmetrical Multiprocessors), estações ou simples computadores pessoais, interligados através de uma rede de interconexão, que trabalham coletivamente como um sistema único, apresentando desempenho equivalente a um supercomputador.
+A utilização de máquinas agregadas traz alguns benefícios, como:
+Ótima relação custo-benefício:
+As máquinas agregadas, por serem construídas com &quot;componentes de prateleira», tornam- se muito mais baratas do que supercomputadores comer- ciais e podem possuir o desempenho aproximado de um sistema MPP, por exemplo, o qual pode ter um custo várias vezes maior;
+Baixo custo de manutenção:
+Com componentes de prateleira produzidos em grande escala, pode ser feita a substituição de pecás com um baixo custo;
+Escalabilidade: Com a utilização dessas máquinas, tem- se uma capacidade de expansão muito grande, bastando &quot;agregar «mais nós à medida de as necessidades.
+A rede de interconexão interliga todos os nós do agregado.
+Ela pode ser uma rede padrão como Ethernet ou Fast-Ethernet, ou uma rede de baixa latência como Myrinet ou SCI (Scalable Coherent Interface).
+A utilização de uma rede de baixa latência leva a uma melhoria dos resultados devido a a redução do gargalo de rede, o que é comum em muitas das aplicações paralelas que utilizam intensivamente troca de mensagens, paradigma padrão em multicomputadores do tipo Norma (Non-Remote Memory Access);
+No entanto, este tipo de rede possui custo relativamente elevado.
+Os nós, que são responsáveis por o processamento da aplicação, normalmente não possuem periféricos, como monitor, mouse e teclado, devido a sua utilização específica para execução de aplicações paralelas.
+Hoje em dia, a tendência crescente na construção de máquinas agregadas pode ser confirmada por a lista das 500 máquinas mais rápidas do mundo 1, a qual demonstra que o tipo de máquina que mais cresce são os agregados, já existindo algumas com milhares de nós.
+Além disso, atualmente, entre as dez primeiras máquinas do ranking, sete são agregados.
+Entretanto, as vantagens trazidas por as máquinas agregadas, tais como alta configuralibilidade e escalabilidade, trazem também alguns desafios para o desenvolvimento de ambientes, sistemas e aplicações utilizados neste tipo de máquina.
+Alguns dos principais desafios trazidos por as máquinas agregadas são:
+Gerência complexa:
+Devido a a s facilidades de expansão do número de nós e dos tipos de nós que podem ser utilizados na construção de um agregado, a gerência destes recursos torna- se mais complexa, pois deve ser eficiente, independentemente do número de nós e do tipo de nós utilizados;
+Difícil programação:
+A programação em máquinas agregadas é tida como mais complicada do que em outras arquiteturas paralelas, pois é dependente da disponibilidade de ferramentas e ambientes adequados.
+Além disso, podemos destacar alguns desafios como:
+Distribuição e particionamento dos dados, escalonamento, balanceamento de carga, tolerância a falhas, heterogeneidade, entre outros.
+Em relação a a heterogeneidade, quando um agregado é composto de nós idênticos, isto é, quando todos os nós possuem a mesma arquitetura e a mesma capacidade de processamento, ele é denominado um agregado homogêneo;
+Em contrapartida, quando os nós diferem entre si, ele é denominado um agregado heterogêneo.
+Os agregados heterogêneos introduzem uma dificuldade adicional na sua programação, porque é necessário levar- se em consideração a existência de diferentes tipos de nós.
+De esse modo, para que o tempo de execução de uma aplicação paralela executando num sistema computacional heterogêneo seja minimizado, é necessário haver um mapeamento otimizado das tarefas ou processos da aplicação aos processadores, levando- se em consideração suas diferentes capacidades de processamento.
+Uma aplicação paralela MPI pode por si só realizar balanceamento de carga, isto é, distribuir os dados ou tarefas da aplicação de uma forma equilibrada, levando em consideração os fatores que geram desequilíbrio, como a natureza heterogênea da máquina onde ela está sendo executada.
+Contudo, isto impõe um aumento da complexidade no projeto da aplicação.
+Aplicações paralelas legadas também podem ser modificadas para realizarem balanceamento de carga, porém isto geralmente não é uma tarefa fácil, envolvendo mudancás significativas no projeto e na estrutura da aplicação.
+Contudo, mesmo no caso de as aplicação paralelas que não realizam balanceamento de carga, é possível otimizar o seu desempenho quando executadas em agregados heterogêneos, mesmo sem modificações no código da aplicação, através de mecanismos de escalonamento de processos e/ ou balanceamento de carga que operem em nível de sistema.
+Um exemplo é o sistema MOSIX, que possui um mecanismo de migração de processos.
+Este mecanismo realiza escalonamento dinâmico de processos transparentemente, transferindo processos entre os nós de forma a balancear a carga total do agregado.
+Para que esses mecanismos funcionem, é necessário que a aplicação seja quebrada num número de partições maior do que o número de processadores físicos disponíveis.
+No caso de as aplicações MPI, isto pode ser realizado em nível de sistema, bastando, em princípio, que seja informado ao disparador de aplicações um número maior de processos do que o número de processadores do agregado.
+De esse modo, um sistema como o MOSIX seria capaz de mapear e remapear dinamicamente os processos, de forma a balancear a carga.
+Entretanto, sistemas capazes de realizar migração dinâmica de processos não são usualmente utilizados em máquinas agregadas de propósito geral, pois possuem desvantagens, podendo- se destacar a sobrecarga causada por tais sistemas.
+Além disso, os sistemas de migração de processos existentes não suportam migração entre nós de arquiteturas diferentes, o que dificulta o seu uso quando a máquina agregada alvo é composta por nós pertencentes a mais de um tipo de arquitetura (IA32 e IA64 por exemplo).
+Observa- se, então, que se faz necessário um método capaz de otimizar o desempenho de aplicações paralelas genéricas executadas em agregados heterogêneos sem os complexos mecanismos de migração de processos e ao mesmo tempo sem necessidade de modificação ao código da aplicação.
+Contexto do trabalho.
+O grande desafio da atualidade no campo do Processamento de Alto Desempenho é obter um melhor aproveitamento da capacidade de processamento das máquinas existentes.
+Para tal, quatro áreas principais devem ser atacadas:
+As arquiteturas paralelas;
+O gerenciamento dessas máquinas;
+As linguagens que consigam explorar melhor o paralelismo dos programas;
+E, por último, a obtenção de uma maior concorrência nos algoritmos.
+O objeto deste trabalho é atacar o problema no campo do gerenciamento dessas máquinas.
+O gerenciamento das máquinas ocupa- se principalmente com os aspectos de sistemas operacionais em ambientes com mais de uma máquina, tanto paralelos como distribuídos.
+Essa área compreende tanto a sincronização de processos, quanto aspectos de bloqueio, como mecanismos de atribuição de processos aos processadores, entre outros.
+A redução do tempo de resposta de programas paralelos tem sido alvo de um grande esforcó de pesquisa.
+O tempo de execução de um programa paralelo é definido por o intervalo entre o instante em que o primeiro processador inicia a sua parte do processamento e o momento em que o último encerra a sua parte.
+Como visto, a adequada distribuição de tarefas aos diversos processadores é fundamental para a minimização do tempo de execução do programa paralelo e maximização da utilização dos recursos computacionais disponíveis.
+A identificação desta distribuição ideal de tarefas caracteriza o problema de balanceamento de carga.
+O balanceamento de carga, por sua vez, pode ser obtido através de uma estratégia de escalonamento de processos distribuídos, atribuindo- se um número maior de processos aos nós mais rápidos e menos processos aos nós com menor capacidade de processamento.
+Este trabalho se enquadra nesse contexto e busca explorar um modelo adaptativo de balanceamento de carga para aplicações paralelas MPI (Message Passing Interface) através do escalonamento estático de processos, baseando- se em informações de monitoração de execuções prévias da aplicação para balancear a carga entre os nós (número de processos por máquina) ao longo de as execuções.
+O termo adaptativo refere- se à capacidade do escalonador de alterar os parâmetros de distribuição dos processos em resposta a um feedback que, neste caso, é representado por as informações de monitoração das execuções anteriores da aplicação.
+Principais contribuições deste trabalho.
+Este trabalho é encadeado numa seqüência de outros que vêm sendo desenvolvidos no Centro de Pesquisa em Alto Desempenho (CPAD) da PUCRS, relacionados com gerência, monitoração e otimização de aplicações para máquinas agregadas, entre as suas principais contribuições, destacam- se:
+Definição de um modelo para otimizar o desempenho de uma aplicação paralela MPI genérica, executada sobre um agregado heterogêneo, de forma automática ao longo de as execuções;
+Elaboração de um algoritmo para calcular o número de processos que serão atribuídos a cada tipo de nó a cada nova execução da aplicação, baseando- se nos históricos de monitoração das execuções prévias;
+Implementação de uma ferramenta baseada no modelo e no algoritmo propostos;
+Integração da ferramenta ao middleware do agregado Amazônia;
+Avaliação do modelo através da análise de testes envolvendo algumas aplicações paralelas selecionadas.
+Estrutura do texto.
+O trabalho está organizado da seguinte forma:
+O Capítulo 2 apresenta primeiramente uma visão das principais arquiteturas paralelas atuais, para então focar- se nas máquinas agregadas, analisando- se tanto aspectos de hardware quando de software.
+Paralelamente, são trazidas à tona questões pertinentes ao tema deste trabalho, incluindo aspectos do padrão MPI, a definição de agregados heterogêneos e o suporte da biblioteca MPICH a este tipo de agregado;
+O Capítulo 3 apresenta um estudo sobre escalonamento em sistemas distribuídos, tracándo conceitos básicos e analisando uma taxonomia de escalonamento amplamente aceita;
+O Capítulo 4 analisa o estado da arte em relação a a otimização de desempenho de aplicações paralelas em ambientes computacionais heterogêneos;
+O Capítulo 5 apresenta os principais fatores que motivaram o desenvolvimento deste trabalho, resultando na atual proposta do mesmo.
+Além disso, são também apresentados os objetivos do modelo, juntamente com a sua descrição, incluindo arquitetura básica e aspectos relacionados.
+O Capítulo 6 relata os aspectos de implementação da ferramenta baseada no modelo proposto;
+O Capítulo 7 relata a avaliação do modelo em questão a partir de a análise do comportamento de algumas aplicações paralelas selecionadas quando executadas através da ferramenta implementada.
+Também é realizado um breve estudo sobre os diferentes tipos de aplicações paralelas existentes, a fim de ter- se um maior entendimento do comportamento observado nas aplicações testadas.
+O Capítulo 8, por último, conclui o trabalho, analisando vantagens e desvantagens, e também apresentando algumas idéias para trabalhos futuros.
+Este capítulo apresenta inicialmente uma visão das principais arquiteturas paralelas atuais, para então aprofundar- se no tópico relativo à s máquinas agregadas, incluindo tanto aspectos de hardware quando de software.
+Paralelamente, são focadas questões diretamente relacionadas ao tema deste trabalho.
+Durante a última década, emergiram muitos sistemas computacionais diferentes suportando processamento de alto desempenho.
+A sua taxonomia é baseada na maneira como seus processadores, memória e interconexão são dispostos.
+É possível destacar:
+Processadores massivamente paralelos (MPP), multiprocessadores simétricos (SMP), sistemas com acesso à memória não uniforme e coerência de cache (CC-NUMA), sistemas distribuídos e máquinas agregadas.
+A Tabela 2.1 apresenta uma comparação entre estas arquiteturas.
+Característica Número de nós Granularidade Comunicação inter-nó Escalonamento de jobs SO do nó Espacó de enderecámento Segurancá internó Dono grão fino médio troca de mensagens, variáveis compartilhadas para DSM única fila de execução N micro-- kernel múltiplos -- único para DSM desnecessária uma organização grão médio ou grosso memória centralizada ou DSM Cluster 100 ou menos grão médio Distribuído muito grosso troca de mensagens única fila de execução SMP:
+Um monolítico, Em uma:
+Um MPP geralmente é um grande sistema de processamento paralelo, consistindo tipicamente de várias centenas de elementos processadores (nós) independentes, interconectados através de uma tecnologia de rede proprietária.
+Sistemas SMP, por sua vez, possuem entre 2 e 64 processadores, cada um de eles compartilhando os recursos (barramento, memória, sistema de E/ S) com todos os outros e executando uma única cópia do sistema operacional.
+CC-NUMA propõe- se a ser uma arquitetura de multiprocessadores mais escalável que SMP, onde todos os processadores têm acesso a um mesmo espacó de enderecámento global, porém cada um está mais perto de uma determinada região da memória com o objetivo de desafogar- se o barramento.
+Sistemas distribuídos, por sua vez, podem ser considerados, de forma genérica, as redes convencionais de computadores independentes, cada um com seu próprio sistema operacional.
+Desde o início dos anos 90, tem- se percebido uma tendência de substituição dos caros e especializados supercomputadores paralelos proprietários (como MPPs) por supercomputadores construídos com máquinas convencionais (PCs, estações de trabalho, SMPs), interconectadas através de LAN (Local Area Network).
+De entre as principais forcás por trás desta transição, está a disponibilidade cada vez maior de componentes para computação de alto desempenho, que podem ser adquiridos por o grande público.
+De essa forma, máquinas agregadas (clusters) estão rapidamente tornando- se a plataforma padrão para computação de larga escala e de alto desempenho.
+O principal atrativo destes sistemas é que eles são construídos a partir de &quot;componentes de prateleira», isto é, hardware de baixo custo, como máquinas baseadas em processadores Pentium e tecnologia de rede rápida como Myrinet, aliados a componentes de software amplamente aceitos, como o sistema operacional Unix e seus derivados, e ambientes de programação paralela, como MPI Os computadores que formam a máquina agregada, chamados de nós, podem ser servidores SMP (Symmetrical Multiprocessors), estações de trabalho ou simples computadores pessoais que trabalham coletivamente como um sistema único, apresentando desempenho equivalente a um supercomputador.&amp;&amp;&amp;
+Conforme foi visto, a utilização de máquinas agregadas traz alguns benefícios, como:
+Ótima relação custo-benefício:
+As máquinas agregadas, por serem construídas com &quot;componentes de prateleira», tornam- se muito mais baratas do que supercomputadores comerciais e podem possuir o desempenho aproximado de um sistema MPP (Massively Parallel Processors), por exemplo, o qual pode ter um custo várias vezes maior.
+Baixo custo de manutenção:
+Com componentes de prateleira produzidos em grande escala, pode ser feita a substituição de pecás por um baixo custo.
+Escalabilidade: Com a utilização dessas máquinas, tem- se uma capacidade de expansão muito grande, bastando &quot;agregar «mais nós à medida de as necessidades.
+Hoje em dia, a construção de máquinas agregadas tornou- se uma tendência, já existindo algumas com milhares de nós.
+A lista das 500 máquinas mais rápidas do mundo 1 confirma esta tendência, demonstrando que o tipo de máquina que mais cresce são os agregados.
+Além disso, atualmente, entre as dez primeiras máquinas do ranking, sete são agregados.
+Arquitetura. Quanto a sua arquitetura, os sistemas paralelos atuais podem ser divididos em duas grandes classes:
+Multiprocessadores, sistemas com memória compartilhada, e Multicomputadores, sistemas com memória não-compartilhada.
+Os agregados enquadram- se nesta segunda categoria.
+Em os multiprocessadores, todos os processadores acessam, através de uma rede de interconexão, uma memória compartilhada.
+Em estas máquinas, a comunicação entre os processadores é realizada através de operações convencionais de load/ store na memória.
+Já nos multicomputadores, cada processador possui sua própria memória local e só é capaz de enderecár esta memória;
+Devido a isto, estas máquinas também são chamadas de Norma (Non-remote Memory Access).
+A comunicação entre os processadores é realizada através do mecanismo de troca de mensagens.
+De esse modo, apesar de uma máquina agregada poder ser formada por multiprocessadores, o sistema como um todo é um multicomputador.
+Conforme a Figura 1, os principais componentes de um agregado são:
+Múltiplos computadores, atualmente baseados, em geral, em processadores Intel Pentium ou Intel Itanium;
+Sistema operacional, usualmente derivados do UNIX como Linux;
+Rede de interconexão, abrangendo desde redes convencionais, como Ethernet, até redes de baixa latência, como Myrinet;
+Protocolos de comunicação, como TCP/ IP, ou protocolos de alto desempenho, como GM (Glenn's Messages);
+Middleware, incluindo sistemas de gerência e monitoração;
+Ambientes de programação paralela, como PVM ou MPI;
+Aplicações paralelas.
+A principal característica do hardware de um agregado é que ele é hardware comum, isto é, está amplamente disponível no mercado.
+O nós são geralmente PCs com microprocessadores Intel Pentium ou Itanium;
+Entretanto, outras arquiteturas, como Digital Alpha, Sun SPARC e PowerPC, também são utilizadas.
+Rede de interconexão.
+Os nós de uma máquina agregada comunicam- se através de uma rede de interconexão, que pode tanto ser uma rede padrão Ethernet como uma rede de alta velocidade, também caracterizadas por sua baixa latência, como Myrinet ou SCI.
+O padrão Ethernet é amplamente utilizado;
+Ainda assim, mesmo com a adoção de redes rápidas, o padrão Ethernet muitas vezes é utilizado como rede secundária, em conjunto com a rede primária.
+A taxa de vazão de 10 MBits/ s do padrão Ethernet já não é mais suficiente para ambientes onde ocorrem transferências de grandes volumes de dados;
+De essa forma, um novo padrão denominado Fast Ethernet foi desenvolvido, aumentando a taxa de vazão para 100 Mbit/ s.
+Atualmente, a Ethernet em estado da arte é a Gigabit Ethernet, que, apesar de ter uma alta taxa de vazão, não apresenta a baixa latência necessária num ambiente de computação de alto desempenho, onde ocorre a troca de muitas mensagens de pequeno tamanho, em vez de longas transferências de dados.
+A utilização de redes padrão (Ethernet, Fast Ethernet) é uma tendência impulsionada por grandes fabricantes, como Hp, IBM e Dell, os quais estão interessados na construção de máquinas paralelas poderosas, agregando milhares de estações de trabalho de baixo custo.
+Para interligação de tantas máquinas, fica muito caro investir numa rede especial, sendo utilizada, então, uma rede padrão.
+Já a tendência de utilização de redes de alto desempenho é impulsionada por pequenas empresas que fabricam placas de interconexão especificamente para máquinas agregadas.
+Estas placas implementam protocolos de rede de baixa latência, otimizados para as características de comunicação de aplicações paralelas.
+A principal desvantagem destas redes são o seu alto custo, tornando- se muito cara a construção de máquinas com muitos nós (mais do que algumas centenas).
+De entre as redes de baixa latência, destaca- se a rede Myrinet, consistindo numa tecnologia de interconexão full duplex desenvolvida por a empresa Myricom.
+Seu custo é relativamente alto se comparado com o padrão Fast Ethernet, mas as vantagens são muito grandes:
+Latência muito baixa (5 microsegundos), vazão muito elevada (1.28 Gbits/ s), e um processador programável on- board que permite grande flexibilidade.
+A principal máquina agregada do CPAD, chamada Amazônia, possui uma rede primária Myrinet e uma rede secundária Fast Ethernet;
+Sua configuração detalhada encontra- se no capítulo Os componentes de software que compõem o ambiente de um agregado podem ser divididos em duas grandes categorias:
+Ferramentas de programação e sistemas de gerenciamento.
+Ferramentas de programação incluem linguagens, bibliotecas, depuradores.
+Sistemas de gerenciamento, por sua vez, incluem ferramentas de instalação e administração e mecanismos de escalonamento e alocação, tanto de hardware quanto de software.
+Sistema Operacional. A grande maioria dos agregados utiliza sistemas operacionais derivados do UNIX como Solaris e principalmente Linux.
+Entre as vantagens oferecidas por o sistema operacional Linux, destacam- se:
+Suporte a muitas arquiteturas de hardware, liberdade de distribuição, disponibilidade do código fonte, grande comunidade de desenvolvedores trabalhando no projeto, etc..
+Além de isto, o Linux oferece características típicas presentes num sistema UNIX, como multi-tarefa preemptiva, suporte multi-usuário, memória virtual, suporte a vários processadores, entre outras.
+Desta forma, torna- se uma tarefa relativamente fácil portar programas desenvolvidos em outras variantes do UNIX.
+Sistemas de gerenciamento de recursos e monitoração.
+O sistema de gerenciamento de recursos é um dos softwares mais importantes de uma máquina agregada.
+Entre as principais funcionalidades providas por os sistemas de gerência de recursos para agregados, destacam- se:
+Alocação e liberação de recursos, execução de aplicações utilizando os recursos alocados de forma interativa, ou através de batch jobs, e gerência da fila de alocação, através de uma política de alocação.
+Outras funcionalidades que podem ser providas por os sistemas de gerência de recursos são:
+Balanceamento de carga, migração de processos, suporte a várias políticas de alocação, gerência da fila de alocação baseado em prioridades, suspensão e recomecó de aplicações, entre outras.
+Entre os principais sistemas de gerência de recursos para agregados existentes atualmente, é possível destacar:
+OpenPBS, CCS, DQS e Condor.
+Em o CPAD, utiliza- se um gerenciador desenvolvido no próprio centro, chamado O gerenciador de recursos CRONO implementa somente os servicós básicos de gerenciamento necessários para compartilhar uma máquina agregada entre diversos usuários.
+O CRONO é otimizado para agregados de até médio porte (64 nós) e tem como principais características:
+Outra classe de softwares muito importantes num agregado são os sistemas de monitoração.
+Tais sistemas são projetados para coletar parâmetros de desempenho de sistemas, tais como:
+O Centro de Pesquisa em Alto Desempenho da PUCRS possui um software de monitoração desenvolvido no próprio centro, chamado RVISION, o qual tem o intuito de prover uma arquitetura extensível e configurável para monitoração de agregados.
+Entre as principais características deste sistema é possível citar:
+Acesso à s informações de utilização de recursos de forma independente para cada usuário e, possibilidade de diversas sessões de monitoração estarem em execução paralelamente.
+Ambientes de programação paralela.
+Apesar de a possibilidade de utilização de outros modelos, o modelo de troca de mensagens é o mais amplamente utilizado para programação de máquinas agregadas.
+Isto ocorre por ser este modelo diretamente mapeado à arquitetura com memória não compartilhada destes sistemas computacionais e, por consequência, é o que pode ser implementado de modo mais otimizado.
+Em a programação paralela através deste modelo de comunicação, uma aplicação consiste numa coleção de processos autônomos, cada um possuindo sua própria memória local e comunicando- se com os demais processos através de funções de envio e recebimento de mensagens.
+Quando todos os processos executam o mesmo programa, porém cada um de eles trabalha numa parte diferente dos dados, a aplicação é dita SPMD (Single- Program Multiple Data.
+De esse modo, bibliotecas de troca de mensagens permitem o desenvolvimento de programas paralelos eficientes para sistemas com memória distribuída, Entre as bibliotecas existentes, as mais populares são PVM (Parallel Virtual Machine), desenvolvida por o Oak Ridge National Laboratory e MPI (Message Passing Interface) definida por o MPI Forum.
+PVM foi desenvolvida no Laboratório Nacional de Oak Rigde, nos Estados Unidos, com o objetivo de ser utilizada para a implementação de aplicações paralelas, tanto em supercomputadores de alto custo como em agregados.
+Já o padrão MPI vem aos poucos substituindo o PVM.
+Ele foi proposto por um comitê que tinha por objetivo reunir as melhores características de cada ambiente de troca de mensagens desenvolvido até então.
+Tendo como metas de projeto eficiência, portabilidade e funcionalidade, o padrão somente define a biblioteca de passagem de mensagens, deixando a inicialização e configuração a cargo de os desenvolvedores.
+Ambas as bibliotecas estão disponíveis para as principais linguagens utilizadas para programação paralela:
+Fortran 77, Fortran 90, ANSI C e C+.
+Atualmente, MPI tornou- se o padrão de fato para biblioteca de troca de mensagens, sendo esta a biblioteca tomada por base neste trabalho.
+Padrão MPI Conforme visto, o padrão MPI foi definido com o objetivo de reunir as melhores características dos sistemas de troca de mensagem mais populares existentes.
+Resultado do trabalho do MPI-Forum, suas metas de projeto foram portabilidade, eficiência e funcionalidade.
+Atualmente, ele é amplamente aceito e existem implementações da biblioteca MPI para os mais variados tipos de sistemas paralelos.
+O padrão restringe- se a definir uma biblioteca de troca de mensagens, deixando a cargo de os implementadores definir a forma como é realizada a criação e controle dos processos.
+Porém um fator é importante:
+MPI trabalha com um grupo fixo de processos, os quais são disparados no início da execução.
+Em o enfoque deste trabalho, essas operações de gerenciamento de processos, especialmente a forma como ocorre a criação dos mesmos, é um dos aspectos mais importantes da programação paralela.
+A criação de processos pode ser estática ou dinâmica.
+Em a criação estática, o conjunto de processos que irão compor o programa paralelo deve ser definido antes da execução e não pode ser alterado até o final do programa.
+Já na criação dinâmica, os processos podem ser instanciados a qualquer momento durante a execução do programa.
+Cada processo criado num programa paralelo deve ser associado a algum processador do sistema.
+Esta distribuição adequada de processos aos processadores, que consiste num problema de escalonamento, algumas vezes também é chamada na literatura de mapeamento.
+Quando a criação de processos é estática, o mapeamento é definido no momento da carga do programa na máquina paralela.
+Por outro lado, quando os processos são criados dinamicamente, estes são distribuídos aos nós em tempo de execução.
+O novo padrão MPI-2 permite o gerenciamento dinâmico de processos, contando com a possibilidade de criação de novos processos em tempo de execução;
+Contudo o presente trabalho não prevê este modelo de programação, tendo como foco realizar a distribuição de processos aos processadores alocados por o usuário através de uma estratégia de escalonamento estática.
+Biblioteca MPICH MPICH é uma implementação portável e de livre distribuição da especificação MPI, aqui comentada por ser a implementação MPI primariamente utilizada no CPAD.
+A biblioteca MPICH foi desenvolvida através de uma parceria entre o Argonne National Laboratory e a Mississippi State University, também contando com contribuições da IBM.
+Seu desenvolvimento deu- se de forma paralela à especificação do padrão MPI, de forma a permitir aos membros do Forum MPI avaliar a viabilidade de suas idéias.
+As letras &quot;CH «do nome significam &quot;Chameleon «-- Camaleão -- símbolo da adaptação, representando um dos símbolos do projeto:
+A alta portabilidade da biblioteca.
+A arquitetura da biblioteca MPICH é dividida em duas partes, uma implementação MPI independente de plataforma, chamada de camada MPICH, e uma parte dependente de plataforma, denominada Interface de Dispositivo Abstrato -- Abstract Device Interface (Adi).
+De esse modo, para portar a biblioteca para uma nova plataforma, somente a implementação Adi precisa ser desenvolvida, enquanto a camada MPICH depende somente da camada Adi e é completamente independente de sua implementação.
+Agregados Heterogêneos. Esta seção define o conceito de agregado heterogêneo.
+Posto que um agregado homogêneo é todo aquele que possui nós idênticos, por outro lado, um agregado heterogêneo pode ser definido como todo aquele onde os nós não são exatamente iguais, isto é, podem não possuir:
+Mesma arquitetura;
+Mesmo sistema operacional (incluindo o fato de utilizarem a mesma versão do SO);
+Mesmos componentes de software como bibliotecas e ferramentas (incluindo o fato de serem da mesma versão).
+O primeiro requisito -- mesma arquitetura -- é um pouco questionável, no sentido do que realmente compõe arquiteturas diferentes.
+Por exemplo, um agregado composto de dois tipos diferentes de nós, porém ambos baseados no mesmo processador Pentium 4, mas com diferentes quantidades de memória RAM e diferentes clocks, pode tanto ser visto como um sistema homogêneo quanto heterogêneo dependendo do conceito utilizado para definir- lo.
+Em um sentido amplo, este pode ser considerado um agregado homogêneo, uma vez que aplicações compiladas num nó podem ser executadas nativamente em outro.
+Entretanto, neste trabalho adota- se um sentido mais restrito quanto a a homogeneidade, considerando- se o exemplo citado como sendo um sistema heterogêneo, porque os nós possuem diferentes capacidades de processamento.
+O agregado principal do CPAD, chamado Amazônia -- que tem sua configuração detalhada no capítulo 7 -- é um sistema heterogêneo, sendo composto por 4 tipos diferentes de nós, pertencentes a 2 arquiteturas distintas (IA32 e IA64).
+Suporte da biblioteca MPICH a agregados heterogêneos.
+O suporte aqui referido diz respeito à capacidade da biblioteca de trabalhar com arquiteturas diferentes, e a biblioteca MPICH possui tal capacidade.
+De esse modo, a conversão de tipos de dados (little endian/ big endian) é parte integrante dos servicós da biblioteca.
+Em muitos casos a biblioteca realiza apenas uma inversão da ordem dos bytes (byte swapping) ou extensão dos tipos de dados (de 32 para 64 bits).
+Somente números de ponto flutuante requerem tratamento especial, nestes casos o formato XDR (eXternal Data Representation) pode ser utilizado quando a norma IEEE não é respeitada.
+Em relação a utilização de múltiplos binários, num agregado composto por nós das arquiteturas IA32 e IA64, por exemplo, o dispatcher (disparador de aplicações) pode ser informado para utilizar ambas arquiteturas através dos parâmetros arch e np.
+De esse modo, para executar uma aplicação paralela em 4 nós IA32 e 4 nós IA64, disparando- se um processo por cada nó, poderia- se empregar o comando:
+Mpirun arch 4 arch ia64 np 4 program.
+% a O nome especial da aplicação «program.
+% a «permite que sejam especificados diferentes executáveis, devido a a impossibilidade de termos um binário que execute sobre as duas arquiteturas.
+O&quot;% a «é substituído automaticamente por o nome da arquitetura.
+Em este exemplo, program.
+Ia32 executa nos nós IA32 e program.
+Ia64 executa nos nós IA64.
+Este capítulo apresenta um estudo sobre escalonamento em sistemas distribuídos, tracándo conceitos básicos e analisando uma taxonomia de escalonamento amplamente aceita.
+O termo &quot;sistemas distribuídos «é aqui empregado de forma ampla, referindo- se a sistemas compostos por múltiplos elementos processadores.
+Escalonamento consiste em atribuir processos a processadores e determinar em que ordem estes processos serão executados.
+Ele é de extrema importância para sistemas paralelos e distribuídos, podendo ser considerado um dos problemas mais desafiantes nesta área.
+Conforme Casavant, escalonamento, de forma genérica, pode ser visto como um problema de gerenciamento de recursos.
+Uma política ou mecanismo de gerenciamento de recursos, por sua vez, tem por objetivo gerenciar eficientemente o acesso e/ ou uso de recursos como processadores, processos, etc..
+Taxonomia de escalonamento.
+Existem vários tipos de escalonamentos e algumas taxonomias foram propostas.
+Nenhuma destas taxonomias abrange todas as características que um escalonador pode possuir.
+De entre as taxonomias estudadas, a proposta por Casavant () no artigo «A Taxonomy of O autor acima citado define duas classificações distintas, a primeira de elas hierárquica, e uma segunda classificação não-hierárquica, a qual agrega as características que podem ser encontradas em qualquer tipo de sistema de escalonamento, independente da primeira classificação.
+Classificação hierárquica.
+A classificação hierárquica de escalonamento em sistemas distribuídos, proposta por Casavant, é apresentada na Figura 2.
+A seguir, temos uma descrição detalhada desta classificação.
+Escalonamento local versus global.
+Em o nível mais alto, pode- se distinguir entre escalonamento local e global.
+Escalonamento local refere- se à atribuição de fatias de tempo aos processos num sistema computacional isolado.
+Escalonamento global (distribuído), por sua vez, é o problema de decidir onde executar um processo num sistema computacional distribuído.
+Em uma máquina agregada, o trabalho de escalonamento local é realizado por o sistema operacional de cada nó.
+Enquanto o escalonamento global é definido por o ambiente de programação utilizado.
+Escalonamento estático versus dinâmico.
+O próximo nível na hierarquia (abaixo de escalonamento global) divide- se entre escalonamento estático e dinâmico.
+Estas duas formas de escalonamento referem- se ao momento em que as decisões são tomadas.
+No caso de o escalonamento estático, a distribuição de processos é realizada apenas e somente no momento da execução.
+Já nos modelos dinâmicos, decisões de escalonamento podem ser tomadas em tempo de execução;
+Em máquinas agregadas, isto pode ser suportado, por exemplo, através de mecanismos de migração de processos.
+Escalonamento óimo versus sub-ótimo.
+De acordo com, caso toda a informação sobre o estado do sistema, como comportamento da aplicação e os recursos disponíveis, sejam conhecidos de antemão, é possível realizar um escalonamento dito óimo baseado em alguma função objetivo, que pode ser, por exemplo:
+Minimização do tempo total de execução, maximização da utilização dos recursos disponíveis ou maximização da vazão do sistema.
+Em contrapartida, caso não seja possível conhecer estes dados antecipadamente, soluções sub-ótimas devem ser tentadas.
+Entre as abordagens sub-ótimas, existem duas categorias básicas:
+Escalonamento aproximado versus heurístico.
+Em as estratégias de escalonamento aproximadas, a idéia é utilizar modelos formais do algoritmo da aplicação, mas ao invés de procurar todo espacó de soluções possíveis em busca da solução óima, satisfazer- se com boas soluções que possam ser encontradas de forma rápida.
+Entre os principais modelos utilizados para isto, destacam- se teoria dos grafos, programação matemática e teoria das filas.
+As estratégias heurísticas, por sua vez, representam a categoria que baseia- se na utilização dos parâmetros mais realísticos tendo por base o conhecimento a priori sobre a aplicação ou na utilização de algoritmos que tentam de alguma forma aprender o comportamento da aplicação, para então escalonar- la da melhor maneira possível.
+Soluções dinâmicas.
+A principal motivação por trás das técnicas de escalonamento dinâmicas é o fato que em muitos casos tem- se pouco conhecimento sobre as características de uma aplicação de antemão.
+Também pode ser desconhecido em quais ambientes a aplicação será executada.
+Com as técnicas estáticas, as decisões de escalonamento precisam ser feitas antes que a aplicação seja executada (ou logo no início da execução) enquanto nas técnicas dinâmicas, nenhuma decisão precisa ser tomada a priori, pois é responsabilidade do sistema de execução decidir onde executar um processo.
+Em o projeto de um sistema que realiza escalonamento global dinâmico, a primeira questão importante é definir onde serão tomadas as decisões, o que leva a próxima subdivisão:
+Escalonamento global distribuído versus não-distribuído.
+Este aspecto diz respeito a quem é atribuída a responsabilidade por o escalonamento dinâmico global, que pode residir fisicamente num único processador ou pode ser fisicamente distribuída entre os processadores participantes.
+Resumidamente, esta característica refere- se a quem possui a autoridade para tomar decisões.
+Escalonamento cooperativo versus não-- cooperativo.
+Em o âmbito do escalonamento global dinâmico, ainda é possível distinguir entre aqueles mecanismos que envolvem cooperação entre os componentes distribuídos e aqueles em que processadores individuais tomam decisões de forma independente da ação dos outros processadores.
+A questão principal aqui é relacionada ao grau de autonomia que cada processador possui para determinar como seus recursos devem ser usados.
+Classificação não-hierárquica.
+Em adição a parte hierárquica da taxonomia analisada acima, Casavant destaca uma série de características que podem ser encontradas em qualquer sistema de escalonamento, independente desta primeira classificação.
+A seguir são descritas algumas dessas principais características:
+Escalonamento adaptativo versus não-adaptativo.
+Um algoritmo de escalonamento adaptativo é aquele que altera dinamicamente o seu comportamento (seja o algoritmo ou os parâmetros utilizados), baseado nos comportamentos atual e prévios do sistema.
+De modo oposto, um escalonador não-adaptativo é aquele que não modifica seus mecanismos de controle baseado no histórico de atividade do sistema.
+Balanceamento de carga.
+A taxonomia proposta por Casavant enquadra o balanceamento de carga como sendo uma das várias características básicas disponíveis num sistema de escalonamento.
+As estratégias que se enquadram nesta categoria tentam, de alguma forma, balancear a carga entre os processadores, de forma que todos os processos progridam no mesmo ritmo.
+Conforme, esta é uma característica presente num grande número de sistemas de escalonamento distribuído.
+Escalonamento dinâmico versus adaptativo.
+Conforme, parece haver na literatura uma certa falta de consenso sobre o emprego dos termos &quot;dinâmico «e &quot;adaptativo «em relação a estratégias de escalonamento.
+O termo &quot;dinâmico «refere- se ao momento em que o escalonamento pode ser realizado, neste caso, a capacidade do escalonador de tomar decisões durante a execução de uma aplicação.
+Já o termo &quot;adaptativo «representa a capacidade do escalonador de alterar políticas, parâmetros ou algoritmos em resposta a um feedback.
+Política versus mecanismo de escalonamento.
+Mecanismos determinam como fazer algo, políticas decidem o que será feito.
+A separação de política e mecanismo é um princípio muito importante e permite a máxima flexibilidade se decisões políticas precisam ser alteradas posteriormente.
+Uma das formas de alcancár- se isso é o desenvolvimento de um algoritmo de escalonamento parametrizado, de forma que o os parâmetros (política) possam ser alterados por o usuário conforme necessário, sem necessidade de modificação no mecanismo em si.
+Relação entre balanceamento de carga e escalonamento.
+Em a área de computação, o termo &quot;balanceamento de carga «significa distribuir carga de trabalho (processamento, requisições, usuários, etc) uniformemente entre muitos processos, computadores, discos ou outro tipo de recurso, de forma que nenhum elemento fique sobrecarregado.
+Em, balanceamento de carga é definido como:
+&quot;Dada uma coleção de tarefas e um conjunto de computadores em os quais estas tarefas podem ser executadas, encontrar o mapeamento de tarefas para computadores que resulta em cada computador possuir uma fatia de trabalho aproximadamente igual».
+Escalonamento, por sua vez, consiste em atribuir tarefas a um conjunto de recursos.
+De esse modo, escalonamento pode ser visto como um meio para se alcancár balanceamento de carga.
+Escalonamento em máquinas agregadas.
+Em uma visão ampla, é possível identificar que o escalonamento numa máquina agregada ocorre em três níveis distintos.
+Pode- se considerar que a distribuição de processos aos nós (escalonamento global) ocorre num nível intermediário.
+Antes disso, deve ocorrer a alocação de recursos, tarefa esta do escalonador de recursos.
+Por outro lado, após o escalonamento global, os vários processos que podem vir a ser disparados num mesmo nó são escalonados através do escalonador local do sistema operacional.
+A figura 3 ilustra estes três níveis.
+Escalonamento de Recursos:
+É o escalonamento (também chamado de alocação) de processadores aos usuários realizado por o sistema de gerenciamento de recursos.
+Escalonamento Global de Processos: Escalonamento de distribuição de processos aos processadores alocados ao usuário.
+Escalonamento Local de Processos: É o escalonamento que é realizado por o sistema operacional de cada nó.
+Em o ambiente em que o presente trabalho está sendo desenvolvido, o escalonamento de recursos fica a cargo de o gerenciador CRONO e o escalonamento local é trabalho do escalonador de processos do sistema operacional Linux presente em cada nó.
+O escalonamento global de processos, contudo, não conta com nenhum software especial, sendo, até então, responsabilidade do usuário definir o mapeamento de processos para processadores através de parâmetros passados ao sistema de execução MPI, caso o usuário não esteja satisfeito com o modo padrão com o qual os processos são atribuídos aos processadores.
+O modo padrão consiste em, baseando- se na lista de nós que irão compor a execução e no número de processos passado por o usuário, atribuir um processo a cada processador e cada vez que o fim da lista for atingido, retornar ao início.
+Este capítulo apresenta um estudo sobre o estado da arte no âmbito da otimização de desempenho de aplicações paralelas em sistemas computacionais heterogêneos.
+Em a literatura encontra- se uma série de trabalhos relacionados com a otimização do desempenho de aplicações paralelas executando em ambientes computacionais heterogêneos[ 9, 21, 27 ­33].
+Em uma visão ampla, as técnicas estudadas podem ser classificadas de acordo com dois critérios:
+Momento da distribuição (estático ou dinâmico);
+Nível de atuação (aplicação ou sistema).
+Enquanto os aspectos relacionados ao momento da distribuição já foram abordados no capítulo anterior, o nível de atuação refere- se ao modo como a técnica é aplicada para resolver o problema.
+Quando a solução é em nível de aplicação, isto implica em alterações no código fonte para que a aplicação paralela suporte o ambiente heterogêneo;
+Já quando a solução se dá em nível de sistema, a aplicação não necessita ser modificada, pois é deixado a cargo de o sistema de execução ou do sistema operacional o trabalho de otimizar- la para o sistema computacional heterogêneo subjacente.
+Devido a estreita relação entre balanceamento de carga e escalonamento, alguns trabalhos existentes encaram o problema como balanceamento de carga e outros como escalonamento.
+Geralmente quando o problema é tratado como balanceamento de carga, são discutidos modelos de distribuição dos dados levando- se em consideração a natureza heterogênea do sistema computacional utilizado, isto é, o problema é atacado em nível de aplicação.
+Já quando o problema é tratado como escalonamento, significa que a otimização do desempenho da aplicação é alcancáda através da distribuição de processos, isto é, em nível de sistema.
+Técnicas dinâmicas.
+As técnicas dinâmicas dividem- se em modelos em nível de aplicação para realização de escalonamento/ balanceamento de carga dinâmico dos dados da aplicação e, modelos que atuam em nível de sistema.
+Estes representam os sistemas de escalonamento dinâmico de processos, os quais realizam migração de processos.
+Um mecanismo deste tipo permite que processos sejam suspensos, movidos e então reiniciados em outro nó.
+O sistema DRUM (Dynamic Resource Utilization Model) é utilizado para criar um modelo dinâmico do ambiente de execução, capturando a dinâmica e a estrutura do agregado heterogêneo, com o objetivo de ajudar na realização do balanceamento de carga.
+O modelo encapsula recursos de hardware, suas capacidades e a sua topologia de interconexão numa estrutura de árvore, junto a isto, provê um mecanismo para monitoração e avaliação dinâmica destes recursos.
+Estes monitores trabalham de forma concorrente à s aplicações do usuário, coletando estatísticas de utilização de memória, tráfego de rede e utilização de processador.
+A informação provinda destes monitores é utilizada para o cálculo de um índice unificado de desempenho, chamado, no modelo DRUM, de &quot;power».
+Este índice, então, pode ser utilizado por sistemas parametrizados de balanceamento de carga, como Zoltan Toolkit, para realizar partições de tamanho não-uniforme.
+Este modelo em forma de árvore do ambiente de execução é especificado através de um arquivo de configuração XML, o qual contém uma lista de nós e a descrição de sua topologia de interconexão.
+Então, inicialmente, é obtida a capacidade de computação de ponto flutuante de cada nó (MFLOPS) através do benchmark LINPACK.
+Porém este índice tem por objetivo apenas dar uma idéia da capacidade dos nós.
+Isto decorre do fato que este tipo de benchmark não é capaz de refletir de forma precisa as características de uma aplicação em particular.
+De esse modo, o sistema oferece ao programador funções para calibrar a aplicação para o agregado heterogêneo, usando o mesmo tipo de tes de monitoração capturam informações relativas ao uso de memória, processador e tráfego de rede dos nós.
+As estatísticas são então combinadas com o benchmark inicial para obter uma estimativa dinâmica do poder de processamento.
+MOSIX (Multicomputer Operating System for UnIX) é uma extensão para o kernel Linux que provê balanceamento de carga adaptativo dinâmico entre máquinas Linux x86.
+O sistema utiliza migração de processos preemptiva para atribuir e migrar processos entre os nós de forma a maximizar a utilização dos recursos computacionais.
+Já foram desenvolvidas diversas versões para vários derivados do UNIX, atualmente na sétima versão, ele é baseado em Linux.
+A tecnologia MOSIX consiste em duas partes:
+Um conjunto de algoritmos adaptativos de balanceamento de carga e um mecanismo preemptivo de migração de processos (PPM).
+Ambas as partes são implementadas em nível de núcleo, através de módulos recarregáveis.
+O algoritmo de balanceamento de carga responde a variações no uso dos recursos do cluster, como por exemplo, desbalanceamento da distribuição de carga ou uso excessivo do disco devido a falta de memória em algum dos nós.
+Em estes casos, o MOSIX inicia a migração de processos de um nó para outro de forma a balancear a carga do agregado.
+A granularidade da distribuição de trabalho no MOSIX é o processo.
+Usuários podem executar aplicações paralelas através da inicialização de múltiplos processos num mesmo nó para então permitir que o sistema atribua estes processos aos nós com a menor carga no momento.
+O recurso de migração de processos é transparente para as aplicações, isto significa que é possível executar aplicações seqüenciais e paralelas da mesma forma que se faria num SMP.
+O usuário não precisa se preocupar sobre a localização em que um processo está executando.
+Após a criação de um novo processo, o MOSIX tenta atribuir a ele o nó com a menor carga no momento, feito isto, o sistema continua a monitorar o novo processo, bem como todos os outros, e irá migrar- los sempre que necessário para maximizar o desempenho geral do sistema.
+Tudo isto é implementado sem modificações à interface das chamadas de sistema já existentes no Linux, desta forma, o usuário continua vendo e controlando todos os seus processos como se eles estivessem rodando no nó em que foram criados.
+Para implementar o recurso de migração, o processo migrado é divido em dois contextos:
+O contexto de usuário, que corresponde a parte do processo que é efetivamente migrada e o contexto de sistema, o qual é dependente do nó onde foi criado e nunca é migrado.
+O contexto de usuário, chamado de &quot;remoto «contém o código do programa, pilha, dados, mapas de memória e registradores do processo.
+O &quot;remoto «encapsula o processo quando ele está executando em nível de usuário.
+O contexto de sistema, por sua vez, é chamado de &quot;representante», no sentido que representa o processo no seu nó original.
+Ele contém a descrição dos recursos que estão em uso por o processo, e uma pilha para execução de código do kernel em nome de o processo.
+O &quot;representante», dessa forma encapsula o processo quando ele está rodando em modo kernel.
+A interface entre o contexto de usuário e o contexto de sistema é bem definida, entretanto é possível interceptar cada interação entre estes contextos e redirecionar- la através da rede.
+Isto é implementado através de uma camada de ligação.
+De esse modo, todas as chamadas de sistema executadas por o &quot;remoto «são interceptadas por a camada de ligação.
+Se a chamada de sistema é independente de nó ela é executada localmente (no nó remoto), caso contrário, a chamada é redirecionada ao &quot;representante «executando no nó onde o processo foi gerado.
+Migração manual de processos também é possível, isto pode ser útil para implementar uma política particular ou diferentes algoritmos de escalonamento.
+O super-usuário tem privilégios especiais em relação a a migração, ele pode tanto definir novas políticas como determinar quais nós estão disponíveis para migração.
+Os algoritmos que possibilitam a migração automática são descentralizados, cada nó é ao mesmo tempo mestre para os processos criados localmente e servidor para os processos que foram criados remotamente, isto é, que foram migrados de outros nós.
+Isto possibilita que nós sejam adicionados e removidos do agregado a qualquer momento, com distúrbios mínimos aos processos em execução.
+Outro recurso interessante do MOSIX são seus algoritmos de monitoração, que detectam a velocidade de cada nó, a carga e a memória livre, bem como as taxas de E/ S e IPC para cada processo.
+Estas informações são utilizadas para decidir o nó de destino na hora da migração de um processo.
+A imagem de sistema do MOSIX é baseada no modelo &quot;home-node», isto significa que é dada a visão a um usuário de que todos os processos criados num nó estão sempre sendo executados neste mesmo nó, deste modo, o processo permanece sempre ligado ao nó em que foi criado.
+Como o MOSIX provê transparência total, ele pode ser utilizado em conjunto com ambientes de programação paralela como MPI ou PVM, fornecendo a estes ambientes um mecanismo de balanceamento de carga dinâmico.
+Técnicas estáticas.
+As técnicas estáticas também dividem- se em modelos em nível de aplicação, que baseiamse, por exemplo, em índices relativos de desempenho para realizar o escalonamento/ balanceamento de carga ao início da execução e em técnicas em nível de sistema que, mesmo sem o dinamismo dos mecanismos de migração de processos, tentam otimizar o desempenho ao longo de as execuções da aplicação, refinando a distribuição a cada nova execução.
+Balanceamento de carga assimétrico.
+Uma forma de resolver o problema baseada na obtenção de índices de desempenho relativo dos nós e modificações nas aplicações para que utilizem estes índices como base para o balanceamento de carga.
+O foco do artigo é definição do índice ideal de desempenho, não sendo apresentados detalhes de como o índice escolhido é aplicado na prática.
+Em o artigo são analisadas algumas técnicas para obter- se o desempenho relativo de cada nó, que de acordo com o estudo precisam atender os seguintes requisitos:
+Ser um bom indicador geral do desempenho do sistema;
+Ser escalável e portável;
+Ser computacionalmente leve.
+Avalia- se então a utilização do indicador de desempenho calculado por o Linux, uma vez que este é o sistema operacional utilizado no agregado.
+Este indicador de desempenho, chamado de &quot;BogoMIPS», é utilizado para calibrar funções do kernel relacionadas a medição de tempo e, apesar deste indicador não ser considerado um bom indicador geral de desempenho, sua vantagem é o custo computacional para obter- lo que é inexistente.
+Também é considerada a utilização de uma pequena rotina para cálculo do número de operações de ponto flutuante por segundo (MFLOPS), que também não é uma boa indicadora geral de desempenho, mas além de poder ser calculada de forma rápida, não depende de um sistema operacional em particular.
+Os testes realizados envolvem uma versão modificada do benchmark Lu, parte integrante do pacote NPB.
+Estas modificações incluem tanto as chamadas a biblioteca que calcula o desempenho relativo de cada nó como alterações na rotina de particionamento dos dados.
+Os resultados demonstraram ganho de desempenho de até 92%.
+A abordagem apresentada neste artigo tem como principal ponto fraco a necessidade de modificações na aplicação que, como visto, não se limitam a apenas fazer a chamada a uma biblioteca, sendo preciso alterações no código que realiza o particionamento dos dados.
+Sputnik. O projeto Sputnik fornece um modelo de particionamento de dados automático destinado à máquinas agregadas heterogêneas.
+O sistema provê uma biblioteca de programação implementada em C+, sobre a infra-estrutura KeLP, que permite tratar um agregado heterogêneo como se fosse um sistema computacional homogêneo.
+Para isso, o sistema baseia- se num processo de dois estágios para executar aplicações paralelas.
+O primeiro estágio, chamado ClusterDiscovery obtém o índice de desempenho relativo de cada máquina.
+Este índice não baseia- se em parâmetros de desempenho, como capacidade de processamento de ponto flutuante, e sim no resultado da execução da aplicação original com um pequeno conjunto de dados, individualmente, em cada um dos nós.
+Durante este estágio também são testados diferentes ajustes que podem ser realizados em busca de um maior desempenho.
+Utilizando as medições obtidas por o primeiro estágio, o segundo estágio, chamado ClusterOptimizer, particiona o conjunto de dados de maneira não uniforme, de acordo com a velocidade relativa de cada nó.
+O sistema então executa a aplicação utilizando o particionamento óimo, além de outras otimizações realizadas no primeiro estágio específicas para cada nó.
+Todas as execuções subseqüentes realizam então este mesmo particionamento.
+Entretanto, este sistema não é destinado a aplicações MPI genéricas.
+Ele foi desenvolvido com o intuito de fornecer suporte à agregados heterogêneos ao framework KeLP (Kernel Lattice Parallelism), o qual possibilita a implementação de aplicações científicas portáveis em sistemas computacionais paralelos com memória distribuída.
+KeLP facilita a programação de determinados tipos de aplicações, provendo suporte em tempo de execução à decomposição de dados baseada em blocos, e ao gerenciamento da comunicação.
+Otimizador de desempenho por forcá bruta desenvolvido no CPAD.
+O presente trabalho teve origem a partir de pesquisas realizadas no CPAD relacionadas à otimização do desempenho de aplicações paralelas em máquinas agregadas heterogêneas orientadas a aplicações genéricas, isto é, sem modificações ao código da aplicação.
+Esta abordagem inicial que foi desenvolvida no CPAD baseia- se na realização de múltiplas execuções da aplicação afim de encontrar, ao longo de as execuções, a melhor configuração de processos por nó, ou seja, aquela que tenha por consequência o menor tempo de execução.
+A idéia básica é aumentar o número total de processos, apoiando- se na premissa que uma aplicação MPI deve ser projetada para distribuir a carga igualmente entre os processos.
+Com isto, é possível atribuir um número maior de processos aos nós mais poderosos e um menor número à s máquinas menos velozes, permitindo, dessa forma, que cada nó receba uma carga compatível com sua capacidade de processamento.
+De esse modo, o sistema implementado inicialmente testa, de forma automática, diferentes combinações do número de processos para cada tipo de nó, a fim de que a melhor configuração encontrada, após um determinado número de tentativas, seja utilizada efetivamente em execuções subseqüentes.
+O programa segue uma regra muito simples:
+Aumentar gradativamente o número de processos nos nós mais rápidos, para então também aumentar o número de processos nos nós menos poderosos, sempre guiando- se por o tempo de execução para decidir o rumo da otimização.
+Esta abordagem simples demonstrou que é possível efetivamente otimizar o desempenho de um grande número de aplicações através da distribuição equilibrada de processos aos nós que participam da execução.
+Ela baseia- se no fato que uma aplicação é executada várias vezes, especialmente quando está em fase de desenvolvimento, possibilitando que ao longo de essas execuções seja gradativamente otimizada.
+Comparação das abordagens.
+A Tabela 2 apresenta uma comparação resumida das técnicas estudadas.
+Os modelos de otimização de desempenho de aplicações paralelas em ambientes heterogêneos que tratam do problema em nível de aplicação exigem modificações no programa, o que além de não ser transparente, não é genérico, pois cada aplicação precisa ser modificada conforme necessário.
+Os trabalhos que tratam do problema em nível de sistema, por sua vez, costumam valer- se de ambientes que suportam migração de processos para realizar escalonamento dinâmico.
+Tais softwares são bastante interessantes, contudo também possuem desvantagens, como o custo associado tanto à migração quanto a os algoritmos de tomada de decisão dinâmica, além disso, torna- se difícil para tais sistemas migrar processos quando o sistema computacional paralelo é composto por máquinas de diferentes arquiteturas.
+Em a literatura encontra- se apenas um sistema capaz de fazer isto, entretanto ainda é bastante experimental.
+O sistema &quot;Tui «(&quot;The Tui System&quot;), foi desenvolvido com o objetivo de permitir que as máquinas de origem e destino numa migração de processos possuam arquiteturas diferentes, isto é, conjuntos de instruções e formatos de dados diferentes.
+Isto é alcancádo através de técnicas avancádas de tradução de código binário, onde toda imagem do processo na memória é traduzida durante a migração.
+A versão analisada se propõem a suportar quatro arquiteturas, exigindo que o programa tenha sido escrito em ANSI C. De essa forma, com exceção do trabalho desenvolvido no próprio CPAD, percebe- se a ausência de trabalhos que ataquem o problema em nível de sistema, sem a utilização de mecanismos especiais de migração de processos e dessa forma superando a dificuldade da migração entre arquiteturas de hardware distintas.
+Acredita- se que a abordagem implementada no CPAD possa ser melhorada orientandose a busca não só por o tempo de execução da aplicação paralela, mas também por a análise do comportamento de execuções prévias da mesma aplicação.
+Valendo- se de informações de monitoração, a busca por a melhor configuração de número de processos por nó pode ser realizada de forma mais inteligente, eliminando- se tentativas que sabidamente teriam como consequência uma degradação do desempenho.
+Com base nos estudos realizados e descritos nos capítulos 2, 3 e 4, este capítulo apresenta os principais fatores que motivaram o desenvolvimento deste trabalho, resultando na proposta do mesmo.
+Além de as motivações e da proposta, são também apresentados os objetivos do modelo, juntamente com a sua descrição, incluindo sua arquitetura básica e aspectos relacionados.
+Motivação. Como visto, o tempo de execução de um programa paralelo é definido por o intervalo entre o instante em que o primeiro processador inicia a sua parte do processamento e o momento em que o último encerra a sua parte.
+A adequada distribuição de tarefas aos diversos processadores é fundamental para a minimização do tempo de execução do programa paralelo e maximização da utilização dos recursos computacionais disponíveis.
+Os agregados heterogêneos introduzem uma dificuldade adicional para atingir- se esta maximização dos recursos computacionais, isto porque é necessário levar- se em consideração a existência de diferentes tipos de nós com diferentes capacidades de processamento.
+De esse modo, para que o tempo de execução de uma aplicação paralela executando num sistema computacional heterogêneo seja minimizado, é necessário haver um mapeamento otimizado das tarefas ou processos da aplicação aos processadores, levando- se em consideração suas diferentes capacidades de processamento.
+Algumas aplicações paralelas são capazes de atingir uma maximização dos recursos computacionais mesmo em tais agregados, utilizando- se para isto de mecanismos de balanceamento de carga.
+Tais mecanismos implicam uma maior complexidade da aplicação e observa- se a existência de um grande número de aplicações que não implementam mecanismos desta natureza.
+Para essas, torna- se necessária uma &quot;ajuda externa «a fim de que os recursos computacionais disponíveis sejam mais bem aproveitados.
+Definição do problema.
+Para ilustrar mais claramente o problema, temos a seguir a análise do comportamento de uma pequena aplicação para cálculo do número PI (não realiza nenhum tipo de balanceamento de carga) executada na máquina agregada Amazônia do CPAD.
+Foi realizada a alocação através do CRONO de 3 nós, sendo 1 do tipo A, 1 do tipo B e 1 do tipo C. Devido a o objetivo de meramente ilustrar o problema, atribuiu- se aqui letras a cada tipo de nó em vez de dar- se sua descrição;
+Entretanto, maiores informações sobre o agregado Amazônia podem ser encontradas no capítulo 7.
+Em a execução, foi disparado um processo para cada processador (nós biprocessados receberam dois processos).
+Através da monitoração da utilização da Unidade Central de Processamento -- Central Processing Unit (CPU) -- das máquinas alocadas, após a execução da aplicação é possível constatar que houve uma subutilização dos recursos disponíveis.
+Conforme a Figura 5, enquanto o nó do tipo B (que se percebe ter menor capacidade de processamento em relação a os outros) teve uma utilização média de CPU de 97%, o nó do tipo A apresentou uma utilização média de CPU de 52% e o nó do tipo C teve uma utilização média de CPU de apenas 23%.
+Com isto, concluímos que, se fosse possível, de alguma forma, realizar uma distribuição mais eqüitativa das tarefas, levando- se em consideração as diferentes capacidades de processamento de cada nó, seria possível realizar uma maximização dos recursos disponíveis com uma consequente minimização do tempo de execução.
+Proposta. A proposta deste trabalho é definir um modelo para encontrar de forma automática e transparente ao usuário um mapeamento otimizado de processos de uma dada aplicação MPI genérica aos processadores alocados por o usuário numa máquina agregada heterogênea.
+Para alcancár este objetivo, foi especificada uma estratégia de escalonamento que é definida, de acordo com a classificação hierárquica proposta por Casavant, como global, estática, sub-ótima e heurística, conforme a Figura 6.
+Esta estratégia também caracteriza- se por ser adaptativa, utilizando- se de históricos de monitoração de execuções anteriores da aplicação para adaptar gradativamente (ao longo de as execuções) a configuração de escalonamento.
+A justificativa destas decisões são analisadas na seção seguinte.
+Estratégia de escalonamento utilizada.
+A primeira decisão, entre escalonamento local e global, é direta:
+O foco do trabalho é a realização de um escalonamento global dos processos, de modo a maximizar a utilização dos recursos computacionais disponíveis num agregado heterogêneo.
+Em uma máquina agregada, o trabalho de escalonamento local é realizado por o sistema operacional de cada nó.
+De esse modo, a estratégia selecionada é do tipo global.
+A segunda opção refere- se ao momento em que é realizado o escalonamento:
+Antes do início da execução (estático) ou durante a execução (dinâmico).
+Seguindo o modelo das aplicações paralelas programadas com a biblioteca MPI-1, as quais atualmente representam a grande maioria devido a ampla aceitação do padrão e que suportam apenas gerenciamento estático de processos conforme já discutido, o escopo deste trabalho é definir um modelo estático de escalonamento de processos.
+Para a realização de escalonamento dinâmico seguindo os moldes da proposta deste trabalho (direcionado a aplicações genéricas), seria necessário o emprego de algum software capaz de realizar migração de processos.
+O modelo proposto no trabalho destina- se a escalonar os processos de uma aplicação genérica;
+Devido a isto, existe a incapacidade de saber- se de antemão todas as informações necessárias para que seja realizada um escalonamento óimo.
+De essa forma, opta- se por as abordagens subóimas.
+As abordagens sub-ótimas dividem- se em duas categorias básicas:
+Aproximadas e heurísticas.
+Conforme visto, nas estratégias de escalonamento aproximadas, a idéia é utilizar modelos formais do algoritmo da aplicação.
+Entre os principais modelos utilizados para isto, destacamse teoria dos grafos, programação matemática e teoria das filas.
+Torna- se clara a inviabilidade da utilização de tais formalismos, uma vez que o modelo proposto é destinado a aplicações genéricas e não tem- se o conhecimento sobre a natureza da aplicação paralela.
+Devido a isto, recorre- se à abordagem heurística.
+Esta, por sua vez, baseia- se na utilização de algoritmos que tentam aprender o comportamento da aplicação, para então escalonar- la da melhor maneira possível.
+Levando- se em consideração a classificação não-hierárquica proposta por Casavant, a estratégia de escalonamento adotada também caracteriza- se por ser adaptativa, o que representa a capacidade do escalonador alterar suas políticas, parâmetros ou algoritmos em resposta a um feedback.
+Em este caso, o feedback provém da análise dos históricos de monitoração coletados em execuções posteriores da mesma aplicação e servem de base para alteração de parâmetros de escalonamento.
+A estratégia adotada representa uma política de escalonamento, isto é, ela tem por objetivo decidir o que será feito, deixando a cargo de os mecanismos do sistema de execução da biblioteca MPI executar de fato as decisões tomadas.
+Objetivos do modelo.
+Os objetivos do modelo são:
+Otimização do desempenho de uma aplicação paralela MPI genérica executada sobre um agregado heterogêneo.
+Através da especificação de uma arquitetura e um algoritmo para calcular o número de processos que serão atribuídos a cada tipo de nó a cada nova execução da aplicação, baseando- se nos históricos de monitoração das execuções prévias da aplicação;
+Implementação de uma ferramenta baseada na arquitetura e no algoritmo propostos.
+Tal ferramenta será composta de sistema de monitoração, disparador de aplicações e interface gráfica;
+Avaliação através da instalação da ferramenta implementada num agregado heterogêneo no CPAD, e realização de testes envolvendo algumas aplicações paralelas selecionadas para otimização.
+Forma de avaliação.
+Este modelo de otimização de aplicações paralelas executadas sobre agregados heterogêneos será avaliado através do desenvolvimento e teste de uma ferramenta que implemente a proposta.
+Tal ferramenta será composta por sistema de monitoração, disparador de aplicações e interface gráfica para visualização de resultados.
+Para realizações dos testes, o sistema desenvolvido será instalado num agregado heterogêneo do CPAD e serão realizados testes com algumas aplicações paralelas selecionadas.
+Arquitetura do modelo.
+Para dar suporte ao modelo, foi projetada uma infra-estrutura de monitoração, que opera de forma integrada ao gerenciador de recursos, capaz de armazenar as informações coletadas em banco de dados.
+Estas informações são utilizadas como entrada para o algoritmo que refina, no decorrer de as execuções, o número de processos a serem disparados em cada classe de nó.
+Junta- se a isso uma interface Web que permite a análise e comparação do comportamento de aplicações paralelas, como, por exemplo, avaliar o ganho de desempenho obtido após um certo número de execuções.
+Agente: Módulo responsável por coletar as informações de monitoração em cada nó e enviar- las ao módulo coletor;
+Coletor: Este módulo tem como objetivo recolher as informações enviadas por os módulos agentes e tornar- las disponíveis para módulos clientes, como aplicações para monitoração em tempo real, bem como para o módulo monitor de execuções;
+Monitor de execução:
+O monitor de execuções interage tanto com o coletor quanto com o gerenciador de recursos.
+Em o momento de uma execução, o programa de disparo de aplicações informa este módulo sobre a nova execução, para que então seja iniciada a gravação dos dados de monitoração no banco de dados;
+Interface Web: Interface Web para visualização de informações, a qual permite a análise de sessões de monitoração de aplicações, identificando a utilização de processador e memória para cada nó que participou da execução de uma dada aplicação paralela, bem como diversos outros tipos de informações, como histórico das execuções, aproveitamento dos recursos alocados e análises comparativas;
+Banco de Dados: O banco de dados é utilizado para armazenar tanto as informações de monitoração quanto os parâmetros de balanceamento que irão ser gerados ao longo de as execuções das aplicações paralelas;
+Gerenciador de Recursos: O sistema proposto terá por objetivo inicial trabalhar em conjunto com o gerenciador de recursos CRONO.
+O CRONO permite a definição da quantidade de processos a serem disparados em cada máquina alocada no momento de uma execução.
+O sistema proposto fornecerá estes parâmetros de forma transparente ao usuário.
+Algoritmo de cálculo do numero de processos por nó.
+Em esta seção, é apresentado o algoritmo desenvolvido para o modelo que realiza o cálculo do número de processos por nó para aplicações sem restrições quanto a o número de processos.
+A idéia principal consiste em calcular o número de processos necessários para que os tipos de nós menos carregados alcancem uma carga equivalente à dos nós mais carregados, utilizando o processo como unidade mínima de divisão.
+A cada nova execução, o algoritmo é sempre aplicado tomando como ponto de partida o registro da execução com o menor tempo, isto é, aquele em que a aplicação paralela obteve o melhor desempenho.
+O Algoritmo 1 é apresentado a seguir.
+O algoritmo não lida com o índice de utilização de processador de cada nó isolado que participou da execução da aplicação paralela, e sim com a média de carga de cada classe de máquinas.
+De essa forma, se existem 8 máquinas alocadas, sendo 4 do tipo A e 4 do tipo B, é calculada a média de utilização de CPU das máquinas do tipo A e média para as do tipo B. Em a primeira execução da aplicação, é disparado um processo para cada processador, desse modo, nós biprocessados recebem dois processos, nós com quatro processadores recebem quatro processos, etc..
+Para determinar quantos processos devem ser disparados para cada tipo de nó, o algoritmo consulta o banco de dados, o qual contém uma descrição da configuração de cada nó que compõem a máquina agregada.
+Em as execuções subseqüentes, o algoritmo utiliza três regras diferentes para o cálculo do número de processos;
+A seleção de qual regra será empregada se dá a partir de o número de vezes que o registro da melhor execução já serviu de base para tentativas de otimização.
+A primeira regra é utilizada na primeira tentativa de otimização a partir de o registro da melhor execução;
+Isto significa que esta regra sempre será aplicada na segunda vez que a aplicação é executada, pois só existe uma execução realizada até então e ela é convencionada como sendo a melhor.
+Em este caso, é utilizada uma regra de três simples para calcular- se o número de processos, por exemplo, se existem 8 máquinas alocadas, 4 do tipo A e 4 do tipo B, e a média de utilização das máquinas do tipo A é de 50% e a média das máquinas do tipo B é de 100%, então o número de processos nas máquinas do tipo A é dobrado.
+Para aplicação desta regra, levase sempre em consideração a porcentagem de carga do tipo de nó mais carregado, para então calcular- se quantos processos seriam necessários nos outros tipos de nós a fim de alcancárem a mesma porcentagem de carga.
+Só existe uma exceção em relação a a primeira regra:
+Caso alguma classe de nós no registro usado como base para a otimização possua uma média de carga muito baixa (convencionada como abaixo de 5%), a segunda regra é aplicada.
+Isto é interessante para evitar a geração de um número muito alto de processos, podendo ter como consequência uma instabilidade na aplicação.
+A segunda regra é empregada quando a tentativa de otimização baseada na primeira regra não foi bem sucedida, isto significa que o registro de melhor execução ainda continua sendo o mesmo e seus parâmetros servirão novamente como base para a otimização.
+A aplicação desta regra consiste em adicionar um processo por nó para a classe de nós menos carregada.
+Quando os dois métodos anteriores de tentativa de otimização não obtêm sucesso, recai- se na inserção de valores aleatórios a partir de o registro da melhor execução para tentar achar um configuração de processos mais otimizada.
+De essa forma, para cada classe, um processo por nó é adicionado ou subtraído de forma aleatória.
+Independentemente de qual a regra aplicada, é testado se a configuração de processos por nó já foi utilizada antes para a aplicação.
+Caso positivo, também utiliza- se o mesmo método de inserção de valores aleatórios até que seja encontrada uma configuração que ainda não foi testada.
+Aplicações com restrições quanto a o numero de processos.
+Algumas aplicações paralelas possuem restrições quanto a o número de processos, isto é, necessitam que o número de processos obedecá a uma regra, como, por exemplo, seja um número quadrado ou potências de dois.
+Isto é uma consequência da forma como a aplicação foi modelada e implementada;
+Em certos casos, por exemplo, torna- se difícil particionar os dados quando existe um número ímpar de processos.
+Tais aplicações necessitam ser tratadas de forma especial por o sistema proposto, pois não é possível especificar um número arbitrário de processos nestes casos.
+Após analisar- se diferentes formas de tratar o problema decidiu- se exigir que o usuário informe um número fixo de processos para serem disparados.
+Este número deve ser compatível com as exigências da aplicação, para que a partir de então (nas execuções subseqüentes), o sistema tente buscar um mapeamento equilibrado de processos aos diferentes tipos de nós, mas sempre mantendo o mesmo número total de processos.
+Outra alternativa seria informar ao sistema quais as restrições em relação a o número de processos empregados por a aplicação (números quadrados, potências de dois) e deixar a seu cargo calcular números compatíveis com as restrições.
+O problema encontrado com esta abordagem é que muitas aplicações paralelas necessitam de recompilação quando se deseja alterar o número de processos que se pretende disparar.
+O sistema até poderia ser responsável por essa recompilação, executando o compilador quando necessário, mas esta é uma tarefa nada prática, especialmente quando se utiliza um agregado composto por máquinas de arquiteturas diferentes, e torna- se necessária a utilização de cross-compiladores.
+De esse modo, o algoritmo descrito na seção anterior não é utilizado para aplicações que se enquadram nesta categoria.
+O Algoritmo 2 é descrito a seguir:
+Em a primeira execução da aplicação, os processos são atribuídos de forma cíclica aos nós alocados, isto é, cada nó recebe um processo, até que não existam mais processos para serem atribuídos.
+A partir de então, a cada nova execução, o registro com o melhor tempo é utilizado como base para a otimização, da mesma forma que o algoritmo para aplicações sem restrições quanto a o número de processos.
+O cerne do algoritmo consiste em &quot;trocar «processos entre à classe de máquinas mais onerada e a classe de máquinas menos onerada, sempre respeitando o número total de processos estipulado por o usuário.
+De esse modo, o tipo de nó que teve a maior utilização de processador cede um número de processos, calculado aleatoriamente, para o tipo de nó com a menor utilização de processador.
+Caso a configuração de processos já tenha sido testada, são realizadas trocas aleatórias, até que seja encontrada uma combinação ainda não testada.
+Ciclo de adaptação.
+O algoritmo descrito é aplicado a cada nova execução da aplicação, compondo um ciclo de adaptação, visando otimizar o desempenho ao longo de as execuções.
+Este ciclo, no entanto, tende a degradar o desempenho da aplicação ao longo de muitas execuções.
+Isto ocorre porque configurações não são repetidas, e uma vez que a melhor configuração tenha sido encontrada, o algoritmo não permitirá que ela seja utilizada novamente, sempre tentando configurações ainda não testadas.
+Uma alternativa seria terminar o processo de adaptação em algum momento, estipulando, por exemplo, o fim do ciclo quando não fosse obtido nenhum ganho de desempenho após três tentativas consecutivas.
+Entretanto, considerou- se mais apropriado permitir ao algoritmo sempre tentar novas combinações, deixando a cargo de o usuário decidir quando parar.
+Em este capítulo são apresentados aspectos relativos a implementação e ao funcionamento de cada módulo que compõem o protótipo, o qual foi batizado de DAPSched -- Distributed systems Adaptive Process Scheduller.
+Sistema de monitoração.
+Antes de descrever a implementação do sistema de monitoração, é interessante registrar que o CPAD conta com um sistema de monitoração de propósito geral desenvolvido no próprio centro (RVISION);
+Que apesar de não ter sido utilizado devido a questões pragmáticas citadas a seguir, sua integração com a ferramenta DAPSched pode ser elencada como trabalho futuro.
+Armazena informações em formato XML (eXtensible Markup Language), não possuindo possibilidade de utilização de banco de dados;
+É relativamente complexo;
+Julgou- se mais simples e prático o desenvolvimento de um sistema de monitoração pequeno, especialmente projetado para atender aos requisitos do modelo proposto.
+O sistema de monitoração projetado é divido em três programas, todos implementados em linguagem C. A linguagem C foi escolhida por ser a linguagem padrão utilizada em sistemas UNIX para programação em nível de sistema.
+Destaca- se também a utilização da biblioteca PThreads.
+Esta biblioteca, uma implementação para Linux do padrão ANSI/ IEEE POSIX descrição detalhada de cada módulo do sistema de monitoração.
+Módulo agente.
+A função do módulo agente consiste em obter as informações de utilização de processador e memória (atualmente os índices de uso de memória, apesar de serem monitorados, não estão sendo utilizados) dos nós do agregado alocados por o usuário e em enviar- las periodicamente ao módulo coletor.
+A aquisição destas informações é realizada através do pseudo sistema de arquivos/ proc padrão do Linux.
+Este sistema de arquivos é gerado dinamicamente por o kernel e possui uma grande quantidade de informações sobre o estado do sistema.
+De esse modo, o módulo agente obtém as informações sobre utilização do processador a partir de o arquivo /proc/stat, o qual é constantemente atualizado por o kernel.
+O programa, ao ser disparado, fica bloqueado à espera de uma conexão numa porta prédeterminada.
+Uma vez que uma conexão seja estabelecida por o módulo coletor, os dados obtidos passam a ser enviados a cada intervalo de tempo pré-estabelecido através do protocolo TCP.
+O intervalo de tempo pré-estabelecido de envio de informações é de 1 segundo, julgandose que este seja um valor compatível com as aplicações avaliadas, as quais não possuem um tempo de execução muito longo.
+Porém, é importante observar que aplicações paralelas com tempo de execução de horas ou mesmo dias são comuns;
+De esse modo, seria aconselhável utilizar um intervalo de tempo maior entre o envio das informações, isto para evitar um excesso de informações armazenadas no banco de dados, tendo como possível consequência uma degradação de desempenho no acesso a estas informações.
+Módulo coletor.
+O módulo coletor tem como tarefa, por um lado, conectar- se a todos os agentes e receber as informações de monitoração e, por outro, prover estas informações ao módulo monitor de execuções.
+A idéia da utilização de módulos separados para coleta de informações e monitoramento de execuções decorre da possibilidade de ter- se mais de um programa cliente conectado ao coletor.
+Isto é, além de o monitor de execuções, um programa para realizar o acompanhamento em tempo real dos dados monitorados de forma gráfica (programa este implementado para fins de teste e não discutido nesta dissertação).
+A o ser executado, o programa lê, a partir de um arquivo de configuração, os hosts aos quais deve conectar- se.
+Uma vez estabelecida a conexão com cada um de eles, os dados comecám a ser recebidos.
+Paralelamente, uma thread aguarda bloqueada a conexão de clientes.
+Com a conexão de um cliente, este passa a receber os dados de monitoração no intervalo pré-determinado de tempo.
+Para que um programa receba dados de múltiplas conexões ao mesmo tempo, é necessário utilizar algum método especial, uma vez que operações normais de leitura de sockets são bloqueantes.
+Uma alternativa seria a utilização de threads, porém, aqui, optou- se por a utilização simplificação do código do programa.
+Esta função, implementada a partir de uma chamada de sistema, permite monitorar múltiplas conexões ao mesmo tempo, indicando, quando de o recebimento de informações, de qual socket elas provêem.
+Módulo monitor de execuções.
+Este programa é o maior dos três que compõem o sistema de monitoração, sua tarefa é receber requisições do módulo de disparo de aplicações (módulo que faz a interação com o CRONO, discutido posteriormente) para então iniciar a operação de registro no banco de dados das informações monitoradas na execução de uma aplicação paralela, as quais são recebidas do módulo coletor.
+O programa é composto por três threads:
+Thread de comando, que tem como função ficar bloqueada aguardando requisições de início e fim de execuções, as quais são realizadas por o módulo de disparo cropt.
+Quando uma requisição de início de execução é recebida, uma nova thread de registro é lancáda, a qual é finalizada quando de o recebimento de uma requisição de término da aplicação;
+Thread de monitoração, cuja função consiste em conectar- se com o módulo coletor e, então, receber regularmente os dados de monitoração;
+Thread de registro, que tem por função armazenar os dados monitorados (índices de utilização de processador) no banco de dados.
+A o final da sessão de registro, são calculadas as médias de utilização de processadores (média geral, média para cada classe de nó e média para cada nó em particular), dados estes que poderão ser utilizados por o algoritmo de cálculo do número de processos para orientar a melhor distribuição de processos em execuções posteriores.
+O programa, uma vez iniciado, conecta- se com o módulo coletor através da thread de monitoração, para obter os dados do módulo coletor.
+Ao mesmo tempo, a thread de comando é lancáda e aguarda requisições de início de execuções.
+Base de dados.
+O sistema gerenciador de banco de dados adotado foi o MySQL.
+Entre os fatores que contaram para sua utilização, destaca- se o fato de ser um programa de código aberto, multiplataforma e de fácil integração com várias linguagens (incluindo C e PHP).
+A Figura 8 apresenta o modelo entidade-relacionamento do banco de dados.
+Machines: Armazena informações relativas à s máquinas que compõem o agregado, como hostname, tipo, etc.;
+Machine types: Contém um registro para cada tipo de máquina que compõe o agregado, descrevendo sua arquitetura, memória, processadores, etc.;
+App nicks: Armazena &quot;apelidos «dados à s aplicações, isto possibilita que a mesma aplicação possa ser otimizada para diferentes conjuntos de dados;
+Executions: Contém informações sobre as execuções de aplicações, como tempo de início, tempo de fim, nome da aplicação, linha de comando, etc.;
+Execution machines: Armazena as máquinas alocadas ao usuário numa execução;
+Execution np: Contém o número de processos disparados para cada tipo de máquina numa execução;
+Tracking: Armazena os dados de monitoração da execuções.
+Interface web.
+Para o desenvolvimento da interface web, optou- se por a linguagem PHP, devido a a facilidade que ela apresenta para o desenvolvimento de sites dinâmicos.
+PHP tem como uma das características mais importantes o suporte nativo a um grande número de bancos de dados, incluindo o MySQL adotado neste trabalho, isto torna a tarefa de construir um site dinâmico que facá acesso a um banco de dados uma tarefa relativamente simples.
+Para geração de gráficos, utilizou- se a biblioteca JPGraph, a qual possibilita o desenvolvimento de gráficos bastante elaborados com um mínimo de código.
+Entre as vantagens apresentadas por esta biblioteca, pode- se destacar:
+O fato de ter suporte a uma grande variedade de modelos de gráficos, seguir uma modelagem orientada a objetos, facilitando a criação de gráficos através do mecanismo de herancá e ser um projeto de código aberto e de livre distribuição.
+Entre as principais funcionalidades da interface web, é possível destacar:
+Listagem das execuções de uma aplicação, incluindo os seguintes dados para cada execução:
+Timestamp de início e término da execução, linha de comando, duração e média geral de utilização de processador.
+Esta página também conta com gráfico para visualização dos tempos de execução da aplicação paralela ao longo de as execuções, conforme a Figura 9;·
+página com análise comparativa das diferentes execuções da mesma aplicação com gráficos de utilização média de processador para cada execução, de acordo com a Figura· análise da utilização dos processadores ao longo de uma execução paralela, como pode ser visto na Figura 10.
+Esta página possui uma ficha completa da execução, incluindo quais nós foram utilizados, média de utilização de processador para cada nó e a sumarização da média para cada classe de nós, etc..
+Disparador de aplicações O disparador de aplicações cropt (CRONO Optimizer) faz a integração com o gerenciador de recursos CRONO, sendo o módulo utilizado por o usuário para executar aplicações paralelas.
+Os principais parâmetros que podem ser passados a ele por a linha de comando são os seguintes:
+exec Principal opção, utilizada para disparar aplicações paralelas.
+Recebe como parâmetro um apelido para a aplicação e o nome do programa executável;
+execfixednp Possibilita a otimização de aplicações que possuem restrições quanto a o número de processos, permitindo que seja especificado um número fixo de processos que será utilizado como base para a otimização;
+execonlymon Esta opção permite que seja realizada a execução de uma aplicação com o sistema de otimização desativado, tendo como objetivo permitir a análise do seu comportamento através da interface gráfica, isto é, apenas para fins de monitoração;
+best Realiza a execução da aplicação utilizando os mesmos parâmetros da melhor execução, isto é, esta opção faz com que o sistema não facá tentativas de otimização;
+list: Permite listar as execuções realizadas;
+del Permite apagar um apelido e todas as suas execuções relacionadas.
+A possibilidade de utilização de apelidos (nicknames) para as aplicações é um mecanismo projetado com o objetivo de dar flexibilidade à ferramenta.
+Este mecanismo torna possível que uma mesma aplicação seja otimizada em diferentes contextos, como, por exemplo, diferentes conjuntos de dados.
+Cada apelido representa uma &quot;linha de otimização», de modo que as informações de execuções prévias da aplicação de um determinado apelido não são utilizadas para outro.
+A opção exec realiza uma série de tarefas que serão descritas a seguir e então executa a aplicação paralela passando os parâmetros corretos ao script crrun do CRONO, o qual é um wrapper para o dispatcher MPI, denominado mpirun.
+Verifica se a aplicação já foi executada anteriormente, caso negativo utiliza o número padrão de processos para cada classe de nó.
+É interessante observar que, caso a aplicação já tenha sido executada sobre outro apelido, isto não é levado em consideração;
+Caso a aplicação já tenha sido executada antes (dentro de o mesmo apelido), o algoritmo de cálculo do número de processos, baseado no registro da melhor execução, gera um novo número de processos por nó, na tentativa de otimizar o desempenho da aplicação;
+É gravado um arquivo de máquinas que será passado ao script crrun, indicando o número de processos para cada máquina;
+O sistema de monitoração é informado do início de uma nova execução, e então passa a registrar no banco de dados os índices de utilização de processador nas máquinas que participam da execução da aplicação;
+A aplicação é disparada;
+A o término da execução, são calculadas as estatísticas de utilização das CPU.
+Arquivo de Máquinas.
+A biblioteca MPICH utiliza um arquivo de máquinas para definir a localização e o número de processos que serão disparados numa execução.
+Trata- se de num arquivo texto contendo o nome dos nós que participarão da execução, possuindo, como exemplo, o seguinte formato:
+Quando o usuário realiza uma alocação através do gerenciador de recursos CRONO, este cria automaticamente um arquivo de máquinas listando os nós alocados por o usuário como o listado acima.

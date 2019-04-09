@@ -1,0 +1,798 @@
+Este trabalho apresenta uma nova abordagem para escalonamento de recursos em grades computacionais.
+O Site Resource Scheduler (SRS) tem por objetivo simplificar a visão que usuários têm dos recursos da grade e a sua gerência.
+Decisões de escalonamento de recursos são movidas para o site que os hospeda, permitindo reposta rápida a mudanças.
+Usuários não conhecem os recursos que utilizam, mas enxergam uma &quot;máquina virtual «que representa a quantidade de processamento a eles disponível naquele site.
+Esta abordagem inclui novos desafios, como escalonamento em dois níveis e a necessidade de fornecer uma medida de capacidade computacional.
+Porém, ele simplifica e otimiza o escalonamento em grades.
+Em este trabalho será definida a arquitetura do SRS, apresentado um protótipo desenvolvido para o middleware de grade OurGrid, os respectivos testes de desempenho e descrita uma forma de implantar o SRS em grades Globus.
+Palavras-chave: Computação em Grade.
+Gerência de Recursos. Sistemas Distribuídos.
+A computação em grade é uma área de pesquisa da ciência da computação que deixou de ser uma simples promessa acadêmica para se tornar uma importante ferramenta para a ciência e para a indústria.
+Cada vez mais, grandes empresas apóiam projetos relacionados à computação em grade, ao mesmo tempo em que cada vez mais pesquisadores de áreas como física, medicina, engenharia, química e biologia adotam a grade como ferramenta para seus estudos.
+Apesar de todo o sucesso na adoção desta tecnologia, muita pesquisa ainda é necessária para que possam ser aproveitadas todas as possibilidades oferecidas por as grades.
+Uma destas áreas onde pode haver evolução no estado da arte é a área de gerência e escalonamento de recursos em grades.
+Considera- se o gerente de recursos o agente da grade responsável por localizar, negociar e monitorar recursos.
+Em outras palavras, é o gerente de recursos que disponibiliza à grade a capacidade computacional que a torna tão atraente a cientistas e pessoas de negócios.
+O escalonamento de recursos em grades, o processo de submeter aplicações a recursos sobre os quais o usuário não tem controle pode ser realizado de duas formas:
+A primeira, orientada ao usuário, tem como objetivo otimizar a execução da aplicação de um usuário, através da redução do seu tempo de execução.
+Isto é conseguido com a escolha dos melhores recursos disponíveis para o usuário.
+Obviamente, há um conflito entre escalonadores de usuários, pois cada um tentará alocar para si os melhores recursos disponíveis, gerando uma disputa por recursos na grade.
+Há uma segunda forma de escalonamento em grades, orientada ao sistema, onde o objetivo é otimizar a utilização dos recursos, sem procurar beneficiar nenhum usuário em especial.
+Em geral, estes últimos escalonadores (conhecidos como metaschedulers) são utilizados entre organizações virtuais, permitindo que participantes destas organizações compartilhem seus recursos da forma mais igualitária possível, dentro de condições pré-estabelecias por a comunidade.
+Em este trabalho é apresentado o Site Resource Scheduler (SRS), um escalonador e gerente de recursos que objetiva simplificar a visão que usuários têm dos recursos da grade através da sua virtualização.
+Considera- se que um site possui recursos, que podem ser utilizados por usuários locais, isto é, usuários que acessam diretamente os recursos e usuários da grade, que acessam os recursos a partir de um software de grade.
+Os recursos do site podem ser dedicados, quando são utilizados exclusivamente por um usuário por um tempo determinado ou não-dedicados, quando podem ser compartilhados entre usuários.
+Um exemplo típico de recursos dedicados A otimização da utilização dos recursos é obtida através da virtualização dos recursos, es-condendo dos usuários da grade a complexidade da gerência de recursos que podem ser de diferentes arquiteturas, com diferentes modos de acesso e que não são dedicados.
+O termo &quot;grade», aplicado no contexto de grades computacionais, surgiu em meados da década de 90 para descrever uma infra-estrutura de computação distribuída voltada a aplicações científicas.
+Desde então, diversas definições para o termo surgiram na literatura.
+Foster et al.
+Definem grade como um ambiente capaz de promover compartilhamento de recursos de forma segura, coordenada e flexível entre indivíduos, instituições e recursos.
+Segundo Berman et al.,
+grade é uma infra-estrutura computacional e de gerenciamento de dados que integra diversas tecnologias para fornecer uma plataforma virtual de computação.
+Chetty e Buyya definem grades como &quot;Redes baseadas em Internet de recursos computacionais geograficamente distribuídos que cientistas podem compartilhar, selecionar e agregar para resolver problemas de larga escala».
+Recentemente grandes empresas de tecnologia também começaram a manifestar interesse por a tecnologia, o que permitiu que aplicações científicas deixassem de ser aplicações predominantes nestes ambientes, abrindo caminho para aplicações voltadas a negócios.
+Em comum entre todas as definições de grades citadas, está a necessidade do compartilhamento de recursos distribuídos entre diferentes instituições, que possuem diferentes políticas de uso e de segurança nos seus recursos.
+Essa heterogeneidade de recursos e políticas associado ao fato de que estas organizações podem estar geograficamente distantes é que torna a computação em grade uma área desafiadora e ao mesmo tempo muito promissora.
+Algumas outras características de grades são as seguintes:
+Escalabilidade. O tamanho de uma grade pode crescer, evoluindo de um sistema com alguns elementos para sistemas contendo milhões de recursos;
+Heterogeneidade. Os componentes da grade são heterogêneos, podendo ser formados por computadores de diversas arquiteturas executando sobre diferentes plataformas e possuindo diferentes características;
+Compartilhamento. Diferentes aplicações devem ter direito de utilização da grade, não podendo ela ser destinada a uma única aplicação;
+Controle distribuído.
+Não existe uma entidade central com controle sobre toda a grade;
+Repositório virtual de recursos.
+Os recursos (não somente processadores) são vistos por os usuários como dispostos num repositório virtual de onde eles podem alocar recursos.
+O acesso não é feito ao recurso diretamente, e sim ao repositório que fornece o recurso;
+Dinamicidade. A qualquer momento algum recurso pode se tornar indisponível, em virtude de falhas que podem ocorrer em componentes da grade.
+O sistema tem de ser capaz de lidar com estas falhas de forma eficiente;
+Transparência. A grade não deve interferir na autonomia ou administração do local onde está instalada;
+Não deve comprometer a sua segurança nem exigir substituição de software previamente existente no local.
+De o ponto de vista do usuário da grade, deve- se permitir o seu acesso e partida do ambiente conforme a sua vontade e não deve lhe impor linguagens, ferramentas, bibliotecas e paradigmas de programação.
+Projetos de sistemas de grades computacionais devem levar em conta alguns aspectos, como os seguintes:
+Segurança. Por sua característica de distribuição entre diversos domínios administrativos, é necessário garantir que não ocorrerá um acesso não autorizado aos recursos da grade.
+Também é esperado que o acesso de usuários da grade aos recursos de um site seja facilitado, não exigindo todo o procedimento convencional de cadastro que ocorrem em sites convencionais.
+Tudo isso, porém, deve ser feito respeitando- se os sistemas de segurança previamente existentes no local.
+De forma similar, a adição de novos mecanismos de segurança na grade deve respeitar os critérios de segurança locais, e fazer- lo sem exigir a intervenção do administrador do sistema.
+Economia. Um aspecto importante a ser considerado dentro de um ambiente de grade é a de compartilhamento de recursos.
+Deve existir uma motivação para que uma organização disponha seus recursos à grade.
+A economia de grade discute mecanismos de compra e venda virtual de recursos, de forma que, na medida do possível, satisfazendo tanto &quot;compradores «quanto &quot;vendedores».
+Em um modelo econômico mais simples, pode ser formada uma rede de &quot;troca de favores», onde uma organização cede recursos à grade esperando, da mesma forma, receber recursos de outras organizações quando de eles necessitar.
+Modelos mais complexos podem envolver mecanismos de compra e venda baseados em modelos de negócios reais, como leilões e licitações.
+Imagem de sistema.
+Grades devem oferecer uma imagem transparente do sistema, através da abstração da sua heterogeneidade.
+Comumente, o problema é atacado de duas formas:
+Tolerância a falhas.
+Grades computacionais podem abranger um número de recursos da ordem de milhões de elementos.
+Mesmo que a probabilidade individual de falha de cada um de eles seja pequena, a probabilidade de ocorrência de falha num dos elementos é alta, exigindo que essa possibilidade seja considerada por os componentes do middleware da grade.
+As falhas podem ocorrer devido a diversos fatores, desde a perda de recursos em favor de usuários locais a erros de configuração do sistema.
+Os sistemas de grade atuais exigem um grande esforço do usuário para detecção do motivo da falha, o que indica que esta é uma área que ainda necessita de maiores pesquisas.
+Aplicações. A classe de aplicações suportada por um sistema em grade deve ser levada em consideração por desenvolvedores de aplicações nestas plataformas.
+Entre as aplicações fracamente acopladas (amplamente suportadas por ambientes de grade) encontram- se aplicações parameter sweep, compostas por diversas instâncias de um mesmo programa, workflow, onde existe uma relação de ordem parcial na execução das tarefas que compõem a aplicação, sendo a ordem determinada por alguma dependência de dados ou de controle entre as tarefas.
+Uma grade pode suportar também a execução de aplicações fortemente acopladas, onde as tarefas podem se comunicar durante a execução.
+Um exemplo deste tipo de aplicação são as aplicações que utilizam a biblioteca MPI (Message Passing Interface) de troca de mensagens.
+Gerência de recursos.
+A forma como recursos e serviços fornecidos por uma grade são disponibilizados para outras entidades é a questão trabalhada em gerência de recursos.
+Em grades, esta questão é mais complexa porque envolve recursos heterogêneos e compartilhamento entre diferentes domínios administrativos, que podem possuir diferentes políticas para o assunto.
+Outras questões, como a possibilidade de co-escalonamento (alocação simultânea de diferentes recursos), advanced reservation (possibilidade de realizar reservas de recursos para uso em algum momento no futuro) e SLA (Service Level Agreement) ­ a capacidade de negociar qualidade de serviço para recursos da grade ­ também têm sido investigadas por grupos de pesquisa relacionados à grades.
+Escalonamento de recursos.
+Escalonadores para grades computacionais devem ser capazes de escalonar aplicações de usuários em recursos geograficamente distribuídos, sobre os quais não possuem controle direto.
+Escalonadores de grades podem ser orientados à aplicação (quando realizam alocações com base nas necessidades do usuário, sem levar em consideração o sistema como um todo) ou orientados ao sistema (quando o escalonamento objetiva fornecer uma utilização balanceada do sistema entre os usuários).
+Grid scheduling é o processo de escalonar recursos distribuídos em múltiplos domínios administrativos, realizando as tarefas de descoberta (localização de recursos que satisfaçam os requisitos da aplicação) e de mapeamento (determinação de quais recursos executarão quais aplicações) de recursos, de forma orientada à aplicação.
+Este processo é realizado por cada usuário da grade que deseja obter recursos.
+Um elemento capaz de realizar as mesmas atividades de forma orientada ao sistema é conhecido como metascheduler, que pode ser organizado de três formas:
+Centralizada (quando o metascheduler submete aplicações diretamente para o escalonador local, que recebe a tarefa e submete aos recursos especificados), hierárquica, (quando o metascheduler encaminha aplicações aos escalonadores locais de cada domínio, e cabe a estes decidir sobre o seu escalonamento local) e distribuída (quando em cada domínio existe um metascheduler local que pode executar aplicações ou enviar- las para outros domínios, de acordo com critérios de carga e de desempenho).
+O metascheduler recebe pedidos de recursos de grid schedulers e realiza o escalonamento dos recursos.
+A Figura 1 apresenta cada um dos três esquemas apresentados.
+Heurísticas de escalonamento.
+A forma como são escolhidos os processadores que executarão as tarefas que compõem uma aplicação é o aspecto mais problemático do escalonamento em grades, pois é sabido que a tarefa de escalonar processos em processadores heterogêneos é um problema Np Completo.
+Esta constatação obriga os pesquisadores da área de escalonamento em grades a procurar soluções heurísticas para o problema.
+A comparação destas heurísticas é complicada por o fato de que cada pesquisador que apresenta uma nova heurística realiza testes com considerações diferentes daquelas assumidas por algum outro pesquisador.
+Ainda com relação a estas heurísticas, nem sempre é possível aplicar- las em todos os tipos de grades:
+Algumas consideram o modelo centralizado de metascheduling, outras consideram um modelo hierárquico;
+Algumas são para serem aplicadas de forma on-line, outras consideram um escalonamento em lote (batch).
+Uma apresentação detalhada das principais heurísticas para escalonamento de recursos em grades computacionais podem ser obtidas em.
+Um outro conceito relacionado à computação em grade muito presente na literatura sobre o assunto é o conceito de VO's ­ Organizações Virtuais (do inglês Virtual Organizations).
+VO's podem ser definidas como um conjunto de indivíduos pertencentes a diversas organizações clássicas (empresas, universidades), possivelmente distribuídos geograficamente, e seus respectivos recursos que serão compartilhados de maneira organizada, por um tempo que pode ser determinado ou não.
+Em o contexto deste trabalho, será utilizado o termo &quot;aplicação «para referenciar o trabalho enviado para execução por um usuário.
+Uma aplicação (job) é composta por uma ou mais tarefas (tasks).
+Que podem ser independentes (no caso de aplicações fracamente acopladas) ou podem possuir alguma comunicação entre elas (em aplicações fortemente acopladas).
+A objetivo deste trabalho é de fornecer um meio de simplificar a visão que usuários têm dos recursos da grade e conseqüentemente a sua gerência, transferindo decisões de escalonamento de recursos para o site que os hospeda e com isto reduzindo o custo do escalonamento e gerência destes recursos por parte de os usuários, ao mesmo tempo em que aumenta a escalabilidade de seus grid schedulers.
+Isto é atingido através da adição de uma camada de abstração sobre o escalonamento na grade, realizado em nível de site:
+Os recursos de um site são virtualizados e apresentados de forma abstrata aos usuários.
+Desta forma, o usuário deixa de controlar dezenas (talvez centenas ou milhares) de recursos e passa a controlar uma menor quantidade de recursos que representam a capacidade computacional de cada um dos sites aos quais tem acesso.
+A virtualização pode trazer outras vantagens em sites onde os recursos são fornecidos à grade de forma oportunística:
+A eventual indisponibilidade do recurso pode ser tratada localmente e ser mantida transparente ao usuário.
+Para isto, o site deve possuir softwares capazes de monitorar o estado dos seus recursos, de re-executar tarefas que não completaram devido a esta indisponibilidade e de armazenar arquivos submetidos por o usuário, transferindo estes arquivos para os recursos que executam a aplicação.
+A arquitetura proposta para a realização destas tarefas ­ chamada de Site Resource Scheduler (SRS) será apresentada.
+A sua implantação pode ocorrer como um middleware independente para grades ou pode ser aplicado aproveitando- se os serviços oferecidos por algum middleware existente.
+Embora a arquitetura apresentada possa abordar quaisquer dos itens listados na Seção 1.1, a ênfase deste trabalho será na parte de virtualização e gerência dos recursos, pois estes são os aspectos onde o SRS fornece uma contribuição original, abordando o problema de uma forma diferente da convencional.
+Outros aspectos como segurança, economia e escalonamento serão abordados em termos mais gerais.
+Este documento está organizado da seguinte forma.
+Em o Capítulo 2 é apresentado o estado da arte em grades computacionais.
+São apresentados os principais sistemas disponíveis e algumas tendências em escalonamento e gerência de recursos em grades.
+Em o Capítulo 3 o Site Resource Scheduler é apresentado juntamente com a sua arquitetura.
+Em o Capítulo 4 será apresentado um protótipo do SRS desenvolvido como estudo de caso para o middleware OurGrid, os testes realizados com o protótipo e os resultados obtidos.
+Em o Capítulo 5 é discutida uma forma de implantar o SRS numa grade que utiliza o middleware Globus, enquanto a conclusão e alguns possíveis desdobramentos do trabalho são apresentados no Capítulo 6.
+Apesar de ser uma área de pesquisa recente em ciência da computação, a computação em grade é uma área bastante ativa e em evolução.
+A nomenclatura ainda não é bem definida, surgindo eventualmente diferenças de terminologia entre pesquisadores.
+O Global Grid Forum (GGF) é uma organização que congrega indústria e academia e que procura desenvolver padrões para grades computacionais.
+Diversas especificações estão sendo propostas por o GGF com o objetivo de uniformizar a terminologia e a visão de grade, permitindo o desenvolvimento de software interoperável.
+Em este capítulo serão discutidos aspectos de estado da arte em grades computacionais, especificamente naqueles assuntos que são de maior importância para este trabalho:
+Middleware de grades computacionais e gerência e escalonamento de recursos nesta plataforma.
+Diversos projetos de sistemas de software (middleware) para grades computacionais têm sido desenvolvidos nos últimos anos.
+Estes projetos ocorrem em diversas partes do mundo e com diferentes propósitos.
+Em geral, os projetistas deste tipo de sistema costumam otimizar- los para algum cenário específico de hardware (isto é, as características físicas e organizacionais dos recursos que comporão a grade) e de software (isto é, o tipo de aplicações suportado por o ambiente).
+Alguns exemplos de middleware para grades são:
+Unicore. O UNICORE (Uniform Interface to Computing Resources) é um middleware para grades computacionais que suporta aplicações workflow.
+Como principal resultado deste sistema, tem- se o EUROGRID, uma grade que interliga centros de pesquisas da Europa.
+O escalonamento no UNICORE é manual:
+O usuário define os requisitos de cada aplicação e determina o recurso onde deseja que seja executada.
+O software cliente procura mapear tarefas para recursos que atendam às necessidades da aplicação, cabendo ao usuário a indicação de novos recursos se os disponíveis não atenderem aos seus requisitos.
+Entropia é um sistema proprietário para grades computacionais voltado a ambientes corporativos.
+Ele é composto por o Entropia 2000, que explora ciclos ociosos de máquinas através da Internet e por o DCGRI D5.
+0, que explora ciclo ociosos de desktops presentes em organizações.
+Um diferencial do Entropia para as demais plataforma é o fato de ser desenvolvido para ser utilizado em máquinas que utilizam o sistema operacional Windows.
+Avaki/ Legion.
+O Legion é um dos projetos pioneiros para implementação de middleware para grades.
+Os projetistas do Legion buscavam características bem definidas durante a sua elaboração:
+Autonomia dos domínios, núcleo extensível, arquitetura escalável, facilidade de uso, alto desempenho via paralelismo, espaço de objetos único e extensível, segurança, gerenciamento e aproveitamento da heterogeneidade, suporte a múltiplas linguagens e interoperabilidade e tolerância a falhas.
+Para executar neste ambiente, as aplicações precisam ser compiladas com uma biblioteca própria.
+Este sistema implementa um escalonamento de tarefas aleatório, mas permite que usuários desenvolvam heurísticas elaboradas.
+Em 2001, o software foi renomeado para Avaki e passou a ser disponibilizado comercialmente.
+Dois softwares que possuem uma relevância maior neste trabalho, o Globus e o OurGrid, serão apresentados de forma mais detalhada a seguir.
+Um dos projetos pioneiros em computação em grade, o Globus é um conjunto de ferramentas que provê uma infra-estrutura para grades.
+As ferramentas do Globus implementam serviços básicos para diversas características da grade, tais como segurança, localização, alocação e gerência de recursos, informação, acesso aos dados e execução remota.
+Uma característica importante do Globus é a sua modularidade:
+Não é necessário que todos os serviços do Globus sejam utilizados simultaneamente.
+Serviços podem ser ativados conforme a necessidade do usuário do sistema.
+As primeiras versões do Globus utilizam para comunicação a biblioteca Nexus.
+A versão 3 do software utiliza web services para implementar os serviços mais básicos, através do OGSI (Open Grid Services Infrastructure), uma implementação da arquitetura OGSA proposta por o GGF.
+A o utilizar o OGSI, evita- se a utilização de protocolos específicos para cada ação a ser realizada sobre a grade, por exemplo LDAP (Lightweight Directory Access Protocol) para informações.
+A versão atual do Globus, o Globus 4, implementa o Ws--Resource Framework, uma especificação para web services com estado (stateful) que substitui o OGSI e é apoiado por empresas como IBM e Hp.
+A Figura 2 (adaptada de) mostra a arquitetura do Globus 4.
+Em esta figura, as aplicações do lado do cliente são aplicações que utilizam os serviços do Globus, como por exemplo grid schedulers.
+Clientes também podem desenvolver serviços de grade, que exe- cutarão num contêiner.
+A comunicação entre aplicações cliente e servidor é baseada em web services, com exceção de três serviços:
+GridFTP e MyProxy ­ que utilizam protocolos próprios ­ e RLS, que utiliza Transport Layer Security ­ TLS ­ um protocolo para comunicações seguras.
+A utilização de web services para comunicação possibilita que seja utilizado um padrão bem definido para as mensagens trocadas entre as partes (XML ­ eXtensible Markup Language) e para descrição de serviços (WSDL ­ Web Services Definition Language).
+Contudo, serviços do Globus não baseados em web services ainda são suportados por a nova versão do software.
+Os serviços Globus podem ser divididos em cinco grupos:
+Segurança, gerência de dados, gerência de execução, serviços de informação e componentes de tempo de execução.
+A seguir são descritos os componentes baseados em web services que pertencem a cada grupo.
+Segurança. Quatro componentes do Globus pertencem a este grupo.
+O primeiro, responsável por intermediar as transação entre clientes da grade e recursos, permitindo a definição de direitos de acesso a usuários e facilitando o seu acesso aos recursos, é o CAS (Community Authorization Service).
+O delegation service é responsável por delegar credenciais de acesso do usuário aos recursos, permitindo que novos serviços utilizem as mesmos credenciais de usuários e permitindo a sua renovação.
+O terceiro serviço, o web service authentication&amp; authorization, permite o envio de mensagens seguras através do SOAP (Simple Object Access Protocol), protocolo de troca de mensagens utilizado em web services.
+O último serviço é o de gerência de credenciais (credential management).
+Gerência de dados.
+O RFT (Reliable File Tranfer) é um serviço para transferência de arquivos seguro baseado em web services, que por sua vez utiliza os serviços do GridFTP, um protocolo FTP (File Transfer Protocol) otimizado para transferência de arquivos em longas distancias.
+Este grupo também contém um serviço de localização de réplicas de dados.
+Também estão em desenvolvimento o projeto OGSA-DAI (Open Grid Services Architecture Data Access and Integration), que tem como objetivo construir um middleware que fará parte do Globus e que seja capaz de acessar e integrar fontes de dados através da grade1 e um serviço de replicação de dados.
+Gerência de Execução Este grupo é formado por o GRAM (que será descrito a seguir).
+Em desenvolvimento existem o CSF (Community Scheduler Framework), um framework para o desenvolvimento de metaschedulers que operam em nível de organizações virtuais, o Grid Telecontrol Protocol, que permite o acesso remoto a instrumentos científicos e o Workspace Management, que permite o acesso a contas que o usuário possua em máquinas remotas.
+Serviço de Informação. O Web Monitoring &amp; Discovery System (MDS) fornece informações sobre recursos e serviços da grade.
+Estas informações são disponibilizadas para os usuários a partir de dados coletados por o Index Service.
+O Trigger Service permite que sejam programadas ações a serem realizadas quando ocorrerem certos eventos, como por exemplo quando a utilização dos recursos do site atingir um determinado valor.
+Elementos de tempo de execução.
+O Globus possui um núcleo para desenvolvimento de web services e clientes em conformidade com os padrões utilizados por o toolkit em linguagens C, Java e Python.
+O componente responsável por o gerenciamento de recursos é o GRAM.
+Ele está presente em cada recurso (ou conjunto de recursos, no caso de clusters e MPP's) a ser gerenciado por o Globus.
+Aplicações da grade precisam apenas se comunicar com o GRAM por meio de uma API (RSL ­ Resource Specification Language), e cabe ao módulo interagir com o escalonador local de cada recurso.
+O GRAM é constituído por serviços genéricos que são traduzidos para chamadas dependentes de plataforma.
+Os serviços definidos por o GRAM 4 são o ManagedJob, que fornece uma interface para as aplicações executando na grade (cada aplicação é traduzida num ManagedJob) e o ManagedJobFactory, através de o qual é possível coletar informações de estado das aplicações e solicitar o seu cancelamento.
+O ManagedJobFactory é o serviço que representa os recursos da grade acessíveis através de um escalonador local.
+Este serviço fornece uma interface para criar recursos (ManagedJobs) a fim de permitir a execução de aplicações através de tal escalonador local.
+Portanto, se um determinado recurso permitir o acesso através de diferentes escalonadores locais, este recurso oferecerá diversos serviços do tipo ManagedJobFactory, um para cada um dos escalonadores locais suportados.
+Uma vez que o serviço ManagedJob é ativado no recurso remoto, um EPR (End Point Reference) é retornado ao usuário.
+Através deste EPR o cliente pode gerenciar a aplicação submetida, isto é, acompanhar o estado da aplicação, cancelar- la ou realizar uma operação de attach na aplicação.
+Esta última operação permite que o cliente possa ser informado sobre alteração no estado da aplicação e que possa receber diretamente a saída produzida por ela.
+A descoberta de recursos é feita por agentes chamados brokers.
+Eles recebem as requisições em alto nível do usuário o podem traduzir em requisições mais específicas.
+Podem existir diversas &quot;camadas «de brokers, cada uma refinando mais a requisição até que se chegue a requisições de recursos específicas.
+A gerência de recursos pertencentes a diferentes sites que formam uma organização virtual pode ser desenvolvida com a utilização do CSF.
+Este framework provê um conjunto de web services que fornecem funcionalidades de reserva e submissão de aplicações.
+Usuários podem especificar os recursos desejados ou apenas os requisitos da sua aplicação, e o metascheduler encarrega- se do escalonamento.
+Para tanto, o metascheduler é capaz de interagir com os recursos via GRAM.
+A política a ser empregada na distribuição e escalonamento dos recursos, bem como outras funções adicionais (como por exemplo economia) deve ser implementadas por o usuário.
+O toolkit Globus não possui nem um broker nem um grid scheduler entre seus componentes.
+No entanto, existem diversas soluções desenvolvidas por terceiros, soluções estas apresentadas na Seção 2.2.
+O OurGrid é um sistema de grades computacionais orientado ao sistema desenvolvido no Brasil.
+O OurGrid utiliza um conceito de sites em sua concepção, e tem como foco aplicações do tipo BoT, embora versões recentes suportem a execução de aplicações paralelas que utilizam a biblioteca de troca de mensagens MPI.
+A Figura 3 apresenta uma grade OurGrid.
+Ela é formada por um conjunto de sites que interagem entre si para obtenção de recursos.
+Usuários estão associados a um determinado site, e solicitam recursos para a execução de sua aplicação (através do grid scheduler MyGrid) ao gerente de recursos da grade local (chamado Peer).
+Estes recursos serão buscados, a princípio dentro de o próprio site.
+Em situações em que o Peer não seja capaz de fornecer aos usuários locais todos os recursos de que necessitam, ele envia pedidos de recursos a outros peers que compõem a comunidade.
+O principal aspecto a favor de um modelo econômico para grades baseado em troca de favores é a sua facilidade de implementação.
+Em o OurGrid, a contabilidade dos favores é controlada localmente por cada Peer:
+Cabe a ele manter uma tabela com cada um dos demais peers conhecidos por ele e o crédito de cada um.
+Estas tabelas locais são utilizadas apenas em caso de conflito por recursos.
+Isto torna possível que mesmo peers que nunca cedam recursos à grade obtenham favores, embora este comportamento tenda a fazer com que a probabilidade de receber- los diminua.
+É importante notar que os peers OurGrid não são metaschedulers:
+Eles não realizam escalonamento, apenas encontram e adquirem recursos que posteriormente são delegados a clientes.
+O escalonamento das aplicações é realizada por o MyGrid, um grid scheduler desenvolvido por a mesma equipe que desenvolve o OurGrid.
+O ponto de partida na execução de uma aplicação na grade é uma máquina chamada home machine, a qual se supõe que o usuário tenha acesso para operação e instalação de softwares.
+Em ela são instalados componentes do OurGrid responsáveis por o escalonamento local da aplicação e por a interface com máquinas remotas pertencentes à grade (grid machines).
+As máquinas aptas a executar tarefas da grade devem executar um software chamado User Agent, que fornece uma interface uniforme para execução de aplicações e submissão de arquivos.
+No caso de o OurGrid, é o Peer quem obtém máquinas de outros domínios, ou mesmo do seu próprio domínio, e as disponibiliza ao usuário.
+Após obtidas estas máquinas, elas passam a ser acessadas e controladas diretamente por o usuário, através do Processor Interface.
+Opcionalmente pode ser ativado no OurGrid um mecanismo de segurança, cuja implantação se dá através da configuração de cada um dos componentes (MyGrid, Peer e User Agent) para reconhecer e aceitar conexões seguras (através do protocolo TLS) dos demais componentes:
+No caso de o MyGrid, ele precisa aceitar (armazenando sua chave pública e o incluindo numa lista de confiança) o Peer ao qual solicita recursos.
+O Peer precisa reconhecer os User Agent dos recursos que controla, MyGrid de usuários pertencentes ao site e os demais Peers que pertencem à grade.
+User Agents só precisam aceitar conexões do Peer do seu site.
+Em este caso, o acesso a recursos de um site remoto por um usuário se dá através de uma cadeia de conexões seguras:
+MyGrid e Peer local, Peer local e Peer remoto, Peer remoto e User Agent.
+Outro mecanismo oferecido por o OurGrid é o Swan, que permite que User Agents executem em sandboxes, que evita acesso a componentes sensíveis do sistema, prevenindo desta forma que execuções de aplicações possam causar danos ao recurso.
+A gerência de recursos em grades computacionais lida com a forma como serviços e recursos da grade podem ser disponibilizados a outras entidades.
+Em o início das pesquisas em grades computacionais, a principal preocupação da comunidade de pesquisadores era a de desenvolver uma forma de prover acesso a recursos de forma uniforme.
+De esta etapa das pesquisas surgiram o GRAM ­ Grid Resource Allocation and Management ­ cuja função é prover uma forma de acesso a recursos da grade de forma uniforme, isto é, independente das características reais dos recursos e o OGSA (Open Grid Services Architecture), que define a forma como serviços devem ser acessados.
+Atualmente, são trabalhados em gerência de recursos aspectos coma a capacidade de formular acordos (SLA), isto é, protocolos para que serviços sejam oferecidos com algum tipo de qualidade de serviço e escalonamento baseado em políticas de uso de recursos.
+O escalonamento em grades, sempre foi um tópico bastante pesquisado por a comunidade científica.
+Um dos prováveis motivos é que o Globus, padrão de facto em grades computacionais, não oferece grid schedulers entre os seus componentes, deixando esta questão em aberto para ser resolvida por a comunidade, que de fato tem desenvolvido diversos projetos deste tipo.
+Estes escalonadores atendem a necessidades específicas identificadas por seus desenvolvedores:
+Alguns são desenvolvidos para serem utilizados com o Globus;
+Outros, são capazes de interagir com o Globus e com outros sistemas de grades.
+Entre estes grid schedulers é possível destacar:
+MyGrid. O MyGrid é o grid scheduler do OurGrid.
+Ele escalona tarefas de aplicações BoT em recursos obtidos através de um Peer OurGrid.
+Os algoritmos de escalonamento distribuída para uma das máquinas da grade cedidas ao usuário.
+Se sobrarem máquinas para as quais não foram atribuídas tarefas, ou após todas as tarefas existentes já terem sido escalonadas e algumas máquinas já terem completado as suas tarefas, as tarefas ainda não completadas são replicadas nessas máquinas disponíveis.
+Tão logo uma das instâncias da tarefa se complete, as suas réplicas são canceladas.
+O Storage Affinity também trabalha com réplicas, da mesma forma que o WQR.
+A sua diferença é que, para decidir quais tarefas são enviadas para quais recursos, ele leva em conta a existência dos arquivos utilizados por as tarefas nos recursos, e vai escalonar a tarefa preferencialmente naqueles recursos que irão exigir uma menor transferência de arquivos.
+Para realizar o armazenamento dos arquivos, o usuário determina explicitamente na execução das tarefas quais devem ser armazenados e quais serão utilizados apenas durante a execução da tarefa.
+Condor-G. Este grid scheduler utiliza os protocolos do Globus (MDS e GRAM) para descoberta e acesso a recursos remotos e componentes herdados do sistema Condor para gerência dos processos na grade.
+As tarefas do usuário são escalonadas entre os recursos disponíveis de acordo com algum critério fornecido por o usuário.
+Como exemplo de critérios possíveis de serem utilizados estão o tempo esperado para início de execução, o tempo de término e o custo para alocação.
+Os recursos são ordenados de acordo com o critério e os processos são atribuídos obedecendo à fila de recursos.
+Caso os recursos disponíveis ao usuário possuam limitações quanto a o acesso a arquivos locais, o mecanismo de GlideIn pode ser usado.
+Este mecanismo faz com que os recursos não executem diretamente as aplicações do usuário, mas sim o daemon Condor.
+Com isto, é possível executar tarefas em sandboxes móveis que são disponibilizados por o Condor.
+Estes sandboxes permitem que chamadas de sistemas executem na máquina do usuário ao invés de no recurso da grade e também permitem que o mecanismo de checkpointing do Condor seja utilizado.
+Nimrod/ G. Este é um grid scheduler que utiliza conceitos de economia de grade para suas decisões de escalonamento.
+Suporta aplicações do tipo parameter sweep e possui módulos que o tornam compatível com o Globus e o Legion, embora módulos para outros sistemas possam ser desenvolvidos por os usuários.
+Inclui componentes para supervisão do sistema, controle de aplicações e escalonamento, podendo este ser realizado de duas formas.
+Em a primeira procura encontrar recursos dentro de o limite de preço que o usuário se propõe a pagar e dentro de o prazo para execução da aplicação (também definido por o usuário).
+Em a segunda forma de escalonamento o usuário negocia os recursos que irá utilizar, estipulando o valor que pagará para que a tarefa se complete dentro de o prazo.
+Caso o prazo não possa ser cumprido com o orçamento estipulado, um novo prazo ou um novo valor devem ser negociados.
+As tarefas que compõem a aplicação do usuário são geradas automaticamente por o grid scheduler a partir de uma descrição de alto nível da aplicação.
+O Nimrod/ G utiliza os serviços de segurança e informação existentes nos middleware de grade.
+GridWay. O GridWay é um framework para escalonamento, monitoração e gerência de aplicações parameter sweep para ser utilizado em grades Globus.
+O seu diferencial com relação a os demais sistema é a capacidade de realizar migração de tarefas.
+As tarefas podem migrar para compensar perda de recursos (devido a falhas ou cancelamento de tarefas ou devido a decisões administrativas) ou oportunisticamente (para aproveitar recursos &quot;melhores «que tenham se tornado disponíveis ou quando o recurso executando a tarefa não apresentar um desempenho satisfatório).
+O GridWay suporta ainda checkpointing em nível de aplicação, através do geração de arquivos de reinício.
+Em a ausência deste arquivo, uma tarefa cancelada irá executar desde o início.
+Para classificar os recursos disponíveis ao usuário, a fim de determinar para quais recursos preferencialmente serão submetidas as tarefas, este deve fornecer uma expressão que combina os diversos parâmetros de um recurso que são fornecidos por o Globus MDS.
+A vantagem da utilização de grid schedulers é a possibilidade de abstrair a descoberta e o escalonamento de recursos em grades.
+A o utilizar estas ferramentas, usuários têm acesso ainda a funcionalidades que reduzem o custo de utilização de recursos (no caso de o Nimrod/ G) ou que melhoram o desempenho das aplicações, como algoritmos de escalonamento otimizados para determinadas classes de aplicações (presentes no MyGrid), mecanismos de migração de tarefas (no caso de o GridWay) e checkpointing (presente no GridWay e no Condor-G).
+A não utilização deste sistema implica em escalonamento de recursos manual por parte de o usuário, o que conflita com a questão de transparência de grades.
+Por estas razões, a utilização destas ferramentas deve ser considerada por usuários de grades.
+Em esta seção será apresentada uma proposta de arquitetura e os serviços suportados por o Site Resource Scheduler.
+O SRS pode ser implantado como um middleware específico, caso em que deveriam ser desenvolvidos todos os módulos no site e também o broker do usuário.
+Alternativamente, o SRS pode ser implantado como um módulo em algum middleware existente.
+Em este caso, os módulos que interagem com clientes e outros sites (caso exista esta comunicação) devem ser mantidos sem alteração, para não afetar a compatibilidade com outros sites que não utilizam o SRS, e todas as questões relevantes para este tipo de software (segurança, autenticação de usuários, tolerância a falhas, economia e demais características descritas na Seção dos recursos do site, e os demais aspectos serão apenas apresentados e brevemente discutidos.
+Nos middleware para grades computacionais atuais, os usuários da grade1, diretamente ou através de brokers, são responsáveis por a descoberta, alocação e gerência de recursos a eles destinados.
+Quando um cliente possui sob seu controle máquinas que podem estar distribuídas por todo o mundo (Figura 4), a gerência destes recursos introduz um overhead na execução da sua aplicação.
+Este problema é ainda mais crítico quando os recursos fornecidos ao usuário não são dedicados:
+Em este caso, além de o ônus da gerência de recursos realizado por o usuário através do seu grid scheduler, é necessária uma monitoração dos recursos e escalonamento de aplicações quando recursos forem removidos da grade.
+O novo escalonamento atualmente exige uma nova submissão de arquivos de entrada e nova ordem de execução de tarefas.
+Se o novo escalonamento das tarefas for para uma máquina pertencente ao mesmo site da máquina que o cliente perdeu, a transferência de arquivos de entrada poderia ser evitada se arquivos de clientes pudessem ser temporariamente armazenados no site.
+Uma alternativa ainda melhor seria que a própria perda do recurso e conseqüente escalonamento da aplicação fosse gerenciada por o site de forma transparente ao cliente:
+Desta forma, do seu ponto de vista a submissão de arquivos e execução ocorre num recurso que está disponível a ele durante todo Em o restante deste capítulo o termo &quot;cliente «será usado como sinônimo para usuários da grade.
+O modelo de escalonamento na grade proposto neste trabalho possui um conjunto de características que difere dos modelos disponíveis atualmente.
+A Figura 5 ilustra a abordagem, que possui as seguintes características:
+A visão que um cliente da grade tem dos recursos de um site muda de um conjunto de máquinas reais com determinada capacidade para o de uma única máquina com uma capacidade computacional que foi previamente negociada, variando em função de a carga atual do site e das permissões do usuário na utilização dos recursos;
+O escalonamento, antes realizado completamente por o usuário passa a ocorrer em dois níveis, com o usuário submetendo tarefas para sites e estes escalonando as tarefas recebidas entre os recursos locais;
+A gerência dos recursos ocorre dentro de o site, onde pode haver uma resposta mais rápida a eventos relacionados aos recursos;
+O tratamento de indisponibilidade de recursos pode ocorrer de uma forma mais eficiente, pois neste caso um novo recurso dentro de o site poderá ser disponibilizado, não sendo necessária uma nova fase de descoberta de recursos e submissão de arquivos por parte de os usuários;
+A escalabilidade dos grid schedulers aumenta, pois a quantidade de recursos gerenciada por eles passa de um grande número de máquinas para uma menor quantidade de sites.
+Eventualmente, os recursos gerenciados por um SRS poderiam ser outros SRS's, provendose desta forma uma estrutura hierárquica que aumentaria ainda mais a escalabilidade do sistema.
+A forma de fornecer esta visão a usuários é através da virtualização dos recursos do site, conforme será apresentado na seção seguinte.
+Propõe- se como meio para obtenção das características apresentadas na seção anterior a virtualização dos recursos de um site, de forma que usuários não tenham acesso a recursos reais e sim a recursos virtuais que escondem características específicas dos recursos, estando incluídas nestas características o número de máquinas disponíveis.
+Para que este nível de virtualização seja obtido, é necessário que requisições de clientes e entrega de recursos não aconteçam na forma de máquinas específicas:
+A enumeração de máquinas do site deve ser substituída por uma unidade em a qual o cliente possa expressar a sua necessidade computacional.
+O site deve ser capaz de traduzir esta unidade abstrata num número real de recursos disponíveis.
+Estes recursos não devem ser monopolizados por um usuário, portanto o site também deve ser capaz de distribuir os recursos entre os seus diversos usuários.
+A seguir serão apresentadas as duas principais questões relacionadas a virtualização dos recursos de um site:
+A determinação da capacidade computacional do site e a forma com que os recursos podem ser distribuídos de forma a atender a demanda de capacidade computacional dos usuários.
+O objetivo da virtualização proposta neste trabalho é esconder características particulares dos recursos do site que os cede.
+Ao mesmo tempo, usuários locais devem ter acesso aos recursos reais do site.
+A Figura 6 ilustra este fato.
+De o ponto de vista dos usuários locais, recursos do site são acessados diretamente.
+Usuários da grade acessam os recursos através do SRS, que os apresenta na forma de uma capacidade computacional.
+Porém, a quantidade de capacidade computacional apresentada para cada usuário pode ser diferente, em função de características específicas necessárias às suas aplicações ou em virtude de seus direitos de acesso.
+Quanto a forma com que os recursos serão representados no site, busca- se aquela mais abstrata possível, isto é, aquela que exige um menor detalhamento das características específicas do recurso.
+Porém, a aplicação de uma medida abstrata depende também da forma como o grid scheduler escalona tarefas aos recursos:
+Se ele despacha tarefas para os recursos seqüencialmente, uma alta abstração não será vantajosa, pois como a visão do usuário propiciada por o SRS é de uma única máquina com grande capacidade, o SRS receberá uma única tarefa de cada vez, e mesmo que existem no momento mais máquinas disponíveis ao usuário, elas não serão utilizadas.
+Para casos semelhantes, a unidade de capacidade computacional disponível para o usuário a ser empregada é a quantidade de &quot;máquinas virtuais «disponíveis ao cliente.
+Estas máquinas não mapeiam diretamente nenhum recurso específico:
+Em um determinado momento, uma máquina virtual pode estar mapeada em zero (neste caso, a tarefa do usuário está na fila do escalonador do SRS) ou uma máquina real.
+Se o escalonador do usuário for capaz de despachar mais de uma tarefa simultaneamente ao recurso, também é possível que um recurso virtual mapeie mais de um recurso real.
+Em este caso, cada um dos recursos reais recebe uma tarefa para execução.
+Para casos em que o grid scheduler é capaz de dividir tarefas proporcionalmente a capacidade computacional de cada recurso disponível, uma unidade mais abstrata pode ser utilizada.
+A unidade proposta, é baseada num método utilizado por Xião et al.
+E utiliza benchmarks para determinar a capacidade dos recursos.
+Em a proposta de Xião, cada recurso é avaliado com a utilização do benchmark SPEC2.
+É utilizada então como medida de capacidade do recurso a sua capacidade avaliada em relação a de uma plataforma padrão, ou seja, tem- se uma medida de quantas vezes o recurso disponível é melhor (ou pior) que o recurso padrão para aquele teste.
+Como medida de capacidade computacional do SRS, propõe- se uma idéia semelhante (a utilização do desempenho relativo a uma plataforma padrão) porém com o benchmark compatível com o tipo de operação utilizada por a aplicação do usuário:
+Se a aplicação utilizar basicamente operações de números inteiros, deve ser utilizado um benchmark que avalia operações com números inteiros e se a aplicação for predominantemente composta de operações de ponto flutuante, deve ser utilizado um benchmark que avalia este tipo de operação.
+Um exemplo do primeiro tipo é o Compress do pacote de benchmarks SPEC92 e do segundo é o Alvin do mesmo pacote.
+Cada máquina do site deve ter seu desempenho medido em cada um dos benchmarks e comparado com a máquina padrão no mesmo teste.
+Estes valores devem ser armazenados por o SRS para serem utilizados quando houverem requisições de recursos.
+Para o usuário determinar qual a capacidade computacional requerida por a sua aplicação, esta deve ser executada sobre a plataforma padrão, e este tempo deve ser utilizado no cálculo da capacidade necessária.
+A demanda do usuário é medida então como o tempo de utilização de um recurso da plataforma padrão.
+Se não houver a possibilidade de obter este tempo diretamente (isto é, utilizando efetivamente um recurso da plataforma padrão), ele pode ser determinado indiretamente, utilizando- se um recurso qualquer e aplicando sobre o tempo obtido um fator que é a capacidade do recurso em relação a a plataforma alvo.
+Por exemplo, se uma aplicação é executada em 40 minutos numa máquina que executa o benchmark apropriado duas vezes mais rápido que a máquina padrão (ou seja, a máquina é duas vezes melhor que a padrão), então a necessidade do usuário é de 80 &quot;minutos».
+É importante salientar que outros fatores devem ser levados em conta por clientes descrevendo os seus requisitos e por o SRS:
+Clientes devem incluir nos seus requisitos, juntamente com a capacidade computacional requerida, alguma característica exigida por a sua aplicação:
+A aplicação pode funcionar somente sobre um sistema operacional ou plataforma específica, ou exigir um mínimo de memória RAM ou ainda necessitar de um software especial3.
+Para calcular a capacidade computacional disponível ao usuário, devem ser considerados todos os requisitos do usuário e mais aspectos particulares do site:
+Ocupação atual dos recursos, direitos de acesso dos usuários e, eventualmente, expectativa de carga futura.
+Este tipo de especificação é comum em grades, sendo necessária tanto no OurGrid quanto no Globus.
+Um segundo aspecto importante para a implementação da virtualização proposta é a questão da distribuição de recursos.
+Esta questão ganha relevância no SRS porque, diferente de outros sistemas de grades, o usuário não recebe e gerência os recursos diretamente.
+Por isso, cabe ao SRS a tarefa de garantir uma determinada quantidade de recursos ao usuário, fazendo com que a execução da sua tarefa ocorra o mais próximo possível dentro de o tempo compatível com a capacidade computacional oferecida.
+Esta tarefa não é trivial pois deve considerar alguns fatores.
+Um de eles é o fato que usuários locais têm prioridade sobre a utilização dos recursos e acesso direto a eles (os recursos não são virtualizados dentro de o site).
+Isto pode prejudicar algum usuário da grade cujas tarefas se encontram em máquinas que são requeridas diretamente por usuários locais.
+A manutenção de histórico de utilização de recursos pode ajudar a minimizar efeitos negativos ocasionados por estes fatos:
+O escalonador do SRS pode evitar mapear todas as tarefas de um cliente em recursos com alta taxa de utilização e/ ou em máquinas que possuem uma alta probabilidade de serem requisitados localmente dentro de o período estimado de execução da sua tarefa.
+Outro aspecto a ser considerado é a forma com que recursos são distribuídos entre usuários da grade.
+Embora o SRS deva calcular a capacidade computacional disponível para um cliente baseado em seus direitos de acesso e carga atual do site, o SRS não deve oferecer toda a capacidade disponível mesmo que o usuário tenha direito de acesso a todos estes recursos.
+O objetivo disto é garantir que mais usuários consigam executar suas aplicações, aumentando o desempenho global da grade, à custa de a diminuição do desempenho individual de usuários.
+Outra forma possível de garantir distribuição de recursos é aplicando alguma política de preempção e redistribuição de recursos de forma transparente ao usuário.
+Esta afirmação é válida principalmente para aplicações do tipo parameter sweep e BoT, pois nestes modelos de programação as tarefas são independentes, e a interrupção de uma não influi no desenvolvimento das demais tarefas.
+Uma forma simples de equilibrar o uso de recursos é garantir, através de preempção de recursos, que usuários com direitos equivalentes possuam a mesma quantidade de recursos, podendo esta comparação ser feita em número de máquinas ou ainda na capacidade computacional medida de cada máquina.
+Para isto, o SRS pode cancelar tarefas de um usuário e submeter tarefas de outro usuário nos recursos anteriormente utilizados por o primeiro, de forma transparente aos usuários.
+Uma maneira mais eficiente de redistribuir recursos pode ser obtida se as aplicações (ou o SRS) implementarem checkpointing.
+Em este caso, pode ser aplicada uma política de escalonamento de tempo compartilhado, semelhante àquela aplicada em sistemas operacionais multitarefa.
+Em este caso, devem ser buscados valores para duração da fatia de tempo e número de tarefas por máquina que tornem a aplicação desta política atraente tanto para clientes que executam tarefas de grande duração quanto para os que executam tarefas de pequena duração.
+Após a execução de uma tarefa por um tempo, ela é temporariamente interrompida para dar lugar a execução de uma outra tarefa.
+O mecanismo de checkpointing permite que a execução da tarefa seja retomada do ponto em que ela parou quando preemptada e, com a utilização de mecanismos de migração de tarefas, numa máquina diferente daquela onde a execução iniciou.
+Esta seção apresenta uma visão geral da arquitetura do Site Resource Scheduler.
+O SRS é composto por módulos internos, cada um realizando serviços relacionados a um determinado aspecto da computação em grade.
+A interação entre estes módulos é representada na Figura 7.
+Os módulos identificados foram:
+Um módulo de informação, responsável por armazenar informações sobre o site e seus usuários.
+Informações relevantes sobre o site incluem aquelas relacionadas aos recursos e suas capacidades e aos usuários e suas permissões.
+Estas informações são úteis para melhorar a qualidade do escalonamento e garantir o cumprimento de políticas locais de utilização de recursos;
+Um módulo de interface de usuário, que recebe todas as requisições de usuários e as encaminha ao módulo apropriado;
+Um módulo de gerência de recursos, que controla todos os recursos do site, atribuindo aqueles disponíveis à grade ao módulo de escalonamento e provendo informações ao módulo de informação;
+Um módulo de escalonamento, que recebe tarefas (submetidas através do módulo de interface de usuário), recursos disponíveis (recebidos através do módulo de gerência de recursos) e realiza o mapeamento e execução das tarefas.
+A heurística aplicada (se utilizada) pode ser determinada por o administrador do site através de um arquivo de configuração;
+Um módulo de gerência de arquivos, responsável por a gerência dos arquivos submetidos ao SRS.
+Este módulo também aplica a política de cotas utilizada no site, quando existir;
+Um módulo de segurança, responsável por aplicar protocolos de segurança no site;
+Um módulo de economia, responsável por a contabilização da utilização dos recursos do site e aplicação da política de cobrança por estes recursos estipulada por o seu administrador.
+Os módulos de interface de usuário e de escalonamento são módulos que implementam os principais aspectos que diferenciam o SRS dos sistemas existentes.
+O primeiro exterioriza a virtualização realizada por o sistema, enquanto o segundo aplica o escalonamento sobre os recursos da grade, o que inclui a alocação não-dedicada de clusters.
+Por isso, eles serão descritos mais detalhadamente a seguir, após uma explicação sobre como se dá a execução de aplicações no SRS.
+Em esta seção é descrito o protocolo de interação entre clientes e SRS.
+Estes passos estão ilustrados no diagrama de seqüência da Figura 8.
+O primeiro passo é a consulta ao Site Resource Scheduler sobre a capacidade computacional atualmente disponível ao cliente.
+Esta etapa inicia com a identificação do cliente (através da apresentação de uma credencial ou qualquer outro método utilizado no site específico).
+Neste passo também devem ser descritos os requisitos do usuário.
+O SRS então confere as credenciais do cliente e, baseado em seus direitos de acesso, na carga atual do site e nos requisitos da aplicação, é apresentada ao cliente a capacidade computacional disponível, e caso se aplique, o preço por o seu uso.
+Este passo pode ser realizado por o cliente sobre diversos sites simultaneamente.
+Após decidida a quantidade de capacidade alocada de cada site, o escalonador local divide as aplicações de acordo com a capacidade requerida de cada site.
+Aplicações são submetidas através de uma especificação que deve incluir:
+Arquivos que devem ser transferidos para o SRS;
+Método de armazenamento (temporário ou persistente) de cada arquivo;
+Linha de comando da aplicação a ser executada;
+Método de armazenamento que deve ser aplicado sobre cada arquivo gerado por a aplicação.
+Este passo é encerrado com o fornecimento da identificação da aplicação ao cliente, e após isso os arquivos são transferidos e a aplicação é executada no site.
+Clientes podem consultar o SRS sobre o estado destas aplicações e, ao seu término, podem solicitar o download dos resultados.
+Outros serviços, relacionados à gerência de arquivos e contabilidade podem ocorrer a qualquer momento, mas precisam ser precedidas de uma fase de autenticação, tal como aquele presente no início do processo de execução de aplicações.
+O módulo de interface de usuário é o módulo que serve de entrada de requisições de usuários no sistema.
+Sua interface contém métodos que refletem os serviços disponibilizado por o SRS aos clientes e também métodos através de os quais outros módulos podem fornecer notificações de eventos.
+Além de fornecer interfaces para cada um dos serviços oferecidos aos clientes (apresentados na seção seguinte), este módulo deve oferecer uma interface para o módulo de escalonamento, através de o qual o módulo de interface de usuário recebe informações de estado das aplicações em execução.
+O diagrama de seqüência da Figura 9 mostra como este módulo interage com clientes e demais módulos durante a execução de aplicações.
+Para melhorar a clareza da figura, em ela não está representada a etapas de consulta ao estado da aplicação.
+Um serviço do módulo de gerência de recursos cujo objetivo é realizar a alocação dos recursos é invocado.
+Se a alocação for do tipo dedicada, os recursos são efetivamente alocados e ficam a disposição do cliente para a execução da aplicação.
+De qualquer forma, uma identificação é retornada por o módulo de gerência de recursos.
+Esta identificação é repassada ao cliente por o módulo de interface de usuário.
+Quando o usuário submete os arquivos, estes são enviados ao módulo de gerência de arquivos.
+Após todos os arquivos serem recebidos, a aplicação é submetida ao escalonador e a execução pode começar.
+A execução da aplicação envolve a transmissão dos arquivos de entrada para a máquina que executará a aplicação, a execução e a submissão dos resultados ao módulo de gerência de arquivos para que esteja disponível ao cliente quando este os requisitar.
+O término da execução é comunicado por o módulo de escalonamento ao módulo de interface de usuário, através da identificação da aplicação.
+A partir de o momento que a notificação é recebida, uma consulta do usuário por o resultado da aplicação retornará a informação e solicitações por arquivos de saída são atendidas através de solicitação ao módulo de gerência de arquivos.
+O módulo de escalonamento é o módulo que, a partir de um conjunto de tarefas recebidas por o módulo de interface de usuário, um conjunto de recursos recebidos por o módulo de gerência de recursos, informações extraídas por o modulo de informações e de uma heurística de escalonamento escolhida por o administrador do sistema, mapeia as tarefas em recursos, controlando a sua execução.
+O módulo de informações é consultado para que informações sobre prioridades de execução e forma de alocação de recursos possam ser utilizados durante o escalonamento, se a heurística aplicada fizer uso destas informações.
+O módulo de informações também pode fornecer informações sobre os recursos que podem ser utilizadas por heurísticas de escalonamento.
+O funcionamento geral do módulo é apresentado no diagrama de atividade da Figura Aplicações recebidas do módulo de interface de usuário são armazenadas, divididas em tarefas e, antes de serem despachadas para execução, ocorre a consulta sobre os direitos de acesso do usuário que solicitou a execução.
+As tarefas são encaminhadas para uma fila e são mapeadas baseadas em critérios estabelecidos por a heurística utilizada.
+O módulo de escalonamento também é informado de mudanças nos estados dos recursos do site, isto é, quando os recursos tornam- se disponíveis para o SRS e quando são delegados a usuários locais, momento em que são retirados da grade.
+Quando uma tarefa vai ser executada, é gerada uma thread para controle da execução da tarefa.
+Esta thread, chamada de monitor de aplicação é responsável por:
+Transferir arquivos do módulo de gerência de arquivos para o recurso;
+Disparar a aplicação no recurso e monitorar o seu estado;
+Após a execução da aplicação, transferir os arquivos de saída do recurso para o módulo de gerência de arquivos.
+O monitor de aplicação pode terminar a sua execução com sucesso devido a o fato do recurso ter sido removido da grade ou porque a tarefa foi corretamente executada e os arquivos de saída transferidos.
+Caso o monitor de aplicação encerre devido a o primeiro caso, a tarefa deve retornar para a fila de execução.
+Caso o monitor de aplicação encerre devido a o segundo caso, a tarefa é marcada como terminada.
+Após o término de todas as tarefas, a aplicação é completada.
+Se as tarefas que compõem a aplicação forem fracamente acopladas, poderão ser distribuídas entre os recursos disponíveis para o usuário e executadas em qualquer ordem, isto é, se alguma das tarefas for interrompida, a tarefa retorna para a fila de execução e aguarda um recurso disponível.
+Caso exista alguma relação de ordem na execução das tarefas, esta deve ser respeitada por o escalonador.
+Convém salientar que diferentes heurísticas de escalonamento gerarão desempenhos diferentes na execução das aplicações, dependendo do seu tipo.
+A escolha da heurística (ou heurísticas) de escalonamento a ser empregada no site deve levar este fator em consideração.
+Interação com escalonadores locais Por ser capaz de gerenciar todos os recursos de um site, o SRS, através do módulo de escalonamento, também deve interagir com máquinas de espaço compartilhado, tal como um COW.
+Estas máquinas são geralmente gerenciadas por escalonadores que coordenam o acesso à máquina, gerenciam filas de execução e proporcionam uma utilização eficiente do recurso.
+Alguns exemplos de escalonadores de clusters são CCS, SLURM e CRONO.
+O SRS deve ser capaz de comunicar- se com os escalonadores de máquinas paralelas a fim de obter recursos para os clientes da grade.
+Eventualmente, o SRS deverá ser capaz de alocar recursos através destes escalonadores, e na maioria dos escalonadores isto implica na determinação de uma quantidade de máquinas e de tempo por o qual se deseja utilizar os recursos.
+Alternativamente, podem ser aplicadas técnicas de alocação transparente sobre os recursos paralelos.
+Em este caso, as máquinas só estarão a disposição do SRS quando não estiverem sendo utilizadas por nenhum usuário do cluster, e os recursos serão preemptados da grade quando for recebido um pedido de alocação de um usuário local.
+Em esta seção é apresentado o conjunto de serviços oferecidos por o Site Resource Scheduler a clientes da grade.
+Em este contexto, são considerados clientes escalonadores e brokers a serviço de aplicações de usuários, usuários de sistemas de grade que não realizam escalonamento automático ou metaschedulers.
+Estes serviços podem ser divididos em cinco grupos:
+Gerência de recursos;
+Gerência de aplicações;
+Gerência de arquivos;
+Segurança e controle de acesso;
+Economia. A seguir são descritos os serviços pertencentes a cada uma destas categorias.
+Este grupo contém serviços relacionados à interação entre clientes e o SRS.
+Entre estes serviços estão incluídos descoberta de capacidade computacional do site, reserva e alocação de recursos e execução, monitoração e cancelamento de aplicações.
+Determinação da capacidade computacional do site.
+Através deste serviço, clientes podem descobrir a quantidade de poder computacional que o site pode fornecer no momento.
+Este poder pode ser fornecido em qualquer uma das unidades discutidas anteriormente.
+Este serviço apenas fornece a informação requisitada, não realizando qualquer alocação sobre os recursos ou garantia sobre a manutenção deste valor no futuro.
+Isto é feito por os três serviços descritos a seguir.
+Alocação dedicada de recursos.
+Através deste serviço usuários podem requisitar uma quantidade de poder computacional que será fornecida na forma de recursos dedicados, tais como clusters e MPP's.
+Este serviço é fornecido para ser utilizado em aplicações que necessitem de um número fixo de máquinas, como por exemplo aplicações MPI.
+A utilização deste serviço deve implicar numa cobrança maior do usuário, pois este serviço exige maior disponibilidade dos recursos do site, uma vez que neste caso recursos não serão preemptados do usuário.
+Alocação não-dedicada de recursos.
+Através deste serviço usuários solicitam uma quantidade de capacidade computacional que será fornecida através de recursos não-dedicados, como por exemplo estações de trabalho ociosas.
+Este serviço pode ser utilizado em aplicações fracamente acopladas e em qualquer tipo de aplicação que suporte checkpointing.
+Tarefas canceladas em recursos que se tornam indisponíveis para a grade são escalonados em outra máquina disponível ou então são incluídas na fila de espera do escalonador do SRS, que é invisível para o usuário (isto é, do ponto de vista do usuário sua aplicação continua executando).
+É importante salientar que alocação não-dedicada de recursos pode ser realizada também sobre clusters.
+Reserva de recursos.
+Este serviço fornece uma quantidade de poder computacional que será disponibilizado num momento futuro.
+Esta reserva pode ser feita para alocações dedicadas e não-dedicadas.
+Requisição adicional de recursos.
+Este serviço habilita usuários a receberam uma quantidade de recursos superior aquela concedida inicialmente, respeitando os seus limites de acesso.
+Os serviços desta categoria são aqueles relacionados a execução de aplicações de clientes.
+Execução de aplicação.
+Este é o serviço utilizado por os clientes quando desejam executar uma aplicação no SRS.
+É preciso ser fornecido ao SRS o tipo de aplicação sendo executada, seus parâmetros e arquivos que precisam ser fornecidos na entrada e na saída.
+O SRS responde à solicitação com uma identificação única representando a aplicação submetida.
+Esta identificação é utilizada em consultas sobre o estado da aplicação.
+Para que este serviço seja executado com sucesso o usuário submetendo a aplicação deve ter realizado uma alocação de recursos.
+Cancelamento de aplicação.
+Este serviço permite que um usuário cancele uma aplicação por ele submetida, identificada através da identificação fornecida no momento da execução da aplicação.
+Monitoração de aplicações.
+Através deste serviço usuários podem acompanhar a execução de suas aplicações.
+Este grupo contém serviços relacionados à transferência, gerência e armazenamento de arquivos de clientes.
+Armazenamento temporário de arquivo.
+Este serviço permite que clientes submetam um ou mais arquivos que serão armazenados no site até que o cliente encerre a sua seção, o que pode ocorrer explicitamente (através do serviço de liberação) ou implicitamente (quando a capacidade computacional disponibilizada ao usuário for excedida).
+Armazenamento persistente de arquivos.
+Este serviço habilita clientes a armazenarem arquivos permanentemente no site gerenciado por o SRS.
+Isto pode ser útil para reduzir o tempo gasto com transferências de arquivos, porém exige a aplicação de uma política de cotas para evitar abuso por parte de os clientes.
+Listagem e remoção de arquivos.
+Estes serviços permitem a realização de tarefas de gerência sobre arquivos armazenados no site através do SRS.
+Download de arquivos.
+Através deste serviço usuários podem receber os arquivos gerados por as suas aplicações, ou previamente armazenados.
+Este grupo contém serviços relacionados a segurança e controle de acesso ao site.
+A aplicação destes serviços requer a adoção de mecanismos de segurança que forneçam autenticação e, se desejado por administradores e/ ou clientes, encriptação de dados.
+Identificação de cliente.
+Este serviço permite a identificação de clientes que solicitam serviços do SRS.
+Isto pode ser feito com a utilização de certificados X. 509, que é o formato de certificado mais utilizado em comércio eletrônico.
+Controle de acesso.
+Este serviço permite que administradores do site restrinjam o acesso de determinados usuários ou grupos de usuários aos recursos locais.
+Isto é feito com a especificação, por parte de o administrador do site, dos acessos a que os usuários ou (grupos) têm direito.
+Serviços pertencentes a esta categoria são aqueles relacionados à cobrança dos clientes por a utilização dos recursos do site.
+Em esta categoria, dois serviços são propostos:
+Cobrança por uso de recursos.
+Este serviço é invocado quando clientes precisam pagar por o uso dos recursos (este pagamento pode se dar através de créditos reais, virtuais ou através de favores).
+Saldo atual.
+Fornecimento do saldo atual de um determinado cliente.
+Centros de pesquisa que utilizam clusters comumente o fazem objetivando aumentar o desempenho das aplicações.
+Em este cenário ­ de computação de alto desempenho ­ o objetivo é adquirir uma grande quantidade de poder computacional por pequenas quantidades de tempo.
+A utilização dos recursos é coordenada por um escalonador de clusters (CRM ­ Cluster Resource Manager).
+O CRM garante a um usuário acesso (geralmente exclusivo) a uma partição dos recursos do cluster por um tempo determinado.
+Como diferentes CRM's podem ter formas de acesso diferentes, cabe ao GRAM prover a usuários da grade acesso uniforme a estes recursos.
+Ainda, como o acesso aos recursos é exclusivo por um tempo, o GRAM não precisa controlar possível preempção nas aplicações dos usuários.
+O SRS, por sua vez, admite que recursos de um cluster sejam acessados por usuários da grade de forma oportunística, isto é, disponibilizados a usuários da grade quando não houverem usuários locais utilizando estes recursos.
+Então, uma diferença entre o SRS e o GRAM é que o primeiro deve ser capaz de tratar a preempção de recursos de usuários da grade, enquanto que o segundo não considera esta possibilidade.
+A exceção ao discutido acima é quando o GRAM é utilizado para prover acesso a recursos controlados por o Condor.
+O Condor é um sistema que é utilizado para aproveitamento de ciclos ociosos em estações de trabalho e que também pode ser utilizado para gerenciar clusters.
+Em este caso, o próprio Condor gerência a preempção de recursos e o escalonamento de aplicações de usuários.
+A justificativa para que seja adotado o Site Resource Scheduler ao invés de GRAM e Condor é que o último não é adequado para sites que realizam computação de alto desempenho.
+O Condor é um sistema para computação de alta vazão, cujo objetivo é prover uma grande quantidade de processamento ao longo de uma grande quantidade de tempo.
+Para sites que trabalham com alto desempenho, devem ser preferidos CRM's convencionais, otimizados para este fim.
+Em este caso, para permitir que usuários locais de recursos tenham acesso dedicado e os usuários da grade acesso não-dedicado aos recursos do cluster, o SRS deve ser adotado.
+Ainda, enquanto deve existir um GRAM para cada cluster de um site, um único SRS interage com todos os recursos do site.
+O CSF é um framework para desenvolver metaschedulers utilizando componentes Globus.
+Ele recebe todas as requisições de usuários (assim como o SRS) mas confia nos serviços do GRAM para realizar alocações para as requisições.
+Logo, o CSF possui as mesmas limitações que o Globus para a utilização de recursos.
+Outra diferença é que, enquanto o SRS gerência os recursos de um site, o CSF controla o acesso a recursos de um conjunto de sites, sendo que alguns de eles podem também ser acessados também por outros metaschedulers, ou seja, requisições por recursos podem chegar através de cada um dos metaschedulers, podendo existir uma situação de disputa por recursos entre metaschedulers que servem a organizações virtuais diferentes.
+O SRS, por sua vez, recebe todas as requisições da grade, e portanto pode controlar a distribuição de recursos entre os usuários.
+A Figura 11 ilustra a diferença entre a utilização do CSF e do SRS.
+Em 11 (a) é apresentado um site que utiliza o CSF.
+Diferentes recursos do site podem ser acessados por organizações virtuais diferentes.
+Cada uma utiliza um CSF para acessar estes recursos, e alguns de eles podem ser acessados por ambos os CSF's.
+Em 11 (b), o SRS é utilizado.
+Todos os recursos do site são acessados via SRS e os clientes requisitam acesso a recursos através de ele, sendo o acesso liberado de acordo com os direitos de acesso do usuário.
+É importante notar que nesta figura, o cliente pode ser um usuário acessando diretamente, um grid scheduler e até mesmo um CSF, representando alguma organização virtual.
+Isto acarreta uma ineficiência que será mais significativa quanto mais voláteis foram os recursos.
+Em um site onde usuários locais sempre terão preferência sobre usuários da grade, interrupções na execução ocorrerão rotineiramente.
+O SRS num cenário como este reduz a transferência de arquivos entre o usuário e o site.
+Além de o mais, o SRS pode reduzir ainda mais a troca de mensagens de controle entre clientes e grade, pois enquanto no OurGrid as tarefas são enviadas uma a uma para cada recurso, o SRS permite que as tarefas sejam enviadas numa única etapa.
+Além disso, o SRS também retira o controle dos recursos do usuário e faz com que a quantidade de recursos a serem gerenciados seja reduzido, pois o usuário só acessa um recurso por site, e não os recursos reais que estão sendo efetivamente utilizados.
+Quanto a o peer do OurGrid, este realiza a conexão com outros peers e descobre recursos para os usuários a eles conectados.
+Todavia, ele não realiza escalonamento, apenas controla a distribuição de recursos entre diferentes peers e usuários locais.
+O SRS por sua vez fornece recursos virtuais a usuários e ainda realiza o escalonamento das tarefas e gerência dos recursos do site.
+Em este capítulo foi apresentada uma proposta de arquitetura para o Site Resource Scheduler.
+Foram considerados diversos componentes, cada um gerenciando um diferente aspecto que necessita estar presente num middleware de grade.
+No entanto, a efetiva implantação do modelo necessita considerar também a presença de um grid scheduler capaz de explorar os recursos da mesma forma que o SRS.
+Alternativamente, pode ser adotado um modelo de abstração mais flexível e ser utilizado algum grid scheduler existente.
+Ao invés de o Site Resource Scheduler ser implementado na forma de um middleware, sua arquitetura modular pode ser aproveitada de forma que apenas alguns módulos selecionados por administradores de sites sejam utilizados em conjunto com um middleware existente.
+Em este caso, aqueles serviços realizados por o sistema original podem ser aproveitados e apenas são acrescentados módulos do SRS que agreguem funcionalidades inexistentes no sistema.
+O estudo de caso apresentado no Capítulo 4 adota esta abordagem para o middleware OurGrid, e o 4 Estudo de caso Foi desenvolvido como estudo de caso para o Site Resource Scheduler um módulo para o OurGrid que implementa alguns dos seus serviços.
+Durante a concepção deste módulo, buscouse obedecer a dois requisitos.
+O primeiro é que o protocolo de comunicação entre MyGrid e o Peer ao qual o cliente está associado, e o protocolo de comunicação entre peers não deve ser modificado.
+O segundo é que o código do OurGrid não deve ser alterado.
+A seguir o desenvolvimento deste módulo será descrito com mais detalhes.
+A solução encontrada para a implementação do SRS obedecendo- se aos princípios previamente citados foi o seu desenvolvimento como um pacote Java com um script para disparar o programa com os parâmetros adequados.
+O módulo desenvolvido utiliza os pacotes do OurGrid para o aproveitamento das classes existentes.
+Para respeitar o requisito de utilização dos protocolos existentes, foi necessário abrir mão de um modelo de definição de capacidade computacional mais sofisticado em favor de a única unidade com a qual o MyGrid é capaz de negociar:
+Máquinas. O broker MyGrid requisita ao Peer um determinado número de máquinas (chamadas de GuMs no OurGrid).
+O número de máquinas requisitado é igual ao produto entre o número de tarefas a serem executadas (que é função da aplicação) e o número de réplicas geradas para cada uma (definido por o usuário).
+O SRS por sua vez disponibiliza um conjunto de máquinas virtuais (SRSGuMs) aos clientes.
+Este número é igual ao número de processadores (e não o de computadores) disponíveis no site.
+O número máximo de SRSGuMs criados pode ser definido por o administrador.
+Uma GuM é descrita em função de as propriedades da máquina que representa.
+As SRSGuMS são descritas com as características da máquina que &quot;ativou «a SRSGuM.
+Por exemplo, se uma máquina possui dois processadores Itanium 2 e 256 MB de memória RAM, no momento que esta máquina é inserida na grade o SRS gerará duas SRSGuMs de arquitetura Itanium 2, cada uma com 256 MB de RAM (e possuindo também as demais características presentes na máquina original).
+Estas máquinas virtuais são criadas somente para dar uma estimativa da capacidade computacional do site:
+Em algum determinado momento é possível que uma SRSGuM não esteja mapeando nenhuma máquina do site (isto é, requisições enviadas à máquina são encaminhadas para a fila do escalonador).
+SRSGuMs são então disponibilizadas aos usuários quando estes solicitam recursos.
+Porém, se no OurGrid uma GuM mapeia diretamente um recurso, e cada requisição de serviço é direcionada diretamente à máquina (especificamente, para o servidor User Agent da máquina) para que a aplicação seja executada, no SRS estes pedidos são encaminhados ao agente encarregado do processamento do serviço:
+SRSScheduler, no caso de execução de tarefas e SRSFileProxy no caso de manipulação de arquivos.
+Este direcionamento é feito no próprio SRS, e o cliente não está ciente de que ele não está acessando diretamente um recurso.
+Isto é possível porque o SRSGateway (o objeto responsável por direcionar as requisições) é um objeto remoto que implementa a interface UserAgentServer.
+Portanto, do ponto de vista do escalonador do usuário, a interação está ocorrendo como de costume, com um UserAgentServer numa máquina remota.
+O protótipo desenvolvido não implementa todos os módulos apresentados na Figura 7.
+O mecanismo de contabilidade do uso de recursos utilizado é o original do OurGrid, e substitui o módulo de economia.
+O módulo de informações foi implementado e interage com as classes do OurGrid que monitoram o estado das máquinas da grade (estas substituem o módulo de gerência de recursos), a fim de fomentar o escalonador com estas informações.
+Os módulos de escalonamento e gerência de arquivos foram implementados, embora as operações relacionadas a armazenamento persistente de arquivos não estejam presentes nesta versão.
+O módulo de segurança não é implementado, e é o único módulo ausente no protótipo que não é substituído por uma funcionalidade equivalente do OurGrid:
+Nenhuma consideração a respeito de segurança foi aplicada durante este trabalho.
+A comunicação entre dois ou mais peers, entre o MyGrid e um Peer e entre o MyGrid e as GuMs ocorre via RMI.
+Em o OurGrid, cada GuM executa um RMI Registry em o qual o UserAgentServer se registra e ao qual o MyGrid consulta para obter a referência aos objetos remotos.
+Com o SRS, os SRSGateways se registram num Registry na mesma máquina que executa o SRS, e é este objeto que é consultado por o MyGrid para obtenção das referências remotas.
+Logo, no Registry da máquina que executa o SRS ficam registrados todos os objetos remotos criados por o OurGrid mais um SRSGateway para cada SRSGuM criada no site.
+Cada GuM e cada SRSGuM é um OurGridMachine.
+A diferença entre as duas é que na primeira o Connector acessa um UserAgentServer que, mesmo sendo acessado indiretamente (através de Gateways), termina acessando um UserAgentServer que executa diretamente no recurso da grade, enquanto que a SRSGuM não acessa diretamente o recurso, e sim o SRSGateway, conforme descrito anteriormente.
+Esta diferença está esquematizada na Figura 12: Em 12 (a), está o esquema de acesso atual do OurGrid, enquanto em 12 (b) está representado o acesso realizado por o SRS.
+Um objeto da classe SRSResourceManager tem como função informar mudanças no estado das máquinas conhecidas por ele ao SRSScheduler.
+Objetos desta classe recebem notificações do Doctor do OurGrid sobre mudanças nos estados das máquinas reais.
+Caso seja constatada a perda de uma máquina, a tarefa que executava na máquina volta para fila para ser executada num momento oportuno.
+O protocolo de execução de tarefas do MyGrid é diferente daquele proposto para o SRS.
+O MyGrid não envia à GuM informações sobre a tarefa.
+As informações sobre que arquivos devem ser transferidos para a grade, o que deve ser executado e que arquivos devem ser recebidos após a execução fazem parte da descrição das tarefas dos usuários processadas na própria home machine.
+A submissão de arquivos, execução da tarefa e recebimento de resultados ocorre nesta ordem controlado por um escalonador na home machine, enquanto que no modelo proposto para o SRS as tarefas são escalonadas por o SRS a partir de a descrição da aplicação transmitida por o cliente.
+As etapas envolvidas no processo de submissão de tarefas para execução no MyGrid são as seguintes:
+O MyGrid obtém recursos de provedores de recursos;
+O MyGrid divide a aplicação em tarefas e estas em réplicas, que são a unidade mínima de execução do MyGrid;
+Para cada réplica é feita a submissão de arquivos necessários (isto é chamado de &quot;Fase Inicial&quot;).
+Estes arquivos são submetidos para um diretório temporário na GuM que existirá até o fim da execução da réplica;
+É executada a tarefa propriamente dita (esta fase é chamada &quot;Fase Remota&quot;);
+Os arquivos de saída são solicitados e recebidos da GuM.
+Esta é a &quot;Fase Final&quot;;
+O diretório temporário é destruído.
+As fases Inicial, Remota e Final ocorrem em seqüência e nesta ordem.
+Devido a o fato da descrição da tarefa não ser enviada para a GuM, o SRS não pode escalonar diretamente as tarefas.
+É preciso esperar que as solicitações de cada uma das fases chegue para que a tarefa possa ser executada.
+Para otimizar o processo, o SRS faz o seguinte:
+Existe, na máquina que executa o SRS, um diretório temporário para cada SRSGuM (que pode ser facilmente identificado por o seu SRSGateway correspondente).
+Durante a Fase Inicial, os arquivos são transferidos para este diretório;
+Durante a Fase Remota, todo o diretório temporário é transferido para a máquina que executará o processo e o comando a ser executado é processado.
+Esta linha de comando também é armazenada;
+Se a máquina onde a tarefa é executada for retirada da grade, a tarefa pode ser escalonada para outra máquina.
+Em este caso, o diretório temporário é transferido para a máquina nova e a linha de comando é executada (o cliente não é informado da ocorrência);
+Durante a Fase Final, o arquivo solicitado por o cliente é buscado na máquina real, gravado no diretório temporário na máquina que executa o SRS e só então transmitido ao cliente.
+Desta forma, se a transferência falhar, a máquina que executou a tarefa não precisa ser consultada novamente;
+Quando o cliente solicita a liberação do diretório temporário, o diretório transferido para a máquina da grade é apagado.
+Somente então a máquina poderá executar outra tarefa.
+Este cuidado é necessário porque o SRS não tem como saber quantos e quais arquivos foram gerados por a aplicação, então até que o cliente libere o recurso existe a possibilidade de serem recebidos novos pedidos de transferência de arquivos.
+Outra diferença entre o escalonador do MyGrid e o escalonador do SRS é que o primeiro é capaz de submeter apenas uma réplica para cada máquina, e não para cada processador.
+Portanto, caso o cliente receba uma máquina multiprocessada, esta será subutilizada.
+O SRS é capaz de submeter mais de uma tarefa para cada máquina, e o faz de forma a aproveitar melhor os recursos multiprocessados.
+A escolha de um algoritmo de escalonamento de tarefas em grades a ser utilizado não é uma tarefa trivial.
+Conforme discutido na Seção 1.1, cada algoritmo de escalonamento costuma ser testado em cenários que beneficiam a sua aplicação.
+Braun et al.
+Apresenta uma comparação entre onze heurísticas de escalonamento, utilizando até mesmo algoritmos genéticos, que apresentaram bons resultados a um alto custo de tempo de processamento do escalonamento.
+O fato é que a eficiência de um determinado algoritmo está relacionado diretamente a características da aplicação.
+Sob esta justificativa, o sistema Legion oferece um escalonador que mapeia tarefas em recursos de forma aleatória e delega aos usuários a tarefa de implantar escalonadores mais poderosos para suas aplicações.
+Seguindo uma alternativa semelhante, o protótipo do SRS para o OurGrid oferece um algoritmo de escalonamento simples, listado no Algoritmo 1.
+Este algoritmo mapeia as tarefas de usuários em recursos não-dedicados do site.
+Algoritmo 1: Escalonamento implementado no protótipo.
+1 para cada Tarefa na fila de execução faça para cada Máquina livre faça se Máquina é compatível com SRSGuM então Mapeia a tarefa a esta máquina;
+Para cada uma das tarefas presentes na fila de execução é procurado um recurso compatível com a tarefa (Linha 4).
+A necessidade desta compatibilidade é resultante da forma como o OurGrid gerência os recursos.
+Uma vez que a informação sobre os requisitos da tarefa em particular não chega no SRS, deve- se aproveitar o matching realizado por o escalonador do usuário:
+SRS procura recursos com especificações mínimas capazes de atender a tarefa.
+O Algoritmo 2 apresenta a forma como este matching é realizado.
+Se o sistema operacional, tipo de acesso, isto é, se o acesso a máquina é feito por o Algoritmo 2: Matching implementado no protótipo.
+Entrada: E1:
+Especificação da SRSGuM Entrada:
+E2: Especificação da máquina real 1 se E1.
+SistemaOperacional $= E2.
+SistemaOperacional então se E1.
+TipoDeAcesso $= E2.
+TipoDeAcesso então se E1.
+Arquitetura $= E2.
+Arquitetura então se E1. memória
+E2. Memória então retorna Verdadeiro fim se fim se 9 fim se 10 retorna Falso mesmo tipo de User Agent (Linha 2) e arquitetura (Linha 3) são os mesmos e a máquina real tem tanta ou mais memória que a quantidade especificada na SRSGuM (Linha 4), a SRSGuM e a máquina real são considerados compatíveis (Linha 5).
+Caso contrário, são considerados não compatíveis.
+Um algoritmo mais poderoso pode ser implementado e incluído no módulo através do mecanismo de herança do Java.
+Com o objetivo de analisar o efeito da gerência realizada por os sistemas OurGrid e MyGrid, com e sem o SRS, no tempo de execução de aplicações, foram realizados alguns experimentos.
+Para evitar a inclusão de um protótipo que não implementa todos os serviços utilizados por clientes da grade num sistema em produção (a comunidade OurGrid), foi montada uma comunidade específica para os testes, reproduzida na Figura 13.
+Em este ambiente, o Corepeer (serviço centralizado que registra os participantes da grade) e um Peer estavam situados no CPAD1, em Porto Alegre, Rio Grande do Sul e um outro Peer e a home machine situados na Universidade Federal de Campina Grande (UFCG), na Paraíba.
+O Peer CPAD possuía as máquinas do cluster Ombrófila, composto de 14 máquinas Pentium 3 de 1 GHz e 14 máquinas Pentium 4 de 1.4 GHz, todas monoprocessadas e com 256 MB de RAM.
+O Peer da UFCG possuía apenas a home machine.
+Para retirar dos testes a heterogeneidade do ambiente, facilitando a reprodução dos experimentos e eliminando um dos parâmetros dos testes, optou- se por uma aplicação que transfere um arquivo, espera uma determinada quantidade de tempo e transfere o arquivo de volta.
+A seguir, serão descritos os parâmetros utilizados nos testes e o motivo por o qual foram escolhidos.
+Tamanho dos arquivos transferidos.
+Foram escolhidos três tamanhos diferentes de arquivos, baseados em três aplicações reais que utilizam o ambiente OurGrid:
+Arquivos de 100 kB (tamanho de fotos que são processadas por o MyPhotoGrid, aplicação que fazia parte das primeiras versões do MyGridtamanho médio de arquivos utilizados no GerPav-Grid2, aplicação que objetiva gerenciar o estado dos pavimentos de Porto Alegretamanho de arquivos encontrados no HPC-ICTM, que processa imagens de satélites).
+Também foi realizado um teste sem transferência de arquivos, com o intuito de analisar o overhead gerado por o SRS.
+Número de tarefas.
+Foi escolhido um número de tarefas igual a 7 para compor cada aplicação.
+Foi escolhido este número porque corresponde a 25% do número de máquinas disponíveis no cluster Ombrófila.
+Com isto foi possível garantir uma quantidade de recursos suficientes para executar as tarefas simultaneamente mesmo com algumas máquinas sendo retiradas deliberadamente da grade.
+Em este caso, novas máquinas eram disponibilizadas.
+Forma de alocação do cluster.
+Durante os testes, os recursos do cluster foram utilizados de forma não-dedicada.
+Portanto, periodicamente alguma máquina podia ser retirada da grade e disponibilizada a usuários locais.
+Isto foi simulado com a remoção de uma máquina da grade a cada 10 minutos, sendo devolvida à mesma 10 minutos depois.
+O número de máquinas removidas da grade foi mantido o mesmo, para os testes com e sem o SRS.
+Duração das tarefas.
+Foram escolhidas tarefas de 5 minutos, de forma que o tempo de execução da aplicação seja menor do que o tempo em o qual uma máquina é removida.
+Estes parâmetros foram então combinados e, para cada conjunto de parâmetros, de entre aqueles que manipulam arquivos menores de 10 MB, foram realizadas 10 execuções da aplicação.
+O tempo total de execução da aplicação (tempo decorrido desde a submissão da aplicação à grade até o término da última tarefa que a compõe) mais alto e mais baixo foram descartados e uma média dos valores restantes foi feita.
+Para os testes que enviam e recebem arquivos de 10 MB, foram realizadas apenas 5 simulações, e para o cálculo da média todos os valores foram considerados.
+Este procedimento foi realizado para o Peer CPAD com e sem o SRS.
+O MyGrid foi configurado para não realizar replicação de tarefas.
+Portanto, cada vez que uma aplicação era submetida, era enviado ao Peer uma solicitação por uma quantidade de máquinas igual ao número de tarefas que compõe a aplicação.
+Também, durante os testes, sempre se garantiu que haveriam máquinas suficientes para atender todas as tarefas, pois o objetivo dos testes não é avaliar a interferência da carga do cluster na execução das tarefas.
+Um estudo sobre este assunto pode ser encontrado em.
+A Tabela 1 mostra os resultados obtidos nos testes.
+A coluna central exibe os tempo de execução obtidos numa grade que utiliza o OurGrid sem o SRS, e a 3a coluna exibe os resultados obtidos com o SRS.
+Em cada uma das linhas estão os resultados para um determinado tamanho de arquivo ou para a execução sem transferência de arquivos.
+A inclusão do SRS incluiu um overhead no OurGrid que causou um aumento no tempo de execução da aplicação quando as aplicações envolviam a transferência de arquivos pequenos.
+Este overhead é causado por a necessidade de uma transferência local de arquivos (primeiro um arquivo é transferido ao SRS e depois para o recurso que o utilizará) e por a existência de um escalonador local, não presente no OurGrid.
+Quando a aplicação exige a transferência de um volume maior de dados, o fato do arquivo ser primeiro armazenado por o SRS e somente ser transferido ao recurso no momento da execução mostrou- se eficaz para reduzir o tempo de execução da aplicação.
+Quando não existe transferência de arquivos envolvida na execução da tarefa, o tempo de execução da aplicação das duas abordagens é equivalente, conforme mostrado na primeira linha da tabela.
+Para verificar se o overhead introduzido por o SRS é influenciado por o número de tarefas que compõem a aplicação, foi realizado um teste que consistiu na execução de aplicações compostas por 1, 4, 7 e 10 tarefas de duração de 5 minutos e com transferência de arquivos de 1 MB, tanto de entrada quanto de saída utilizando- se o mesmo ambiente do experimento anterior.
+Os resultados, mostrados na Tabela 2 mostram uma flutuação no tempo de execução, mas não proporcional ao número de tarefas, provavelmente causada por variação no tráfego por a rede ente Porto alegre e Campina Grande.
+O gráfico da Figura 14 permite uma melhor visualização da variação do tempo de execução.
+O aumento no número de tarefas não causou em todos os casos aumento no tempo de execução das aplicações.
+Este resultado permite atribuir o overhead gerado por o SRS à gerência e escalonamento de tarefas e à transferência local de arquivos, e não ao número de tarefas em submetidas.
+Considerou- se também que, o algoritmo Storage Affinity do MyGrid, que procura utilizar recursos que já contenham os arquivos necessários por a tarefa, poderia ser uma abordagem mais eficiente no tratamento de transferências de arquivos do que o SRS.
+Realizou- se então o mesmo teste, com transferência de arquivos de 10 MB utilizando- se este algoritmo de escalonamento.
+O resultado, mostrado na Tabela 3, mostra que, nas condições adotadas, este algoritmo não é superior ao WQR.
+De fato, o Storage Affinity é útil quando os arquivos já existem nos recursos.
+Um possível uso deste algoritmo é quando uma mesma aplicação será executada diversas vezes com arqui- vos de entrada diferentes.
+Em este caso, os arquivos executáveis são armazenados e os dados são transferidos de forma convencional.
+Se estes arquivos de dados foram grandes, o ganho com a economia de transferência de dados não será grande.
+Porém o armazenamento de arquivos de dados grandes em recursos pode não ser possível, devido a limitações impostas por administradores, pois o diretório de armazenamento é compartilhado por todos os usuários da grade, e o espaço disponível neste diretório pode ser restringido por administradores.
+Conclui- se que a inclusão do SRS numa grade OurGrid pode diminuir o tempo de execução de tarefas que exigem grande volume de transferência de dados em sites que cedem à grade recursos de forma não-dedicada.
+Mesmo em sites que cedem recursos à grade de forma dedicada, ou para aplicações que transferem um pequeno volume de dados, o SRS pode ser utilizado com uma perda não significativa de desempenho das aplicações.
+O Globus Toolkit 4 é o padrão de facto em grades computacionais.
+Por isso, a implantação do SRS numa grade Globus é importante para que o projeto alcance uma maior visibilidade.
+Em este capítulo será descrita a forma como o SRS pode ser implantado num site que utiliza o middleware.
+Antes de detalhar a processo de aplicação do SRS em Globus, é importante detalhar a arquitetura do GRAM (Grid Resource and Allocation Management), parte da arquitetura Globus responsável por a gerência de recursos e alocação em grades Globus.
+O GRAM é o componente do Globus responsável por o gerenciamento dos recursos de um site.
+Ele deve estar presente em cada recurso (ou conjunto de recursos, no caso de clusters e MPP's) que poderá ser acessado através da grade.
+Embora já tenha sido descrito em linhas gerais no Capítulo 2, nesta seção este componente será apresentado de um ponto de vista arquitetural, ressaltando- se os seus componentes.
+Clientes da grade acessam os recursos através do GRAM, por meio de uma API conhecida como RSL ­ Resource Specification Language.
+RSL é uma linguagem de descrição que contém um conjunto de atributos que permitem que usuários descrevam os recursos necessários à aplicação a ser executada.
+Para solicitar recursos, usuários devem submeter ao GRAM um arquivo XML que respeita as especificações da RSL contendo a descrição dos recursos necessários às suas aplicações.
+Este arquivo é convertido por o GRAM em requisições para o gerenciador de recursos local.
+A Figura 15 apresenta uma visão de alto nível dos componentes relacionados ao GRAM e de que forma eles se relacionam.
+Por questão de simplicidade, foram excluídos da figura todos os aspectos relacionados a credenciais de usuário.
+O objetivo do GRAM é retirar do usuário e seu grid scheduler a tarefa de interagir com os possíveis escalonadores locais presentes em cada site:
+Ao invés de conhecer e suportar os diferentes protocolos possíveis para alocação de recursos através destes escalonadores, o cliente só precisa conhecer um protocolo, o do GRAM, e este último realiza a operação no recurso.
+A conversão de operações enviadas para o GRAM (em RSL) para o comando do escalonador local que realiza tal operação é realizado por um elemento do GRAM chamado adapter.
+A distribuição Globus disponibiliza adapters para o PBS (Portable Batch System), para o software proprietário LSF (Load Sharing Facility) 2, para o Condor e para execução na mesma máquina que executa o GRAM (um adapter chamado de fork).
+Para acessar recursos controlados por outros gerenciadores, deve ser escrito um adapter específico, através de um script em linguagem Perl.
+O SEG (Scheduler Event Generator) é o módulo do GRAM responsável por acompanhar o estado das aplicações.
+Este módulo comunica ao GRAM mudanças no estado das aplicações.
+Já as operações de envio e recebimento de arquivos são realizados por o GridFTP.
+Como a transferência de arquivos pode ser longa, ela pode ser executada como um grid service, da mesma forma que tarefas em execução.
+Em este caso, a transferência é gerenciada por um outro componente do Globus, o RFT.
+Diversos centros de pesquisa realizam trabalhos relacionados ao Globus.
+Estas pesquisas consistem desde aplicações para as grades até grid schedulers.
+Para que o SRS seja aceito num ambiente Globus, é importante que seja compatível com a maior parte (ou todos) estes projetos, e isto significa respeitar todos os protocolos existentes.
+Duas formas possíveis de aplicar o SRS numa grade Globus são:
+Através da disponibilização do SRS como um grid service autônomo, de forma compatível com o Ws-- Resource Framework;
+Através da inserção de um módulo dentro de uma máquina interagindo com os componentes do Globus, de uma forma análoga àquela aplicada no protótipo do OurGrid (Capítulo A solução apontada no item 1 não utiliza o GRAM:
+Ela exige que o SRS implemente, além de a gerência de recursos, a capacidade de transferência de arquivos e toda a gerência de credenciais.
+A solução 2 utiliza o GRAM e por isso pode aproveitar as funcionalidades relacionadas a segurança e transferência de arquivos.
+Por ser uma solução maias simples, ela será descrita em mais detalhes no decorrer deste capítulo.
+Deve ser feita uma consideração sobre a utilização do CSF para a implementação do SRS, aproveitando os serviços oferecidos por este.
+Por o fato do CSF funcionar em nível de organização virtual, e não em nível de site, somado ao fato de utilizar serviços do GRAM para gerenciar recursos locais, a alternativa 2 acima deveria ser empregada de qualquer forma, para permitir o acesso aos escalonadores de recursos de forma não-dedicada.
+Portanto, como deverá ser realizado algum tipo de trabalho na interface entre o GRAM e o recurso para prover o acesso não-dedicado, confinar as modificações neste nível, e não adotar o CSF foi a estratégia escolhida para ser descrita.
+A Figura 16 posiciona o SRS no cenário apresentado na Figura 15.
+Em sites que possuem mais de um cluster, deve existir um GRAM para cada cluster.
+Com a proposta apresentada, passa a existir um único GRAM, pois do ponto de vista do último, existe apenas um &quot;escalonador de recurso «abaixo de ele (o SRS).
+É o SRS que conhece e gerência todos os recursos do site Em este cenário (baseado numa proposta geral para integração entre clusters e grades), o SRS está localizado entre o GRAM adapter e o escalonador do cluster.
+Cabe ao SRS manter uma lista de recursos disponíveis à grade (informação que pode ser obtida através do gerenciador do cluster) e a lista de aplicações da grade (recebidas através do GRAM adapter) e providenciar o matching e execução das tarefas.
+O SRS também deve se comunicar com o SEG a fim de informar o estado da execução das tarefas.
+Um GRAM adapter específico deve ser escrito, convertendo instruções RSL em instruções para o SRS.
+Todo o acesso aos recursos é feito via SRS, portanto o GRAM adapter não realizará nenhum acesso a eles.
+Os serviços relacionados à transferência de arquivos não precisam ser implementados, pois um servidor GridFTP presente no host do SRS possui a mesma função do módulo de gerência de arquivos:
+Ele recebe os arquivos de servidores remotos e os disponibiliza aos recursos do site.
+Os serviços de segurança também não precisam ser implementados pois são realizados por o Globus.
+Existe um tipo de aplicação suportado por o Globus que é de especial interesse para um site utilizando o SRS:
+Os multijobs.
+Em este tipo de aplicação, são submetidos de uma única vez ao GRAM um conjunto de tarefas que devem ser executadas na grade.
+Este tipo de aplicação é interessante num site gerenciado por o SRS porque permite que o SRS controle todo o processo de submissão e execução das tarefas, algo que não acontece quando tarefas são submetidas seqüencialmente a máquinas virtuais.
+O RSL não possui entre os seus atributos um capaz de proceder a requisição de recursos na forma de unidade abstrata.
+Porém o RSL é extensível, permitindo que elementos de outros namespaces possam ser adicionados aos requisitos dos usuários.
+Quando estes elementos são encontrados numa requisição de usuários, ele é propagado para o GRAM adapter.
+Para ser possível implantar esta funcionalidade, é necessária a criação de uma descrição em XML dos novos elementos oferecidos.
+Este arquivo deve ser publicado para que possa ser consultado por parsers XML.
+A posterior tradução da unidade abstrata em recursos reais deve ser tratada por o Os grid schedulers devem ser capazes de solicitar recursos utilizando esta unidade abstrata.
+Portanto, seria necessário o desenvolvimento de tal escalonador para o aproveitamento desta possibilidade.
+O GRAM não precisa ser modificado no processo:
+Os novos atributos são passados ao GRAM adapter da mesma forma que os atributos pré-definidos.
+Uma questão importante sobre serviços em sistemas distribuídos diz respeito a necessidade de um serviço armazenar ou não informações de estado, isto é, se o serviço possui uma &quot;memória «a respeito de execuções passadas.
+Citando um exemplo orientado a web services, um serviço de previsão de tempo pode ser implementado como um serviço sem estado (stateless):
+O resultado da previsão do tempo não é influenciado por os acessos ao serviço até o momento.
+Um exemplo de web services com estado (stateful) é um serviço que retorna o número de acessos realizados até o momento.
+Cada vez que um usuário acessar o serviço, obterá um resultado diferente.
+O Ws--Resource Framework é uma especificação que determina uma forma de oferecer web services com estados, pois serviços de grade armazenam informações de estado.
+No que diz respeito a adaptação do SRS ao Globus, os serviços de transferência e armazenamento de arquivos, submissão e monitoração de aplicações e segurança são realizados por o próprio Globus, que utiliza o Ws-- Resource Framework para empregar- los.
+A alocação de recursos e escalonamento de tarefas são oferecidos por o SRS e também devem ser implementados através do Ws--Resource Framework.
+Entre os serviços oferecidos por o SRS descritos no Capítulo 3, os serviços de fornecimento da capacidade momentânea do site e de fornecimento do saldo do usuário para utilização de recursos não são oferecidos nem por o GRAM nem por o SRS.
+Por o fato destes serviços serem sem estado, eles podem ser oferecidos na forma de web services comuns, o que exige a definição da interface de serviço através de um arquivo WSDL, implementação e publicação do serviço.
+Em este caso o grid scheduler também deve ser capaz de solicitar estes serviços e interpretar o resultado de retorno.
+Os módulos apresentados na descrição do SRS, Figura 7 estão presentes da seguinte forma nesta proposta:
+O módulo de segurança é substituído por os serviços de segurança do Globus;
+O módulo de economia é implementado como um web service sem estado;
+O módulo de interface de usuário é substituído por o GRAM;
+O módulo de informação é substituído por o MDS;
+O módulo de gerência de arquivos é substituído por o GridFTP;
+O módulo de escalonamento é implementado, recebendo tarefas do GRAM Adapter e distribuindo- as aos recursos apropriados;
+O módulo de gerência de recursos é implementado, recebendo informações sobre o estado dos recursos diretamente do escalonador do cluster.
+A adaptação do SRS ao Globus é possível com a inclusão de um módulo entre o GRAM e o escalonador do cluster que mantém a lista de recursos disponíveis a grade e mapeia tarefas a elas.
+Tarefas da grade são remetidas ao SRS através de um GRAM adapter específico para o SRS.
+A seqüência de eventos durante a execução de uma aplicação nesta abordagem é a seguinte:
+O grid scheduler do usuário realiza uma consulta a um web service que retorna a capacidade momentânea do site.
+Alternativamente, este serviço pode retornar também o custo para a utilização destes recursos;
+Para a realização das etapas seguintes, é necessária a delegação de credenciais do usuário ao GRAM, para que este possa autenticar o usuário;
+Baseado na resposta retornada no primeiro passo, a aplicação (ou uma parte da aplicação) é submetida ao site, via GRAM e na forma de um multijob;
+Em o mesmo arquivo de descrição de tarefas que contém a especificação do executável também são transmitidos os comandos de transferência de arquivos, o que inclui o tipo de armazenamento que deve ser realizado (temporário ou persistente).
+O controle da transferência de arquivos é realizado por o RFT utilizando o GridFTP;
+O grid scheduler se registra ao GRAM para receber notificações de eventos da sua aplicação;
+Após a execução, os arquivos são retornados.
+Novamente, o RFT é responsável por a coordenação da ação.
+Em o esquema proposto para a adaptação do SRS ao Globus, o modo como ocorre a interação ente usuários e serviços não é alterado, apenas é incluída uma etapa adicional realizada antes da submissão da aplicação.
+As demais ações do SRS ocorrem dentro de o site e são transparentes aos usuários e ao GRAM.
+O SRS possa ser empregado no Globus sem exigir alteração nos programas dos clientes.
+Em este caso, são fornecidos aos clientes máquinas virtuais, da mesma forma que a empregada no protótipo do modelo.
+Porém uma exploração maior das possibilidades do Site Resource Scheduler só é possível com o desenvolvimento de um grid scheduler ciente da presença do software, ou seja, capaz de explorar a abstração oferecida por a abordagem.
+Cada vez mais centros de computação no mundo inteiro têm cedido recursos a grades.
+Enquanto a quantidade de recursos disponíveis nestas grades aumenta, a escalabilidade de grid schedulers torna- se um aspecto cada vez mais importante na área.
+Delegar a usuários a tarefa de gerenciar centenas (talvez milhares) de recursos espalhados por o mundo e possuindo diferentes características leva a uma perda de desempenho na execução de tarefas, devido a o overhead inserido por a gerência e escalonamento de tarefas em tais recursos.
+Em este trabalho foi apresentada uma nova estratégia de gerência e escalonamento de recursos em grades computacionais, chamada de Site Resource Scheduler (SRS).
+O SRS simplifica a visão que usuários têm dos recursos da grade e conseqüentemente a sua gerência, fazendo com que não mais acessem diretamente uma grande quantidade de recursos mas sim máquinas virtuais que representam a capacidade computacional disponível momentaneamente a eles em cada um dos sites aos quais têm acesso.
+Para que isto seja possível uma nova camada de abstração, responsável por virtualizar os recursos do site, é acrescentada à grade.
+O acréscimo desta camada de abstração exige a definição de alguns características adicionais que não são necessárias nos sistemas convencionais, que são a definição de uma medida de capacidade computacional de recursos, a definição de uma forma de usuários expressarem as suas necessidades computacionais e a definição de uma maneira de garantir uma distribuição adequada dos recursos.
+No decorrer de o texto o tratamento a estas questões foi abordado, e uma arquitetura geral do SRS, com ênfase aos serviços de virtualização, foi apresentada.
+O modelo é genérico o bastante para ser implementado como um middleware próprio ou ser adaptado como um módulo de um middleware existente.
+Foi desenvolvido também um protótipo do SRS para o middleware OurGrid, e um teste de desempenho, comparando- o com o OurGrid sem o SRS foi realizado.
+Concluiu- se que a inclusão do SRS numa grade OurGrid pode diminuir o tempo de execução de tarefas que exigem grande volume de transferência de dados em sites que cedem à grade recursos de forma nãodedicada.
+Mesmo em sites que cedem recursos à grade de forma dedicada, ou para aplicações que transferem um pequeno volume de dados, o SRS pode ser utilizado com uma perda não significativa de desempenho das aplicações.
+O trabalho foi concluído com uma proposta para a inclusão do SRS em grades Globus.
+A proposta não exige a modificações nos componentes do Globus, e é aplicada como um módulo de software entre o GRAM (componente de gerência de recursos do Globus) e o escalonador (ou escalonadores) de clusters do site.
+Como possíveis trabalhos futuros derivados deste trabalho estão:
+Implementação completa do SRS no OurGrid;
+Implementação do SRS no Globus;
+Desenvolvimento de heurísticas de escalonamento;
+Aplicação de políticas de alocação de recursos;
+Otimização de utilização de recursos não-dedicados;
+Implementação de Metascheduling. A inclusão de outras funcionalidades no SRS, além de aquelas apresentadas neste trabalho poderá contribuir para um aproveitamento ainda melhor dos recursos computacionais de centros de computação, laboratórios de pesquisa, universidades, empresas e quem mais tiver interesse em todas as possibilidades oferecidas por as grades computacionais.

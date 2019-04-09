@@ -1,0 +1,667 @@
+O desenho de drogas assistido por computador (CADD) é um processo que envolve a execução seqüencial de diferentes programas, em o qual é testado se um determinado ligante (pequena molécula) interage bem com um receptor (geralmente uma proteína ou enzima).
+Esse processo geralmente é executando com o auxílio de shell scripts.
+Porém a modificação dos parâmetros de entrada e análise dos resultados nesse tipo de abordagem é uma tarefa complexa e que consome muito tempo.
+Além disso, para considerar a flexibilidade do receptor durante experimentos de docking, é necessário que se utilize milhares de snapshots do receptor.
+Em este trabalho, esses snapshots são obtidos da trajetória de simulações por dinâmica molecular do receptor.
+Devido a os desafios associados à manipulação desse grande número de snapshots do receptor e à necessidade de um melhor controle sobre os diferentes programas associados a esse processo, esse trabalho apresenta um workflow científico para automação do processo de desenvolvimento de drogas assistido por computador, incluindo de forma explícita a flexibilidade do receptor.
+Os softwares JAWE e Shark foram utilizados para modelar e executar respectivamente o workflow.
+Mesmo com essa automação no processo, ainda há problemas relacionados ao número de snapshots do receptor que deve ser utilizado.
+O tempo necessário para a execução de experimentos de docking, considerando aproximadamente três mil snapshots do receptor, é em torno de 500 horas.
+Para simplificar e agilizar esse processo, foi desenvolvida uma forma de seleção de snapshots baseado na energia livre de ligação (FEB).
+Assim, durante os experimentos de docking, chamados de docking seletivo, somente uma parte dos snapshots são utilizados:
+Aqueles que obtiveram os melhores resultados de interação em termos de FEB durante um experimento exaustivo com um determinado ligante.
+Para validar essa implementação e seleção, foram executados experimentos de docking com a enzima InhA de M. Tuberculosis como receptor e cinco ligantes diferentes.
+Os resultados desses experimentos ilustram a eficiência do workflow implementado e da forma de seleção de snapshots do receptor que está sendo realizada.
+Palavras-chave: Bioinformática, Drug Design, Workflows Científicos, Docking Molecular, Dinâmica Molecular.
+Segundo Luscombe et al.
+Uma das principais características em Bioinformática é a coleção, organização e interpretação de grandes quantidades de dados.
+Para alcançar esse objetivo a comunidade científica vem, cada vez mais, utilizando computadores para execução e análise composição de vários programas em seqüência, onde a saída de um é utilizada como entrada de outro e a execução dos mesmos é realizada manualmente ou utilizando shell scripts.
+Este tipo de abordagem geralmente possui grande deficiência em questões como heterogeneidade e natureza distribuída dos dados devido a formatos específicos de entrada e saída das ferramentas disponíveis.
+Além disso, a execução manual de programas seqüenciais ou o uso de shell scripts apresentam problemas relacionados à clareza, flexibilidade, registros de uso e do fluxo dos dados e manutenção do processo.
+Uma proposta atraente para a descrição desse tipo de experimento, de acordo com Wainer, seria o uso de workflows científicos, pois além de fornecer o apoio necessário ao ciclo de execução e análise, torna possível a criação de um ambiente com independência entre as diversas aplicações científicas.
+Esses workflows envolvem seqüências de passos que podem lidar com acessos a bancos de dados, mineração de dados, análise de dados e muitos outros passos envolvendo tarefas computacionais.
+De a Biologia se sabe que macromoléculas (receptores) 1, como por exemplo, proteínas, enzimas e DNA não são rígidas em seu ambiente celular.
+Por esse motivo, essa flexibilidade deve ser explicitamente considerada durante o processo de desenvolvimento de novas drogas (ou em inglês, drug design).
+Uma das principais etapas desse processo de drug design é o docking molecular em o qual, a interação de uma pequena molécula (ligante) 2 com um determinado receptor é computacionalmente testada e avaliada.
+Experimentos de docking molecular podem ser executados por diferentes softwares, como por exemplo:
+O AutoDock3.
+05, o FLEXX e o DOCK4.
+0. A maioria desses softwares trata a flexibilidade do ligante, mas apresentam dificuldades em considerar a flexibilidade do receptor.
+Os softwares que consideram a flexibilidade do receptor, fazem isso somente de uma maneira muito limitada.
+Com o objetivo de contornar esse problema e incluir uma representação mais realista da flexibilidade natural dos receptores durante os experimentos de docking, nós consideramos um conjunto de snapshots 3 do receptor gerados por uma simulação Em o texto, proteínas, macromoléculas e receptor são utilizadas com o mesmo significado.
+Ligantes, inibidores e pequenas moléculas são tratados como sinônimos no texto.
+Estruturas instantâneas, conformações e snapshots são tratados como sinônimos no texto.
+Os passos envolvidos na execução de experimentos de docking dessa forma, considerando a flexibilidade do receptor oriunda de simulações por dinâmica molecular geralmente são executados manualmente, em o qual os parâmetros, assim como a seqüência de execução, são definidas por o usuário.
+Conseqüentemente, se alguém desejar continuar o trabalho de outro membro do mesmo grupo ou reexecutar o processo com diferentes ligantes e/ ou proteínas, encontrará muitas dificuldades no que diz respeito ao ajuste dos parâmetros de entrada e ao acompanhamento e registro de todo o processo.
+Com base no problema exposto acima, a proposta deste trabalho é modelar o processo de desenvolvimento de fármacos assistido por computador (ou em inglês, Computer Assisted Drug Design -- CADD) considerando o receptor flexível, utilizando workflows científicos e implementando shell scripts e programas que executem efetivamente e de forma automática as seqüências das atividades descritas por o workflow.
+Esse modelo permitirá que dockings moleculares que considerem a flexibilidade explícita tanto do ligante como do receptor sejam facilmente executadas, sendo então a flexibilidade natural das moléculas biológicas consideradas nos experimentos de docking.
+Além disso, com a automatização do processo, é possível a inclusão de uma etapa de seleção de snapshots para que não seja necessária a consideração de todas as conformações do receptor, reduzindo o tempo necessário para se analisar a interação receptor-ligante.
+Um método de docking molecular ideal seria aquele que permitisse que ambos, ligante e receptor, explorassem todos os seus graus de liberdade conformacionais.
+Como alternativa para a consideração da flexibilidade da macromolécula em experimentos de docking molecular, atualmente têm sido feitos experimentos de docking que utilizam, cada um de eles, uma estrutura instantânea da proteína (snapshot), gerada a partir de simulações por dinâmica molecular utilizando o software AMBER6.
+0, como por exemplo, o trabalho apresentando por Kua et Esse processo, na maioria das vezes, é executado de forma manual ou com no máximo a ajuda de alguns shell scripts.
+Porém, esse tipo de abordagem apresenta muitos problemas como, por exemplo, a dificuldade de definição da ordem correta em que cada etapa deve ser executada (o que torna muito difícil a compreensão do processo como um todo), a monitoração da execução do processo, a execução do mesmo utilizando parâmetros diferentes, entre outros problemas.
+Sendo assim, com base na idéia da funcionalidade de workflows científicos, optou- se por utilizar- los na definição e execução de todas as etapas do processo de desenvolvimento de fármacos assistido por computador, considerando a flexibilidade da macromolécula.
+Além de os problemas mencionadas acima, cada simulação por dinâmica molecular gera no mínimo em torno de 5000 snapshots.
+A consideração de todas essas possíveis conformações do receptor nos experimentos de docking consiste numa tarefa com um alto custo computacional.
+De esse modo, o presente trabalho também busca desenvolver uma maneira efetiva de selecionar snapshots do receptor, de forma que a utilização de todos os snapshots gerados na etapa de simulação por dinâmica molecular não seja necessária para se analisar a interação receptorligante.
+Atualmente o processo de CADD considerando receptor flexível é desenvolvido de forma manual, em o qual, se alguém desejar continuar o trabalho de outro membro de um mesmo grupo, ou se quiser reiniciar o processo utilizando uma proteína ou ligante diferentes sem conhecer a seqüência exata dos passos, vai encontrar muitas dificuldades, principalmente em relação a a definição dos parâmetros de entrada dos softwares e à seqüência com que esses devem ser executados.
+De o mesmo modo, é muito complicado acompanhar a execução do processo como um todo sem se saber que etapa está sendo executada e como a mesma foi parametrizada.
+Além disso, considerar a flexibilidade do receptor nesses experimentos de docking deve- se ao fato de que se sabe que as macromoléculas não são rígidas em seu ambiente celular.
+Esta flexibilidade deve ser considerada na busca de novos inibidores e no entendimento da associação com determinado ligante, via docking molecular, que geralmente consideram a estrutura do receptor rígida.
+A consideração da estrutura do receptor flexível por parte de os softwares de docking é uma tarefa impraticável devido a o processamento que seria necessário, pois receptores geralmente são moléculas grandes, compostas por um grande número de átomos que podem se movimentar de diferentes formas e em diferentes sentidos.
+Assim, se esse processo for realizado de forma automática, sua execução poderá ser feita por mais tempo sem que haja necessidade de intervenção humana, permitindo que a interação de muitos ligantes com uma proteína alvo seja analisada de forma mais rápida, aumentando a chance de se encontrar um bom ligante em menos tempo.
+Ademais, o processo se torna mais flexível e com uma seqüência de passos pré-definida, não havendo problema em membros do mesmo grupo compartilharem o mesmo experimento, por exemplo.
+Porém, após as simulações por dinâmica molecular, muitos snapshots do receptor são gerados e a utilização de todos eles em experimentos de docking seria muito custosa e levaria muito tempo para se analisar a interação receptor-ligante.
+Por esse motivo, adicionando ao workflow uma etapa de seleção dos snapshots gerados na simulação por dinâmica molecular, utilizando se reduz consideravelmente.
+Além de as motivações já descritas, ainda pode- se acrescentar que o uso de workflows para solucionar problemas relacionados com drug design tem aumentando, principalmente entre algumas empresas farmacêuticas.
+Assim, o trabalho contribuirá para a comunidade científica em geral, já que uma integração entre os softwares de simulação por dinâmica molecular e de docking molecular permite que os experimentos considerando o receptor flexível sejam mais simples de serem executados.
+Além de o mais, o uso de critérios de qualidade como uma maneira de selecionar instâncias do processo a serem executadas poderá ser implementada em outros processos que apresentam as mesmas características.
+Estudar a modelagem de processos utilizando workflows científicos.
+Esse estudo envolve o aprendizado da terminologia envolvida e principalmente das principais ferramentas já disponíveis;
+Modelar o processo de CADD considerando o receptor flexível, utilizando workflows ci entíficos.
+Para que isso seja possível, é necessário fazer um docking molecular seqüencial utilizando estruturas instantâneas (snapshots) de uma macromolécula geradas a partir de simulações por dinâmica molecular.
+Essa é uma alternativa para considerar a estrutura da proteína flexível, já que o AutoDock3.
+05 (programa utilizado para realizar os experimentos de docking) considera somente o ligante flexível;
+Implementar shell scripts e programas que efetivamente integrem os softwares que são utilizados e automatize o processo de CADD por completo;
+Desenvolver critérios de qualidade para pré-selecionar os experimentos de docking que devem ser efetivamente executados por o workflow.
+O critério de qualidade escolhido para pré-selecionar snapshots será a FEB.
+Após um experimento ser executado por completo, de maneira exaustiva, considerando todos os snapshots gerados na simulação por dinâmica molecular, seus resultados indicam quais os snapshots que apresentaram melhor resultado e esses são utilizados em experimentos com outros ligantes.
+Essa seleção é importante para tornar o processo de virtual screening viável de ser realizado considerando o receptor flexível.
+Este documento organiza- se da seguinte forma:
+Em o Capítulo 2 é feita uma breve descrição de alguns conceitos importantes para o entendimento do trabalho:
+Drug design, docking molecular e dinâmica molecular.
+Após, no Capítulo 3 são descritos conceitos de workflows, em especial workflows científicos.
+Esse capítulo descreve as ferramentas que foram selecionadas para o uso nesse trabalho assim como alguns trabalhos relacionados ao uso de workflows científicos em Bioinformática.
+O worflow desenvolvido, com a descrição de todas as etapas envolvidas são descritas de forma detalhada no Capítulo 4.
+Então, no Capítulo 5 5, é apresentado um Estudo de Caso para ilustrar o uso do workflow desenvolvido, assim como os resultados referentes ao uso do primeiro critério de qualidade desenvolvido para pré selecionar snapshots.
+Finalmente, 2 Referencial Teórico Este capítulo tem por objetivo definir conceitos diretamente relacionados com este trabalho, a fim de contextualizar- lo.
+A Seção 2.1 descreve o processo de Drug Design e conceitua docking molecular e dinâmica molecular.
+Devido a o avanço da biologia molecular e de ferramentas de simulação in-silico, o planejamento de medicamentos passou a ser feito de maneira mais lógica, o que é chamado de Desenho Racional de Drogas.
+Esse processo é baseado em análises teóricas das interações entre pequenas moléculas e receptores.
+Segundo Bajorath é necessário testar várias combinações de interações entre ligantes (pequenas moléculas) e receptores (proteínas alvo) para se obter um medicamento.
+Segundo Kuntz, esse processo envolve basicamente quatro etapas:
+Estrutura 3D dessa proteína (a estrutura da proteína é determinada por cristalografia por difração de raios X ou ressonância magnética nuclear e armazenada num banco de dados estrutural como o Protein Data Bank -- PDB) é possível apontar prováveis regiões de ligação, por exemplo, regiões onde uma pequena molécula (ligante) pode se ligar a esse receptor;
+De acordo com Lengauer e Rarey, docking molecular é a base para o processo de CADD, fornecendo estimativas sobre a afinidade e maneira que certa proteína e ligante estão interagindo.
+Em o processo de docking molecular, a interação ligante-receptor é virtualmente testada e analisada por um algoritmo em o qual o ligante assume diferentes orientações e conformações dentro de o sítio de ligação do receptor.
+Um grande número de diferentes interações deve ser testado para identificar o melhor encaixe do ligante no sítio de ligação da estrutura alvo ou receptor.
+Esta informação é computada em termos de a energia livre de ligação (FEB), que quanto mais negativa, melhor a interação ligante-receptor.
+Em a Figura 1 é apresentado o processo de docking em três dimensões.
+Uma molécula de ligante (NADH em ciano) se liga ao sítio da molécula receptor (a proteína InhA).
+Entretanto, a limitação dos softwares de docking geralmente ocorre quando se deseja considerar a flexibilidade explícita do receptor.
+Atualmente existe um grande número de alternativas para incorporar pelo menos parte da flexibilidade do receptor, por exemplo:
+Tratar como flexíveis algumas cadeias laterais do receptor, utilizar um pequeno conjunto de cadeias laterais rotacionáveis, simular grandes movimentações usando métodos harmônicos, entre outras possibilidades.
+Porém, de acordo com Carlson, o uso de várias estruturas diferentes do receptor tem se caracterizado como a melhor alternativa para incorporar a flexibilidade do receptor nos experimentos de docking.
+Sendo assim, uma maneira de simular a flexibilidade do receptor nos experimentos de docking é utilizar um conjunto de possíveis conformações do receptor geradas por meio de simulação por dinâmica molecular.
+Segundo Sali, estudos de sistemas biológicos eram inicialmente limitados à observação e interpretação de dados experimentais.
+Porém, técnicas experimentais somente descrevem características macroscópicas que são as mesmas características apresentadas por um conjunto de moléculas.
+Entretanto, de acordo com van Gunsteren e Berendsen, com o avanço de técnicas experimentais tornou- se possível uma visão mais detalhada de diversos processos biológicos por o acesso a propriedades atômicas de macromoléculas biológicas, como proteínas.
+O acesso a esse tipo de informação permitiu o desenvolvimento de estudos de simulação por dinâmica molecular que têm por objetivo simular o movimento natural de átomos em moléculas, como proteínas.
+SCoA) Reductase de Mycobacterium tuberculosis, cujo estudos de simulação por DM complexada com a coenzima Nicotinamida Adenina Dinucleotídeo, forma reduzida (NADH) já foram previamente realizados utilizando o software AMBER6.
+0. Esse capítulo apresentou os principais conceitos biológicos envolvidos no trabalho:
+Drug desing, docking molecular e dinâmica molecular com o objetivo de facilitar o entendimento do restante do trabalho.
+O próximo capítulo introduz a área de workflows com enfoque especial em workflows científicos.
+São apresentados a terminologia básica da área, os tipos de workflow, as características dos workflows científicos, as ferramentas que foram selecionadas para serem utilizadas no trabalho e por fim, alguns trabalhos da área de Bioinformática que utilizaram workflows científicos como ferramenta para solução de seus problemas específicos.
+O presente capítulo descreve a terminologia básica da área de workflows.
+São descritos os principais conceitos:
+Workflows, sistemas gerenciadores de workflow, processo, definição de um processo, atividades, transições, instâncias de processos e atividades, participantes do workflow e WAPI.
+Após, são abordados os tipos de workflow, destacando- se workflows científicos, em o qual são apresentadas suas principais características e etapas.
+Logo a seguir, as ferramentas selecionadas para o desenvolvimentos do trabalho são descritas e os motivos que levaram a essa escolha são listados.
+Por fim, são apresentados dois trabalhos na área de Bioinformática, que assim como o nosso trabalho, utilizaram workflows científicos para resolução de seus problemas.
+A WFMC, um consórcio de empresas provedoras de soluções workflow, define em Workflow Managment Coaliation -- Terminology and Glossary a terminologia básica para entendimento de workflows.
+A Figura 3 mostra os principais termos envolvidos assim como a relação entre eles.
+Workflow: Segundo a WFMC, workflow pode ser definido como &quot;a automação do processo de negócio, completamente ou em parte, em a qual documentos, informações ou tarefas são passadas de um participante a outro de acordo com um conjunto de regras».
+WfMS: Workflow Managment System ou em português, Sistema Gerenciador de Workflows é &quot;um sistema que define, cria e gerência a execução de workflows por meio de o uso de um software, executando um ou mais workflow engines capazes de interpretar a definição do processo, interagir com os participantes do workflow e, quando necessário, invocar o uso de ferramentas de Ti e aplicações».
+Processo: Um conjunto de um ou mais procedimentos ou atividades relacionadas que, conectadas, atingem um objetivo comum, normalmente dentro de um contexto organizacional.
+A Figura 4 apresenta um exemplo de um processo composto por oito atividades.
+Quando um processo é chamado por outro processo, este é chamado de sub-processo ou subflow.
+Definição de um processo:
+Um processo é descrito por uma definição de processo que consiste numa rede de atividades e seus relacionamentos.
+Devem- se informar o início e o fim do processo, informações a respeito de cada uma de suas atividades e participantes, ferramentas que estão associadas, etc..
+Atividade: Corresponde a um passo do processo.
+Uma atividade pode ser manual ou automática.
+Atividades manuais não são gerenciadas por o workflow.
+Atividades automáticas precisam ser executadas por humano e/ ou sistema e não sofrem intervenções durante sua execução.
+Podem ser de dois tipos:
+Itens de trabalho (ou em inglês, work item), onde tarefas são alocadas a algum participante do workflow e aplicações invocadas, geralmente ferramentas ou aplicações utilizadas como suporte à execução de uma determinada atividade.
+Transições: As transições correspondem aos momentos durante a execução do processo em o qual uma atividade completa sua execução e o controle passa para a próxima atividade.
+De essa forma, as transições definem a ordem com que as atividades devem ser executadas.
+Em alguns casos podem ser condicionais, onde a próxima atividade a ser executada é determinada por o resultado da avaliação, em tempo de execução, de uma determinada condição.
+A Figura 4 ilustra um processo composto por 8 atividades, com diferentes tipos de transições entre elas:
+Após a execução da atividade A é que o WfMS decide, dependendo de uma determinada condição, qual das atividades será executada:
+B Ou C. Somente uma dessas atividades é executada;
+Instância (de um processo ou atividade):
+Cada instância representa uma thread 1 diferente de execução de um processo ou atividade.
+Cada vez que um processo ou uma atividade é invocada, são criadas instâncias gerenciadas por o WfMS.
+As instâncias de atividades podem ser invocadas de duas maneiras:
+Seqüencialmente, onde somente uma atividade é instanciada por vez ou simultaneamente, onde duas ou mais atividades são instanciadas ao mesmo tempo e executadas em paralelo.
+As atividades que são executadas em paralelo, geralmente iniciam por um And- Split e terminam com um And-Join.
+Participantes do workflow:
+Esse termo geralmente se aplica a humanos, mas conceitualmente pode também representar máquinas.
+Os participantes são identificados diretamente durante a definição do processo e podem ser:
+Humano, máquina, regra ou unidade organizacional.
+WAPI: WAPI é uma abreviação para Workflow Apis and Interchange Formats, publicado por a WFMC.
+É constituído de especificações que permitem a comunicação entre diferentes componentes dos WfMS e aplicações externas.
+Assim, aplicações externas ao workflow podem ser invocadas de dentro de o mesmo.
+Embora as definições acima se refiram a processos de negócio, workflow não é somente aplicada a esse tipo de processo.
+Segundo Wainer et al.
+Workflows podem também ser classificados como:
+Workflows ad-hoc e workflows científicos.
+Bolcer e Taylor descrevem como primeiro propósito de workflows ad-hoc informar usuários dos problemas correntes e dos dados necessários para executar cada uma de suas tarefas.
+Esse tipo de workflow pode executar seu trabalho de uma maneira ad-hoc em o qual as soluções e objetivos são alcançados utilizando diferentes ferramentas e os dados são imediatamente disponibilizados.
+Threads é a divisão de um programa em duas ou mais tarefas executando simultaneamente.
+Segundo Santos, workflows científicos são voltados para as aplicações científicas que demandam alto poder computacional de áreas de pesquisa como biologia, física, astronomia, geologia entre outras.
+Workflows científicos geralmente adquirem dados de diferentes experimentos, por exemplo:
+Dados gerados de modelos computacionais ou obtidos após análises estatísticas sobre conjuntos de dados.
+Além disso, não podem ser completamente definidos antes que sejam iniciados.
+Assim, o resultado de tarefas que estão sendo executadas a cada momento é que decidem os próximos passos.
+Essa falta de conhecimento sobre o processo antes que o mesmo seja efetivamente executado implica em algumas características específicas na modelagem de workflows científicos.
+A principal é assumir que os modelos não são completos e mudam a todo momento.
+Por causa de essas características, workflows científicos e de negócio apresentam muitas diferenças.
+As principais apresentadas por Meyer et al.
+E Weske et al.,
+são: Workflows de negócio são modelados para atender a um processo relativamente fixo, po rém no caso de workflows científicos a definição do workflow envolve a tomada de diversas decisões, análises e, muitas vezes, trabalho em equipe;
+Enquanto workflows de negócio são orientados por o fluxo de controle das atividades, workflows científicos são orientados por o fluxo de dados;
+Workflows de negócio requerem poucas mensagens de coordenação e troca de documentos e dados entre as atividades enquanto que workflows científicos utilizam muitos dados, geralmente derivados de diferentes fontes e nenhum documento é modificado;
+Para workflows científicos tanto as respostas positivas quanto as negativas precisam ser analisadas e por isso devem ser armazenadas;
+Em workflows de negócio o modelo desenvolvido não é alterado durante a execução do workflow devido a os resultados obtidos após a execução de cada etapa.
+Já a definição de workflows científicos é um processo dinâmico, influenciado muitas vezes por resultados obtidos durante a execução, gerando constantes mudanças no fluxo de execução.
+As principais etapas envolvidas no desenvolvimento de um workflow científico, segundo Wainer et al.
+São: Como as características do processo que desejávamos modelar e automatizar correspondem às características de workflows científicos, como por exemplo, a demanda de alto poder computacional, o uso de diferentes softwares e a manipulação de muitos e diferentes dados, optou- se por esse tipo de workflow para ser desenvolvido no presente trabalho.
+Baseado nas etapas envolvidas no desenvolvimento de um workflow científico descritas na Seção 3.3, a Figura 5 relaciona cada etapa com as ferramentas selecionadas para executar- las.
+Para modelar o workflow desenvolvido foi selecionada a ferramenta JAWE 2.
+0-2 e para executar- lo, selecionou- se o Enhydra Shark 1.1-2.
+Os softwares AMBER6.
+0, AutoDock3.
+05, SPDBV (Swiss PDB Viewer), Programas em C e shell scripts são aplicações que se comunicam com instâncias de execução do workflow.
+As principais razões para essa escolha são:
+Tratam- se de ferramentas que são softwares livres cuja distribuição não tem custos;
+São ferramentas que recebem constante atualização e que os erros são corrigidos a cada nova versão;
+São softwares robustos e já utilizados em outros trabalhos científicos, como o trabalho apresentado por Barretto et al.;
+Os softwares AutoDock3.
+05 executam em ambiente Linux assim como o Shark e JAWE, que funcionam corretamente nesse ambiente;
+São ferramentas cujo uso é relativamente simples, tanto para a modelagem quanto para a execução do workflow e que a execução de programas externos pode ser feita utilizando funcionalidades oferecidas por as próprias ferramentas, como o uso de ToolAgents.
+JAWE á uma ferramenta visual para a criação e gerenciamento de definições de processos.
+Seu arquivo de saída final é um arquivo XPDL (XML Process Definition Language) que pode ser interpretado em tempo de execução por diferentes WfMS.
+A descrição de como se trabalha utilizando o JAWE segue as especificações da WFMC.
+Segundo Mehta e Barter, utilizando a ferramenta JAWE é possível somente o desenvolvimento de workflows baseados em atividades (em inglês, Activity--based) que são aqueles compostos de atividades a serem executadas a fim de alcançar um objetivo.
+Há os workflows baseados em entidades (em inglês, Entity--based), que são aqueles cujo foco são conjuntos de documentos, e os estágios envolvidos para completar- los.
+Ex: Publicação de documentos na Web.
+Os principais componentes do JAWE são:
+Por os mesmos participantes, esses podem ser reunidos num pacote.
+Quando se deseja definir um novo processo, deve- se antes definir as características do pacote que conterá o processo.
+A Figura 6 mostra a tela principal do JAWE.
+Em essa tela está aberto um pacote que contém diversos processos, entre eles os que serão utilizados como exemplo de modelagem do JAWE.
+À esquerda pode ser visto a descrição do pacote chamado &quot;Test «e todos os processos contidos em ele.
+Em destaque aparece o processo &quot;De o math&quot;;
+&quot;Informar parâm operação», &quot;Calcular «e &quot;Ver resultado».
+As atividades em verde-escuro são aquelas que necessitam da intervenção humana para serem executadas (no JAWE, um pouco diferente do conceito apresentado por a WFMC, atividades manuais são aquelas executadas manualmente por o usuário, que fazem parte do workflow, mas precisam de intervenção humana para terminar sua execução);
+As caixas em roxo representam subflows, sub-processos pertencentes ao mesmo pacote do processo que os utiliza e compostos por atividades, transições e aplicações próprias (não precisando estar relacionados com o processo que o utiliza).
+O subflow mostrado na Figura 6 é descrito na Figura 7.
+Esse subflow é utilizado para efetivamente executar a operação matemática informada por o usuário na atividade anterior.
+Dependendo do tipo de operação uma das atividades &quot;somar», &quot;subtrair», &quot;multiplicar «ou &quot;dividir «é executada;
+As atividades em rosa que aparecem no subflow são aquelas utilizadas pare direcionar o fluxo de execução, nenhuma ação é efetivamente executada por elas.
+Tipos de transições possíveis de serem modeladas no JAWE são as mesmas descritas por a WFMC:
+Transições seqüenciais e interativas e as do tipo And/ OR SPLIT ou And/ OR JOIN.
+O processo descrito no subflow da Figura 7 contém a atividade &quot;Analisar operação «de onde partem 4 transições do tipo OR-SPLIT, que são transições condicionais, que executam corretamente a operação informada por o usuário;
+O Enhydra Shark é um workflow engine escrito na linguagem JAVA.
+Por ter um código aberto, pode ser facilmente extensível.
+Seu padrão de implementação, assim como o JAWE, são as especificações WFMC utilizando XPDL (sem nenhuma extensão que seja proprietária) para definição de seus processos e os WFMC ToolAgents Apis para a execução de aplicações de dentro de o workflow.
+O Enhydra Shark pode ser utilizado tanto de forma independente, como de dentro de outra aplicação escrita em JAVA (onde somente algumas funcionalidades podem ser utilizadas em separado), ou ainda como aplicação em Web Services.
+Para utilizar o Enhydra Shark o usuário deve se logar no sistema.
+Inicialmente pode entrar como administrador, cuja senha padrão é informada nos manuais do programa.
+Após, para cada um dos processos a serem executados, ele associa os usuários cadastrados no Shark aos participantes descritos na definição do processo e, assim, cada usuário que se logar ao sistema receberá em seu work list as atividades que deve executar.
+Após se logar, a tela inicial do Enhydra Shark é a tela mostrada na Figura 8 a, em a qual estão listados todos os processos (que devem ser arquivos XPDL) já gravados num repositório de dados da ferramenta.
+Se for um processo novo, a primeira atividade será fazer up-load (carregamento) do mesmo para esse repositório.
+Após, um dos processos do repositório é lido e pode ser instanciado para ser executado.
+Após o usuário ter instanciado o processo, os seguintes passos durante a execução do processo &quot;De o math «explicado na Seção anterior, são:
+Atividade; A aplicação de workflows científicos em Bioinformática tem aumentado muito nos últimos anos, especialmente em drug design, como mostra a entrevista de Watson.
+Alguns exemplos do uso de workflows científicos em Bioinformática podem ser vistos nos trabalhos de O trabalho apresentado por Ludäscher et al.
+Descreve uma arquitetura que foi desenvolvida com o objetivo de fornecer suporte ao desenvolvimento de workflows científicos.
+Utilizando essa arquitetura, Ludäscher et al.
+Modelou o processo de identificação de promotores de genes, gerando o que chamou de PIW -- Promoter Identification Workflow.
+O trabalho de Georgakopoulos et al.
+Também utilizou esse processo de identificação de promotores de genes para validar o uso da arquitetura de desenvolvimento workflows científicos modelada em seu trabalho.
+Biólogos estão freqüentemente pesquisando como um organismo responde a mudanças no seu ambiente, expressas por meio de o comportamento dos seus genes.
+Por exemplo, descobrir se o nível de expressão de um conjunto de genes diminui muito na presença de radiação.
+A tecnologia de microarrays de DNA é utilizada para determinar o nível de expressão de um conjunto de genes.
+Primeiro, uma amostra do DNA é exposta às mudanças no ambiente que causam transcrições de certos genes.
+Esses genes são marcados com cores fluorescentes como pode ser visto no passo 1 da Figura 10.
+Quanto maior o número de pontos fluorescentes, mais alto o nível de expressão do gene.
+A seguir, um biólogo seleciona um subconjunto de genes que seja parecido com os genes que obtiveram um maior nível de expressão.
+A partir desse momento o PIW é executado para identificação de promotores de genes parecidos com os genes selecionados.
+Resumidamente, o processo inicia por a determinação do conjunto de genes que vai se buscar por genes similares por meio de o uso de algoritmos de clusterização.
+Esses genes são identificados por o GeneID, em o qual, para cada GeneID, procura- se genes (utilizando um banco de dados como o GenBank do NCBI) com regiões promotoras similares a esses (Passo 3) (esse busca por genes com regiões promotoras similares é realizada utilizando- se uma ferramenta como o BLAST (Passo 4) que encontra seqüências similares).
+Em os passos 4 e 5 é identificado o fator de transcrição dentro de cada região promotora.
+A partir desses dados, é gerado um conjunto de modelos de promotores para cada gene.
+Por fim, são procurados num banco de dados de genes, aqueles que contenham seqüências similares a dos modelos de promotores.
+Todo o processo está ilustrado na Figura 10.
+Para Ludäscher et al.,
+a partir de uma análise nesse modelo já se pode extrair algumas características típicas de workflows científicos, como por exemplo, o uso de diversas bases de dados já existentes, assim como de ferramentas já desenvolvidas que precisam ser combinadas numa certa seqüência para que os passos desse processo sejam executados corretamente.
+O Estudo de Caso apresentado por Weske et al.
+Trata- se de um workflow para modelar o processo de agrupamento de fragmentos de DNA utilizado no melhoramento do seqüenciamento de genomas.
+Esse estudo foi utilizado para validar uma ferramenta desenvolvida para a definição e execução de workflows científicos e pode ser resumido da seguinte maneira:
+De acordo com Weske et al.,
+pode- se modelar o sub-processo de agrupamento de fragmentos, último passo no processo de seqüenciamento de DNA, utilizando- se workflows.
+O workflow científico que representa esse sub-processo pode ser visto na Figura 11.
+A tarefa &quot;Geração de fragmentos inicial «especifica os experimentos científicos que irão extrair informações da seqüência de uma dada molécula (isso porque há diversas maneiras dessa seqüência ser obtida) e gera uma série de fragmentos.
+Em o passo seguinte, os fragmentos gerados são unidos para formar a seqüência que se deseja obter ao final do experimento.
+O resultado dessa atividade é avaliado por um humano.
+Se o humano validar- la, a análise da seqüência pode ser feita.
+Caso contrário, novos fragmentos devem ser gerados e unidos para formar diferentes seqüências que se aproximem da seqüência a qual se objetiva chegar.
+Início Geração de fragmentos inicial Agrupamento inicial Validação humana:
+Em esse capítulo são descritos os conceitos básicos da área de workflow.
+São abordadas as principais características de workflows científicos assim como alguns trabalhos relacionados com Bioinformática, onde workflows foram utilizados na resolução de problemas.
+As ferramentas utilizadas no desenvolvimento do presente trabalho são também descritas nesse capítulo.
+O próximo capítulo apresenta o trabalho desenvolvido, descrevendo o workflow científico que foi modelado a fim de se automatizar o processo de desenvolvimento de fármacos assistido por computador, considerando a flexibilidade do receptor.
+Cada uma das etapas envolvidas e os programas desenvolvidos para executar- las são explicados nesse capítulo.
+Em este capítulo é descrito o workflow desenvolvido.
+Inicialmente, justifica- se o uso de workflows científicos para a solução do problema de consideração da flexibilidade de proteínas em experimentos de docking molecular.
+Após, a modelagem completa desenvolvida é descrita, onde cada uma das etapas envolvidas no processo são explicadas detalhadamente.
+Junto à explicação de cada uma dessas etapas é descrita a maneira como as mesmas eram executadas antes do desenvolvimento desse trabalho.
+A consideração da flexibilidade da macromolécula em experimentos de docking molecular não é trivial.
+Enquanto a flexibilidade do ligante pode ser facilmente levada em conta nestes experimentos, a flexibilidade do receptor é difícil de ser tratada devido a a complexidade do sistema (muitos graus de liberdade envolvidos), que é ocasionada por o seu número elevado de átomos.
+Como alternativa, atualmente experimentos de docking têm sido executados utilizando, cada um de eles, uma estrutura instantânea da proteína (snapshot), gerada a partir de simulações por dinâmica molecular.
+Em a maioria das vezes esse processo é executado manualmente ou com a ajuda de shell scripts.
+Porém, se executado dessa forma, têm- se problemas para definir a ordem correta em que as etapas deverão ser executadas, executar o processo utilizando parâmetros diferentes, monitorar a execução do mesmo, etc..
+Por esses motivos e com base na idéia da funcionalidade de workflows científicos, optou- se por utilizar- los na definição e execução de todas as etapas do processo de desenvolvimento de fármacos assistido por computador, considerando a flexibilidade da macromolécula.
+Como foi descrito na Seção 3.4, para a modelagem do workflow escolheu- se a ferramenta JAWE 2.
+0-2 e para a sua execução selecionou- se o Enhydra Shark 1.1-2.
+O modelo final do workflow desenvolvido está ilustrado na Figura 12.
+Em esse modelo, cada caixa corresponde a uma atividade executada no processo.
+As cores das caixas mostram o tipo de execução daquela atividade.
+A etapa prévia consiste em executar as simulações por dinâmica molecular do sistema proteína-ligante ou apenas proteína.
+Como já foi explicado na Seção 2.1, a simulação por dinâmica molecular, neste caso, visa simular a flexibilidade natural de proteínas.
+Em uma simulação por dinâmica molecular, uma seqüência de snapshots é gerada e armazenada, correspondendo às diferentes conformações que determinada proteína apresenta em função de o tempo.
+Essa etapa não está incluída no workflow, pois somente precisa ser executada uma vez para cada proteína e não haverá a necessidade de executar- la mais vezes com parâmetros diferentes.
+Em este trabalho o sistema InhA-NADH foi simulado por dinâmica molecular utilizando o programa AMBER 6.
+0. Essa simulação foi realizada num trabalho de doutorado desenvolvido no LABIO.
+Em este trabalho observou- se que a enzima InhA da Mycobacterium tuberculosis pode ser considerada uma molécula flexível.
+Essa etapa do processo é a única cuja maneira de execução não foi alterada durante o desenvolvimento do presente trabalho.
+Após a execução da simulação por dinâmica molecular, já de posse de todas as possíveis conformações que a macromolécula pode assumir em função de o tempo, todas as demais etapas podem ser executadas por o workflow desenvolvido.
+A primeira etapa do processo de CADD, considerando a flexibilidade da macromolécula, consiste na preparação da mesma para ser utilizada nos experimentos de docking.
+Para isso, é necessária a execução de duas atividades:
+Processamentos dos arquivos de saída da simulação por dinâmica molecular, gerando arquivos compatíveis com os softwares de docking e consideração de apenas parte dos snapshots da macromolécula gerados por a DM (a simulação por DM é realizada utilizando- se intervalos de tempo muito pequenos entre a geração de dois snapshots consecutivos.
+Como não há a necessidade de utilização de snapshots tão próximos em experimentos de docking, intervalos de tempo maiores devem ser considerados para a seleção das conformações da macromolécula a serem consideradas para o docking).
+Em o workflow desenvolvido, como pode ser visto na Figura 12, antes da execução dessa etapa, o usuário é questionado sobre a execução ou não da preparação dos arquivos da macromolécula a partir de os resultados da DM.
+Pois, uma vez que os arquivos da dinâmica já tenham sido processados e considerados para determinada macromolécula (ou para um determinado trecho da simulação da dinâmica molecular da mesma), eles não precisam ser refeitos, tornando dispensável à execução desta etapa.
+Um subflow é responsável por a execução dessa etapa no workflow conforme mostra a Figura atividades estão descritas logo a seguir.
+Em essa etapa, os arquivos da dinâmica que representam os snapshots da macromolécula gerados anteriormente (etapa prévia) são transformados num formato que poderá ser utilizado futuramente nos experimentos de docking, ou seja, são transformados em arquivos do tipo PDB da macromolécula com desconsideração do ligante, dos contra-íons e das moléculas de água presentes nos arquivos da dinâmica molecular.
+Para realizar essa tarefa é utilizado um software do próprio pacote AMBER6.
+0, chamado PTRAJ.
+O PTRAJ é um programa utilizado para processar e analisar conjuntos de coordenadas 3D lidas de uma série de arquivos de coordenadas de entrada.
+Para cada conjunto de coordenadas lido, uma seqüência de ações pode ser executada (numa ordem que deve ser especificada) de acordo com configurações pré-estabelecidas.
+Após o processamento de toda a entrada, arquivos de trajetória podem ser escritos, como por exemplo, no formato PDB.
+A Figura 14b corresponde a um trecho do arquivo de topologia utilizado por o PTRAJ para conseguir transformar adequadamente os arquivos de entrada num determinado formato de saída.
+Esse arquivo contém a listagem com os nomes de cada átomo, de cada resíduo, o total de átomos da proteína (que corresponde ao total de átomos de cada conformação), entre outras características.
+Em a Figura 14b está marcado em azul o nome dos 5 primeiros átomos da proteína.
+A Figura 14c mostra um exemplo de arquivo PDB gerado após a execução do PTRAJ.
+Esse arquivo contém a descrição de cada átomo de uma determinada conformação da proteína e pode ser utilizado nos experimentos de docking.
+Para executar o PTRAJ é necessário:
+De os arquivos de coordenadas, organizando corretamente os dados sobre cada uma das conformações da proteína em função de o tempo;
+Antes do desenvolvimento do workflow havia um shell script com os comandos de execução do PTRAJ.
+Um exemplo desse shell script está na Figura 15 em o qual estão listados os comandos contidos no shell script que são:
+Os comandos de entrada, o nome e formato dos arquivos de saída (nome:
+Mdcp. Pdb, formato:
+PDB), os comandos a serem executados (center, image e strip).
+Cada vez que alguns desses parâmetros tivessem que ser alterados, o shell script precisava ser reeditado.
+Se fosse necessário incluir mais arquivos de entrada, os comandos de deveriam ser manualmente adicionados.
+Para execução dessa etapa por o workflow foi desenvolvido um programa em linguagem C. Esse programa é executado por meio de um aplicativo oferecido por o software Shark 1.1-2, que permite a execução de programas externos dentro de o worflow.
+O programa desenvolvido solicita ao usuário as seguintes informações:
+Localização dos arquivos gerados na etapa de simulação por DM;
+Localização dos parâmetros do PTRAJ;
+Intervalos de tempo que devem ser considerados no experimento;
+Tamanho dos pacotes em que os arquivos resultantes de simulação por dinâmica molecular foram agrupados.
+Normalmente esse tamanho é de 50 ps, ou seja, a cada 50 ps de simulação, os snapshots gerados são agrupados num arquivo do tipo CRD;
+Resíduos de aminoácidos que devem ser considerados;
+Nome dos arquivos de entrada e saída;
+Informações sobre como gerar a estrutura média da proteína, por exemplo, que intervalo de tempo da simulação por DM que deve ser considerado para isso.
+Com essas informações, o programa desenvolvido gera um shell script que efetivamente executa o PTRAJ utilizando os parâmetros gerados com base nas informações do usuário.
+Um exemplo dos parâmetros informados para cada um dos itens são mostrados na Tabela 1: Sendo assim, da forma como essa etapa está sendo realizada atualmente, o processo não fica fixo num intervalo de tempo a ser considerado ou a um nome de arquivo de entrada ou saída.
+Antes do desenvolvimento desse trabalho qualquer mudança nos parâmetros de execução do PTRAJ deveria ser feita editando manualmente um shell script e procurando em ele os parâmetros que fossem necessários ser alterados.
+De a mesma forma, a adição de novos trechos da dinâmica a serem considerados como entrada do PTRAJ é feita automaticamente utilizando somente os valores do intervalo de tempo a ser considerado, não necessitando mais da inclusão manual de cada um desses comandos no shell script.
+A definição dos arquivos PDB da estrutura média da proteína, utilizada posteriormente para determinar a posição inicial do ligante nos experimentos de docking, pode ser calculada por o PTRAJ.
+Apesar de poder calcular- se a estrutura média da proteína para qualquer intervalo de tempo que se determine, estipulou- se que esta estrutura média seria calculada sobre a chamada fase de produção da simulação por DM1.
+Todos os dados informados nessa etapa são necessários nas etapas seguintes, e por isso são armazenados num arquivo de configurações, de forma que o usuário não precisará informálos nem editar- los posteriormente durante o restante do processo.
+Porém não é necessário executar experimentos de dockings de estruturas tão consecutivas.
+Assim, somente metade dos PDBs serão considerados nos experimentos de docking, por exemplo, aqueles PDBs cujo número seja par, sendo a outra metade, a dos PDBs ímpares, desconsiderada para poupar processamento.
+Assim, os PDBs serão considerados de 1 em 1 ps e não de 0.5 em 0.5 ps..
+Para executar essa etapa foi desenvolvido um programa que desconsidera metade dos arquivos PDBs gerados, removendo os arquivos PDBs do diretório que o workflow utiliza como fonte de dados, usando para isso os parâmetros que foram armazenados na etapa de Execução do PTRAJ.
+Assim o usuário não precisa informar novamente qual é o trecho de simulação a ser considerado, o nome dos arquivos de entrada e saída, etc..
+Antes do desenvolvimento do workflow, essa etapa não era executada.
+Essa consideração de somente metade dos arquivos PDBs era feita juntamente com a execução dos experimentos de docking.
+De essa maneira, muitos arquivos PDBs que não eram utilizados ficavam ocupando espaço em disco, aumentando também a chance de dockings desnecessários serem executados.
+Durante a segunda etapa do processo é feita a preparação do ligante que será utilizado durante os experimentos de docking.
+Assim como na preparação da macromolécula, essa etapa também compreende a execução de duas atividades:
+A atividade intitulada &quot;Editout -- SPDBV «em a qual o usuário posiciona o ligante em sua posição de início no docking, e a atividade &quot;Gera Mol2 Ligante «em que o arquivo PDB do ligante, posicionado corretamente onde se deseja iniciar o docking, recebe as cargas elétricas parciais correspondes de cada átomo.
+Essa etapa foi modelada utilizando o subflow mostrado na Figura 16.
+Assim como acontece antes da execução da preparação da macromolécula, o usuário deve informar se esse subflow deve, ou não, ser executado, pois uma vez que o ligante já tenha sido preparado para o docking essa etapa torna- se dispensável de ser executada novamente.
+Essa etapa realiza duas operações descritas a seguir:
+Arquivo Editout.
+Pdb. Esse arquivo foi preparado para a etapa de execução da dinâmica molecular e contém as coordenadas e cargas da proteína, do ligante, dos contra-íons, e das moléculas de água do sistema molecular.
+O programa então separa esse arquivo em:
+Editout--onlyP. Pdb -- contém somente informações da proteína;
+Ligante. Pdb -- contém somente informações do ligante.
+Durante a execução desse programa por o workflow, o usuário deve informar a localização do arquivo Editout.
+Pdb e o nome do ligante (tornando o processo mais flexível no caso de a necessidade de se executar o processo com diferentes proteínas e/ ou diferentes ligantes).
+Assim, o programa separa corretamente os átomos da proteína e do ligante, não utilizando o restante dos átomos do sistema molecular.
+Antes do desenvolvimento desse programa, essa etapa era executada manualmente, editando o arquivo o Editout.
+Pdb, recortando cada trecho e armazenando nos arquivos correspondentes.
+Pode acontecer das cargas da proteína e/ ou do ligante não serem buscadas do arquivo Editout.
+Pdb. Em esse caso, basta que o usuário não preencha a localização do arquivo, que o programa não executa essa atividade.
+Com essas duas estruturas 3D editadas no SPDBV, o usuário posiciona o ligante no sítio de ligação da proteína, na posição que ele deseja que seja a posição inicial deste ligante nos experimentos de docking.
+A edição desses dois arquivos no SPDBV é feita por o workflow automaticamente, e o usuário somente precisa se preocupar em posicionar o ligante e armazenar este novo arquivo PDB.
+A Figura 17 mostra as duas etapas dessa atividade: (
+a) as duas estruturas, do ligante e da proteína são editadas no SPDBV, (b) o ligante já posicionado por o usuário em sua posição inicial dentro de a proteína, que será sua posição inicial nos experimentos de docking.
+Essa etapa é a última atividade envolvida na preparação do ligante para os experimentos de docking.
+Em esse momento é necessário transformar o arquivo PDB do ligante, já colocado em sua posição inicial de docking na proteína, num arquivo PDBQ, que corresponde a um arquivo do ligante que contém, além de as coordenadas de cada átomo, suas respectivas cargas.
+Para que isso seja possível, o arquivo PDB deve antes ser transformado num arquivo MOL2 (alguns ligantes já têm um arquivo MOL2 disponível para uso).
+Para transformar o PDB em MOL2, há 2 maneiras:
+Utilizando o programa Moe:
+O PDB do ligante é aberto, a hibridização correta dos átomos das moléculas é determinada e atribuem- se as cargas.
+Porém, esse software não é livre e precisa de licença para ser utilizado;
+Utiliza- se os arquivos MOL2 anteriormente preparados, substitui- se as coordenadas, e que estão atualmente no MOL2 por as coordenadas, e do arquivo PDB do ligante em sua posição inicial na proteína.
+Esta troca era feita de forma manual o que exigia algum trabalho.
+Por exemplo, a molécula do ligante NADH é composta por 52 átomos e as coordenadas dos 52 átomos eram substituídas manualmente.
+Para resolver esse problema, foi desenvolvido um programa que solicita ao usuário que informe a localização e o nome do arquivo PDB do ligante na posição inicial para o docking e do arquivo MOL2 original desse ligante.
+Esses arquivos correspondem ao primeiro e segundo quadros com trecho de arquivos mostrados na Figura 18, respectivamente.
+O programa então lê o arquivo PDB e MOL2 e vai substituindo as coordenadas, de cada átomo do arquivo PDB no arquivo MOL2.
+Assim, ao final da execução do programa, as coordenadas dos átomos no arquivo MOL2 são iguais às do arquivo PDB (que corresponde ao terceiro quadro com trecho de arquivo mostrado na Figura A partir de o arquivo MOL2, o arquivo PDBQ é gerado utilizando o programa deftors do AutoDock3.
+05. Segundo Morris et al.
+Esse programa define todas as torções que devem ser permitidas durante o processo de docking.
+Em esse formato final -- PDBQ -- o ligante está pronto para ser utilizado nos experimentos de docking.
+O workflow desenvolvido permite que dois tipos de dockings sejam executados:
+O docking seletivo e o docking exaustivo.
+Após a preparação da macromolécula e do ligante para os experimentos de docking, o usuário deve informar qual será o tipo de docking a ser executado (Atividade &quot;Docking E/S «no modelo final que pode ser visto no início do capítulo na Figura Se a opção for por a execução de um experimento de docking exaustivo significa que o experimento será executado utilizando os snapshots de forma seqüencial.
+Esse experimento exaustivo pode utilizar todos os snapshots gerados durante a etapa da simulação por dinâmica molecular, ou somente parte de eles (que corresponde a um determinado intervalo de tempo da simulação).
+Afim de tornar a execução do workflow flexível, é solicitado ao usuário que informe:
+Os snapshots inicial e final que ele deseja utilizar e o chamado ponto de início.
+Os snapshots inicial e final indicam o intervalo de tempo da simulação que está sendo considerado no experimento e o ponto de início indica onde deve iniciar a execução do experimento.
+Esse valor de ponto de início é útil no caso em que haja necessidade de reiniciar a execução do processo, por exemplo, no caso de interrupção do mesmo devido a algum problema na máquina ou no software de execução.
+Ainda é importante ressaltar que a definição desses limites para execução do experimento permite que ele seja subdividido em partes que podem ser executadas em máquinas diferentes, em paralelo.
+Após a definição dos limites para execução, o workflow calcula o total de execuções que a etapa de docking deve ter (pois depende dos valores dos snapshots inicial e final).
+Assim, a execução dos experimentos de docking se inicia, e enquanto todos os snapshots não tenham sido utilizados, o subflow de execução dos experimentos de docking permanece executando.
+É importante ressaltar que, para que os resultados de um experimento de uma proteína com um determinado ligante possam ser utilizados como critério de seleção no caso de um experimento de docking seletivo (explicado logo a seguir), pelo menos uma vez, todos os snapshots da proteína devem ter sido utilizados no docking, gerando assim, uma tabela que contém os valores de energia livre de ligação (FEB), desvio médio quadrático da posição inicial (RMSD) e Tempo correspondente a cada snapshot da simulação por dinâmica molecular da proteína.&amp;&amp;&amp;
+Como funciona a execução de cada experimento de docking e todos os passos que estão envolvidos serão explicados posteriormente na Seção 4.5.
+Após o usuário ter executado pelo menos uma vez o docking exaustivo para uma determinada proteína e ligante, é possível que a execução de novos experimentos considerando a mesma proteína, porém ligantes diferentes, seja feita de forma seletiva.
+Em esse tipo de execução não são utilizados todos os snapshots da simulação e sim somente parte de eles, selecionados de acordo com um determinado critério de qualidade.
+Assim, o tempo necessário para analisar a interação ligante-proteína é reduzindo consideravelmente.
+Um exemplo do tempo que é necessário para executar um experimento desse tipo, de forma exaustiva, foi o experimento de docking utilizando a proteína InhA e o ligante IQG607A.
+Esse experimento foi executado simultaneamente em 7 máquinas do cluster Ombrófila e despendeu aproximadamente 100 horas de execução ininterrupta.
+Se tivesse sido realizado numa máquina apenas, teriam sido necessários em torno de 700 horas para o término dessa execução.
+Imaginando ainda que, se o objetivo de um certo trabalho for analisar a interação de uma proteína com um Banco de Dados de 1 milhão de ligantes, e se para cada execução fossem necessários esses 30 dias para terminar, a execução desse trabalho tornaria- se completamente inviável.
+Sendo assim, devido a essa necessidade de reduzir o tempo de execução necessário para analisar cada interação proteína-ligante e baseado em alguns critérios de qualidade, essa etapa de docking seletivo tem por objetivo selecionar snapshots para serem utilizados nos experimentos de docking de determinado ligante, fazendo a seleção e execução dos experimentos diretamente de dentro de o workflow desenvolvido.
+Até o momento foi utilizado um critério de qualidade para selecionar os snapshots de uma proteína gerados por a trajetória por dinâmica molecular.
+Esse critério é baseado na idéia de que, se o resultado do docking utilizando determinado snapshot obteve um bom valor de FEB, ou seja, se obteve uma FEB bem negativa (que significa que a proteína com determinada conformação interagiu bem com o ligante) e um valor de RMSD pequeno (que significa que o ligante permaneceu dentro de o sítio de ligação após o docking), é possível que este mesmo snapshot, interagindo favoravelmente com um ligante parecido com o primeiro (pertencentes à mesma classe de ligantes), também apresente um bom valor de energia e RMSD.&amp;&amp;&amp;
+Assim, se os snapshots cujo resultados apresentaram os melhores valores de energia resultantes de um experimento exaustivo e cujo valor de RMSD não excedeu um certo limite forem utilizados em experimentos seletivos, há uma boa possibilidade de se encontrar bons resultados sem a necessidade de executar o experimento considerando todos os snapshots da trajetória de DM da proteína.
+Essa etapa do processo compreende a execução da atividade &quot;Dados Seletivo «e do subflow mostrado na Figura 19.
+O subflow é composto por duas atividades:
+&quot;Prep sel. Essa etapa do processo é executada de maneira geral, englobando as atividades citadas acima, conforme mostra o fluxograma da Figura 20, sendo cada etapa descrita a seguir:
+Solicita informações: --
+Tabela base; --
+RMSD máximo -- Total de Snapshots Organiza a tabela base por ordem crescente de FEB Separa a tabela ordenada de acordo com o valor do RMSD máximo Total de elem.
+De a tab.
+Dentro de o limite\&gt; total de snap.?
+Um exemplo de tabela-base pode ser visto na Figura 21 a;
+Com a FEB, como mostra a Figura 21b.
+A partir de aí, as etapas são executadas por o subflow &quot;Selec Snapshot».
+Em a primeira atividade, «Prep sel.
+Snaps. «o workflow prepara a entrada para o shell script que executa a seleção, utilizando os parâmetros informados no passo anterior.
+Após a seleção é efetivamente executada;
+Figura 21 ­ Seqüência de passos executados durante a seleção dos snapshots.
+Que devem ser utilizados nos experimentos de docking com os arquivos efetivamente chamados por o Shark1.
+1-2. Essas associações são necessárias devido a dificuldade na leitura de dados externos no Shark1.
+1-22. Os dados que precisariam ser lidos seriam os A leitura de dados externos ao Shark1.
+1-2 necessita da criação de uma classe JAVA, porém a inclusão de novas classes no Shark faz parte de uma funcionalidade que está com problemas na versão 1.1-2 justamente a que está sendo utilizada no desenvolvimento do presente trabalho.
+Uma nova versão do Shark já está disponível para uso, porém ainda em fase de testes.
+Assim que estiver consolidada, esta passará a ser utilizada, desde que as funções que precisamos funcionem corretamente snapshots a serem utilizados a cada experimento de docking que fosse ser executado (com base nos snapshots selecionados).
+Esse shell script para gerar essas associações, ao ser executado por o Shark, relaciona os arquivos dos snapshots a serem chamados por o Shark com os arquivos efetivamente gravados em disco, conforme mostra a Tabela 2.
+Se o usuário informou 1000 snapshots para serem utilizados no docking seletivo, teríamos as seguintes associações:
+Considerando que o melhor resultado foi para o snapshot 44, esse ficará associado ao primeiro arquivo PDB a ser utilizado nos experimentos de docking, o segundo melhor foi o snapshot 132, que ficará associado ao segundo PDB e assim por diante até o milésimo PDB que, segundo a Tabela 2 corresponde ao snapshot 1502.
+Assim, para o Shark, a execução do docking seletivo seguirá o mesmo princípio do docking exaustivo, uma vez que utilizará snapshots aparentemente seqüenciais (os arquivos associados).
+Assim, não há a necessidade de modificar os shell scripts de execução dos experimentos de docking ao executar dockings seletivos.
+Antes do desenvolvimento do workflow não existia essa etapa no processo pois não havia a possibilidade de execução de dockings seletivos.
+Antes de explicar essa etapa de execução do workflow, é necessário uma melhor descrição da funcionalidade do AutoDock3.
+05. De acordo com Morris et al.,
+o AutoDock3.
+05 foi desenvolvido para oferecer um procedimento automático para predição da interação entre ligantes e macromoléculas alvo.
+Em qualquer procedimento de docking molecular, há duas variáveis que precisam ser consideradas:
+O nível de robustez e corretude do procedimento e a demanda computacional do mesmo.
+O procedimento ideal encontra a energia mínima global de interação entre o ligante e a macromolécula, explorando todos os graus de liberdade (DOF) disponíveis para o sistema.
+Essa etapa de execução do docking é executada da mesma maneira se o docking for exaustivo ou seletivo e pode ser vista na Figura 22.
+Para a execução de cada etapa foram desenvolvidos shell scripts e programas na linguagem C que, utilizando os parâmetros de entrada passados por o Shark, executam corretamente cada uma das etapas descritas abaixo:
+A primeira atividade desse subflow é chamada &quot;Concat Param».
+Ela executa a concatenação do contador, que indica qual será o próximo snapshot a ser utilizado, aos parâmetros que são necessários para execução de cada uma das atividades.
+Assim, a cada execução, cada uma das atividades do subflow executa com parâmetros diferentes, que correspondem justamente a cada um dos snapshots;
+A preparação de cada arquivo PDB para ser utilizado no docking é composta por 2 etapas:
+PDB que correspondem aos snapshots.
+As cargas de cada átomo da macromolécula, no caso de o presente trabalho, são retiradas do arquivo «Editout_ onlyP.
+Pdb», que foi separado do arquivo «Editout.
+Pdb «na etapa de preparação do ligante (Seção 4.3);
+Essas duas etapas levam em consideração diferentes snapshots a cada execução.
+Por esse motivo é composto por duas atividades:
+A &quot;Script prep «em a qual é gerado um shell script de preparação para cada snapshot e a &quot;Executa prep «em a qual finalmente o arquivo da proteína está pronto para ser utilizado no docking.
+Esse programa do AutoDock3.
+05 gera o arquivo Input.
+Gpf que será utilizado como parâmetro de entrada na execução do autogrid.
+Assim como o mkgpf3, o mkdpf3 gera o arquivo Input.
+Dpf, utilizado como entrada para execução do autodock.
+Esse arquivo determina as características dos experimentos de docking.
+Essa etapa é executada somente uma vez, sempre na primeira execução do subflow.
+Durante essa atividade, o arquivo gerado na etapa anterior, de preparação para o docking, é editado diretamente por o Shark utilizando o editor nedit.
+De essa forma, o usuário pode alterar alguns dos parâmetros contidos nesse arquivo, como por exemplo:
+O nome do arquivo que descreve a macromolécula (que deve ser alterado para um nome padrão pois o mesmo arquivo Input.
+Dpf será utilizado em todos os experimentos de docking), o tipo de algoritmo de docking a ser utilizado:
+Simulated anneling -- SA ou genetic algorithm -- Ga, o número de passos que devem ser executados em cada experimento, entre outros.
+O autogrid define um mapa de grids para cada um dos tipos de átomos do ligante.
+Esse mapa corresponde a uma matriz 3D de pontos igualmente espaçados, centrado em alguma região de interesse da macromolécula em estudo.
+Cada ponto dentro de o mapa de grids armazena a energia potencial de um átomo de prova em relação a todos os átomos na macromolécula.
+Assim, durante o docking esses valores de energia são utilizados para reduzir os cálculos que são necessários para se chegar ao valor final da FEB para cada experimento.
+Um exemplo do mapa de grids pode ser visto na Figura 23.
+O autodock avalia a interação entre o receptor e o ligante.
+São executadas interações, cada uma com o ligante numa posição diferente.
+De acordo com um escore, dado na forma de intensidade de energia de interação, avalia- se se o ligante e determinada conformação da proteína apresentaram uma interação favorável.
+A o final da execução, o autodock gera um arquivo de saída que contém as informações a respeito de cada experimento de docking.
+Um trecho desse arquivo pode ser visto na Figura 24, contendo as seguintes informações:
+Descrição do ligante:
+Átomos que o compõem, torções aplicadas a cada átomo, etc.;
+Listagem dos cálculos executados durante a simulação;
+Parâmetros sobre o método utilizado:
+Genetic Algorithm ou Simulated Anneling;
+Energia e localização de cada átomo envolvido na simulação em cada um dos passos executados;
+Esses valores são armazenados e posteriormente utilizados para análise e seleção de snapshots para outros experimentos de docking.
+Após a realização dos cálculos de afinidade proteína-ligante por o autodock, é preciso armazenar os valores do arquivo de saída do autodock importantes para a análise desses resultados.
+Sendo assim, durante essa atividade é executado um programa desenvolvido em linguagem C que vai armazenando, num arquivo texto, as informações conforme mostra a Tabela 3: 3 tem- se o valor do RMSD que indica o quanto o centro de massa do ligante se distanciou do seu ponto inicial após o docking, a coluna 4 contém o valor da FEB que corresponde à energia final resultante da interação proteína-ligante e as colunas 5 e 6 mostram os tempos despendidos na execução do autogrid e autodock respectivamente.
+Pode acontecer de, no final da execução do experimento por o autodock, o número de passos estabelecidos por o usuário não terem sido suficientes para a convergência do resultado da interação de determinada conformação da proteína com o ligante.
+Ou, nos primeiros passos de execução do experimento, o autodock já consegue prever que determinada conformação da proteína não obterá bons resultados (por exemplo, durante todos os primeiros passos, o resultado da interação foi um valor de FEB positivo, que significa que pode estar havendo colisão entre os átomos).
+Em esses casos, o arquivo de saída do autodock não conterá os valores de energia nem RMSD finais, mas de alguma forma essa conformação deve aparecer na tabela de resultados, pois é necessário saber como cada uma das conformações interagiu com o ligante.
+Assim, quando durante a leitura desse arquivo de saída não forem encontrados esses valores, na tabela de resultados que está sendo gerada é gravado para FEB um valor alto de 100.000 kcal/ mol e para RMSD um valor também absurdo de 1000 Å.
+De essa forma, essas conformações, quando ordenadas por a energia, aparecerão como última opção para serem utilizadas nos experimentos seletivos.
+Também assim, facilmente se identifica as conformações que não tiveram sua interação testada com sucesso com o ligante.
+Além de gerar a tabela de resultados, o shell script executado por essa atividade compacta o arquivo de saída do autodock (diminuindo o espaço em disco ocupado por os resultados) e exclui os arquivos que são úteis somente a cada experimento que está sendo executado.
+No caso de dockings seletivos, há a necessidade ainda de renomear o arquivo de saída do autodock, uma vez que o nome do mesmo é definido por os parâmetros de execução do Shark, seguindo uma ordem seqüencial.
+Assim, o arquivo de saída, que após o término da execução do a utodock chamava- se, por exemplo, Result-1.
+Dlg. Gz deve passar a se chamar Result-snapshot da seleção\&gt;.
+Dlg. Gz e assim por diante.
+Antes do desenvolvimento do workflow toda essa etapa era executada utilizando um shell script que continha praticamente os mesmos passos executados por esse subflow.
+Porém, quaisquer mudanças na proteína, ligante, número total de experimentos a serem executados, etc..
+Ademais, a tabela de resultados, que agora é gerada juntamente com a execução de cada experimento de docking, não era feita antes do desenvolvimento do workflow.
+Um shell script, que também chamava programa escritos em FORTRAN, executava a leituras dos resultados dos dockings, que eram armazenados em arquivos de texto, um contendo os valores de melhor FEB de cada experimento e outro os valores de RMSD destes experimentos.
+Porém, como estavam em arquivos separados, sem identificação do snapshot correspondente, tinha- se dificuldade em analisar os dados.
+Ainda, como acontecia com o shell script de execução de experimentos, mudanças na proteína, ligante ou no número de experimentos deveriam ser manualmente alteradas.
+Este capítulo apresentou toda a modelagem e implementação do workflow científico desenvolvido, descrevendo detalhadamente cada uma de suas etapas.
+Em paralelo, foi sendo mostrado como essas atividades eram executadas antes do desenvolvimento deste trabalho.
+Com base nas diferenças entre como as atividades são executadas atualmente e como elas eram realizadas anteriormente, já é possível perceber grandes vantagens no uso do workflow para execução de todo esse processo, tornando- o muito mais robusto e flexível.
+O próximo capítulo apresenta um Estudo de Caso realizado afim de validar o workflow desenvolvido.
+Foram feitos experimentos utilizando a proteína InhA e os ligantes NADH (docking exaustivo), IQG607A (dockings exaustivo e seletivo), IQG607B (docking seletivo), TCL (dockings exaustivo e seletivo) e ETH (docking seletivo).
+Esse capítulo descreve como foram realizados os experimentos e analisa os resultados encontrados nos dockings seletivos e exaustivos com o objetivo de mostrar a eficácia dos resultados obtidos.
+Esse capítulo tem por objetivo descrever o Estudo de Caso realizado visando validar a modelagem e implementação do workflow científico desenvolvido (Capítulo 4), assim como validar o primeiro critério de qualidade que foi definido para ser utilizado na seleção de snapshots para a realização de dockings seletivos.
+Em este capítulo também são descritos os resultados que foram obtidos em todos os experimentos, mostrando que os resultados dos experimentos de docking seletivo são muito satisfatórios.
+Apesar de a etapa de simulação por DM do receptor não ser realizada durante a execução do workflow, é importante que se conheça a mesma, pois esta descreve a maneira como foram gerados todos os snapshots do receptor utilizados nos experimentos descritos logo a seguir.
+De acordo com Schroeder et al.,
+a enzima InhA de Mycobacterium tuberculosis pode ser considerada uma molécula flexível e foi escolhida como modelo de receptor no presente trabalho.
+A flexibilidade dessa enzima pode ser vista na Figura 2 (Capítulo 2).
+Essa flexibilidade explícita foi obtida numa simulação por dinâmica molecular gerada por o módulo SANDER do AMBER6.
+0 como previamente descrito em.
+A simulação por DM foi feita por 3100 ps e os snapshots instantâneos foram gerados a cada em cada arquivo de saída da dinâmicaSeção estruturas tão consecutivas nos experimentos de docking.
+Para esse Estudo de Caso foram realizados os experimentos descritos na Tabela 4, em o qual:
+A primeira coluna mostra o número do experimento, a segunda o nome de cada um dos ligantes, a terceira o número de átomos de cada um de eles, a quarta o tipo de experimento executado, se foi um docking exaustivo (considerando a trajetória completa da simulação por DM) ou seletivo (utilizando somente parte dos snapshots da simulação por DM), a quinta o tempo médio despendido na execução de um experimento de docking para cada um dos ligantes (em minutos) e a sexta coluna contém o tempo total de execução aproximado de cada experimento, em horas.&amp;&amp;&amp;
+A coluna 7 indica o local em que cada experimento foi executado:
+Máquinas do LABIO ou o Cluster Ombrófila do CPAD/PUCRS, juntamente com os valores de benchmark de cada uma dessas máquinas.
+Os benchmarks foram obtidos com base em resultados de testes de performance disponibilizados por a Standard Performance Evaluation Corporation -- SPEC.
+Esses valores correspondem à razões entre um tempo de referência e o tempo efetivamente gasto na execução de determinada aplicação.
+Como são executadas diferentes aplicações, é feita uma média entre os resultados obtidos com cada uma de elas e esses valores é que são disponibilizados por a SPEC.
+Entre todas as possibilidades disponíveis, selecionamos as médias de resultados de execução de aplicações de ponto flutuante para máquinas com configurações muito semelhantes às utilizadas na execução dos nossos experimentos.
+Total de átomos após a fusão dos hidrogênios não polares a seus respectivos átomos pesados, feito na preparação do ligante para o docking.
+Cada PC do cluster tem benchmark $= 231, como são 7 PCs executando ao mesmo tempo, tem- se um benchmark aproximado de 7 vezes esse valor, totalizando 1848.
+Onde: Cluster Ombrófila:
+7 PCs Pentium 3 1000 MHz com 256 Mb de memória RAM;
+PC LABIO 1: 1 PC Pentium 4 1400 MHz com 512 Mb de memória RAM;
+O SPEC é um consórcio, sem fins lucrativos cujos membros, são principalmente desenvolvedores de hardware e software, estudantes, clientes e consultores da área.
+A missão principal da SPEC é o desenvolvimento de benchmarks tecnicamente confiáveis e objetivos para múltiplos sistemas operacionais e ambientes, incluindo computação de alto-desempenho, Web--services, etc..
+Em 2000, a SPEC disponibilizou o CPU2000, um benchmark de CPU composto por 19 aplicações.
+Esse benchmark passou a ser utilizado por um grande número de diferentes pessoas, que foram enviando seus resultados de teste à SPEC.
+Por esse motivo, atualmente existem registros de teste de performance para as mais diferentes máquinas.
+Esses testes foram realizados utilizando aplicações que executam operações matemáticas com inteiros ou com ponto-flutuante.
+Esses valores permanecem disponíveis no site da SPEC e podem ser utilizados.
+PC LABIO 2: 1 PC Pentium 4 2400 MHz com 1 Gb de memória RAM.
+Um docking exaustivo do ligante NADH na enzima InhA, utilizando os snapshots gerados na simulação por DM desta macromolécula foi realizado previamente por nosso grupo no LABIO.
+Os arquivos de saída dos dockings foram utilizados para a elaboração de uma tabela semelhante à mostrada na Tabela 3 (Capítulo 4).
+Esta tabela, contendo os valores de FEB e RMSD para os dockings do NADH nos 3100 snapshots da InhA, foi utilizada como base para a seleção dos snapshots a serem utilizados nos experimentos de docking seletivo.
+De os 3100 snapshots da macromolécula utilizados neste experimento de docking exaustivo, foram selecionados 1000 snapshots, correspondentes àquelas conformações da macromolécula que apresentaram os 1000 melhores valores de FEB, com valor de RMSD menor que 5,0 Å.
+A execução deste docking exaustivo durou cerca de 120 horas e foi realizado no cluster Ombrófila localizado no CPAD-PUCRS.
+O ligante NADH é composto por 71 átomos (que corresponde ao total de átomos antes da fusão dos hidrogênios não polares a seus respectivos átomos pesados, feito na preparação do ligante para o docking, sua estrutura após essa preparação para o docking é composta por 52 átomos) pode ser considerado uma molécula ligante grande.
+Portanto, espera- se que ele ocupe boa parte da cavidade de ligação da InhA.
+O ligante Isoniazida Pentacianoferrato, uma molécula menor que o NADH, é composta por 28 átomos antes da preparação do ligante para o docking e 24 átomos, após.
+Com esse ligante foram realizados 2 experimentos.
+Os resultados do experimento de docking exaustivo do IQG607A com a InhA foram registrados.
+A partir de aí, foi realizada uma seleção de 1000 snapshots por a avaliação e seleção daquelas 1000 conformações da macromolécula (InhA) que apresentaram os melhores valores de FEB (valores mais negativos) no experimento de docking exaustivo InhA-NADH, e cujos valores de RMSD não fossem maior do que 5,0 Å.
+Ou seja, dos resultados do docking exaustivo dp IQG607A, foram selecionados 1000 resultados:
+Os 1000 melhores resultados do docking InhANADH.
+Isso foi feito para analisar se os resultados do docking seletivo seriam coincidentes, e portanto representativos do docking exaustivo.
+Um docking seletivo com o ligante Diisioniazida-tetracianoferrato, composto por 43 átomos (esse número corresponde ao total de átomos antes da preparação do ligante para o docking, durante os experimentos, após a preparação do mesmo, esse ligante permanece com 35 átomos), foi realizado como descrito na Seção 5.2.2.
+A estrutura desse ligante pode ser vista na Figura 27.
+Esse experimento levou aproximadamente 200 horas de execução num PC no LABIO, utilizando o workflow desenvolvido.
+Utilizando o ligante Triclosan (TCL), também uma molécula pequena, formada por 24 átomos (antes da preparação para o docking, após, o ligante tem 18 átomos) (Figura 28) foram realizados 2 experimentos.
+Em um primeiro momento foi realizado um docking seletivo usando os mesmos snapshots utilizados no experimento com o IQG607B.
+A duração desse experimento foi de aproximadamente 100 horas, utilizando um PC do LABIO e, assim como no caso de o IQG607B, o workflow desenvolvido foi utilizado.
+Em um segundo momento testou- se a eficiência do workflow desenvolvido para a execução também de experimentos exaustivos e a análise da representatividade dos resultados do docking seletivo para o ligante TCL.
+O experimento exaustivo foi realizado considerando os 3100 snapshots da trajetória de simulação por dinâmica molecular da InhA num PC no LABIO e durou cerca de 500 hs..
+Por fim, foi executado um experimento de docking, também seletivo, utilizando o ligante Etionamida.
+Esse ligante é uma molécula pequena composta por 21 átomos antes da preparação do ligante para o docking e 13 átomos depois da preparação (estrutura utilizada nos experimentos de docking).
+A mesma seleção dos experimentos anteriores foi utilizada nesse experimento.
+De entre os ligantes utilizados nos experimentos, esse é o único que, sabidamente, necessita estar associado ao NADH para se ligar a InhA.
+A duração deste experimento foi de aproximadamente 80 horas e também utilizou o workflow desenvolvido.
+A coluna 1 descreve o número do experimento, a coluna 2, o nome de cada um dos ligantes utilizados nos respectivos experimentos.
+A coluna 3 refere- se a média e o desvio padrão da FEB, considerando somente os resultados em a qual a FEB final foi negativa.
+Os resultados em a qual a FEB final foi positiva, ou não convergiu, não foram considerados.
+As colunas 4, 5 e 6 contabilizam o total de experimentos cuja FEB foi negativa, positiva ou cuja execução foi interrompida (talvez por não apresentar convergência com o protocolo de docking utilizado), respectivamente.
+A soma dos valores dessas 3 colunas indica o total de experimentos realizados com cada um dos ligantes.
+A coluna 7 lista a média e o desvio padrão do RMSD encontrado em cada um dos experimentos (quanto maior os valores de RMSD e seu desvio padrão, maior a variação da posição final de menor energia do ligante em relação a sua posição inicial).
+O experimento de docking exaustivo do NADH confirmou a boa afinidade da enzima InhA por este ligante, apresentando uma média de energia livre de ligação (FEB) de kcal/ mol:
+A maior afinidade identificada entre os ligantes testados.
+Por se tratar de uma molécula grande, a posição final de ligação do NADH não varia muito dentro de o seu sítio de ligação na proteína, portanto, não apresenta valores muito altos de Å).
+A Figura 30 mostra a estrutura média 3D da InhA na representação de ribbons cinza e três posições diferentes do ligante após os experimentos de docking.
+A posição inicial do ligante em seu sítio de ligação é representada por a estrutura em magenta.
+Esta posição inicial do ligante é a mesma para todos os snapshots utilizados no docking deste ligante.
+Em amarelo está representada resultado do experimento com o snapshot 45782 onde a posição final do ligante tem um baixo valor de RMSD de Å (isto é, encontra- se ligado próximo a a posição inicial) e FEB $= kcal/ mol.
+Esta posição de ligação corresponde à posição de ligação do NADH observada na estrutura 3D da enzima InhA complexada com o NADH, determinada por cristalografia de raios X.
+Em ciano, está representada a posição final do ligante que apresenta um valor alto de RMSD de Å (distante da posição inicial) que corresponde ao snapshot 1456 (FEB kcal/ mol).
+O docking exaustivo do ligante IQG607A apresentou uma boa média de energia livre de ligação, com um desvio padrão bem pequeno (FEB $= kcal/ mol), sugerindo que a energia de ligação do IQG607A não varia muito entre os experimentos.
+Utilizando o programa VMD para visualização das estruturas 3 D, foi possível analisar, de forma seqüencial, a posição final do ligante em cada um dos experimentos.
+Essa análise demonstrou que todas as conformações finais de docking do ligante, que apresentam A simulação por DM da InhA gerou 6200 snapshots, em intervalos de 0.5 em 0.5 ps..
+Porém, como eram estruturas muito consecutivas, metade de elas foi desconsiderada, todas aquelas com numeração ímpar, que correspondiam aos snapshots em tempos do tipo 0.5 ps, 1.5 ps, 2.5 ps, e assim por diante.
+Assim, a numeração dos snapshots corresponde a valores que variam de 0 a 6200, de 2 em 2.
+Totalizando por isso, 3100 snapshots a serem utilizados nos experimentos de docking.
+A Figura 31 mostra a estrutura 3D da proteína e três diferentes posições do ligante ao final do docking exaustivo:
+A posição de referência em magenta, uma posição cujo valor de RMSD foi baixo (RMSD $= Å) que corresponde ao snapshot 5774, em ciano, o ligante encontra- se distante de sua posição inicial, com um RMSD de Å (snapshot 3258).
+Ambos os resultados escolhidos para a representação das possíveis localizações finais do ligante na InhA apresentaram bons valores de energia de kcal/ mol e kcal/ mol, respectivamente.
+Como esse experimento foi realizado de forma exaustiva, foram computados/ armazenados os resultados de docking para todos os snapshots da trajetória.
+De esta extensa lista, foram selecionados somente aqueles snapshots correspondentes aos 1000 melhores resultados obtidos no docking do NADH.
+A média de energia livre de ligação do IQG607A na InhA, calculada apenas para aquela seleção foi de kcal/ mol:
+Estatisticamente igual à média sobre o total de snapshots que foi de kcal/ mol.
+Este resultado demonstra que, para este ligante, a seleção dos snapshots baseada nos resultados do docking do NADH foi efetiva.
+Isto é, os 1000 snapshots selecionados para agilizar o processo de docking são represen-tativos da flexibilidade do receptor, e neste caso, poderiam ser usado para a avaliação da afinidade do ligante em questão.
+O experimento seletivo utilizando o ligante IQG607B apresentou também uma boa média de energia (FEB $= kcal/ mol).
+Por tratar- se de uma molécula grande como o NADH, seus valores de RMSD não formam muito grandes, indicando que este ligante não se deslocou muito dentro de o sítio de ligação.
+A análise visual com o VDM demonstrou que, na grande maioria dos experimentos, o ligante permaneceu dentro de o sítio de ligação.
+A Figura 32 mostra a InhA em cinza juntamente com a posição inicial do IQG607B e duas diferentes posições finais do mesmo após os experimentos de docking:
+Em amarelo, o ligante com um baixo valor de RMSD (RMSD $= Å e FEB $= kcal/ mol) que corresponde a um experimento onde a posição final do ligante (correspondente ao snapshot 4442) não se distanciou muito de sua posição inicial, em magenta.
+Em ciano acontece o oposto, o ligante distanciou- se bastante de sua posição original (snapshot 1742), apresentando, por isso, um alto valor de RMSD (RMSD $= kcal/ mol).
+O TCL, quando ligado à enzima InhA, apresenta um de seus anéis interagindo com o anel nicotinamida do NADH, o que o fixa naquela posição.
+Porém, a ausência do NADH no docking possibilita que o TCL ocupe também outras regiões, como uma posição mais externa ao seu local de ligação original e anteriormente ocupada por a porção adenina do NADH, o que justifica os maiores valores de RMSD observados, tanto no experimento exaustivo, quanto seletivo.
+A média de FEB do experimento exaustivo foi de kcal/ mol, considerada uma boa média e com muito pouca variação.
+A Figura 33 mostra a InhA em cinza (representação em ribbons).
+Em magenta, assim como acontece nas Figuras 31 e 32, está o ligante em sua posição inicial (que é a mesma em todos os experimentos de docking).
+O TCL, em amarelo na Figura 33, é um exemplo Å e em ciano, um exemplo em que o ligante, após o experimento, permaneceu distante de sua posição inicial, conforme indica seu valor de RMSD $= Å.
+Esse experimentou foi o executado com o snapshot 1188 da InhA e apresentou uma FEB de kcal/ mol.
+Assim como aconteceu com o IQG607A, comparações entre o experimento exaustivo e seletivo do TCL mostram médias de energia e RMSD muito próximas (experimento sele tivo:
+RMSD $= kcal/ mol e experimento exaustivo:
+RMSD kcal/ mol), indicando que o experimento seletivo representa adequadamente o exaustivo, o que demonstra a eficiência do critério de seleção de snapshots escolhida.
+Assim, a interação entre a InhA-TCL poderia ser analisada somente com o experimento seletivo, que despendeu 4 vezes menos tempo de execução.
+O docking do ligante ETH apresentou os menores, mas ainda aceitáveis, valores de ener gia livre de ligação (FEB $= kcal/ mol).
+Entretanto os valores de RMSD e o Å) indicam que, por tratar- se de grande desvio padrão observado (RMSD $= uma molécula pequena (e, portanto com maior mobilidade), o ligante pode se movimentar bastante dentro de o sítio de ligação.
+Este comportamento já era esperado uma vez que, para este ligante atuar como inibidor da enzima InhA, ele deve estar covalentemente ligado ao NADH.
+Em muitos casos onde o RMSD apresentou- se mais elevado, o ETH ocupava uma posição que seria originalmente ocupada por o NADH.
+A Figura 34 mostra a InhA juntamente com três diferentes posições do ETH.
+Em magenta está o ligante em sua posição inicial (a mesma em todos os experimentos de docking), em amarelo o ligante após um experimento com o snapshot 3078 da InhA (RMSD $= Å e FEB $= kcal/ mol) e em ciano o ligante em sua posição final após um experimento entre o mesmo e o snapshot 2 da InhA (RMSD $= Å e FEB $= kcal/ mol).
+Mais uma vez, a utilização seletiva dos snapshots no docking do ETH conseguiu amostrar as possíveis formas de ligação deste ligante à enzima InhA.
+Uma síntese dos resultados obtidos por meio de os experimentos tanto exaustivos quanto seletivos pode ser vista nas Figuras 35 e 36.
+Os gráficos demonstram a eficiência do uso do workflow para execução dos experimentos de docking uma vez que obtiveram resultados aceitáveis para todos os experimentos, tanto os experimentos realizados no cluster, sem o uso do workflow, como os executados utilizando o workflow desenvolvido, mostrando que ambos são corretos e que o workflow executa corretamente de forma mais eficiente e robusta.
+Ambos os gráficos foram feitos considerando os 1000 resultados dos experimentos seletivos e os 1000 melhores resultados de docking baseados na FEB final dos experimentos exaustivos.
+A o reunir esses 1000 resultados de cada experimento, foram retirados aqueles cujos valores de FEB ou RMSD eram inapropriados para qualquer um dos experimentos (ou o experimento de docking não convergiu para um valor mínimo, ou o valor de FEB era positivo), obtendo ao final, um total de 800 resultados considerados nos gráficos.
+O gráfico à esquerda da Figura 35a plota todos os valores de FEB de cada um dos experimentos.
+É possível ver faixas bem distintas de FEB.
+O experimento com o NADH, em preto no gráfico, apesar de apresentar uma FEB com maior variabilidade, conforme histograma à direita na Figura 35 b, apresenta os melhores valores de FEB -- os valores mais negativos -- bem distanciados dos demais experimentos.
+O experimento com o IQG607A, em vermelho no gráfico, mostra uma faixa de FEB menos variável que o NADH, mas ainda bastante negativa, demonstrando que interage bem com a InhA.
+Seu histograma mostra uma concentração dos valores de FEB dos experimentos entre os valores e kcal/ mol.
+A terceira faixa de valores, em verde no gráfico, corresponde aos valores de FEB resultantes da interação entre a InhA e o IQG607B, onde a grande maioria dos valores de FEB encontra- se entre e kcal/ mol, variando muito pouco entre os experimentos.
+Os valores de FEB resultantes da interação entre a InhA e o TCL apresentam- se numa faixa de energia maior (menos negativa), mas ainda aceitável.
+Seu histograma também indica uma baixa variabilidade, ou seja, as energias finais de docking dos experimentos são muito parecidas.
+A última faixa de valores, que corresponde ao ligante ETH interagindo com a InhA apresenta a menor média de energia.
+Seu histograma concentra todas as ocorrências entre e kcal/ mol, mas principalmente entre e kcal/ mol, indicando que, entre os ligantes testados, esse foi o que interagiu de forma menos favorável com a InhA.
+Esse gráfico reproduz relação semelhante entre os valores de FEB observados experimentalmente, e.
+A Figura 36 compara os resultados finais de RMSD entre os diferentes experimentos de docking.
+O gráfico plota os valores de RMSD médios a cada 20 experimentos de docking, juntamente com o desvio padrão do RMSD encontrado nesse trecho (em barras verticais).
+É possível observar claramente que o experimento InhA-NADH mostra as menores variações de RMSD (menores valores de desvio padrão de RMSD), o que condiz com o esperado, pois se trata de uma molécula grande que não se movimenta muito dentro de o sítio de ligação da InhA.
+O gráfico do IQG607B apresenta a segunda menor variação de desvio padrão do RMSD entre os experimentos, estando de acordo com o esperado, já que essa é também uma molécula grande composta por 43 átomos, não conseguindo por isso se deslocar muito dentro de o sítio de ligação da proteína.
+O gráfico do IQG607A mostra que o mesmo já apresenta uma maior variação de RMSD, pois trata- se de uma molécula menor que o NADH e IQG607B.
+Os gráficos do TCL e ETH mostram que estes ligantes são os que mais se movimentam dentro de o sítio de ligação na proteína, apresentando tanto um maior valor de RMSD quanto maiores desvios padrões, especialmente o ETH que apresenta as maiores variações de desvio padrão.
+Esse capítulo descreveu os experimentos de docking realizados assim como os resultados em eles obtidos por a aplicação do workflow científico desenvolvido no processo de CADD.
+As análises destes resultados demonstraram que, mesmo aplicando somente esse primeiro critério de qualidade baseado nos melhores resultados de FEB, já foram alcançados resultados com experimentos seletivos que representam adequadamente interações proteína-ligantes.
+Os resultados mostraram que o workflow executa corretamente os diferentes experimentos, tornando a parametrização de cada um de eles uma tarefa simples e eficiente.
+Se esse Estudo de Caso fosse realizado utilizando- se somente os shell scripts previamente desenvolvidos, os experimentos seletivos seriam realizados de maneira bem mais lenta e complicada ou, talvez, nem poderiam ser realizados.
+Se, a cada execução de um novo experimento, todos os 70 shell scripts tivessem que ser modificados por o usuário, a análise dos resultados seria mais dificultada.
+O presente trabalho apresentou o workflow científico desenvolvido para automatizar o processo de desenvolvimento de fármacos assistido por computador considerando a flexibilidade do receptor.
+A consideração dessa flexibilidade é importante para o processo de CADD pois as proteínas não permanecem rígidas em seu ambiente celular.
+A técnica selecionada para incluir essa flexibilidade da proteína nos experimentos de docking foi o uso de um conjunto de possíveis conformações do receptor geradas por meio de simulação por DM.
+Com a utilização do workflow desenvolvido, esse processo pode ser executado de forma mais simples, onde a parametrização de cada uma das etapas ocorre em tempo de execução e não há a necessidade da modificação prévia dos shell scripts e programas a cada nova interação receptor-ligante a ser testada.
+Porém, a execução de experimentos de docking considerando determinado ligante e todas as conformações de determinado receptor necessita de um tempo considerável para ser concluído.
+Por exemplo, se forem utilizados 3000 snapshots da proteína e se o experimento for executado numa máquina como um Pentium 4 de 3 GHz com 1 Gb de memória RAM, seriam necessários em média 400 hs de execução ininterrupta.
+Por esse motivo, se tornou imprescindível o desenvolvimento de algum tipo de seleção dos snapshots de forma que nem todos precisassem ser utilizados.
+A técnica de seleção de snapshots escolhida para ser utilizada nesse trabalho é baseada na energia livre de ligação (FEB).
+De essa forma, após um experimento exaustivo, aqueles snapshots da macromolécula que resultaram nos melhores resultados de docking com determinado ligante são utilizados para o docking de outros ligantes pertencentes à mesma classe que o primeiro.
+Assim, somente são executados experimentos de docking considerando esses snapshots da proteína.
+As principais contribuições do presente trabalho foram:
+Com o workflow desenvolvido esse processo de desenvolvimento de fármacos assistido por computador utilizando receptor flexível passou a ser executado de forma simples e tornou a análise e armazenamento dos resultados mais eficiente e organizada.
+Assim, mais experimentos podem ser realizados, onde qualquer usuário tem condições de parametrizar a execução do processo de acordo com suas necessidades;
+Redução do tempo necessário para a análise de uma interação receptor flexível -- ligante com a inclusão de uma etapa de seleção de snapshots a esse processo;
+Com base nos resultados dos experimentos descritos no Estudo de Caso, o critério de seleção escolhido demonstrou- se eficiente para o docking dos ligantes eleitos para teste.
+Comparações entre os resultados de experimentos exaustivos e seletivos para um mesmo ligante mostram que a seleção representa adequadamente o conjunto completo de snapshots.
+De essa forma, este trabalho mostra que, para ligantes de uma mesma classe, não é necessária a utilização de todos os snapshots da DM, pode- se apenas selecionar alguns snapshots para a representação do conjunto de conformações possíveis para a macromolécula.
+Portanto, o workflow desenvolvido ainda apresenta uma grande flexibilidade, pois pode ser aplicado tanto para a execução de dockings exaustivos quanto para dockings seletivos, sendo as duas maneiras executadas da mesma forma dentro de o Shark.
+As principais atividades que se pretende implementar no trabalho já desenvolvido de forma a tornar- lo mais eficiente são:
+Apesar de os experimentos realizados mostrarem que a seleção por a energia se mostra eficiente, utilizando- se ligantes de uma mesma classe, ainda são muitos snapshots que precisam ser utilizados.
+Se utilizarmos tantos snapshots em experimentos com milhares de ligantes, o tempo necessário para terminar a execução dos experimentos é muito grande.
+Sendo assim, é essencial para que a flexibilidade do receptor seja considerada em muitos experimentos com diferentes ligantes, que os snapshots da mesma sejam selecionados de maneira mais eficiente, reduzindo os snapshots a serem utilizados em cada experimento.
+Assim, é necessário que sejam estudadas diferentes técnicas de seleção de snapshots.
+Uma possibilidade é aplicar a abordagem mostrada em Singh et al. (
+utilizada na seleção de ligantes) à seleção de snapshots.
+Para isso, os resultados de experimentos exaustivos devem ser armazenados num banco de dados.
+Durante o desenvolvimento de um trabalho no LABIO foi desenvolvido um sistema que armazenava os resultados de experimentos de docking num banco de dados MySQL.
+Esse sistema precisa ser aperfeiçoado para suportar muitos acessos e armazenamento de muitas informações.
+Após, utilizando esses dados armazenados e aplicando técnicas de mineração de dados, descobrir relações entre os snapshots, ou então, classificar- las em grupos de acordo com algum critério como, por exemplo, a presença de determinadas interações.
+A partir de essas clas-sificações ou regras selecionar os snapshots que melhor representam a flexibilidade da proteína para determinada classe de ligantes;
+Fazer melhorias no workflow desenvolvido de forma a tornar alguns de seus parâmetros mais flexíveis.
+Essas melhorias serão úteis quando experimentos de Virtual Screening forem ser executados utilizando o workflow desenvolvido (execução de muitos experimentos considerando diferentes proteínas e/ ou ligantes);
+Executar mais experimentações utilizando o workflow desenvolvido;
+Com os resultados das experimentações, analisar a qualidade dos critérios de seleção já desenvolvidos e os que serão implementados em atividades futuras.

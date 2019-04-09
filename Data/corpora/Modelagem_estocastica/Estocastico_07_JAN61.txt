@@ -1,0 +1,1036 @@
+Uma grande quantidade de aplicações de redes multimídia pode se beneficiar da estimativa de estatísticas de perdas de pacotes.
+
+Por exemplo, suponha que as características do processo de perdas em um caminho fim-a-fim possam ser bem aproximadas de antemão.
+
+Então, uma aplicação de transmissão de áudio ou vídeo em tempo real poderia adaptar sua taxa de transmissão e escolher a estratégia apropriada para recuperação de perdas de pacotes a fim de entregar os dados com uma qualidade aceitável.
+
+Mecanismos adaptativos para tais aplicações freqüentemente dependem de modelos de perda de pacotes.
+
+Estes devem ser suficientemente precisos para capturar as medidas de perda relevantes e ainda simples o bastante para serem usados em um protocolo de tempo real.
+
+A maior parte da pesquisa na literatura propõe modelos com o objetivo de aproximar descritores de perda do canal no longo prazo, sem considerar o processo em escalas de tempo curtas.
+
+Uma vez que fenômenos não estacionários podem ter um grande impacto nas estatísticas locais do caminho, uma aplicação que se concentra em escalas de tempo baseada apenas em médias de longo prazo pode realizar decisões ruins para o controle de curto prazo.
+
+Neste trabalho, avaliamos diferentes modelos de Markov ocultos como preditores de estatísticas de perda de curto prazo.
+
+Propomos um algoritmo para estimar perdas num futuro próximo baseado em medidas do passado recente e comparamos a acurácia de diferentes modelos utilizando este algoritmo.
+
+Modelos de perda de pacotes desempenham um papel essencial na análise de redes de computadores.
+
+Estudos de avaliação de desempenho freqüentemente abstraem as características de perda e retardo de um caminho ou rede com um único modelo analítico.
+
+Idealmente, este modelo deve ser capaz de representar as características importantes do caminho e reproduzir, de maneira adequada, o impacto das caracter ísticas da rede no protocolo sendo estudado, mantendo a complexidade baixa.
+
+Da mesma forma, tem crescido o interesse da comunidade de pesquisa por protocolos adaptativos para tarefas como path-switching, controle de taxa para tráfego multimídia, e recuperação de perdas de pacotes, para citar alguns exemplos.
+
+Tais mecanismos devem ser capazes de inferir perdas de pacotes futuras e ajustar seus comportamentos para lidar com mudanças nas condições da rede.
+
+Estes mecanismos do controle freqüentemente dependem de modelos de perda que devem ser precisos e, no entanto, simples bastante para a análise em tempo real.
+
+Infelizmente, a dinâmica exata de processos de perdas de pacotes na Internet pode ser excepcionalmente variável através do espaço, isto é, entre os diferentes caminhos fim-a-fim, e do tempo, em um mesmo caminho.
+
+Esse fato aumenta a dificuldade de inferir perdas.
+
+Diferenças nas demandas de tráfego e nas capacidades dos canais contribuem para a natureza complexa e imprevisível da Internet.
+
+A recente popularização de tecnologias de redes sem fio acrescenta a este cenário a baixa confiabilidade inerente ao seu meio de transmissão, onde as taxas de erros em bits são costumeiramente maiores que aquelas vistas em fios.
+
+Entretanto, o que talvez seja mais digno de atenção é o fato de que mesmo em canais, cujas estatísticas permaneçam estacionárias ao longo do tempo, é possível encontrar indicações de correlações significativas entre o que ocorre a pacotes que estão separados por segundos entre suas transmissões.
+
+Por essas razões, é de suma importância não apenas construir modelos de perda simples e flexíveis, mas também desenvolver estratégias que permitam a um protocolo adaptativo prever corretamente estatísticas futuras de perdas de pacotes, levando em conta os efeitos de medições recentes.
+
+Por simples, queremos dizer que o modelo deve ser computacionalmente tratável para ser usado pela aplicação em tempo real.
+
+Flexibilidade, por outro lado, implica que o modelo deve aproximar um conjunto razoável de características observáveis do processo real.
+
+Mais importante para os nossos propósitos, o modelo deve ser capaz de se adaptar a mudanças no processo de perda ao longo do tempo e prever o desempenho futuro, condicionado nesses efeitos localizados.
+
+Provavelmente, os modelos mais aplicados a processos de perdas de pacotes são o processo de Bernoulli e a cadeia de Markov com 2 estados, usualmente referenciada como modelo de Gilbert.
+
+Recentemente, modelos de Markov ocultos (hidden Markov models, HMMs) também se tornaram comuns no contexto de modelagem de perdas.
+
+Avaliar a acurácia de HMMs para prever perdas de pacotes é um dos assuntos centrais discutidos neste trabalho.
+
+Tentaremos explorar mais adiante o uso de modelos de Markov ocultos como ferramentas para prever perdas.
+
+Desenvolvemos um novo algoritmo que avalia a distribuição do número de pacotes perdidos em uma janela de tempo futura, dado um histórico recente das estatísticas do canal.
+
+Avaliamos a qualidade dessas previsões usando diferentes modelos de Markov ocultos.
+
+Também propomos uma variação da abordagem básica de HMMs, restringindo a estrutura do modelo.
+
+Nosso modelo resultante pode ser visto como um HMM hier árquico, com uma cadeia de Markov de 2 estados operando dentro de cada estado da cadeia oculta.
+
+A estrutura deste modelo possui duas propriedades interessantes.
+
+Primeiramente, restringindo o modelo, nós visamos a diminuir o número total de parâmetros a serem estimados, reduzindo assim a complexidade da fase de treinamento.
+
+Em segundo, supondo tais padrões no conjunto de parâmetros, nós tentamos capturar as dependências de curto prazo nos eventos da perda com um modelo de Gilbert, enquanto a dinâmica de longo prazo é governada por uma cadeia de Markov oculta.
+
+Examinamos a literatura relacionada seguida por uma revisão de modelos ocultos de Markov e previsão linear no Capítulo 2.
+
+O Capítulo 3 introduz o algoritmo proposto para previsão e a metodologia usados em nossas experiências.
+
+No Capítulo 4, apresentamos três modelos que podem ser usados em conjunto com nosso algoritmo de previsão.
+
+Dois desses modelos são HMMs já estudados em outros contextos na literatura.
+
+O terceiro é uma proposta original desta dissertação, a qual consideramos mais apropriada para a tarefa da previsão de perdas de pacote.
+
+Em seguida, o Capítulo 5 mostra resultados experimentais baseados em traces reais coletados na Internet.
+
+Finalmente, o Capítulo 6 conclui este trabalho resumindo os nossos resultados e discutindo as direções futuras para esta pesquisa.
+
+Dedicamos este capítulo a uma revisão dos conceitos relevantes ao desenvolvimento do nosso trabalho.
+
+Em paralelo à exposição de cada conceito, fazemos menção a outros trabalhos na literatura que, por razões diversas, têm relação com o tema desta dissertação.
+
+Mostraremos abordagens para modelar perdas de pacotes e analisaremos algumas considerações a respeito do uso desses modelos em protocolos de rede adaptativos.
+
+Faremos uma síntese de definições relacionadas a modelos de Markov ocultos.
+
+Mostra alguns resultados básicos relacionados à técnica de predição linear que também serão importantes ao desenvolvimento desta dissertação.
+
+Através das definições neste capítulo, apresentaremos também as convenções de notação que serão adotadas no material dos próximos capítulos.
+
+Uma ferramenta simples e amplamente aplicada na modelagem de perdas de pacotes é a cadeia de Markov com dois estados, usualmente referida na literatura como o modelo de Gilbert ou modelo de Gilbert-Elliot.
+
+Na verdade, os modelos de Gilbert e Gilbert-Elliot são mais gerais, uma vez que seus trabalhos originais os descreviam como modelos de Markov ocultos de dois estados.
+
+Ilustra uma cadeia de Markov com dois estados, onde as probabilidades de transição a partir dos estados de sucesso e de perda são respectivamente p e q.
+
+No modelo de Gilbert, o estado denominado bad, produz símbolos de perdas com probabilidade l.
+
+Finalmente, no modelo de Gilbert-Elliot os estados são caracterizados como good e bad, com probabilidades de perdas respectivamente lg e lb, onde lg < lb.
+
+Os modelos de Gilbert e Gilbert-Elliot foram originalmente propostos no contexto de erros de bits em transmissões de dados.
+
+Ainda no contexto de modelos de Gilbert desenvolve uma recursão para computar P(i, j), a probabilidade de observar exatamente i erros em j tentativas de transmissão.
+
+Apresentou um método para calcular o valor de P(i, j) condicionado em medições recentes da taxa de perda no canal, também para modelos de Gilbert.
+
+Nesta dissertação, apresentaremos um algoritmo que calcula P(i, j) condicionado em medições recentes para modelos de Markov ocultos em geral.
+
+Embora nosso procedimento possa ser aplicado a modelos de Gilbert, ele não possui relação com aquele.
+
+Apesar de sua extensa aplicabilidade, é sabido que a cadeia de Markov com 2 estados possui uma habilidade limitada em modelar dependências de longo prazo.
+
+É argumentado que, em alguns cenários, é possível encontrar correlações estatisticamente significativas entre pacotes separados de 1 segundo.
+
+Nesse mesmo trabalho, uma cadeia de Markov de ordem k com memória suficiente foi usada para capturar essas correlações de longo prazo.
+
+Entretanto, a complexidade exponencial do espaço de estados nesses modelos os torna uma alternativa menos atraente para uso em aplicações de tempo real.
+
+Foi mostrado que um modelo de Markov oculto com poucos estados é capaz de aproximar as estatísticas dos mesmos traces de que requerem modelos de Markov de ordens altas.
+
+Apesar de o modelo de Gilbert-Elliot ser considerado um modelo de Markov oculto, o trabalho em é original, uma vez que permitiu que o modelo tenha um número arbitrário de estados e utilizou o algoritmo EM para estimar parâmetros.
+
+O trabalho em considera o uso de um HMM de tempo contínuo, criado a partir de medições de perda e retardo, para simular características de canais fim-a-fim em estudos de avaliação de desempenho.
+
+Uma propriedade de grande relevância na modelagem e previsão de uma série temporal é a estacionaridade.
+
+Lidar com variações bruscas nas estatísticas de in teresse ou ainda fenômenos determinísticos como periodicidade em longa escala são tarefas não triviais em problemas de pesquisa operacional.
+
+O trabalho de descarta 52 de 128 horas de dados coletados que exibem características não estacionárias.
+
+Posteriormente, apresentou um tratamento mais detalhado de diferentes critérios de estacionaridade aplicados a medições em caminhos fim-a-fim na Internet.
+
+Enlaces sem fio são particularmente mais suscetíveis a eventos transientes, como interferência de radio-freqüência, que seus correspondentes com fios.
+
+Em conjunto com fenômenos como atenuação de sinal e sombreamento (shadowing), isso leva a taxas de erros em bits mais altas além de maior variabilidade nas estatísticas de perda de pacotes.
+
+Em, é argumentado que essas diferenças podem ter um papel crucial em estudos de avaliação de desempenho, uma vez que a modelagem inapropriada destas características pode levar à estimação errada de parâmetros ótimos para protocolos de rede.
+
+Esse mesmo trabalho propõe o algoritmo Markov-based Trace Analysis (MTA), que agrupa perdas de pacotes próximas em estados de contenção, e apenas então modela estes períodos como cadeias de Markov de ordem k.
+
+Posteriormente, retornou ao problema de modelagem de erros ao nível de frames em redes sem fio, utilizando uma cadeia semi-Markoviana de 2 estados com tempo de permanência em cada estado estimado a partir de traces através de misturas de distribuições geométricas.
+
+Isto é feito, uma vez que uma mistura de variáveis geométricas pode aproximar arbitrariamente qualquer distribuição discreta, uma vez que haja elementos suficientes na mistura.
+
+O artigo se refere a esse modelo como um modelo de Gilbert estendido, e avalia sua capacidade de aproximar estatísticas de longo prazo em medições de uma rede GSM.
+
+Comparações são traçadas entre o modelo de Gilbert estendido, a cadeia de Markov de ordem k de, os HMMs de e o MTA de.
+
+O trabalho de desenvolve um modelo hierárquico de dois níveis para prever o desempenho de perdas em caminhos fim-a-fim e realizar path-switching para aplicações multimídia.
+
+No nível mais alto, uma cadeia de Markov com N estados é utilizada, a cada minuto, para selecionar um de N HMMs no nível mais baixo que, por sua vez, modelam os eventos de perdas para cada pacote.
+
+A previsão feita baseia-se em determinar o estado da cadeia de Markov de alto nível para o próximo minuto e obter a fração de perda em estado estacionário do HMM correspondente no nível inferior.
+
+A partir destas previsões, o mecanismo de pathswitching pode escolher o canal cujo modelo prevê a menor taxa de perda.
+
+Embora existam trabalhos que utilizam modelos Markovianos para prever estat ísticas de perdas de pacotes, eles o fazem considerando apenas medidas de estado estacionário.
+
+Se as condições da rede forem muito variáveis em escalas de tempo relativamente curtas, essa hipótese pode levar a erros significativos, conforme mostraremos no decorrer desta dissertação.
+
+Os autores consideram um modelo de Markov oculto, que agrega o número total de pacotes perdidos em uma seqüência de ± tentativas de transmissão.
+
+O modelo também restringe as transições entre estados ocultos de forma similar a uma cadeia absorvente, com tempo para absorção seguindo uma distribuição phase-type.
+
+Essa restrição foi feita para tentar capturar um padrão específico de correlações periódicas que ocorrem, com freqüência significativa, nos traces estudados.
+
+Foi utilizado para a previsão da quantidade de perdas em intervalos de 1 segundo.
+
+A previsão é aplicada à seleção de um esquema de FEC para recuperação de perdas em simulações com traces de tráfego de voz.
+
+Recentemente, esse algoritmo foi implementado e avaliado em uma ferramenta de transmissão de Voz sobre IP real.
+
+Uma referência concisa sobre modelos de Markov ocultos pode ser encontrada.
+
+A seguir, apresentaremos definições que serão usadas no desenvolvimento dos próximos capítulos.
+
+A maior parte da notação adotada segue aquela definida.
+
+Neste trabalho, consideramos apenas modelos em tempo discreto, com ambos espaços de estados, ocultos e observáveis, também discretos.
+
+As referências que acabamos de mencionar incluem informações sobre modelos com características contínuas.
+
+De forma geral, um modelo de Markov oculto é composto por dois processos estoc ásticos dependentes entre si.
+
+O primeiro desses é uma cadeia de Markov.
+
+Uma excelente referência para os principais aspectos de cadeias de Markov.
+
+O segundo componente de um HMM é um processo de observações, cuja distribuição, a qualquer instante de tempo, é completamente determinada pelo estado atual da cadeia.
+
+Seja {Yt} a cadeia de Markov de N estados.
+
+A distribuição do estado inicial é dada pelo vetor de N dimensões.
+
+Sempre que possível, por brevidade, iremos nos referir ao conjunto de parâmetros do modelo como a tripla ¸ = (,A,B).
+
+Um primeiro passo em criar um modelo é especificar os espaços de estados sobre os quais {Xt} e {Yt} estão definidos.
+
+Uma vez que {Xt} é o processo de observações, seus estados são geralmente determinados pelo que está sendo modelado.
+
+A maneira mais direta de modelar eventos de perdas de pacotes é representar cada pacote individual com um símbolo binário.
+
+Usamos o símbolo 1 para representar uma perda, e 0 como um indicador de que o pacote é entregue com sucesso.
+
+O trabalho considera um modelo de observações diferente que consiste de 51 símbolos, os inteiros de 0 a 50, para representar o número total de perdas em um grupo de 50 pacotes.
+
+Ambas abordagens serão consideradas mais tarde em nossos experimentos de previsão.
+
+Por outro lado, caracterizar os estados da cadeia oculta, {Yt}, pode ser um pouco mais abstrato.
+
+Em modelos para perdas de pacotes, os estados ocultos podem ser vistos como "estados da rede", guardando informação sobre as estatísticas de perdas em um dado momento.
+
+Consideremos um vetor com T valores para o processo de observações.
+
+Sempre que não houver ambigüidade, usaremos a forma abreviada Xij (ou a correspondente, Yij) para denotar o evento composto que cada variável Xt (Yt) no alcance, j assume o valor xt (yt).
+
+No caso particular em que i = j, escreveremos Xi (ou de maneira equivalente, Yi).
+
+Por outro lado, usaremos X (ou Y) quando os sub-índices se referem a todas as variáveis.
+
+São calculados através do algoritmo forward-backward.
+
+A principal dificuldade da abordagem de modelos de Markov ocultos é o problema de estimação de parâmetros, isto é, como inferir valores para ¸ dado um caminho amostral do processo de observações.
+
+A dificuldade reside no fato de que não há fórmulas fechadas para estimadores de máxima verossimilhança (maximum likelihood) dos parâmetros de um HMM, como existem para cadeias de Markov.
+
+De fato, a função de verossimilhança para um HMM é, por si só, muito complexa para ser analiticamente otimizada, para ter suas condições de otimalidade verificadas.
+
+Apesar dessa dificuldade, o algoritmo Baum-Welch é uma técnica muito bem sucedida para estimação iterativa de parâmetros de máxima verossimilhança para modelos de Markov ocultos.
+
+O método começa a partir de uma atribuição arbitr ária de valores para ¸ e produz estimativas sucessivamente melhores, garantindo convergência para um máximo local na função de verossimilhança, sempre que um existir.
+
+A seguir, iremos rever as fórmulas da estimação do método Baum-Welch para motivar discussões posteriores neste trabalho.
+
+A função de verossimilhança dos parâmetros = (,A,B), para uma amostra, Onde a medida é chamada verossimilhança dos dados completos, uma vez que envolve dados observáveis e ocultos, representados por x1T e y1T, respectivamente.
+
+A cada iteração, o algoritmo Baum-Welch maximiza a função auxiliar, em relação, fazendo uso da estimativa atual dos parâmetros.
+
+Embora esse procedimento tenha sido apresentado pela primeira vez em 1970, mais tarde ele foi generalizado por uma classe de métodos estat ísticos para estimação de máxima verossimilhança, conhecida como Expectation-Maximization, ou simplesmente EM.
+
+O trabalho clássico sobre o método EM, onde seus principais resultados de convergência são apresentados.
+
+A abordagem EM consiste em realizar dois passos em cada iteração.
+
+O passo Expectation (ou passo E) avalia a função auxiliar, enquanto o passo Maximization (ou passo M) obtém o valor que a maximiza.
+
+A função auxiliar é um limite inferior para o logaritmo da função de verossimilhança, com a igualdade ocorrendo.
+
+Logo, maximizar Q nunca leva a um decréscimo na verossimilhança.
+
+Utilizamos a notação I{c}, para representar a função indicadora de uma condição c, que vale 1 quando a condição é satisfeita, ou 0 no caso contrário.
+
+Maximizando cada termo de e levando em consideração as restrições estocásticas.
+
+Previsão linear é uma técnica comum em processamento digital de sinais e em modelagem matemática.
+
+No domínio de processamento de voz, previsão linear é mais conhecida como linear predictive coding (LPC).
+
+A previsão linear está também relacionada ao conceito de modelo autoregressivo (AR), que é uma parte fundamental de ferramentas mais tradicionais para previsão de séries temporais como modelos ARMA, ARIMA e FARIMA, para citar alguns exemplos.
+
+Seja rt a taxa de perdas medida no t-ésimo intervalo de tempo.
+
+Onde k é a ordem do preditor e os ai's são os coeficientes da combinação linear que define -rn.
+
+Consideramos um preditor de primeira ordem, um da forma -rt = art-1.
+
+Se definirmos a medida de erro et = rt-rt, então o erro médio quadrático (mean squared error, MSE) de um preditor linear é simplesmente o valor esperado.
+
+O preditor linear ótimo não é prático para o nosso propósito de previsão em tempo real.
+
+Seja um caso especial dessa técnica com a = 1, isto é, um preditor da forma.
+
+Nos referimos a esta técnica como a estratégia replicadora, uma vez que simplesmente repete o valor da medição anterior como a próxima previsão.
+
+Assumindo a estacionaridade fraca de rt, denotamos por r a correlação produto entre as variáveis.
+
+Se d é a diferença r(0)r(1), então o erro do replicador é dado por 2d, e o erro mínimo do preditor linear.
+
+Medidas de estado estacionário fornecem somente médias de longa duração do processo de perdas que está sendo observado.
+
+Um de nossos objetivos é estimar a habilidade de um modelo de prever estatísticas de perda em uma curta duração de tempo.
+
+Para atingir este objetivo, calculamos estimativas para a taxa da perda a partir de medições recentes.
+
+Apresentamos a metodologia de previsão adaptativa que usamos em nossos experimentos.
+
+Desenvolvemos um algoritmo para avaliar a distribuição da taxa de perda enxergada por um fluxo de pacotes em uma janela de tempo futura.
+
+Apresentamos um teorema que nos permite escolher o valor esperado desta distribuição como uma métrica de previsão ótima, sob o ponto de vista do erro médio quadrático.
+
+Para fazer uso das previsões geradas por um algoritmo tal como o que será apresentado, é necessário especificar quando as métricas de previsão devem ser avaliadas e também quando os parâmetros do modelo devem ser re-estimados.
+
+Nesta seção, descrevemos um mecanismo simples para previsão adaptativa que utilizamos em nossos experimentos.
+
+Mostra um esquema geral de nossa metodologia em duas camadas.
+
+Na camada de treinamento do modelo, os parâmetros do modelo são periodicamente re-estimados a cada unidades de tempo.
+
+Em cada treino, apenas as amostras das últimas T unidades de tempo são usadas para o procedimento de estimação de parâmetros.
+
+Cada época de treinamento também é dividida em intervalos de previsão de tamanho Ã, conforme ilustrado na camada de previsão da medida.
+
+Cada previsão individual pode ser condicionada nas amostras de pacotes das H unidades de tempo mais recentes.
+
+Uma vez que estamos interessados em calcular medidas para intervalos finitos no futuro, também introduzimos um parâmetro F que especifica o tamanho da janela de previsão.
+
+Estaremos interessados em calcular a taxa de perdas no intervalo de tempo que vai de um instante atual t, até o instante no futuro, t + F.
+
+Mecanismo de previsão adaptativo em duas camadas, treinamento e previsão.
+
+Através de experimentos, verificamos que cada um desses parâmetros pode ter diferentes impactos na qualidade de previsão.
+
+Os valores de T e H, por exemplo, desempenham papéis importantes em perceber os efeitos das mudanças recentes nas estatísticas do canal.
+
+Se pelo menos um desses parâmetros é muito alto, as previsões se tornam muito mais suaves, basicamente refletindo as medidas de es tado estacionário.
+
+Valores que são muito baixos, por outro lado, irão falhar em incluir informação suficiente para permitir ao modelo estimar corretamente os seus parâmetros ou realizar uma previsão precisa.
+
+Claramente, em um cenário real se deseja ter os valores de ¿ e Ã tão grandes quanto possível para minimizar a perda de eficiência da aplicação.
+
+A informação de perdas de pacotes usada para condicionar as estatísticas de previsão, na prática, não estão disponíveis ao transmissor imediatamente após a ocorrência dessas perdas.
+
+Uma vez que o transmissor deve esperar um round-trip time (RTT) até que a previsão possa ser feita, uma parte das estatísticas previstas será inútil na tomada de decisões de controle.
+
+Por causa disso, no mecanismo de previsão de taxa de perda, o valor de F não deve ser muito pequeno em relação ao RTT estimado.
+
+Por outro lado, é fácil perceber que ao fazer F tender ao infinito, a taxa de perdas prevista será independente do histórico dado por H e convergirá para a probabilidade de perda em estado estacionário.
+
+Em nossos experimentos, tentamos uma série de variações para cada um desses parâmetros.
+
+Reconhecemos que uma análise mais profunda, da sensibilidade de cada parâmetro, seria necessária para facilitar o uso da metodologia de previsão, no caso geral.
+
+Entretanto, uma apresentação extensa dessas comparações tornaria a exposição por demais cansativa e, por essa razão, no Capítulo 5, apresentaremos apenas resultados baseados em valores de parâmetros que descobrimos funcionar bem na prática de nossos experimentos.
+
+Apresentaremos os parâmetros escolhidos, justificando cada escolha.
+
+Estimar a fração a curto prazo de pacotes perdidos no canal pode ser extremamente importante, especialmente se esta medida convergir lentamente para o estado estacionário.
+
+Dada uma janela fixa de F unidades de tempo, a taxa de perdas no curto prazo é simplesmente a fração dos pacotes transmitidos nesta janela que não chegam ao seu destino.
+
+Para simplificar a análise, iremos assumir que a quantidade de pacotes transmitidos em F unidades de tempo é igual a f.
+
+Nós computamos a distribuição exata de i erros em j transmissões.
+
+Entretanto, nosso trabalho é mais geral do que essas referências, uma vez que computamos esta medida para qualquer HMM, enquanto aqueles se aplicam somente a canais de Gilbert ou Gilbert-Elliot.
+
+Também, nossa distribuição para o número das perdas é condicionada no resultado de medidas recentes de pacotes.
+
+O algoritmo apresentado a seguir é uma contribuição original deste trabalho.
+
+Seja Rft a variável aleatória denotando o número total de eventos de perda que ocorrem nos f pacotes transmitidos a partir da t-ésima observação.
+
+Em outras palavras, Rft é a soma de cada um dos f valores de observação, de t até t + f1.
+
+Os resultados a seguir podem ser aplicados a qualquer modelo em que as observações representam o número de perdas em uma unidade de tempo, com o modelo 01 sendo apenas um caso especial.
+
+Por exemplo, nossos resultados podem ser aplicados ao modelo de Markov oculto apresentado, onde as observações podem variar de 0 a 50 perdas observadas em um segundo.
+
+Consideramos então que as observações no intervalo dos inteiros de 0 a um dado máximo r.
+
+Como conseqüência, a variável aleatória Rf t estará entre 0 e rf, inclusive.
+
+Seja h a quantidade de pacotes transmitidos no intervalo de histórico, de duração H unidades de tempo.
+
+Queremos calcular a distribuição de Rf t dadas as h amostras mais recentes das observações passadas, Xtht1.
+
+Esta é a base do nosso preditor para a taxa de perdas no curto prazo, em um canal de comunicação.
+
+Condicionando no valor do estado oculto na t-ésima observação.
+
+Na última igualdade, utilizamos a independência condicional entre Rf t, que é uma função das observações futuras, e as observações passadas, Xtht1, dado o estado oculto no tempo t, Yt.
+
+Primeiramente, notamos que este problema, assim como a maioria daqueles relacionados à previsão usando modelos de Markov ocultos, pode ser dividido em dois passos, prever o estado oculto no início da janela no futuro, condicionado nas observações passadas, e calcular a distribuição da métrica no futuro condicionada no estado atual.
+
+Defina rf,ht como o vetor de probabilidades para Rf t dado o histórico passado, e Rf como a matriz cujo elemento na linha i e coluna j é P(Rft = j|Yt = i).
+
+Uma vez que um modelo de Markov oculto é um processo estocástico homogêneo no tempo, P(Rft = j|Yt = i) é a mesma medida para todo t.
+
+O vetor de probabilidades dos estados ocultos em t dadas as observações passadas.
+
+A distribuição do estado oculto, t,h, pode ser facilmente obtida através da variável forward, porém medida apenas no conjunto de observações Xtht1.
+
+Se denotarmos o vetor cujo i-ésimo elemento.
+
+Para desenvolver uma recursão que calcula a matriz Rf.
+
+A matriz R1 é, portanto, a matriz de observação, B.
+
+No caso geral, condicionando no valor da observação subseqüente, Xt, podemos reescrever cada elemento de Rf.
+
+Onde a penúltima igualdade é evidente pela definição e a última igualdade foi obtida usando a independência condicional de Rf-1 t+1 e Xt, dado Yt.
+
+Deslocada de xt colunas para a direita, e com zeros em todos os elementos restantes.
+
+Em retrospectiva, os passos de nosso algoritmo são Iniciação, Laço principal, Resultado.
+
+Pode avaliar a distribuição de Rf t assumindo que o processo de perdas pode ser modelado por HMM.
+
+No entanto, há mais de uma maneira de usar essa informação para obter uma medida que pode ser usada como valor de previsão.
+
+Por exemplo, podemos escolher o preditor de maior probabilidade, arg maxi P(Rf t = i), como a estatística de previsão.
+
+Apresentamos um teorema que justifica a nossa escolha de preditor.
+
+Se um modelo pode estimar corretamente as correlações condicionando nas perdas anteriores, então o preditor linear de primeira ordem ótimo para Rft é equivalente a calcular o valor esperado.
+
+O parâmetro ótimo em termos do MSE, condicionado no conhecimento prévio das medições em Xtht1.
+
+Nos resta notar que, então, Rftf pode ser determinado somando os valores Xtft1.
+
+Nos dá a indicação que entre todas as estatísticas que podemos avaliar da distribuição prevista para Rf t, o valor esperado tem a propriedade atraente de que seu MSE se aproximará daquele de um preditor linear de primeira ordem ótimo.
+
+Pode ser simplificado se a aplicação de interesse precisar apenas do valor esperado da taxa de perda ao invés de sua distribuição.
+
+Apesar disto, outras métricas da distribuição de Rft podem ser usadas com diferentes propósitos.
+
+Por exemplo, para algumas aplicações pode ser mais importante determinar a probabilidade de que a taxa de perda esteja acima de um dado limiar.
+
+De maneira similar, podemos estar interessados em determinar intervalos de previsão que contenham as medições reais com uma probabilidade p.
+
+Logo, nosso algoritmo pode ser usado em um escopo de aplicações muito mais amplo do que aquele considerado nesta dissertação.
+
+Neste capitulo, analisaremos três HMMs que podem ser usados em conjunto com o algoritmo.
+
+Mais especificamente, dois desses modelos são propostas da literatura enquanto outro é original a esta dissertação.
+
+A alternativa mais natural para modelar eventos de perdas de pacotes é através de símbolos binários, o sucesso na transmissão ou a ocorrência de uma perda.
+
+Um modelo com essas características foi proposto pela primeira vez para simular processos de perdas em uma rede como a Internet.
+
+A definição formal deste modelo é totalmente consistente, fazendo o número de observações M igual a 2.
+
+Foi proposta uma outra abordagem para modelagem de perdas com HMMs.
+
+Ao invés de modelar cada perda de maneira individual, as observações deste modelo representam apenas a quantidade de perdas em um conjunto de pacotes.
+
+Seja S o número de pacotes agrupados em cada observação do modelo de perdas agregadas.
+
+As observações do modelo de Markov oculto utilizado variam então entre os inteiros de 0 até S.
+
+Os parâmetros do modelo são aqueles de um HMM com M igual a S + 1 observações.
+
+Para que sejamos mais precisos, é importante ressaltar que o modelo apresentado utilizava uma cadeia oculta com uma estrutura especial de transições.
+
+Entretanto, em nossos experimentos, não iremos utilizar essa estrutura especial.
+
+Uma vez que a estrutura da cadeia em foi particularmente motivada por padrões periódicos no processo de perdas, em nome da generalidade, consideramos uma cadeia com transições entre todos os pares de estados ocultos.
+
+Em termos de complexidade, o modelo de perdas agregadas oferece uma vantagem em relação ao modelo de pacotes individuais.
+
+Para o treinamento, é preciso registrar apenas a quantidade de perdas em conjuntos de S transmissões, e não a informação de cada pacote.
+
+Este ganho é sensível em dois aspectos.
+
+Primeiro, cada trace de pacotes pode ser descrito de forma compacta por outro trace que registra apenas as perdas agregadas, e portanto, é S vezes menor que a amostra original.
+
+Uma vez que a complexidade de tempo do algoritmo forward-backward é linear no tamanho da amostra, a computação é S vezes mais rápida no modelo agregado do que no modelo de pacotes.
+
+Em segundo lugar, um protocolo de rede implementando o modelo agregado só precisa comunicar as perdas agregadas para permitir a estimação de parâmetros.
+
+Em contrapartida, o modelo agregado possui uma quantidade de parâmetros de observação proporcional a S.
+
+Além disso, este modelo não pode ser usado para avaliar outras estatísticas além da quantidade de perdas por intervalo de tempo.
+
+Na próxima seção, apresentaremos uma proposta de modelo que possui as vantagens do modelo de pacotes individuais e do modelo de perdas agregadas.
+
+Nesta seção, propomos um modelo hierárquico cuja complexidade da estimação de parâmetros é menor que a dos modelos descritos nas seções anteriores.
+
+Nossa proposta é baseada na hipótese de que as mudanças nas estatísticas do canal, em uma escala de tempo curta, podem ser aproximadas com um modelo simples.
+
+Nós tamb ém discutimos como o algoritmo de previsão pode ser adaptado ao modelo proposto.
+
+Suponhamos que as transições entre estados ocultos ocorram apenas a cada S observa ções.
+
+Outra forma de interpretar este modelo é assumir que, uma vez que o processo entra em um estado oculto, ele emite um grupo de S resultados de transmiss ão de pacotes.
+
+Por essa razão, nos referimos a este como um modelo de observações em lote.
+
+Claramente, o caso em que S = 1 é equivalente ao modelo de pacotes individuais.
+
+Esse processo pode ser modelado por um HMM, no qual o estado pode emitir um dentre 2S possíveis símbolos de observação, um para cada caminho amostral da série de S pacotes.
+
+Entretanto, esse modelo seria computacionalmente inviável até para valores moderados de S.
+
+Em nossa abordagem, restringimos a distribuição das observações dentro de um estado oculto assumindo que essas são geradas por um modelo de Gilbert simplificado, uma cadeia de Markov de 2 estados.
+
+O raciocínio por trás de nosso modelo é que as correlações de curto prazo podem ser capturadas por um processo simples, enquanto a dinâmica em escalas de tempo maiores é governada pela cadeia de Markov oculta.
+
+Ganhos de complexidade são alcançados ao considerar um grupo de S medições como uma única observação, e ao computar a probabilidade conjunta desse grupo a partir da distribuição do processo gerador em cada estado.
+
+Consideramos que as medições de pacotes estão segmentadas em conjuntos de tamanho S.
+
+Mais especificamente, o símbolo xt denota um vetor de medições, representando o resultado para cada um dos pacotes no t-ésimo grupo.
+
+De forma análoga, redefinimos as variáveis das observações, Xt, como vetores das variáveis.
+
+Para cada estado oculto, i, temos os parâmetros da cadeia de Markov de 2 estados.
+
+Nos referimos ao modelo como a tupla, onde r, p, e q são vetores, contendo os respectivos parâmetros ri, pi, qi, para cada estado, i.
+
+Parâmetros da cadeia de Markov de 2 estados para cada estado oculto do modelo proposto.
+
+É importante perceber que, para calcular a probabilidade de uma observação, não é necessário o conhecimento completo da medição de perda para cada pacote.
+
+É suficiente manter registro apenas das seguintes estatísticas, em cada grupo de medidas.
+
+Dada uma instância de xt, estamos interessados em computar a probabilidade do evento Xt = xt, dado o estado oculto no t-ésimo lote, yt.
+
+As estatísticas podem ser calculadas com um número de operações proporcional ao tamanho da amostra, dado por T.
+
+Uma vez calculados, esses valores podem ser usados em conjunto, no procedimento forwardbackward.
+
+Uma vez que a amostra passa a ser descrita de maneira compacta pelas estatísticas, o cálculo das variáveis passa a ter complexidade assintótica da ordem de N2T/S.
+
+Uma vez que restringimos apenas os parâmetros de observação, B, as fórmulas para e A permanecerão idênticas àquelas das equações.
+
+Com isso em mente, procedemos nossas derivações da seguinte forma.
+
+É possível diferenciar em relação a ri, pi e qi para obter as fórmulas correspondentes A vantagem computacional de nosso modelo se torna evidente nas equações, uma vez que o cálculo dessas depende apenas das estatísticas definidas.
+
+De fato, as métricas são estatísticas suficientes para todos os parâmetros do modelo.
+
+Uma vez que as variáveis forward e backward dependem apenas de uma aplicação que estima parâmetros para o modelo de observações em lote precisa registrar apenas estas estatísticas.
+
+Cada iteração do procedimento de treinamento é mais rápida por um fator de S, como no modelo de perdas agregadas, descrito na seção anterior.
+
+Ainda assim, diferentemente do modelo agregado, o número de parâmetros de observação por estado oculto em nosso modelo é independente do tamanho do lote, S.
+
+Uma vez que as medições usadas no treinamento são geralmente realizadas no receptor dos pacotes e precisam ser enviadas de volta ao transmissor, também há uma economia no tamanho das mensagens de controle que precisam ser enviadas.
+
+É fácil perceber que as equações podem ser interpretadas como razões entre valores esperados Nesta seção, mostramos como calcular a distribuição da variável Rf t, definida na Para o modelo de observações em lote.
+
+Restringimos nossa análise ao caso mais simples onde f é um múltiplo do tamanho do grupo S, f = f0S para algum valor inteiro f0.
+
+O caso geral é dispendioso em notação e é omitido por brevidade.
+
+Separando o número de perdas de cada lote de observações.
+
+Note que, entre duas transições do estado oculto, o número de perdas no em um grupo é totalmente determinado pelos parâmetros do estado atual.
+
+Podemos utilizar esse fato para construir um modelo de perdas agregadas, que conta o número de perdas de pacotes em S transmissões.
+
+Um vez que a matriz B é avaliada para esse modelo agregado, resta apenas aplicar o algoritmo para obter a distribuição de Rft.
+
+Cada linha, bi, da matriz de observação, B, é definida como a distribuição de probabilidade para o número de perdas em um lote de tamanho S, assumindo que o modelo se encontra no estado i.
+
+É interessante notar que, para avaliar bi neste caso, podemos simplesmente aplicar o mesmo algoritmo dado sobre os parâmetros da cadeia de Markov de 2 estados contida no estado i.
+
+Comparamos os custos computacionais da tarefa de previsão adaptativa quando realizada por cada um dos três HMMs que discutimos até então.
+
+Especificamente, iremos avaliar a eficiência da metodologia descrita, quando aplicada aos modelos das três seções anteriores.
+
+Na comparação que segue, consideramos modelos com N estados ocultos.
+
+A respeito do passo de treinamento do modelo, cada iteração do procedimento de para HMMs tem a sua complexidade dominada pela recursão forward-backward.
+
+Para uma amostra de treino de tamanho T, o modelo de pacotes individuais realiza um número de operações aritméticas da ordem de N2T.
+
+Nos modelos de perdas agregadas e de observações em lote, a amostra de treino pode ser descrita de forma compacta através de estatísticas suficientes para os parâmetros.
+
+No caso do modelo de perdas agregadas, essa estatística é o total de perdas em um conjunto de S pacotes, enquanto que para o modelo de observações em lote, é preciso manter registro das estatísticas dadas pelas equações.
+
+Por isso, a complexidade dos passos forward-backward para uma amostra de tamanho T é reduzida por um fator de S nesses modelos.
+
+Além disso, em um mecanismo de rede implementando esses modelos, apenas essas estatísticas suficientes precisam ser enviadas de volta a fonte, reduzindo assim a quantidade de informação de controle transmitida na rede.
+
+Por último, nota-se que, nos modelos de pacotes individuais e de observações em lote, o número de parâmetros de observação em cada estado oculto é constante, enquanto, no modelo de perdas agregadas, esta quantidade é linear no tamanho do grupo de pacotes, S.
+
+Para a tarefa previsão de taxas de perda, é preciso, primeiramente, notar que o passo de inicialização do algoritmo faz uso da recursão forward para avaliar t,h.
+
+Portanto, as mesmas conclusões tecidas a respeito do procedimento de treinamento permanecem válidas.
+
+Entretanto, na prática, o laço principal será o gargalo da computação.
+
+Para os experimentos que apresentaremos no Capítulo 5, a ordem de magnitude do número de operações realizadas por cada modelo, no laço principal.
+
+Os modelos de perdas agregadas e observações em lote executam três vezes menos operações que o modelo de pacotes individuais.
+
+Este é um ganho significativo para um preditor de tempo real.
+
+Número aproximado de operações realizadas por cada modelo no laço principal do algoritmo proposto para previsão de perdas.
+
+Realizamos experimentos para medir a acurácia dos modelos apresentados no Capítulo 4 na previsão de taxas de perdas em traces de transmissões na Internet.
+
+Apresentamos estes traces e assinalamos suas características principais.
+
+Em seguida, apresentamos os parâmetros do experimento de previsão, além das métricas utilizadas para comparar os diferentes modelos.
+
+Nas seções restantes, apresentamos resultados qualitativos e quantitativos para comparar diferentes modelos e diferentes estratégias de previsão.
+
+Nos experimentos realizados neste trabalho, tivemos à nossa disposição um conjunto extenso de medições fim-a-fim realizadas entre 4 instituições acadêmicas, duas dessas localizadas no Brasil e outros duas nos Estados Unidos.
+
+Mais especificamente, os pontos de geração e coleta se encontram nas Universidades Federais do Rio de Janeiro (UFRJ) e de Minas Gerais (UFMG), além das Universidades de Maryland (UMD) e de Massachssets em Amherst (UMass).
+
+As combinações origem-destino utilizadas em nossas medições.
+
+Essas medições exibem uma grande variedade de situações da rede, desde horas sem nenhuma perda até totais interrupções no serviço dos canais intermediários.
+
+Em todas as medições realizadas, tráfego de taxa constante foi gerado, utilizando as ferramentas do ambiente Tangram-II.
+
+Pontos de geração e coleta de tráfego usados em nosso experimento.
+
+Cada sessão de geração de tráfego durou uma hora e um total de 998 sessões foram realizadas em diferentes períodos dos anos de 2001, 2002 e 2004.
+
+Em cada dia de experimentos, as sessões foram conduzidas em 3 horários diferentes, geralmente localizados em torno dos períodos de pico de utilização de grande parte dos canais intermediários, levando em consideração as diferenças de relógios entre os pontos extremos.
+
+O padrão de tráfego foi escolhido para emular o comportamento de uma aplicação de Voz sobre IP (VoIP) simplificada.
+
+A cada 20 milissegundos, a fonte envia um pacote UDP contendo 324 bytes de dados de aplicação, 160 amostras de áudio com 2 bytes cada, somados a um cabeçalho de controle com 4 bytes.
+
+Considerando os efeitos dos cabeçalhos das camadas de transporte e rede, a carga total oferecida é de 1408 kbps.
+
+Cada pacote enviado pela rede é marcado com um número de série e aqueles que são entregues com sucesso são registrados pelo destinatário em um arquivo junto com outras informações relevantes.
+
+Utilizamos estes traces para produzir uma seqüência binária {xi}Ti = 1, onde xi é definido como 0 se o pacote com o i-ésimo número de série chegou ao destino intacto, ou 1 caso contrário.
+
+Muitos dos 998 traces coletados exibem processos de perda que não são interessantes aos nossos propósitos experimentais.
+
+Esses incluem estatísticas que são simples demais para previsão, como medições de taxas de perda muito baixas.
+
+Mostra as frações de perdas em cada um dos 998 traces coletados, ordenados de forma não-decrescente para facilitar a visualização.
+
+Embora a média das frações de perdas em todos os traces seja de 35%, é possível perceber que 67% dos traces possui menos que 1% de perdas.
+
+Por outro lado, cerca de 4% dos traces apresentam mais que 30% dos pacotes perdidos.
+
+Além disso, embora o tamanho médio das rajadas de perda seja de apenas 172 pacotes, mostra que cerca de 10% dos traces possuem períodos de perdas consecutivas que duram pelo menos 30 segundos.
+
+Tamanhos das maiores rajadas de perda em cada um dos 998 traces.
+
+Em nossos experimentos, selecionamos apenas 194 traces, cujas frações de perda estão entre 1% e 30%, e que contém períodos de perdas consecutivas que não ultrapassam 30 segundos.
+
+Entre os traces selecionados, a fração de perdas média é de 38% e o tamanho médio das rajadas é de 168 pacotes.
+
+Mostra as frações de perdas em cada um destes 194 traces ordenadas de forma crescente.
+
+Nas próximas seções, apresentaremos resultados quantitativos e qualitativos na previsão de taxas de perdas de pacotes para esses 194 traces.
+
+Consideramos três modelos diferentes em nossos experimentos.
+
+O primeiro desses é o modelo de pacotes individuais, ao qual nos referimos, por brevidade, como HMM-Pacote.
+
+O segundo HMM, que consideramos, é o modelo de perdas agregadas e aqui referenciado como HMM-Agregado.
+
+No modelo agregado, agrupamos S = 50 pacotes.
+
+O terceiro modelo usado é o modelo de observações em lote, onde também agrupamos S = 50 pacotes por lote.
+
+Nos referimos a esse modelo como o HMM-Lote.
+
+É importante reparar que, pelas especificações de tráfego tanto o HMM-Agregado, quanto o HMM-Lote realizam transições entre estados ocultos a cada a 1 segundo de transmissões.
+
+Para cada um dos modelos que temos em consideração, é necessário ainda especificar a quantidade de estados da cadeia de Markov oculta associada.
+
+É argumentado que até 4 estados são suficientes para caracterizar traces de perdas de pacotes, em canais de comunicação fim-a-fim.
+
+Neste trabalho, não estamos interessados em avaliar a sensibilidade da tarefa de previsão ao número de estados no HMM, e por essa razão, todos os modelos considerados em nossos experimentos têm 10 estados ocultos.
+
+Acreditamos que seja possível obter resultados qualitativamente razoáveis com quantidades inferiores de estados.
+
+Entretanto, deixamos a análise dessa quantidade ótima de estados ocultos para um trabalho futuro, cujo escopo esteja mais próximo da aplicação final.
+
+Para todos os experimentos, aplicamos a metodologia.
+
+Os parâmetros dos modelos são re-estimados a cada 3 minutos, usando a informação dos últimos T = 3 minutos.
+
+Justificamos esse intervalo entre treinamentos de maneira empírica.
+
+Para cada modelo, o treinamento, usando as fórmulas do algoritmo Baum-Welch, é realizado por no máximo 1000 itera ções, ou até que a diferença de verossimilhança do trace em relação ao valor da iteração anterior seja inferior a 105.
+
+Seguindo a nossa metodologia, realizamos a previsão da fração de perdas entre os pacotes transmitidos nos próximos F = 5 segundos, dados os resultados das perdas nos últimos H = 10 segundos.
+
+Estas estimativas de previsão são atualizadas a cada Ã = 5 segundos.
+
+Consideramos esse valor apropriado para o tipo de tráfego de nossos experimentos, que emula uma aplicação para transmissão de voz sobre IP.
+
+Além disso, um intervalo de 5 segundos é o mínimo recomendado entre o envio de pacotes RTCP (Real time Transport Control Protocol).
+
+O RTCP foi concebido para permitir o envio de estatísticas de qualidade de serviço (QoS, quality of service), do receptor de um fluxo multimídia de volta para o seu transmissor.
+
+Nossa metodologia, que depende da coleta de estatísticas para as tarefas de treinamento e previsão, poderia ser implementada, na prática, com o auxílio do RTCP.
+
+Para quantificar a precisão das diferentes estratégias de previsão, utilizamos três métricas principais.
+
+Reconhecemos que avaliar a acurácia de uma previsão é, por si só, uma tarefa desafiadora.
+
+De fato, não é possível definir uma métrica universal, com a qual seja possível observar todas as nuances existentes no que diz respeito a qualidade de previsão.
+
+A primeira métrica que consideramos é o erro médio quadrático (MSE, mean squared error), calculado entre os valores previstos e as medições reais.
+
+Formalmente, se durante o intervalo de previsão i, a fração de perdas observada é ri e o valor previsto é pi, então, para um trace com n previsões.
+
+Uma outra métrica de nosso interesse é a correlação cruzada amostral, calculada entre as medições reais e as previsões.
+
+A partir da mesma notação usada na definição anterior do MSE, sejam ¯r e ¯p, as respectivas médias amostrais das medições e dasprevisões.
+
+Este valor deve ser o maior possível para indicar um boa previsão.
+
+Em outras palavras, queremos determinar se as variações na métrica de previsão estão de fato acompanhando as mudanças nas estatísticas do canal, ou se a acurácia obtida é meramente fruto de coincidências aleatórias.
+
+Através dessa métrica podemos identificar os traces em que uma determinada estratégia de previsão é bem sucedida.
+
+Por outro lado, é fácil perceber, que a correla ção amostral é normalizada pelo desvio padrão amostral das previsões.
+
+Por essa razão, não seria inteiramente correto comparar dois modelos diferentes, prevendo um mesmo trace de amostras reais.
+
+Para comparar diferentes modelos, damos preferência a medida de covariância cruzada amostral que, por sua vez, não é normalizada entre diferentes traces.
+
+Denominador é, de fato, n1 ao invés de n, para garantir que o estimador não seja tendencioso.
+
+Nossa primeira análise tem como objetivo salientar dois resultados, que foram observados a respeito do algoritmo proposto.
+
+Em primeiro lugar, o algoritmo que propomos é consistentemente melhor em estimar as taxas de perda no curto prazo do que um preditor de estado estacionário.
+
+Em segundo, um modelo, cujas transições entre estados ocultos ocorrem na mesma escala de tempo que uma transmissão individual de pacote, não tem um desempenho tão bom quanto um no qual estas transições ocorrem em uma escala de tempo convenientemente maior.
+
+Além de aplicar o algoritmo, nós também utilizamos a probabilidade de perda em estado estacionário a partir dos parâmetros estimados no modelo.
+
+Se denotarmos como ¤ o vetor de probabilidades de estado estacionário da cadeia de Markov oculta, onde bis é a probabilidade de s perdas entre duas transições da cadeia oculta.
+
+Nos casos do HMM-Pacote e do HMM-Agregado, esses são meramente os parâmetros de observação.
+
+No HMM-Lote, por outro lado, essa é a distribuição do número de perdas em S observações da cadeia de Markov de 2 estados associada a cada estado oculto, i.
+
+Nós concluímos que, na maioria dos traces, nosso algoritmo é consistentemente melhor que a alternativa de estado estacionário, acompanhando as flutuações na fração de perdas de curto prazo.
+
+Isso pode ser explicado da seguinte forma, a medida estacionária simplesmente ignora as variações nas estatísticas recentes, e prevê o mesmo resultado para cada época de treinamento.
+
+Embora o preditor de estado estacionário possibilite um erro médio quadrático pequeno em muitos traces, nosso algoritmo é capaz de capturar vários padrões de curta duração no processo de taxas de perda, tais como picos periódicos, possivelmente causados por mudanças de roteamento.
+
+Para ilustrar essas idéias, mostra os traces das previsões da métrica estacionária e do algoritmo de previsão transiente em um segmento de 20 minutos de taxas de perdas reais em um trace que exibe periodicidade.
+
+É possível observar que o trace da métrica estacionária tem um formato de "degraus", uma vez que as previsões mudam apenas quando os parâmetros do modelo são reestimados, a cada 3 minutos.
+
+Por outro lado, o HMM-Pacote, usando nosso algoritmo proposto, pôde prever bem o padrão de perdas periódicas.
+
+Repare que a covariância do preditor estacionário é muito próxima de zero, embora o seu MSE seja razoavelmente baixo.
+
+O preditor transiente, em contraste, possui um MSE menor, e uma correlação de 6398%.
+
+HMM-Pacote usando o preditor transiente do algoritmo proposto Medida de estado estacionário versus o algoritmo proposto para um segmento de 20 minutos de um trace com características periódicas.
+
+Comparam o desempenho das previsões geradas pelos três modelos de Markov ocultos discutidos, usando nosso algoritmo proposto, em 30 minutos de uma outra amostra de trace.
+
+Embora este trace tenha um padrão de rajadas intenso, ele claramente não é periódico.
+
+Pode ser notado, que o HMM-Pacote apresentou um comportamento similar ao do preditor de estado estacionário, ignorando muitas das variações na medida, que estão presentes no trace real.
+
+Por outro lado, embora o HMM-Agregado tenha gerado varia ções mais amplas nas suas previsões, essas erraram mais freqüentemente que as do HMM-Pacote.
+
+Finalmente, o HMM-Lote não apenas reproduziu as variações nas medidas, mas também foi mais preciso que os outros modelos, tanto de acordo com o MSE quanto pela covariância cruzada amostral.
+
+Atribuímos a desvantagem do HMM-Pacote ao fato de que, nesse modelo, o estado ocultojunto com as estatísticas do canalpode mudar a cada pacote transmitido.
+
+Como conseqüência, o comportamento de estado estacionário é alcan çado muito mais rápido que para os modelos agregado e lote, onde as transições dos estados ocultos ocorrem em uma escala de tempo maior (neste caso, a cada 1 segundo, ou 50 pacotes).
+
+O HMM-Agregado, por outro lado, apesar de produzir variações transientes nas suas previsões, não conseguiu ser mais preciso que o HMM-Pacote, para este trace em particular.
+
+Uma possível razão para esse fenômeno é o fato de que, neste modelo, a quantidade de parâmetros a serem ajustados, a cada treinamento, é muito maior do que nos modelos pacote e lote.
+
+Uma quantidade maior de parâmetros livres, embora possa parecer vantajosa, também torna mais lenta a convergência para o seus valores ótimos.
+
+Uma vez que truncamos a execução do algoritmo Baum-Welch a, no máximo, 1000 iterações, um modelo com mais graus de liberdade pode ter dificuldades em ajustar seus parâmetros da maneira ideal.
+
+É importante enfatizar que o trace analisado é consideravelmente mais complexo, para a tarefa de previsão, que é fortemente periódico.
+
+Mostra a autocorrelação amostral calculada para ambos os traces.
+
+É possível perceber que, embora o trace possua correlações significativas, devido as suas perdas em longas rajadas, essas não são tão marcantes quanto as do trace, onde o padrão periódico, a cada 74 segundos, é claro e evidente.
+
+Finalmente, estudamos brevemente a sensibilidade da previsão ao parâmetro.
+
+Por exemplo, se é escolhido como 1 minuto, o HMM-Pacote é capaz de atualizar as suas previsões tão rápido quanto os outros modelos com ¿ = 3 minutos.
+
+Entretanto, enquanto os modelos agregado e lote adaptam suas previsões nestes três minutos baseados apenas no algoritmo de previsão, a melhora do HMM-Pacote é devida ao fato de que seus parâmetros estão sendo atualizados mais freqüentemente que antes.
+
+Por outro lado, se ¿ é aumentado para 5 minutos, então o HMM-Agregado e o HMM-Lote se tornam menos precisos que para ¿ = 3 minutos, sempre que ocorrem mudanças bruscas na taxa de perda.
+
+Esta seção tem como objetivo avaliar o desempenho de nosso algoritmo de previsão, e do modelo de observações em lote, para o conjunto completo de 194 traces.
+
+Como na seção anterior, começaremos por mostrar a vantagem do nosso algoritmo sobre um preditor de estado estacionário.
+
+Em seguida, apresentaremos resultados que comparam os três HMMs utilizando nosso algoritmo.
+
+Comparamos o desempenho de nosso algoritmo com a estratégia que utiliza apenas a fração de perda em estado estacionário como valor da previsão.
+
+Mostra as covariâncias obtidas, para os 194 traces.
+
+Os traces foram arbitrariamente ordenados no eixo x de modo que a curva correspondente ao HMM-Pacote usando nosso algoritmo proposto seja não-decrescente.
+
+Previsão que está mais correlacionada com as amostras reais que aquelas da medida estacionária.
+
+Isso ocorre, de fato, em 84% dos traces.
+
+Mostra as covariâncias de cada um dos três HMMs, usando nosso algoritmo, para os 194 traces.
+
+Cada curva no gráfico corresponde a um dos modelos em comparação.
+
+Os traces estão ordenados de modo que a curva correspondente ao HMM-Lote seja não-decrescente.
+
+Covariâncias amostrais entre previsões e taxas de perda reais nos 194 traces, para os três HMMs.
+
+É evidente que, na maior parte do tempo, as covariâncias do HMM-Pacote e do HMM-Agregado estão abaixo da curva de referência do HMMLote.
+
+De fato, o HMM-Lote provê a covariância mais alta em 71% dos traces, enquanto os modelos pacote e agregado o fazem, respectivamente, em 17% e 12% dos casos.
+
+Por outro lado, para comparar o desempenho do HMM-Lote entre os diferentes cenários, mostra que 69% dos traces foram previstos com pelo menos 20% de correlação, uma quantia significativa para descartar a hipótese de que os acertos ocorrem por mera coincidência.
+
+Correlações amostrais entre previsões e taxas de perda reais nos 194 traces para o modelo de observações em lote.
+
+Lembramos que o erro do preditor linear de primeira ordem ótimo é limitado entre d e 2d, onde 2d = 2(E[r2 t ]-E[rt-1rt]) é o erro da estratégia replicadora.
+
+Identificamos que a diferença d entre as correlações produtos, E[r2 t ] e E[rt1rt], tem um impacto direto na acurácia do preditor linear de primeira ordem.
+
+Por essa razão, quantificamos o impacto dessa medida nos erros do HMM-Lote usando nosso algoritmo de previsão para taxas de perda.
+
+Mostra os erros médios quadráticos obtidos do HMM-Lote, no eixo vertical, contra a diferença d, no eixo horizontal.
+
+Cada ponto no gráfico corresponde a um dos 194 traces.
+
+MSE das previsões do HMM-Lote para os 194 traces.
+
+A grande maioria dos pontos cai entre os limites do preditor ótimo.
+
+De fato, isso ocorre em 148 (7629%) do traces.
+
+Nesses cenários, o HMM-Lote provê um preditor mais preciso em termos do MSE que a estratégia replicadora, denotada pelo limite superior no gráfico.
+
+Nos 46 (2371%) traces restantes, o HMM-Lote não conseguiu estimar propriamente as correlações produtos.
+
+É importante lembrar que, essas métricas formam uma condição suficiente para um preditor linear ótimo.
+
+Do gráfico, é fácil ver que isso se torna mais comum conforme a métrica d = E[r2 t ] E[rt1rt] aumenta.
+
+Explicamos os erros de previsão do HMM-Lote por duas causas, valores grandes de d correspondem a valores pequenos da função de autocorrelação na sua primeira lag, indicando que as perdas de pacotes nesses cenários são, em maior parte, não correlacionadas, variações altas nas taxas de perdas medidas no curto prazo.
+
+Quando esses dois fatores se combinam, é de se esperar que um modelo tenha dificuldades tentando capturar as correlações produtos necessárias para realizar previs ões precisas, e portanto, a estratégia replicadora, que é mais conservadora em suas previsões, irá potencialmente ter erros menores.
+
+Resultados agregados sobre as previsões contidas nos 194 traces.
+
+É possível ver que a estratégia replicadora tem um pequeno MSE geral, mas como argumentamos, isso é causado por cenários de taxas de perdas com variações altas e imprevisíveis.
+
+Outros resultados são os valores Precision-Recall.
+
+Essas métricas se aplicam a preditores binários, e determinam o quão bom é um dado preditor em determinar se uma condição será ou não satisfeita no futuro.
+
+Em suma, o valor Precision de uma técnica para prever uma condição x é definido como a fração do tempo em que um preditor pode, corretamente, prever um evento dado que esse de fato ocorre.
+
+Por outro lado, a medida de Recall é definida como a fração das previsões positivas de um evento, que estão, de fato, corretas.
+
+Em nossos experimentos, consideramos a habilidade de cada modelo em determinar se a fração de perdas, no próximo intervalo de previsão, estará acima de um limite escolhido.
+
+Portanto, os valores Precision e Recall, se referem às condições de que a fração de perdas seja considerada baixa (· 3%) ou alta (> 3%).
+
+Em nosso conjunto de 194 traces, 363% de todas as medições de taxas de perda, em intervalos de 5 segundos, estão acima do limite de 3%.
+
+Em nome do didatismo, as 4 situações nas quais uma previsão pode ser classificada, em nosso experimento.
+
+Consideramos um Acerto, quando um preditor determina, de forma correta, que a fração de perdas será abaixo do limite de degradação, µ.
+
+De maneira correspondente, um Erro está associado às previsões incorretas de que fração de perdas será maior que µ quando, na realidade, ela está abaixo do limiar.
+
+De forma complementar às duas medidas anteriores, também definimos o Acerto(>) e o Erro(>), em função do evento de que a fração de perdas real é considerada alta.
+
+Este tipo de previsão pode ser usado, por exemplo, na detecção de degradações de desempenho em um canal fim-a-fim para controlar esquemas de path-switching.
+
+Nosso algoritmo aplicado aos HMMs tem resultados melhores nessa métrica comparado à estratégia replicadora.
+
+É possível ver que o HMM-Pacote, usando a medida de perda em estado estacionário como preditor das taxas de perda, não tem um desempenho tão bom quanto o do modelo correspondente usando nosso algoritmo.
+
+O algoritmo proposto, quando usado com os HMMs, também pode calcular outras métricas de previsão como percentis para a taxa de perdas.
+
+Mostra um exemplo simples dessa possibilidade.
+
+Um intervalo de previsão de 95% é exibido para três de nossos traces.
+
+Esse intervalo foi obtido, encontrando os percentis de 25 e 975 a cada previsão individual.
+
+É possível observar que as curva de taxas de perdas reais estão quase que inteiramente contidas entre os limites superiores e inferiores dos intervalos previstos por nosso algoritmo.
+
+Este tipo de previsão não pode ser realizado com uma estratégia mais simples como o replicador ou um preditor de estado estacionário.
+
+Neste trabalho, nós desenvolvemos um novo algoritmo para previsão de perdas de pacotes.
+
+Também propomos um modelo hierárquico visando a capturar as variações de curto prazo nas estatísticas de perda.
+
+Este modelo, quando usado com o algoritmo de previsão, é suficientemente preciso, prevendo taxas de perdas dentro de uma janela de tempo futuro.
+
+Para estimar os parâmetros do modelo proposto, novas equações foram desenvolvidas.
+
+Avaliamos o algoritmo de previsão usando três modelos diferentes e sobre uma série de traces coletados na Internet.
+
+Nossos resultados mostram que todos os modelos se saem razoavelmente bem em muitos cenários.
+
+Entretanto, nosso modelo proposto é muito mais eficiente em termos de estimação de parâmetros e também supera em precisão os outros modelos, na maior parte dos casos.
+
+Este é, portanto, o modelo de escolha para o nosso algoritmo.
+
+Também concluímos que a taxa de perda de curto prazo não pode ser bem aproximada pela probabilidade de perda em estado estacionário, uma vez que isso pode resultar em previsões pouco precisas.
+
+Além disso, nossos resultados também mostram que as previsões de curto prazo do algoritmo quando o HMM-Pacote é empregado não capturam as altas variações na taxa de perda.
+
+Isso ocorre pois esse modelo chega ao estado estacionário em um curto espaço de tempo.
+
+Mostramos que ambos HMM-Agregado e HMM-Lote são mais adequados que o HMM-Pacote para modelar esses efeitos transientes.
+
+É claro que a acurácia da previsão é limitada pela quantidade de correlações temporais no processo de perdas de pacotes.
+
+Traces com dependências temporais relativamente pequenas reduzem a capacidade dos modelos de prever taxas de perdas de curto prazo.
+
+O algoritmo de previsão deve ser de valor quando aplicado à transmissão de mídia contínua em aplicações como VoIP e vídeo-conferência, ou ainda outras aplicações que possam se beneficiar da previsão de taxas de perda.
+
+Temos planos de incorporar o algoritmo como parte de um protocolo de controle adaptativo no futuro.
+
+Além disso, nosso HMM de observações em lote pode ser usado como um modelo geral para um canal de comunicações, avaliando não apenas a taxa esperada de perda, mas também outras estatísticas como percentis de taxas de perdas e métricas do tamanho das rajadas de perdas.
+
+Outros modelos como o HMM-Agregado ou a estratégia de replicação não podem simultaneamente calcular todas essas medidas.
+
+Neste apêndice, apresentamos resultados auxiliares a um ou mais pontos do desenvolvimento dos capítulos desta dissertação.
+
+Uma rede Bayesiana é formada a partir de um grafo direcionado acíclico, no qual associamos a cada vértice, vi, uma variável aleatória, e a cada aresta, vi ! vj, a noção de causalidade direta da variável vi sobre a variável vj.
+
+Para formalizar o conceito da relação de causalidade entre as variáveis de uma rede Bayesiana, seja p(vj) o conjunto de variáveis vi, tais que vi ! vj seja uma das arestas no grafo associado à rede.
+
+Isto é, p(vj) é o conjunto de vértices que são pais de vj.
+
+Seja também a(vj) o fecho transitivo de p(vj), a(vj) é formado pelos elementos de p(vj) acrescidos de todo elemento vi, tal que vi ! vk é um aresta e vk já pertence a a(vj).
+
+Evidentemente, a(vj) define o conjunto de antecessores de um vértice vj.
+
+Agora enunciamos a seguinte definição que caracteriza a relação de causalidade entre as variáveis de uma rede Bayesiana.
+
+A distribuição de uma variável, vi, em uma rede Bayesiana, condicionada nos valores de seus antecessores, depende apenas das variáveis que são pais de vi.
+
+Dizemos que as variáveis no conjunto p(vi) possuem causalidade direta sobre vi.
+
+Um outro conceito importante é o de d-separação (d-separation ou dependence separation), que posteriormente permitirá uma definição formal para a independência condicional em redes Bayesianas.
+
+Dois vértices no grafo de uma rede Bayesiana, vx e vy, são ditos d-separados por um conjunto de vértices, Z, se, e somente se, para cada caminho não direcionado p, entre vx e vy, as seguintes condições são satisfeitas simultaneamente, p contém uma cadeia, ou uma divergência, p não contém uma convergência tal que qualquer um de seus descendentes esteja em Z.
+
+As variáveis B e C são d-separadas pelo conjunto Z = {A}.
+
+Entretanto o conjunto Z = {A,E} não gera a d-separação entre B e C, visto que a condição deixa de ser satisfeita.
+
+Finalmente podemos definir o conceito de independência condicional entre vari áveis de uma rede Bayesiana da seguinte maneira.
+
+Dois conjuntos de variáveis, X e Y, são ditos condicionalmente independentes, dado um terceiro conjunto de vari áveis, Z, se, e somente se, cada par de vértices, vx em X e vy em Y, é d-separado por Z.
+
+Um modelo de Markov oculto pode ser visto como um caso especial de uma rede Bayesiana.
+
+É interessante reparar que a estrutura da rede Bayesiana de um HMM é uma árvore, isto é, há apenas um caminho entre cada par de vértices.
+
+Além disso, não há convergências entre vértices e, por esta razão, o conceito de d-separação é reduzido a satisfazer apenas a condição.
+
+De maneira mais formal em um modelo de Markov oculto, dois conjuntos de variáveis, X e Y, são condicionalmente independentes, dado um terceiro conjunto, Z, se, e somente se, não existe um caminho entre uma variável de X e outra de Y, sem passar por um vértice de Z.
+
+Para um modelo de Markov oculto, as variáveis que definem as observações no futuro, a partir de um instante t, são condicionalmente independentes das observações passadas, dado o estado oculto no instante t, Yt.
+
+Seja f uma função das variáveis de observação futuras, a partir de um instante t.
+
+Então, esta função é condicionalmente independente das observações passadas, dado o estado oculto no instante t, Yt.
+
+Isto pode ser facilmente demonstrado, condicionando-se a distribuição de f nos valores de cada observação futura, e reduzindo o problema ao enunciado do Corolário A probabilidade conjunta da observação de todos os símbolos e o estado oculto i no tempo t, para uma atribuição fixa de parâmetros.
+
+Para t maior que 1, condicionando no valor do estado oculto no tempo t1 O valor deve ser interpretado como a probabilidade conjunta da observação dos símbolos, dados o estado oculto i no tempo t e os parâmetros O algoritmo forward-backward é um ponto central em muitas das computações que envolvem modelos de Markov ocultos.
+
+Utilizamos estas definições nas fórmulas do algoritmo Baum-Welch, que estimam parâmetros de máxima verossimilhan ça para HMMs.
+
+Usamos a variável forward para computar a distribuição do número de perdas em um intervalo de observações futuras, condicionada nos valores de amostras passadas.
+
+A definição das variáveis forward e backward pode também ser usada para computar a medida de verossimilhança de uma amostra É fácil perceber que a variável forward, para t maior que 1 requer um número de operações aritméticas proporcional a N.
+
+Uma vez que N(T1) variáveis precisam ser calculadas através dessa fórmula, a complexidade assintótica da recursão completa é da ordem de N2T.
+
+O mesmo pode ser verificado para a recursão backward.
+
+Uma vez que as recursões forward e backward são tão ubíquas na análise de modelos de Markov ocultos, estas costumam determinar a complexidade de outros procedimentos.
+
+De fato, o custo de cada iteração do método Baum-Welch é dominado pelo algoritmo forward-backward.
+
+Na prática, o cálculo das variáveis forward e backward, através das fórmulas que acabamos de apresentar pode ser problemático devido a erros de truncamento nas várias multiplicações envolvendo fatores no intervalo [0, 1].
+
+Entretanto, uma solução eficaz e elegante para esse problema é o método de scaling.
+
+Basicamente, as variáveis forward podem ser normalizadas para cada t, mantendo registro dos seus fatores de escala.
+
+Por outro lado, as variáveis backward podem ser multiplicadas pelos mesmos fatores, de forma que estas também tenham seu erro minimizado.
+
+Muito embora o uso destes fatores de escala seja importante na implementação prática dos algoritmos, os detalhes desta computação não são essenciais ao entendimento dos pontos de interesse desta dissertação.
+
+Recomendamos ao leitor interessado neste tema a seção apropriada de.
+
+Ainda assim, enfatizamos que todos os resultados numéricos apresentados nesta dissertação envolvem o cálculo de variáveis forward e backward com o procedimento de scaling.
+
+Antes de apresentar o resultado conhecido como desigualdade de Jensen, é preciso definir o conceito de função côncava.
+
+Embora existam diversas formas equivalentes para definir uma função côncava, utilizamos a seguinte, em outras palavras, para cada ponto, x, do hiperplano definido pela aproximação de Taylor de primeira ordem para f em torno de x é um limite superior para todos os pontos da função.
+
+Por sua vez, a desigualdade de Jensen também é um resultado que pode ser aplicado de maneira bem geral para funções côncavas, mas estamos interessados na sua versão probabilística, que pode ser enunciada da seguinte forma, para uma função côncava e um vetor de variáveis aleatórias X.
+
+Nesta seção, mostraremos como é possível chegar as fórmulas do algoritmo Baum-Welch a partir do problema de maximização dos termos da função auxiliar, conforme dispostos.
+
+Há outras formas de se chegar às mesmas expressões que não levam em consideração a resolução explícita de um problema de otimização.
+
+Para mostrar que a solução de (P) pode ser obtida pelas soluções parciais de (P), (PA) e (PB).
+
+Pelo menos um dos três termos do lado direto deve ser estritamente positivo.
+
+Seja este termo sem perda de generalidade.
+
+Uma vez que as restrições de (P) estão particionadas em três conjuntos, um para cada um dos problemas menores, 0 também deve ser uma direção viável de acréscimo para (P), o que por si só, contradiz a idéia que ¤ é um máximo local para esse problema.
+
+Os problemas (PA) e (PB) podem ser resolvidos a partir das soluções dos respectivos sub-problemas.
+
+Ao propor o modelo de observações em lote, criamos restrições nos parâmetros de observação de modo que o processo de perda em cada lote seja gerado por uma cadeia de Markov de 2 estados.
+
+Implica que se se adicionarmos outras restrições envolvendo, A e B, uma vez que elas permaneçam independentes, as fórmulas de re-estimação mudarão apenas para as variáveis sobre as quais as novas restrições se aplicam.
+
+Desta forma, podemos restringir nossa análise apenas aos parâmetros de observa ção r, p e q.
+
+Aplicando a definição da probabilidade de observação de um lote, no termo da função auxiliar correspondente aos parâmetros de observação, temos que as expressões que buscamos são os pontos de máximos das seguintes funções, para cada estado oculto.
+
+O conceito de estatística suficiente é recorrente no estudo de estimação de parâmetros para modelos probabilísticos.
+
+Portanto, seja a seguinte definição, seja µ o conjunto de parâmetros de um modelo probabilístico, e X uma amostra de valores para o mesmo modelo.
+
+Uma estatística da amostra é uma estatística suficiente se, e somente se, a distribuição da amostra, X.
+
+Propomos um modelo hierárquico cujos parâmetros podem ser estimados de maneira mais eficiente a partir de um conjunto de estatísticas suficientes que, na prática, pode ser muito menor que a amostra completa do processo de perdas.
+

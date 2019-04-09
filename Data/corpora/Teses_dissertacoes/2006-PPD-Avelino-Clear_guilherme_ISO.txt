@@ -1,0 +1,353 @@
+Este trabalho discute o desempenho de algoritmos de migração de memória en computadores do tipo Em uma.
+É apresentada uma breve descrição do algoritmo de gerenciamento de memória do Linux e, também, dos algoritmos de migração de memória propostos (migração total e migração sob demanda).
+Em seguida, é descrito o modelo de avaliação de desempenho.
+Em este trabalho, foi usado modelo de simulação com o desenvolvimento de um simulador que modela os algoritmo;
+De gerência de memória do Linux e os algoritmos de migração de memória propostos.
+Em o final, são apresentados os resultados obtidos com o uso de migração de memória, que mostraram que há melhor desempenho quando comparado com. A complexidade de cálculos para se obter resultados satisfatórios para várias questões, que nos dias de hoje são fundamentais para diferentes tipos de negócio, exigem cada vez mais que tenhamos máquinas com grande poder computacional.
+Para questões como a previsão do tempo, simulação de trânsito, entre outras que se encaixam nesse perfil, o mercado oferece supercomputadores, clusters e máquinas multiprocessadas como algumas das possíveis soluções para esses usuarios que necessitam de alta capacidade de processamento.
+De entre essas soluções, as máquinas multiprocessadas são um tema de bastante estudo e pesquisa.
+Máquinas multiprocessadas são computadores formados por um conjunto de processadores.
+Essas máquinas podem ser classificadas em dois tipos segundo a sua topologia:
+Uma (Uniform Memory Access), também conhecida como SMP (Symetric Multiprocessor), onde temos somente um banco de memória e todos os processadores ligados a esse banco, e Em uma (Non-uniform Memory Access), onde temos diversos bancos de memória arranjados entre os processadores, porém, com todos os processadores compartilhando esses bancos.
+A Figura 1.1 mostra uma máquina Em uma formada por dois nodos (neste caso, duas máquinas SMP) onde qualquer um dos quatro processadores tem acesso ao banco de memória de qualquer um dos nodos.
+A arquitetura das máquinas multiprocessadas fornece uma série de características que proporcionam melhor desempenho.
+Em máquinas multiprocessadas, por exemplo, podemos ter diversos processos executando em paralelo, cada um num processador.
+Estes processos são colocados na memória, e cabe ao sistema operacional alocas- los de forma a garantir o melhor desempenho possível ao sistema.
+A parte do sistema operacional responsável por o tratamento da memória é o gerente de memória.
+Em máquinas SMP, as funções desse gerente são facilitadas devido a a máquina ter apenas um banco de memória, assim, uma serie de questões que, em outras máquinas são problemáticas, em máquinas SMPs, acabam não aparecendo.
+Para máquinas NUMAI, esta gerência não mais se da de forma tão simples, ja que o sistema operacional tem de lidar com os diversos bancos de memória, em que o tempo de acesso a eles ja não é o mesmo para todos os processadores (ou conjunto de processadores).
+De essa forma, diversas questões como balanceamento de carga, por exemplo, tem de ter um tratamento diferenciado para que a máquina seja melhor explorada e tenha melhor desempenho.
+Atualmente, existem diversos paradigmas em uso para o balanceamento de carga em máquinas multiprocessadas.
+A maioria de eles baseia se em ambientes de programação paralela que decidem onde cada processo irá rodar no momento em que o processo é criado.
+Em estes ambientes, uma vez que um processo inicia num nodo, ele deve se manter no mesmo nodo até o seu término.
+Mesmo se a carga do sistema, desta forma, não for a melhor, não se podera voltar atras sobre decisões de escalonamento já tomadas.
+Geralmente, é impossível prever como a carga do sistema irã variar no tempo, e assim, impossível de otimizar o escalonamento de processos em processadores.
+Em função de isso, uma série de esforços foi feita a fim de se desenvolver uma classe diferente de ambientes de programação paralela que permitisse mover um processo de um nodo para outro dinâmicamente durante qualquer momento da vida do processo.
+Essa mudança de local de execução de um processo durante o seu tempo de vida é chamada &quot;migração de processo».
+Através de mudança dinâmica de processos durante o seu tempo de vida, o sistema pode se adaptar às mudanças de carga que não podiam ser previstas no início da execução das tarefas.
+Essa migração pode ser interessante do ponto de vista de balanceamento de carga, mas, novamente, considerando arquiteturas onde o tempo de acesso à memória não é igual para todos os processadores (Em uma, por exemplo) a migração pode não beneficiar o desempenho do sistema, já que o custo do acesso de um processo migrado ao seu espaço de endereçamento (que pode estar num banco de memória mais &quot;distante», devido a migração do processo) pode não pagar o custo (compensar) de um balancemento de carga.&amp;&amp;&amp;
+Para o melhor aproveitamento da migração de processos, um sistema de migração de páginas é importante pois fará com que as areas de memória do processo fiquem mais próximas ao processador em que este está executando, para fazer com que estes dois custos sejam os menores possíveis e resultem num melhor desempenho do sistema global.
+Dada a importância de um sistema de migração de paginas, este trabalho propõe duas estratégias para migração de paginas e mostra um estudo, através de um processo de simulação, sobre o desempenho destas estratégias se implementadas no sistema operacional Linux?
+A seguir, serão apresentadas algumas questões relevantes sobre gerenciamento de memória em máquinas Em uma (Capítulo 2), e, em seguida, o gerenciamento de memória feito por o Sistema Operacional Linux (Seção 2.2).
+Os modelos de migração de paginas propostos no trabalho, então, são apresentados, primeiramente com o modelo de migração completa (migração total), mostrado na Seção 2.3.1 e.
+A fim de garantir a eficiência num sistema, a memória deve ser muito benr_ gerenciada.
+Em um sistema operacional, o gerente de memória é responsavel por gerenciar o uso de toda a memória disponíve' no sistema.
+Gerência de memória em máquinas monoprocessadas tem sido assunto comum de pesquisa nos últimos anos, contudo, gerência de memória ainda apresenta alguns desafios quando aplicada a máquinas multiprocessadas, embora já tenha sido estudada por um tempo considerável.
+Conforme mencionado, máquinas multiprocessadas com memória compartilhada podem ser classificadas como Symmetric Multiprocessor (SMP) ou NonUniform Memory Access (Em uma).
+Máquinas SMP são sistemas multiprocessados onde cada processador acessa qualquer area da memória num tempo constante.
+Sistemas do tipo Em uma são sistemas multiprocessados organizados em nodos Cada nodo tem um conjunto de processadores e parte da memória principal.
+A distância entre os nodos não é a mesma, portanto, existem diferentes tempos de acesso de cada processador para diferentes areas da memória.
+A Figura 1.1 mostre uma máquina Em uma com quatro processadores organizados em dois nodos.
+Com o objetivo de proporcionar o correto gerenciamento da memória, o sistema operacional precisa conhecer a estrutura de memória do computador.
+Atualmente grande parte dos computadores suportam o padrão ACPI (Advanced Configuration and Power Interface), o qual provê diversas informações para o sistema operacional.
+ACPI é uma especificação de inteface que provê informações sobre a configuração do hardware permitindo ao sistema operaciona' realizar o gerenciamento de energia dos dispositivos de um computador.
+Todos os dados da ACPI estão hierarquicamente organizados em tabelas de descrição que são montadas por o¡ irmwarc do computador.
+A estrutura base do padrão ACPI é O Root System Description Pointer (RSDP), o qual é carregado na memória num endereço padrão e aponta para a Root System Description Table (RSDT).
+A RSDT contém ponteiros para todas as outras tabelas de descrição que provém informações a respeito de a configuração da máquina, como por exemplo, informações de dispositivos plug 3 play, temporizadores, informação sobre a memória, etc..
+Uma destas tabelas, chamada System Localíty Information Table (SLIT), descreve a distancia relativa (latência de memória) entre localidades ou domínios de proximidade.
+Especificamente no caso de computadores tipo Em uma, cada nodo é uma localidade.
+A Seção 2.1.1 apresenta em detalhes a SLIT.
+Em uma SLIT o valor da posição P «representa a distancia do nodo 2' para o nodo j.
+A distância entre um nodo e ele mesmo é chamada distancia SMP e possui o valor padrão de 10.
+Todas outras distâncias são relativas à distancia SMP.
+Como processadores e blocos de memória estão dentro de um nodo, a SLIT provê a distancia entre processadores e areas de memória, isto é, diferentes distâncias ne SLIT representam diferentes níveis de acesso a memória.
+A Tabela 2.1.1 mostra uma possível SLIT para a máquina Em uma da Figure 1.1.
+De acordo com esta tabela, a distância entre o nodo 1 e o nodo 2 é duas vezes a distancia SMP.
+Isto significa que um processador no nodo 1 acessa a area de memória do nodo 2 duas vezes mais lento que uma area de memória no nodo 1.
+O gerente de memória implementado por o Linux trabalha de forma similar para máquinas Em uma e SMP.
+Em máquinas Em uma, contudo, a memória é organizada em bancos chamados nodos, e o gerente de memória do Linux aloca memória para um processo no banco mais perto de o nodo em o qual o processo esta executando.
+Apesar de não haver um tratamento diferenciado com relação a a memória do processo migrado, o que pode degradar o desempenho do sistema, o algoritmo de balanceamento de carga do Linux está estruturado de forma a tentar evitar a migração de processos entre nodos em máquinas Em uma.
+Isto é feito baseado no conceito de domínios de escalonamento e grupos de CPUs que hierarquicamente estruturados representam a topologia da máquina.
+Um domínio de escalonamento é formado por um ou mais grupos de CPUs, e estes são formados por os proces sadores de um mesmo nodo.
+Em a máquina da Figura 1.1, teríamos dois grupos de CPU e um domínio de escalonamento (composto por os dois grupos de CPU) como podemos ver na Figura 2.1.
+Assim, o balanceador de carga trabalha dentro de o escopo definido por estes grupos e domínios, ou seja, ele tenta primeiramente re solver o desbalanceamento dentro de o nodo e posteriormente entre os nodos caso necessário, evitando assim a migração de processos entre nodos.
+Informações mais detalhadas sobre o balanceador de carga do Linux em.
+Em sistemas SMP, a escolha de migrar processos de um processador sobrecarregado para um processador livre (idle) não causa nenhum efeito maior.
+Como a distancia entre todos os processadores e a memória é a mesma, migrar um processo de qualquer processador para outro não diminui o desempenho global do processo Isto não acontece em máquinas Em uma pois migrar um processo de um processador para outro processador no mesmo nodo é melhor do que migras- lo de um processador para outro nodo.
+Isto se deve às diferentes distâncias entre processadores que estão em diferentes nodos.
+A Figura 2.2 mostra um exemplo de migração de processo.
+Suponhamos quo dois processos S1 e S2 compartilham o mesmo processador P1.
+O Linux aloca memória para ambos S1 e S2 no banco de memória do nodo 1, que é o banco de memória mais próximo de o processador P1.
+Linux, então, decide migrar o processo S1 para o processador P3 porque P3 esta livre (idle).
+Isto ira balancear a carga dos processadores, provavelmente, melhorando o desempenho do sistema já que os processos Sl e S2 irão agora estar rodando em paralelo.
+Contudo, toda vez que o processo S1 acessar sua memória, este acesso será mais lento.
+Esta situação pode causar o declínio do desempenho do processo, e, provavelmente, de todo o sistema O atual escalonador do Linux e o gerente de memória não levam em consideração a localização da memória do processo.
+Este trabalho analisa duas abordagens que consideram a migração do espaço de processador ao qual o escalonador migrou o processo:
+Migrar todo o conteúdo da memória do processo no mesmo momento em que o processo migra (Migração Total de Memória);
+E (ii) migração do conteúdo da memória do processo conforme o processo continua a executar (Migração de Memória sob Demanda).
+Esta estratégia considera a possibilidade de migrar toda a memória do processo no momento em que o processo esta sendo migrado.
+Normalmente, o Linux migra um processo quando um processador esta livre, portanto, esta estratégia não ira diminuir o poder de processamento global do sistema.
+O maior overhetzd trazido ao sistema esta relacionado ao acesso ao barramento da memória, isto é, mover páginas de um processo migrado de um nodo para outro pode fazer com que processos executando tenham de esperar até esta migração ser concluída.
+Com o objetivo de implementar esta abordagem foram investigadas as estruturas de dados e funções providas por o sistema operacional Linux.
+As estruturas e funções basicas usadas para implementar esta estratégia são:
+Task_ struct (Código 2), mm_ struct (Código 3), a11oc_ pages_ node,_ migrate_ task (Código 1) e memCpyO.
+Algumas dessas funções foram usadas para extrair informações necessarias no modelo simulado apresentado no Capítulo 3.
+A o final desta função, o processo alvo da migração já estara atribuído ao processador dest_ cpu e com as estruturas disponíveis em ela, possui- se todas as informações necessarias para a migração das páginas do processo.
+Assim, no caso de um sistema de migração total de paginas ser implementado seria necessario adicionar, ao final desta função, o código que tratará da migração das paginas deste processo para o nodo do processador para o qual o processo foi movido (dest_ cpu).
+Como se sabe quem é o processador destino da migração, pode- se, através de ele, se chegar ao nodo ao qual este processador pertence, e, além disso, como se sabe quem é o processo que foi migrado (p), pode- se chegar até as páginas que devem ser migradas.
+Para obter o nodo ao qual dest_ cpu pertence, basta utilizar o vetor cpu_ 2_ node Este vetor é preenchido durante a inicialização do sistema operacional e mapeia os processadores aos nodos do sistema.
+Assim, o valor do vetor na posição dest_ cpu (cpu_ 2_ node) retornará o identificador do nodo ao qual dest_ cpu per Em posse do nodo para onde serão migradas as páginas resta se obter as infor mações das páginas do processo migrado para se iniciar a execução da migração das páginas.
+Como se está em posse, também, da estrutura do processo que foi migrado (task_ struct* p, mostrada resumidamente no Código 2), pode- se chegar a estrutura mm_ struct* mm (linha 6) que representa a estrutura de memória desto Em a estrutura mm_ struct estão todas as referências as informações da memória do processo:
+Código, dados, pilha, argumentos, endereço da área de swap, contexto.
+No caso de a migração de paginas, o que necessita ser alterado nessa estrutura são exatamente as referências ao código, dados, argumentos e pilha (linhas 4, E e 6).
+Estas referências serão modificadas a fim de refletirem a migração desses dados para outro nodo.
+Essa migração é feita através da cópia das informações referenciadas por estas estruturas para o nodo destino da migração, que ja fo* descoberto através do vetor cpu_ 2_ node, anteriormente explicado.
+Desta forma necessita- se calcular o tamanho do espaço ocupado por estas estruturas, e, em posse deste valor, alocar espaço na memória do nodo destino para receber a cópia das mesmas.
+Esta alocação deve ser feita através da função alloc_ pages_ node que permite a alocação de memória num determinado nodo.
+Sendo assim, após feita a alocação, basta copiar o conteúdo referenciado por as variáveis com as informações para a area recém alocada no novo nodo, atualizando as referências das mesmas para o nodo destino e liberando a area de memória do nodo fonte.
+O Código 4 mostra uma possível implementação do algoritmo de migração tota de paginas descrito no parágrafo acima, que é chamada mediante a remoção do comentario da linha 29 do Código 1.
+Embora migrar todo o espaço de endereçamento do processo ao mesmo tempo que o processo esta migrando pode aumentar o desempenho do sistema, migrar todo o espaço de endereçamento do processo toda vez que um processo é migrado podo causar a diminuição do desempenho se o processo migra diversas vezes durante ser tempo de execução.
+A segunda abordagem analisada neste trabalho considera 2 mesma estratégia usada por o sistema de memória virtual do Linux quando este fa;
+Hewlett--Packard. A idéia basica da implementação atual é a de quando um tratador de falta se encontra na cache sem mapeamentol e sem writebacks pendentes (ou seja.
+Se o algoritmo de migração sob demanda (PF_ MIGUNFAULT) estiver habilitado para a task que gerou a falha (current), e a página procurada não tiver mapeamento, nem tiver algum writeback pendente, e esta página tendo suporte migração, então é verificado se a mesma se encontra no nodo mais próximo de o processador em o qual a tarefa atual (current) está executando.
+Esta verificação é feita através da chamada da função mpo1_ misp1aced.
+Verificando- se que a página não está no nodo mais próximo de o processador, a migração da mesms é feita através da chamada da função migrate_ misp1aced_ page senão, se por alguma razão a pagina não pode ou não deve migrar, a mesma é retornada por a função check_ migrate_ misplaced_ page causando efeito nenhum sobre o algoritmo de gerência de memória do Linux.
+A função mpo1_ misp1aced, mostrada nos Códigos 6 e 7, conforme já dito anteriormente, é a responsável por verificar se a página que gerou a falta precise ser migrada ou não.
+A função faz esta análise com base na política de alocação de paginas configurada para o sistema de gerência de memória.
+O suporte e Em uma oferecido por o Linux permite ao usuario dar dicas sobre em que nodo (s) 2 memória deve ser alocada.
+Estas dicas são dadas através das políticas de alocação de memória.
+As políticas implementadas por o Linux são:
+Interleave -- Aloca memória de forma entrelaçada entre um conjunto de nodos· Bind -- Aloca memória somente de um conjunto específico de nodos;
+Preferred -- Tenta a alocação num nodo específico, se não conseguir utilize a política Default.
+O valor 1 significa alocação no nodo local.
+Default -- Aloca sempre no nodo local.
+O algoritmo implementado por a função mpo1_ misp1aced é bastante simples Ele somente pesquisa o identificador do nodo onde a página que gerou a falta de página se encontra e o compara com o identificador do nodo onde a task em questão se encontra.
+Se forem iguais, não há necessidade de migração, sendo retornado o valor 0, caso contrário, retorna- se um valor diferente assinalando a necessidade do migração da página.
+Como já dito anteriormente, esta pesquisa é feita com base na política de alocação paginas configuradas.
+Em a linha 15, faz- se o tratamento para o caso da política estar configurada como Interleaved.
+Em esta política, o nodo alvo da alocação é definido por o ofset do endereço da página, portanto, para descobrii o identificador deste nodo são feitas operações sob o endereço da página, obtendo- se em polnid o identificador procurado.
+Caso este identificado] (que referência o nodo em o qual o processo que gerou a falta de página se encontra) for igual ao do nodo onde a página em questão se encontra (linha 25), não hs' necessidade de migração pois ambos já estão no mesmo nodo, caso contrário, 2 função retorna sinalizando que a migração é necessária e o nodo alvo da migração Código 6: Função mpo1_ misp1aced -- parte 1.
+Os Códigos 7 e 8 mostra a seqüência da função mpolgnisplaced, onde são tratadas as demais politicas de alocação de páginas.
+Para descobrir o nodo em o qual o processo se encontra quando a política utilizada é a Preferred, basta- se verificar qual o nodo foi configurado para a alocação (linha 33), verificando se o caso especial, onde então deve- so alocar a página no nodo local (linha 35).
+No caso de se estar usando a política Bind, verifica- se se o nodo onde a página que gerou a falta ocorreu se encontra na lista de nodos configurados para terem paginas alocadas.
+Caso se encontre, a migração não é necessaria (a política de alocação tem prioridade maior do que a migração), caso contrário Em o último caso, se configurada a política de alocação Default, a alocação~ sempre feita no nodo local, este é, portanto, o nodo onde se encontra o processo~ verificada no código das linhas 60 e 61.
+Como no caso de a política Interlecwe, caso a migração seja necessária, o nodo para onde a página deve ser migrada retorna através da variável newnid.
+Após a função mpo1_ misp1aced executar, ela retorna para a check_ migrate_ ma sp1aced_ page sinalizando a necessidade de se realizar a migração.
+No caso de se necessária a migração, a função migrate_ misp1aced_ page para que esta geren Cie a cópia do conteúdo de uma pagina para a outra, bem como a configuração dos atributos da mesma e outras estruturas de controle do sistema de gerência de memória.
+A função migrate_ misp1aced_ page mostrada nos Códigos 9 e 10, inicia fazendo algumas verificações para certificar- se de que os requisitos para a migração estão satisfeitos.
+A primeira verificação analisa se não houve mudança em relação a o mapeamento da página, já verificado anteriormente.
+Em seguida, n:
+A o final de todo o processo de migração de página, tendo essa ocorrido ou não, o tratamento da falta de página por parte de o gerente de memória do sistema operacional continua normalmente, sendo a migração da página somente uma nova configuração do sistema, transparente ao atual gerente de memória do Linux.
+Em este capítulo foram mostrados os algoritmos de migração de memória propostos e também possíveis implementações destes dois algoritmos no código fonte do sistema operacional Linux.
+Em o Capítulo 3 será apresentada a ferramenta de, b dl 1d t1 d tblh araaaharode memória em comoomo eosimua ouíiza ono ra ao v'Modelo Simulado A fim de comparar o desempenho do algoritmo do gerente de memória do Linux quando ocorre migração de processos em máquinas Em uma com o mesmo algoritmo usando os modelos propostos, foi implementado um modelo simulado utilizando 2 ferramenta de simulação JaUaSim.
+JavaSim é a implementação Java da biblioteca C+ SIM[ C+ SIM-Group, 2005 Little and McCue, 1994] que suporta um modelo de simulação de eventos contínuos num tempo discreto.
+O escalonamento de eventos é orientado a processos isto é, o gerenciamento dos eventos é implícito no gerenciamento dos processos.
+Modelos de sistemas específicos podem ser construídos através da herança das classes do JavaSim.
+O framework JavaSim faz a gerência da simulação de uma forma que se assemelha ao gerenciamento de processos de um sistema operacional.
+Este frameworl possui um escalonador que é o responsavel por o ordenamento da execução dos processos Jauasim submetidos à simulação.
+Este gerenciamento se da através do tempo de ativação dos processos, sendo assim, pode- se verificar que a passagem do tempo na simulação se da através do tempo de ativação e o tempo de execução dos processos.
+As figuras a seguir exemplificam o gerenciamento da execução dos processos Javasim feito por o escalonador do framework.
+O cenário exemplificado na Figura 3.1 mostra uma simulação em que 3 processos (Pl, P2 e P3) devem ser executados.
+Cada um dos processos possui um tempo de ativação (Te a) que representa o momento no espaço de tempo em que o processo inicia sua execução.
+De a mesma forma, cada processo tem ainda um tempo de execução (Te) que determina o tempo que ele precisa para realizar toda a sua execução.
+O escalonador do Javasim funciona baseado em eventos que são marcados por o tempo de ativação e o tempo de execução dos processos da simulação.
+Assim, em posse dessas informações, o escalonador do Javasim gerência o tempo de inicialização dos processos, bem como o andamento do &quot;relógio «do sistema.
+Pode- se pensar na estruturação das tarefas a serem realizadas por o escalonador do JavaSim como a Tabela 3.1.
+Como mostra a tabela, pode- se verificar que do tempo U até o 10 não há evento portanto o tempo do sistema, &quot;salta «diretamente para o tempo do primeiro evento que é a inicialização do processo Pl.
+A Figura 3.2 mostra o cenario neste momento Em seguida, o simulador verifica que o próximo evento está marcado para o tempo 20.
+Configura o tempo do sistema para tal e inicializa este, como mostrado na Figura 3.3.
+Em este cenário, pode- se notar como o JavaSim pode ser configurado para a execução de processos em paralelo.
+Em este momento, tem- se P1 e P2 em execução.
+Os próximos eventos ocorrerão no tempo 30.
+Portanto, o tempo do sistema &quot;salta «para este Valor e os dois processos em execução são finalizados, conforme os eventos estão configurados para serem simulados.
+A Figura 3.4 apresenta o cenario neste tempo.
+Este exemplo mostrou o funcionamento básico do Javasim, porém, diversas outras situações podem ser criadas gerando- se eventos conforme a necessidade do modelo simulado.
+Duas partes, por exemplo.
+Em esse caso, a partir de o seu tempo de inicialização, o processo executará até ser removido do processador e novamente passado a fila dos processos a serem executados, agora, entretanto com seu tempo de ativação alterado para algum tempo no futuro e o seu tempo de execução decrescido do tempo que este já executou na primeira vez em que esteve no processador.
+O sistema modelado simula os algoritmos do escalonador de processos e do balanceador de carga do Linux para diferentes arquiteturas e cargas de trabalho.
+Lnternamente à.
+Modelagem do escalonador, foi adicionado código para a configuração do sistema de gerência de memória da máquina simulada.
+A Figura 3.6 mostra o diagrama de classes do modelo simulado.
+Existem três classes que implementam processos de simulação, ou seja, classes que estendem a Classe SimulationProcess do Javasim:
+NumaMac/ Line, Arriuals e Processor.
+O modelo contém outras classes que são usadas por os processos da simulação, como por exemplo, a classe task.
+Em uma simulação, existe somente uma instãncia de NumaMachine, a qua' contém informações sobre a topologia da máquina simulada, bem como é a responsavel por configurar a simulação de acordo com os parametros informados por o usuario.
+O objeto da classe NumaMachine controla a execução da simulação e 2 criação e ativação inicial de todos os outros processos da simulação.
+Existe também somente uma instância da classe Arrivals.
+Este objeto é responsavel por a criação das tasks e por a atribuição destas para os processadores de acordo com as políticas do Linux.
+A taxa de criação das tasks é definida por uma distribuição exponencial sendo a média informada na inicialização da simulação por o usuário.
+A distribuição exponencial é usada neste caso (e em alguns outros que serão mencionados) nois possui a característica memoruless que significa que saber o que aconteceu no passado não ajuda a prever o futurol.
+Objetos da classe Processor são os principais processos da simulação.
+Como O escalonador do Linux executa de forma independente em cada processador do sistema, os algoritmos de escalonamento e balanceamento de carga são executados por esses objetos.
+Esta classe é onde se encontra, também, a implementação do algoritmo de simulação de migração de páginas que será detalhado posteriormente.
+Todos os processadores do sistema possuem duas filas associadas (implementadas por objetos da classe Queue):
+A fila ready, que contém os processos que estão prontos para serem executados, e a fila ezcpired, que possui os processos expirados.
+Objetos da classe Task representam processos do Linux, estes, que possuem dois atributos que são usados por o escalonador para definir a ordem de execução dos processos no processador.
+Tais atributos funcionam configurando a prioridade do processo no sistema, são eles:
+Prioridade estática, conhecida internamente no Linux como nice e a prioridade dinâmica.
+Em o simulador, o valor do nice (prioridade estática) de cada processo é determinado por uma distribuição uniforme de 20 a 2o (estes valores são extraídos do kernel do Linux).
+O valor da prioridade dinâmica.
+Este valor define o tempo que esta task executaria se não fosse interrompida.
+Por exemplo, considerando um evento contínuo como a chegada de tasks num sistema com distribuição exponencial e média 5s, o fato de até o tempo 45 não ter chegado nenhuma task não Similar ao Linux, tasks não são classificadas como totalmente CPU-bound O1¡ I/ O-bound, elas podem ser mais ou menos CPU ou I/ O-bound, dependendo do tempo que elas gastam executando (processing time) e o tempo que elas esperan por o término de operações de I/ O (waiting time).
+Portanto, o tempo que uma te as¡ ira executar sem perder o processador é definido por uma distribuição exponencia' e é sempre menor ou igual a fatia de tempo deste processo.
+Se a task executai por menos do que a sua fatia de tempo, significa que ela perdeu o processadoi à espera de alguma operação de I/ O. O tempo que a tarefa ficará no estado de espera, a taxa de acesso a memória do processo, assim como a taxa de acessos 2 posições de memória já acessadas por ele e o tamanho do processo (task) tambén são definidos por uma distribuição exponencial.
+Além de as informações sobre as características dos processos do Linux, os seguintes valores são necessarios para iniciar uma simulação:
+Distância dos nodos;
+Número de tasks que serão criadas e executadas por os processadores;
+Número de processadores e nodos da máquina simulada;
+Tipo de migração de paginas que define se sera utilizado o algoritmo de migração total, migração sob demanda ou se sera utilizado o algoritmo do Linux que não implementa migração;
+Taxa média de criação de tasks;
+Tempo médio de execução das tasks;
+Tempo médio de processamento das tasks;
+Tempo médio de espera das tasks (waiting time);
+E (ix) tamanho médio de uma task.
+O simulador proposto implementa os dois algoritmos de migração estudados (migração total e migração sob demanda) e também o algoritmo de gerência de memória do Linux, o qual não implementa nenhum tipo de migração de paginas.
+Em o modelo simulado, a implementação da parte de o gerente de memória responsãvel por lidar com a migração de processos e paginas encontra- se no escalonado] (na classe LoaclBalancer).
+Todos os processos (instâncias da classe Task) encontram- se numa fila (read:
+Ou expired) de algum processador.
+Assim, a migração de um processo é realizada por o simulador simplesmente movendo- se o processo selecionado para sofrer migração da fila onde se encontra para a mesma fila, só que de outro processadol (para maiores detalhes sobre migração de processos no Linux, Ver) O impacto causado no desempenho do sistema quando um processo é migrado é verificado por o tempo que o processo migrado levará para executar.
+Quando unr processo é criado, ele tem um tempo de execução.
+Como já dito na Seção 3.1, este tempo representa o tempo que o processo leva para executar sem ser interrompido no processador ao qual foi atribuído ao ser criado (lembre- se de que ao ser criado o processo é carregado no banco de memória mais &quot;próximo «do processador ao ouãl foi atribuído).
+Considerando- se a implementação do Linux do gerente de memória, o tempo de execução deste processo podera ser alterado, já que o acesso à memória deste processo podera ter um &quot;custo «maior, dependendo da &quot;distancia «entre o processador que recebeu o processo migrado e o banco de memória onde o processo foi carregado inicialmente.
+Desta forma, o que ocorre no simulador quando um processo sofre migração, é o recálculodo tempo de execução do processo, ou seja, recalculase quanto tempo a mais o processo ira levar para executar depois de mudar de processador.
+O Código 11 mostra o código do simulador que faz o recálculodo tempo final do processo migrado quando o algoritmo do gerente de memória usado é o implementado por o sistema operacional Linux.
+A linha 10 do Código 11 verifica se a simulação esta configurada para simular o algoritmo do Linux.
+As linhas 11, 12 e 13 são as responsaveis por calcular quantos acessos a memória este processo ainda fara.
+Este cálculoé feito da seguinte forma:
+Em as linhas 5 e 6, calcula- se quanto tempo o processo executou depois da última migração.
+Este cálculo é feito subtraindo- se o tempo que o processo executou até antes da última migração ocorrida, do tempo que este processo executou até o atual momento (ranTime).
+Subtraindo- se ranTime de addedTime (linha 7) tem- se o tempo a ser descontado na migração corrente (correction).
+O algoritmo para a simulação da migração total não precisa lidar com o tempo de acesso à memória, pois como toda vez que um processo migrar para outro processador, seu espaço de endereçamento, automaticamente, migrara para o banco de memória mais próximo deste processador.
+Sendo assim, todos acessos a memória terão o mesmo custo.
+O algoritmo que faz o recálculo do tempo de execução de um processo migrado é mostrado no Código 12.
+A linha 21 do Código 12 verifica se o algoritmo de migracão de Páginas a ser usado é o de migração total.
+As linhas 22, 23 e 24 do mesmo código fazem o recálculodo tempo de execução do processo migrado.
+Este cálculoé realizado acrescentando- se ao tempo final do processo inicialmente calculado, o tempo de migração de todo o espaço de endereçamento do processo migrado para o banco de memória mais próximo de o processador ao qual o processo migrou.
+O tempo desta migração do espaço de endereçamento do processo é o resultado da multiplicação do tamanho do processo (taskgetSizeO) por o tempo de acesso à memória do processador ao qual ele será migrado até o banco de memória onde o processo fo* carregado (linhas 23 e 24).
+Diferentemente do algoritmo de migração total de paginas e do algoritmo implementado por o Linux que foram de simples implementação no simulador, a implementação do simulador para tratar do algoritmo de migração sob demanda possul uma complexidade um pouco maior por não só ter de considerar as migrações já ocorridas durante a simulação, como também de que nodo e para que nodo foram estas migrações.
+O código do simulador que implementa o algoritmo de migração de paginas sob demanda esta dividido em duas partes:
+Uma que trata da primeira migração de paginas do processo migrado e outra parte que cuida das demais migrações.
+Assim, o código do simulador que trata do algoritmo de migração sob demanda inicia verificando se a simulação esta configurada para utilizar este algoritmo de migração de paginas (linha 26).
+Em este caso, o simulador busca uma estrutura (do tipo Hashtable chamada, no código de memory) que armazena as informações de como está distribuído o espaço de seguida, é verificado se o processo ainda não sofreu migração na simulação corrente.
+Em este caso, calcula- se o número de acessos a memória que este processo fara até o seu término.
+Este cálculo é feito aplicando- se a taxa de acesso ê memória do processo (taskgetMemBoundO) ao tempo que resta para o processo terminar, posteriormente, subtraindo- se o número de acessos a posições de memória ja acessadas (pois ja estarão no banco de memória mais próximo de o processador, não impactando, assim, no tempo final de término do processo) e finalmente dividindo este valor por o tempo de acesso do nodo destino da migração até o nodo origem da mesma (linhas 33, 34 e 35).
+O algoritmo em seguida configura a estrutura memory para refletir a migração dos bytes de um banco de memória para outro e finalmente, nas linhas 48, 49 e 50, adiciona ao tempo final do processo o tempo de todos os acessos &quot;remotos «necessarios para a migração.
+Ação corrente, o tratamento é diferenciado.
+Conforme dito anteriormente, quando um processo é migrado, recalculase o tempo de execução do mesmo (adicionandose o tempo da migração das páginas), configurando- o, então, para o tempo de execução no caso deste processo não mais migrar.
+Juntamente com isso, no algoritmo de migração sob demanda, cada vez que o processo migra, parte de sua memória migra junto com o mesmo resultando numa distribuição da memória do processo por diferentes nodos.
+Essa migração da memória reflete- se na simulação na estrutura memory.
+De a mesma forma como ocorre no recálculodo tempo de execução do processo quando este migra, o número de bytes de memória migrados (e configurados na estrutura memory) é calculado considerando- se que este processo executará até o seu final no mesmo processador.
+Desta forma, é necessario &quot;devolver «esses bytes migrados a mais para o nodo ao qual pertenciam antes da migração anterior.
+A parte do código responsavel por fazer esta &quot;devolução «funciona da seguinte forma:
+Calcula- se quantos bytes do processo atual se encontram em nodos diferentes daquele que atualmente contém o processo.
+A partir deste valor, para cada nodo da máquina calcula- se qual a porcentagem da memória do processo que este nodo possui (linha 63 à 66).
+Assim, aplicando- se esta porcentagem ao valor da variável correction (linha 67), obtem- se o tempo a mais que se supôs que o processo acessaria a sua memória no nodo em questão caso este processo não mais migrasse.
+Dividindo- se esse tempo por o tempo de um acesso à memória do nodo em questão a partir de o nodo destino da últim:
+&quot;devolvidos «ao seus respectivos nodos.
+Em o final da redistribuição dos bytes que não deveriam ter sido migrados, corrigese o valor da quantidade de memória no nodo destino da última migração (que fo' de onde foram removidos os bytes corrigidos) nas linhas 79 e 80.
+Após o processo de correção do real estado da memória do processo nos nodos do sistema, pode- se, então, iniciar o processo de migração de o qual se esta tratando Tomando- se o tempo que resta para o processo em questão terminar sua execução (task.
+GetTimeToFinishO) e multiplicando- o por a taxa de acesso à memória deste processo, obtem- se o tempo (timeToAdd) que este processo ainda fara acesso à memória.
+Em o algoritmo de migração sob demanda, acessos a paginas de memória que já foram acessadas por o processo não geram migração porque já foram migradas no primeiro acesso as mesmas.
+Assim, a taxa de acesso é aplicada sobre timeToAdd para que estes acessos repetidos sejam descontados do tempo que sera adicionado ao tempo de término do processo.
+Isto é feito na linha 83 do Código 15.
+Após, para cada nodo do sistema que possui parte da memória do processo, o algoritmo migra a porcentagem correspondente à quantidade de memória desse processo para o nodo destino da migração.
+Pode- se ver que no Código 15 as linhas 90 e 91 buscam a quantidade da memória do processo que se encontra no nodo em questão (nodo da iteração corrente do laço), e a linha 92 calcula a porcentagem que este nodo possui da memória total do processo e portanto, a porcentagem do tempo que será adicionada ao tempo de termino do processo devido a a migração de páginas deste nodo.
+Dividindo- se este valor por o tempo de acesso à memória deste nodo a partir de o nodo destino da migração, se tem o número de bytes que será migrado deste nodo.
+Em seguida diminui- se esse número de bytes do nodo de o qual ele migrou, atualizando- se e estrutura memory.
+Depois de todos os nodos que possuem parte de memória do processo migrado terem passado por este processo, o nodo destino de migração possuirá todas as paginas migradas destes nodos.
+Desta forma, atualizase a estrutura memory novamente, para refietir esta mudança.
+Em esta seção foram discutidos aspectos técnicos da implementação do simulado] utilizado para verificar o desempenho dos algoritmos de migração de páginas propostos na Seção 2.3.
+Como visto, o modelo simulado é suficientemente flexível para prover diversos resultados.
+Porém, o modelo simulado não contempla o suporte a memória compartilhada entre processos, assim como não se considera, durante a simulação, o tamanho da memória cache dos processadores e também a capacidade da memória principal dos nodos do sistema.
+Em este trabalho serão apresentados os resultados como base para analise.
+Serão simulados diversos cenários com diferentes cargas no sistema, com processos de diferentes características, em máquinas diferentes.
+A Seção 4 apresenta os resultados (desempenho) encontrados por o modelo simulado.
+Resultados Numéricos Em este capítulo são apresentados os resultados obtidos com a execução do simulado] descrito.
+As simulações foram feitas em diversos cenários e testadas em duas diferentes máquinas verificando- se o desempenho dos algoritmos de migração de memória propostos na Seção 2.3.
+Além disso, também foi simulado e obtido o desempenho destes algoritmos quando o escalonador de processos é alterado (Seção 4.3), variando- so ainda mais os casos de simulação testados.
+Todos os resultados apresentados nessa seção possuem erro maximo de 0,83% e 5,22%, com um grau de confiança de 99% A seguir, estes resultados são descritos.
+Para a primeira execução das simulações foi usada uma máquina baseada nas arquiteturas Altix da SGI.
+A máquina possui quatro nodos oito processadores e quatro níveis de acesso a memória.
+A Figura 4.1 ilustra e máquina descrita, mostrando também a SLIT, em que se pode verificar os 4 níveis de acesso a memória através das distâncias entre os nodos.
+Considerando os resultados das simulações, estes foram baseados no tempo total de execução de todos os processos submetidos ao sistema.
+A configuração do ambiente foi variada da seguinte forma:
+Tempo médio de execução dos processos.
+De entre as variáveis anteriormente citadas, o tempo médio de execução dos processos foi utilizado com o objetivo de se analisar o comportamento do sistema quando submetido a uma carga de processos que ficam um curto espaço de tempo executando em comparação a uma carga de processos que possuem maior tempo de processamento.
+Isto, devido a o fato de que num ambiente com grande quanti dade de processos sendo submetidos, quanto maior o tempo que os processos ten para executar, maior a chance destes migrarem.
+Desta forma, configura- se un cenario interessante para o estudo, já que se pode ter, assim, a area de memória do processo migrado num banco de memória &quot;remoto», ou seja, num banco de memória que não é o mais próximos do processador para cujo este processo migrou.
+A Figura 4.2 mostra o resultado das simulações com a variação do tempo médio de execução de cada processo nos seguintes valores:
+0,5 até 100s com variação de 20s para cada simulação.
+Estes valores foram simulados num ambiente com 50 processos, todos de 50 KB, que ficam 60% do seu tempo fazendo acessos a memória sendo 40% desses acessos a posições de memória já alguma vez acessadas.
+Como podemos observar, o algoritmo de migração total teve um desempenho menor comparado aos demais.
+Os algoritmos do Linux e o de migração de páginas sob demanda apresentam um desempenho muito similar, sendo o ganho do segundo algoritmo ficando entre 9 e 13%.
+Este ganho inicia em 10,8% e cresce atingindo o pico de 12,7% com processos de tempo médio de execução de 3s.
+A partir de então, este ganho decresce até 7,5% com processos de 15s.
+Pode- se explicar esto comportamento porque quanto mais tempo os processos ficam executando, mais paginas da memória estes podem acessar, causando uma maior quantidade de migrações de paginas no caso de o algoritmo sob demanda.
+Assim, o ganho deste algoritmo acaba se &quot;suavizando», pois na medida em que esse número de migrações a uma página fica cada vez mais similar ao do algoritmo do Linux.
+O custo do primeiro acesso a uma pagina depois da migração do processo é o mesmo tanto para o algoritmo do Linux quanto para o de migração sob demanda.
+O ganho do algoritmo de migração sob demanda se da através dos acessos repetidos a páginas já migradas, assim, quanto menos acessos repetidos temos a uma página, menor esse ganho, e quanto mais páginas são acessadas, mais parecido fica o desempenho dos dois algoritmos, pois o custo do primeiro acesso após a migração, como já dito, é o mesmo.
+Com o mesmo raciocínio, podemos verificar o desempenho do algoritmo de migração total.
+Quanto mais páginas são acessadas por o processo, melhor o desempenho deste algoritmo quando comparado aos outros dois.
+E como já dito quanto mais tempo o processo fica executando, maior a chance disto acontecer refletindo na diferença do ganho do algoritmo do Linux quando comparado a este.
+O ganho começa com quase 200%, e decresce (146%, 74%, 48%, 33%, 24%, até se aproximar de 0,2% com processos de tempo médio de execução de 1005.
+A fim de Verificar outro fator variavel no sistema, um caso interessante de se analisar é a infiuência do tamanho dos processos no desempenho dos algoritmos de migração.
+Isto, porque com processos de tamanhos maiores, temos mais espaço de maior probabilidade de se ter o espaço de endereçamento do processo distribuído entre os bancos de memória da máquina, diferenciando o custo do acesso a esta memória dependendo de onde o processo precisa buscar dados.
+A Figura 4.3 apresenta o resultado das simulações corn a variação do tamanho do processo de 50, 100, 200, 300, 400 e 5 UOKB.
+Estes valores foram simulados num ambiente com 50 processos, todos com tempo médio de execução de 10s, que ficam 60% do seu tempo fazendo acessos a memória, sendo 40% desses acessos a posições de memória ja alguma vez acessadas.
+O algoritmo de migração total apresentou um resultado ja esperado.
+Como neste algoritmo toda vez que ocorre migração do processo, toda sua area de memória é migrada, quanto maior o tamanho do processo, mais tempo este leva para migrar de um banco de memória para outro, sendo assim, maior proporcionalmente será o seu tempo de execução.
+A curva de desempenho dos algoritmos do Linux e o de migração sob demanda ficaram muito parecidas, com um ganho novamente do algoritmo de migração sob demanda.
+O ganho inicial de 9,3% corn processos de 50 KB aumentou gradativamente até 13,6% com processos de 300 KB.
+Visto que a taxa de acessos repetidos a posições de memória já acessadas é um fator que diferência o algoritmo de migração sob demanda.
+Algumas simulações foram executadas a fim de Verificar a influência desta taxa no desempenho final do algoritmo.
+A taxa de acesso a posições de memória ja acessadas foi variada nos seguintes valores:
+20, 40, 60 e 80%.
+Estes valores foram simulados em diferentes ambientes, em que se variou a taxa de acesso à memória dos processos simulados.
+As figuras a seguir apresentam o resultado das simulações com a taxa de acesso à memória variando nos seguintes valores:
+20%, 40%.
+Pode- se verificar que o ganho do algoritmo de migração sob demanda aumenta conforme aumenta- se a taxa de acessos a posições de memória já acessadas, quando comparando- o com o algoritmo do Linux.
+A Tabela 4.1 apresenta o ganho do algoritmo proposto (migração sob demanda) quando comparado ao implementado por o Linux.
+Além disso, podemos verificar que conforme aumenta- se a taxa de acesso à memória, mesmo mantendo- se constante a taxa de acessos a posições de memória já acessadas, o ganho do algoritmo de migração sob demanda sob o do Linux.
+Interessante notar que ao aumentarmos em 20% tanto a taxa de acessos e posições de memória já acessadas, quanto a taxa de acesso a memória, o aumento no ganho final do algoritmo de migração sob demanda e de no mínimo 27% chegando a atingir quase 100% em alguns casos.
+Aumentando- se a carga do sistema, submetendo- se 400 processos para serem executados, obtém- se os resultados mostrados na Tabela 4.1.
+Novamente, verificase que aumentando- se em 20% tanto a taxa de acesso a memória quanto a taxa de acessos a posições de memória ja acessadas, o ganho do algoritmo de migraçào sob demanda e de no mínimo 30%.
+Pode- se verificar, com estes resultados, que quanto maior a taxa de acesso ê memória e quanto maior a taxa de acesso a posições de memória já acessadas.
+Pode- se notar também que este ganho diminui conforme a carga do sistema, Como visto nas simulações anteriores, o número de processos no sistema é outro fator que influência o desempenho dos algoritmos estudados.
+Assim, para se verificar esta influência, foram feitas simulações submetendo o sistema a diferentes cargas.
+Para isso, variou- se o número de processos de 10 à 750.
+A Figura 4.4 mostra o desempenho dos algoritmos no cenário descrito.
+Pode- se notar uma discrepância bastante grande do desempenho do algoritmo de migração total comparado aos outros dois, quando temos um cenário com pequeno número de processos.
+Em o cenário mostrado na Figura 4.4, num sistema com 10 processos, tem- se um desempenho quase que 800% pior que os outros dois algoritmos avaliados.
+Isto pode ser explicado por o alto impacto que uma migração total causa num sistema com poucos processos, pois o custo de migrar toda área de memória de um processo de um banco para outro é bastante superior ao custo de execução do processo.
+Como exemplo, pode- se imaginar o cenario simulado.
+Com o aumento do número de processos, o tempo da migração acaba se diluindo no paralelismo do processamento, pois se tem mais processos e executar.
+Naturalmente que a situação mencionada pode continuar a acontecer.
+Como pode- se verificar na Tabela 4.1, o ganho do algoritmo de migração sol:
+Demanda sobre o do Linux é maior num sistema com poucos processos (10: De esta maneira, tem- se o cenário descrito no parágrafo anterior novamente, em que depois de um tempo, terá- se- apenas o processo migrado executando.
+Com um maior número de processos, esse custo é &quot;suavizado «por o paralelismo da execução dos demais processos.
+Além de a máquina da SGI, uma máquina da arquitetura Superdome da Hewlett--Packard também passou por a mesma série de simulações.
+A máquina simulada, também conhecida como Orca, possui 64 processadores, distribuídos em 16 nodos, conforme mostra a Figura 4.5.
+Cada nodo desta máquina é composto por um SVIP de 4 processadores.
+Os resultados encontrados foram muito similares aos obtidos na simulação da máquina da SGl que foram apresentados anteriormente.
+Pode- se notar que o tempo médio de execução final dos processos submetidos à simulação na máquina Orca foram sempre sutilmente maiores que os mesmos na máquina Altix.
+Isso se deve à diferença da arquitetura das duas máquinas.
+Apesar de a máquina Orca possuir maior número de processadores, isso não influência no tempo de execução final do processo.
+Isto se explica, pois no modelo simulado, quando se submete um processo P1 de tempo médio de execução T à simulação numa máquina M1, ao se submeter um processo com o mesmo tempo de execução T à simulação numa máquina IMZ, não significa que este processo se trata do mesmo Pl.
+Simplesmente se trata de um processo que na máquina[ M2 tem um tempo de execução igual ao que P1 tinha em All.
+Com resultados similares aos da máquina anteriormente simulada, o algoritmo de migração completa teve um desempenho sempre inferior ao demais (Linux e migração sob demanda).
+Novamente o algoritmo de migração de memória sob A Tabela 4.2 mostra a diferença entre o ganho obtido entre as duas máquinas.
+Em esse caso, se esta avaliando o ganho do algoritmo de migração sob demanda num cenario variando- se a taxa de acessos a posições de memória ja acessadas por o processo.
+O ganho obtido por este algoritmo na máquina Orca é sempre superior ao obtido na Altix.
+Em todos os casos, o desempenho do algoritmo na Orca é pelo menos 17% melhor do que na máquina da SGI, chegando a mais de 36% em alguns casos.
+Um fato que pode explicar esta diferença encontra- se novamente na diferença da arquitetura das máquinas.
+Pode- se observar através da comparação entre as SLIT das duas máquinas que considerando- se a &quot;distância «entre nodos separados por um único nível, esta é menor na máquina Orca.
+Isto torna menor o custo da migração de memória entre estes nodos, fazendo com que o tempo de execução do processo migrado seja menor nesta máquina, acabando, assim, por apresentar um desempenho superior ao da Altix.
+Este fato pode também explicar o melhor desempenho do algoritmo de migração sob demanda na máquina da Hp quando avalia- se cenários onde há processos com diferentes taxas de acesso a memória, Além de executar o simulador em diferentes arquiteturas, também foram feitos testes alterando o mesmo a fim de verificar o comportamento do desempenho dos algoritmos de migração de memória quando o escalonador é modificado para forçar a migração de processos.
+O escalonador foi alterado para que este gerasse migrações de um processo conforme uma determinada taxa.
+Esse teste foi simulado na máquina Altix, num cenário com 50 processos, todos de 5 UKB, com 60% de taxa de acesso à memória e 40% de taxa de acesso a posições de memória já acessadas.
+O tempo médio de execução destes processos foi Variado em 50, 80 e 100s e os resultados foram baseados na comparação dos algoritmos de migração de memória Independente do tempo de execução dos processos do sistema, quando a taxa de migração forçada é menor que 50%, o algoritmo original do escalonador apresenta um desempenho melhor.
+Ja quando a taxa de migração forçada é de exatos 50%, 0 desempenho fica praticamente igual, tendo uma pequena vantagem de desempenho o sistema simulando o algoritmo do escalonador modificado.
+Porém, quando a taxa de migração forçada é configurada para 100%, em todos os casos ocorreu um ganho de aproximadamente 3,7%.
+Pode- se, assim, notar a influência do sistema de migração de memória quando o ambiente é submetido a uma maior quantidade Dada a escalabilidade de máquinas multiprocessadas do tipo Em uma, tem- se máquinas com arquiteturas cada vez mais diferentes, o que torna o trabalho do sistema operacional bastante complexo quando se objetiva o melhor desempenho de máquina.
+A gerência de memória é um dos fatores que influência bastante no desempenho do sistema neste tipo de máquinas.
+Em este trabalho foram apresentadas duas estratégias para a migração de páginas da memória.
+A forma de estudo destas foi através de simulação, visto que é uma abordagem flexível e permite que sejam analisados diferentes cenários, evitando, assim, o estudo de apenas um conjunto de casos que aparentemente cobrem grande parte dos casos de uso desse tipo de máquina, mas que é uma forma questionável de se fazes- lo Para uma melhor construção do modelo simulado, este trabalho analisou com cuidado a estrutura interna (código fonte) do Linux, propondo formas de implementar os algoritmos estudados.
+Em esse trabalho foram mostrados alguns resultados obtidos com as simulações.
+Diversos outros cenários foram simulados e apresentaram resultados semelhantes.
+Em, foi estudada uma proposta para a migração de processos no Linux que mostrou, através de simulação e posterior implementação, que o desempenho do sistema aumenta quando processos são migrados entre processadores.
+Em, utilizando modelos estocásticos, verificou- se da mesma forma este ganho.
+Este trabalho mostrou que.
+Diversos outros aspectos relacionados com as características de processos não foram mostrados neste trabalho e são parte de um trabalho futuro, por exemplo compartilhamento de paginas entre processos.
+Outras questões como as já men cionadas na Seção 3.2.2, tais como o uso da memória cache e a configuração dos bancos de memória não são consideradas, mas podem ser facilmente integradas ao atual modelo simulado, fazendo parte também de trabalhos futuros.
+Uma questão interessante de ser estudada, também, seria a avaliação de um sistema de desfragmentação de memória a ser usada em conjunto com a migração de memória dos processos entre os nodos.
+Uma vez que migrar a memória do processo (algoritmo de migração sob demanda) mostrou um melhor desempenho, avaliar o impacto nesse desempenho de se ter um sistema que tente juntar a memória de um processo migrado a fim de diminuir o custo do acesso as partes da memória destes processos que se encontram distribuídas entre os nodos, seria interessante na tentativa de aprimorar o sistema de migração de memória.

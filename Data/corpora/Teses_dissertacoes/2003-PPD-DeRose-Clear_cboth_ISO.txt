@@ -1,0 +1,810 @@
+A monitoração é uma ferramenta de suporte para o desenvolvimento de aplicações paralelas, pois auxilia a análise de desempenho e visualiza o comportamento da aplicação no decorrer de sua execução.
+A grande maioria das ferramentas de monitoração de software utiliza gráficos de visualização ricos em informações e arquivos de rastro próprios.
+Em esta dissertação será apresentada uma ferramenta de monitoração para análise de arquivos de rastro chamada SIGHT (Slmple Graphic Heuristic Trace).
+Esta ferramenta converte arquivos de rastro da biblioteca de comunicação MPI (ALOG) em arquivos XML, preocupando- se com a compatibilidade com outras ferramentas de monitoração pos mortem, pois o formato XML proporciona uma extensibilidade e portabilidade no seu formato.
+Os arquivos de rastro são interpretados com a utilização de graficos de visualização específicos que tentam encontrar problemas clássicos em programação paralela, como por exemplo:
+Comunicação, divisão de tarefas e heurísticas voltadas à distribuição dos eventos de comunicação e componentes de calculos.
+O objetivo é encontrar desequilíbrios dos eventos paralelos nos diferentes nós utilizados no processamento, melhorando a análise de desempenho dos arquivos de rastro e diminuindo o ciclo de desenvolvimento de um programa paralelo.
+Palavras-chave: Ferramenta de análise de Desempenho, Alto Desempenho, Programação Paralela, Biblioteca de Comunicação, Arquivos de Rastro.
+O processamento visando alto desempenho é uma necessidade nos dias atuais.
+Apesar de a constante evolução que vem ocorrendo nas arquiteturas de computadores, o desempenho dos sistemas é, muitas vezes, insuficiente para resolver problemas em áreas como Biologia Molecular, Matemática Aplicada, Meteorologia, entre outras.
+Em essas áreas existe a necessidade de um poder computacional muito elevado para se obter os resultados num tempo razoável.
+Uma solução possível em busca de alto desempenho e a construção de computadores com arquiteturas paralelas, chamadas de máquinas agregadas (clusters).
+Essas máquinas possuem grandes vantagens em relação a o custo-benefício, escalabilidade e disponibilidade em relação as máquinas paralelas com memória compartilhada, como por exemplo, CRAY T3A.
+Em oposição a estas vantagens, a programação de máquinas que são construídas através da replicação de uma arquitetura convencional, como no caso de as máquinas agregadas, torna- se uma tarefa complexa, pois não existe uma memória compartilhada.
+O programador tem a responsabilidade de manipular eficientemente múltiplos processadores que necessitam dados (fisicamente distribuídos) transferidos por demanda através de uma rede de comunicação.
+Isso exige não só programadores que tenham domínio da programação paralela, mas também ferramentas que ajudam extrair o maximo poder computacional oferecido por essas arquiteturas.
+A monitoração e uma ferramenta muito importante que auxilia o programador nessa difícil tarefa de extrair o maximo desempenho das máquinas e dos programas paralelos, pois pode fornecer uma visualização do seu comportamento durante a execução.
+Como essas execuções podem ser longas, a ferramenta de monitoração pode ser implementada para armazenar essas 1 muito grande informações, nos chamados arquivos de rastro, para não gerar uma interferência no programa monitorado.
+Esse tipo de monitoração é denominado post mortem, isto é, a análise das informações referentes ao comportamento do programa sera feita após sua execução.
+Interferência: Causada por a monitoração para capturar informações num programa paralelo.
+Por exemplo, o programa de monitoração disputa largura de banda na rede de comunicação com o programa monitorado.
+Normalmente, as ferramentas de monitoração post mortcm possuem seus próprios formatos de rastro, isto e, cada ferramenta possui uma sintaxe de armazenamento das suas informações.
+A geração de arquivos de rastro padronizados facilitaria a análise de desempenho em diferentes Visualizadores.
+O formato XML (eXtensible Markup Language) vem sendo utilizado nessas aplicações, porque é uma linguagem de marcação e por isso, pode ser facilmente compreendido e manipulado para a extração de informações.
+Em contra-partida, os arquivos de rastro gerados utilizando o formato XML para a monitoração post mortem, são grandes, decorrente da sua estrutura Hays», que sera melhor descrita na seção 2.3.
+Em virtude de isso, os objetivos gerais deste trabalho são a visualização de graficos e a aplicação de heurísticas em arquivos de rastro no formato XML, porque facilitam a manipulação de suas informações para análise de desempenho em programas paralelos.
+Esses arquivos de rastro possuem registrados os eventos ocorridos durante a execução do programa, possibilitando assim, uma investigação do comportamento ocorrido na sua execução.
+Em este trabalho desenvolveu- se uma ferramenta chamada SIGHT (SImple Graphic Hemistic Trace) que analisa problemas de desempenho em programas paralelos.
+Esses programas geram grandes quantidades de eventos na sua execução, tornando difícil a Visualização de problemas de desempenho.
+A proposta desta ferramenta e utilizar não somente graficos de visualização, mas também heurísticas que mostrem o comportamento de um programa paralelo, através de arquivos de rastro.
+Esses programas são de difícil implementação, porque dependem da arquitetura Computacional utilizada e do modelo de programação adotado na sua implementação, tornando assim as ferramentas para análise de desempenhos úteis para auxiliar programadores de aplicações paralelas.
+O texto esta organizado da seguinte forma:
+Monitoração post mortem e o uso do formato XML em arquivos de rastro.
+E também apresentado o formato XML, genérico e portavel, que a ferramenta SIGHT interpreta.
+São descritos os graficos de visualização e as heurísticas da ferramenta SIGHT como uma proposta de melhoria na análise de desempenho em programas paralelos.
+Para melhor compreensão do texto algumas definições e orientações de leitura são definidas a seguir:
+Todos os algoritmos e códigos apresentados mostram os comandos da linguagem em negrito e os procedimentos (metodos ou funções) e comentários em itálico;
+A ferramenta SIGHT atualmente suporta programas sem múltiplas thread, por isso neste trabalho entende- se como programas paralelos aqueles desenvolvidos utilizando a biblioteca de troca de mensagens MPI (Message Passing Interface), sem o uso de múltiplas threads.
+Monitoração em Programas Paralelos Em nionitorações de máquinas agregadas visando o alto desempenho existem basica mente três componentes de monitoração:
+Espiões, mestres e Visualizadores Como mostra a Figura 2.1.
+Os espiões são encontrados nos nós, sendo que cada nó é um Computador completo, possui seu (s) próprio (s) processador (es), cache, memória, disco, alguns dispositivos de entrada e saída e um sistema operacional.
+O espião é responsável por a comunicação com o sistema operacional, obtendo informações de desempenho, sejam elas de hardware (dispositivos) ou de software (rastros).
+As informações obtidas são enviadas posteriormente ou armazenadas por 6 Capitulo 2.
+Monitoração em Programas Paralelos outro sistema de monitoração chamado mestre.
+Em varias implementações, como Carnival, o espião também verifica a condição do nó e gera notificações para indicar a ocorrência de algum evento.
+O mestre age como um centralizador de informações coletadas de cada nó.
+Uma das suas principais funções e gerenciar as informações recebidas.
+Normalmente no espião são definidas as interfaces que especificam os comandos de acesso a essas informações.
+Esses comandos representam os serviços que o sistema de monitoração prove à camada de controle e visualização para o gerenciamento da monitoração.
+O controle e visualização é executado por uma aplicação, (ou um conjunto de aplicações) que apresenta as informações de desempenho ao usuário de forma grafica ou textual.
+Existem varias técnicas utilizadas por as ferramentas de monitoração para auxiliar a programação paralela e o gerenciamento de máquinas agregadas.
+Os sistemas de monitoração podem ser classificados em relação a análise, visualização, ênfase de monitoração e freqüência.
+A análise ocorre no momento em que as informações são observadas.
+A análise pode* Online:
+As informações são capturadas e apresentadas conforme sua geração &quot;tempo real».
+Este tipo de análise normalmente utiliza uma quantidade maior de recurso do sistema, devido a transmissão periódica de dados ao visualizador.
+Desta forma ocorre uma maior utilização na rede de comunicação;
+Post Mortem: As informações são capturadas e armazenadas para serem analisadas posteriormente.
+Este tipo de análise é menos díspendíosa em relação a utilização da rede de comunicação, mas manipula uma quantidade maior de recursos em relação a o armazenamento das informações.
+A visualização refere- se à forma de apresentação das informações monitoradas.
+Ela pode ser:
+Gráfica: São utilizadas formas gráficas (desenho, gráficos) para representar os dados coletados, facilitando o entendimento sobre a informação monitorada;
+Textual: As informações são apresentadas através de caracteres, normalmente agrupados em tabelas.
+Este tipo de visualização é útil quando o acesso é realizado através de terminais.
+A ênfase de monitoração refere- se ao conjunto de informações onde sera realizada a monitoração.
+Pode ser:
+Software: O conjunto de informações é baseado no programa em execução.
+São monitoradas basicamente operações de envio e recebimento de dados.
+Este tipo de monitoração é também chamado de tmcing;
+Hardware: As informações coletadas referem- se ao desempenho dos módulos com putacionais da máquina (CPU, memória, dispositivos de rede).
+Estas informações são obtidas através do sistema operacional.
+A freqüência de monitoração refere- se a utilização dos dados;
+Ela pode ser classificada* Demanda:
+Para cada captura e transmissão das informações é necessaria uma requi sição vínda do mestre.
+Os espiões permanecem bloqueados após cada transmissão, até que uma requisição seja realizada;
+Cíclica: As informações são capturadas e enviadas periodicamente ao mestre.
+Em o inicio da monitoração o mestre envia aos espiões o tempo de espera entre as atualizações.
+A freqüência de atualização é diretamente responsavel por a interferência do sistema de monitoração nas medições dos tempos na máquina paralela;
+Alteração: As informações são capturadas periodicamente, mas o envio e realizado somente quando for satisfeita uma condição.
+Uma condição, por exemplo, é enviar a porcentagem de CPU utilizada, somente se essa for maior que dez por cento;
+Em a monitoração por alteração ocorre interferência no sistema operacional, mas existe uma menor utilização da rede, devido a condição de envio estabelecida.
+A classificação acima descrita não infere na exclusividade entre os subgrupos (análise, visualização, ênfase e freqüência).
+Estão somente descritas técnicas utilizadas por sistemas de monitoração, que podem ser aplicadas conjuntamente.
+A Figura 2.2 apresenta um resumo da classificação descrita.
+Existem várias técnicas utilizadas por as ferramentas de monitoração para auxiliar a programação paralela.
+Uma técnica de monitoração muito utilizada para analisar programas paralelos de alto desempenho e a monitoração post mortem.
+Como citado na seção 2.2, as informações para análise de desempenho são capturadas e armazenadas em arquivos de rastro, com isso, ha uma diminuição na interferência causada por o sistema de monitoração no programa paralelo.
+Essas interferências podem ser em relação a a concorrência da rede de comunicação, do processador de um nó, entre outras.
+Podese destacar algumas vantagens da monitoração post mortem:
+Menos intrusiva (interferência causada por a monitoração para capturar informações de um programa paralelo);
+Menos dispendiosa em relação a a utilização da rede de comunicação.
+As informações são capturadas e armazenadas para serem analisadas posteriormente a execução do programa, nos chamados arquivos de rastro;
+Permite uma análise global e mais aprofundada do comportamento do programa paralelo, pois pode gerar e armazenar uma quantidade maior de informações com pouca interferência.
+A geração de arquivos de rastro é a técnica de monitoração que pode ser usada para medir os tempos de comunicação (registrando- se os eventos de emissão e recepção) e para exi bir &quot;gargalos «(registrando- se onde os processos gastaram o tempo de execução).
+A geração de arquivos pode também ser usada para obter informações globais ou de contagem ou cronometragem, dependendo apenas do nível de refinamento da pesquisa, definidas segundo Stein* Cronometragem:
+Mede- se o tempo gasto nas varias partes do programa paralelo observado.
+Por exemplo, o tempo gasto numa função MPI pode ser obtido subtraindo- se a data de início do evento da data medida quando o mesmo termina.
+Contagem: É o registro do número de ocorrência dos eventos observados em índices globais de desempenho.
+Os arquivos de rastro podem ser divididos em duas classes, de acordo com as infor mações dos eventos ocorridos na execução do programa paralelo:
+Arquivos de Rastro Sem Meta--Formato:
+Armazenam as informações monitoradas sem referenciar como essas informações são realmente armazenadas.
+O Arquivo 1 mostra um exemplo de um arquivo de rastro da biblioteca de monitoração instrumentada PICL (Portable Instrumented Communication Library), que é visualizado por a ferramenta ParaGraph, onde se observa que a interpretação do arquivo de rastro é de difícil entendimento, pois as informações armazenadas não são definidas no próprio arquivo.
+Arquivos de Rastro Com Meta--Formato: Divide- se em duas partes.
+Em a primeira define- se como são declarados os eventos ocorridos na execução do programa paralelo e, na segunda encontram- se as informações referentes a esses eventos.
+O Arquivo 2 mostra como e estruturado o arquivo de rastro da ferramenta Pajé, onde se compreende melhor as informações registradas.
+Apesar de a evolução dos arquivos de rastro, (Arquivos Sem Meta--Formato para Arquivos Com Meta--Formato), é notório que exista a necessidade de uma padronização dos arquivos de rastro Com a padronização, diferentes ferramentas de visualização poderiam ser utilizadas para melhorar a análise de desempenho em programas paralelos, uma vez que cada ferramenta de visualização possui suas peculiaridades e funcionalidades para melhor auxiliar o programador.
+Possuindo varias ferramentas de visualização grafica, tais como:
+Upshot, Jumpshot, Jumpshot-3, descritos na seção 3.5, e todas possuem arquivos e rastros diferentes, como em:
+ALOG, CLOG e SLOG, sendo que este último possui uma maior quantidade de informações (arquivos escalares).
+Atualmente, a incompatibilidade desses arquivos de rastro é resolvida através de conversores e filtros e não por a criação de um formato de rastro padrão.
+Existem inúmeras ferramentas de monitoração que analisam o comportamento de programas paralelos, com suas características e peculiaridades, utilizando graficos de visualização e/ ou heurísticas para detecção de problemas de desempenho.
+Entretanto, na maioria dos casos, não é possível a utilização de funcionalidades de diferentes ferramentas, porque cada uma possui seus próprios arquivos de rastro e métricas para análise de desempenho.
+Ha carência de uma linguagem padrão para o armazenamento de dados em arquivos de rastro Acredita- se que a linguagem XML e uma candidata para ajudar a solucionar o problema da incompatibilidade entre as ferramentas de visualização de arquivos de rastro, por ser extensível, genérica e portável.
+Em este trabalho, as implementações de graficos de visualização e aplicações de heurísticas para análise do comportamento de programas paralelos interpretam arquivos de rastro no formato XML.
+Tentou- se com isso, tornar a implementação compatível com outras ferramentas de monitoração que utilizam (ou virão a suportar no futuro) arquivos de rastro no formato XML.
+XML, acrônimo de eXtensible Markup Language, representa um padrão para definição, Validação e compartilhamento de formatos de documentos que tem como finalidade basica permitir a troca de informações distribuídas numa rede de comunicação.
+Um documento criado por uma linguagem de marcação como o XML, possui em sua estrutura elementos que permitem definir o tipo de dado a ser realizado por um aplicativo sobre uma parte do texto.
+Existem varios tipos de linguagens de marcação com propósitos diferentes, sendo a mais conhecida a linguagem para formatação Visual Html.
+Em este tipo de linguagem, para visualização na Web, os delimitadores, também conhecidos como tagsl, informam ao programa browser os comandos de formatação visual utilizados para apresentação do fragmento de texto.
+A o contrario do Html, o XML necessita de outros mecanismos (estruturas auxiliares) para Visualização de seus dados armazenados.
+Sua grande vantagem está em permitir a criação de delimitadores de acordo com 0 tipo da aplicação para a qual ele esta sendo usado.
+De esse modo ele não é limitado a um conjunto de tags, com um significado pré-definido como no Html, ao contrario, as tags nos arquivos XML identificam o significado do fragmento de texto marcado, pois elas dizem respeito apenas ã estrutura e ao conteúdo do documento.
+Assim, o documento XML permite que sejam inseridas informações dos dados armazenados em sua propria estrutura.
+Em um documento XML, as tags dizem respeito a representação dos dados e não a forma como eles serão visualizados.
+Os dados e o conjunto de tags utilizados não estão limitados as regras de formatação existentes como quando se encapsula os dados junto com as tags da linguagem Html Assim, por exemplo, quando uma aplicação distribuída precisa alterar um atributo específico, basta acrescentar esta informação ao documento XML da aplicação e também acrescentar, em paralelo, esta informação a estrutura de Validação, descrita na subseção 2.4.1.
+Isto permite que uma característica muito importante da linguagem seja apresentada:
+Deve- se ressaltar, ainda, que uma das funcionalidades principais do XML é a transferência de informações entre diferentes tipos de computadores, aplicações e organizações, sem requisitar que os dados sejam convertidos em formatos diferentes.
+A análise gramatical (XML parser) processa com grande facilidade estruturas de dados, possibilitando o gerenciamento e a re-organização de dados, sem o problema da incompatibilidade dos novos dados.
+O padrão XML permite uma certa liberdade na criação de tags, contudo, quando se cria um documento XML, deve- se seguir exatamente a sintaxe da linguagem XML, como descrito por a recomendação W302 sob pena de o processador XML não reconhecer o arquivo como um documento XML.
+A um arquivo, criado seguindo corretamente estas restrições, é dado o nome de &quot;Bem Formado «(Well--Foimed) Além de bem formado, um documento também deve ser vãlido.
+Um documento válido precisa ter uma declaração do tipo Document'El/ pe que determina qual gramática ou conjunto de regras são válidos para o documento XML em questão, qual conjunto de tags podem aparecer e como eles devem estar agrupados dentro de o documento.
+Essas informações são armazenadas num arquivo Document Type Declaration -- DTD, podendo ser declaradas no início de um arquivo XML ou num arquivo DTD isolado.
+A Figura 2.3 mostra o processo de autenticação por que passa um documento XML, até que possa ser utilizado por uma aplicação.
+A linguagem XML, por as suas características citadas na seção 2.4, pode ser utilizada na geração de arquivos de rastro, ajudando assim, a resolver os problemas de falta de extensibilidade e portabilidade das ferramentas de visualização na monitoração post mortcm.
+Pensando em portabilidade, extensíbílidade e generalidade, desenvolveu- se uma estrutura de dados DTD para geração de um formato XML, que é utilizado por a ferramenta SIGHT, descrita no Capítulo 5, em gráficos de visualização e em heurísticas para detecção de problemas de desempenho.
+Com isso, pode- se utilizar diversos tipos de análises gramaticais (powers) para 20 W3C, World Wide Web Consortium, é uma entidade que controla o desenvolvimento e padronização das tecnologias voltadas à Web auxiliar no desenvolvimento de Visualizadores e na criação de heurísticas na detecção de problemas de desempenho.
+Com a utilização de parsers XML torna a consulta no arquivo de rastro mais rapida e facil de implementar.
+Em o Arquivo 3 pode ser analisada a estrutura de dados do DTD criado.
+Em ele são encontrados quatro tipos de informações referentes ã monitoração de programas paralelos em máquinas agregadas:
+Identificador do processador da máquina agregada;
+Data de um evento (microssegundos);
+Dados referentes as funções da biblioteca de comunicação por troca de mensagens MPI, tais como:
+SEND, RECV, BARRIER, entre outros;
+Atributo referente a a comunicação entre os processadores da máquina agregada, seu correspondente encontra- se na linha seguinte da função referida.
+O DTD proposto, de forma alguma, tem o objetivo de tornar- se um padrão para todas as bibliotecas de instrumentação MPI de arquivos de rastro, uma vez que as informações capturadas são específicas para cada ferramenta de visualização.
+O que se deseja com a construção do DTD da ferramenta SIGHT é criar uma estrutura mínima e suficiente para visualizações de gráficos e heurísticas que utilizam a biblioteca MPI.
+Acredita- se que numa monitoração de programas paralelos existam os quatro atributos citados anteriormente.
+Com isso, pode- se portar as funcionalidades de diferentes ferramentas de monitoração.
+A única forma de não se Conseguir portar as heurísticas e os graficos da ferramenta SIGHT é, os arquivos de rastro não possuírem os quatro requisitos mínimos, visualizados no Arquivo 3.
+Em o DTD definem- se os requisitos mínimos e suficientes para a aplicação de heurísticas nos arquivos de rastro.
+A inclusão de muitos atributos nesta estrutura tornaria o DTD muito específico, porque nem todas bibliotecas de monitoração armazenam as mesmas quantidades de informações.
+Por outro lado, uma quantidade insuficiente de atributos podera acarretar na criação de heurísticas ineficientes para a análise do desempenho.
+Capitulo 2.
+Monitoração em Programas Paralelos Com a utilização da linguagem XML, arquivos de rastro de diferentes ferramentas de monitoração, que possuem os atributos do DTD criado, poderão também visualizar seus arquivos de rastro e aplicar as heurísticas para análise de desempenho.
+Um exemplo são os arquivos de rastros ALOG, gerados por a biblioteca de instrumentação MPE, como mostra o Arquivo 4.
+Os arquivos de rastro gerados por a biblioteca MPE são definidos como Sem Meta Formato, como descrito na seção 2.3, e com isso, a interpretação das informações armazenadas e de difícil compreensão.&amp;&amp;&amp;
+Segundo Herrarte e Lusk, os arquivos possuem as seguintes infor mações:
+Tipo do evento (event type);
+Identificador do processador (processor id);
+Identificador da tarefa (te as/ c id);
+Identificador dos dados do usuário (integer data);
+Ciclo de tempo (clock cycle);
+Data de um evento (timestamp);
+A conversão, por exemplo, de arquivos mostrados no Arquivo 4, para arquivos XML, que se enquadram na classificação de Com Meta--formato (podem ser observados no Arquivo 5) foram geradas utilizando a API (Application Program Interface) XML-SAX (Simple API to XML) desenvolvido na linguagem Java e disponibilizada por Megginson.
+Desej a- se ressaltar que as informações dos itens 3, 4 e 5 não são relevantes para a análise de detecção de problemas de desempenho em programas paralelos, por isso não são utilizadas na conversão do formato XML.
+Acredita- se, com isso, que não se teve uma perda de informações, mas sim um refinamento das informações mais importantes.
+As ocorrências dos eventos MPI na execução de um programa paralelo são registradas nos arquivos de rastros, quando iniciam e quando terminam sua utilização.
+Por exemplo, quando no processador zero (O) ocorrer a função SEND, é registrada a ocorrência inicial do evento final da função SEND).
+A Figura 2.4 mostra o funcionamento dos registros dos eventos de um programa paralelo.
+Pensando nessa funcionalidade, o arquivo XML organiza- se da seguinte forma:
+O arquivo é ordenado por o número do processador e também por os tempos de ocorrências dos eventos (ordenação crescente).
+Por isso, as linhas dos arquivos, são no formato de pares, onde a primeira linha representa a ocorrência inicial de um evento e a linha seguinte a ocorrência final deste evento.
+Esta funcionalidade é possivel sem a utilização de multiprogramação (threads) nos programas paralelos.
+A exploração da concorrência entre nós, num agregado, pode fazer uso da multiprogramação leve (multithreading), ou seja, permite a criação de varios fluxos de execução no interior de um processo.
+Cada um destes fluxos de execução é chamado de processo leve ou threads.
+O termo &quot;leve «faz referência ao fato de que os recursos de processamento alocados a um processo são compartilhados por todas suas threads ativas, não sendo necessário que cada thread possua sua própria descrição de recursos.
+A manipulação de threads é menos onerosa ao sistema operacional.
+Para Cavalheiro, no padrão MPI, nada impede que threads sejam utilizadas na programação de um nó.
+No entanto, são poucas as bibliotecas MPI que permitem associar threads aos processos usuários;
+Um exemplo, é a oferecida por Hewllet--Packard para o sistema Hp-UX 11.0.
+Utilizando a funcionalidade das informações a serem registradas através de cronometragem (formato de pares), sem o uso de multiprogramação, como descrita na seção 2.3, conseguiu- se, por exemplo, reduzir a quantidade de linhas dos arquivos de rastro da biblioteca MPE em aproximadamente trinta por cento com relação a os arquivos de rastro gerados no formato XML.
+Porém, uma das deficiências nesta utilização é que os arquivos XML normalmente são grandes em comparação com arquivos binários, justamente por serem arquivos Com Meta--Formato e possuírem as tags referentes as informações armazenadas.
+O aumento do tamanho dos arquivos de rastro convertidos para o formato XML é aproximadamente cento e oitenta por cento em relação a o formato ALOG.
+Trabalhos Relacionados. Algumas ferramentas para análise de desempenho em programas paralelos serão apresentadas a seguir:
+AIMS, Pajé, Paradyn, SvPab1o, Upshot, Jumpshot e Vampir Concentrou-se o estudo em ferramentas que implementam monitoração post mortem, ou possuem funcionalidades que auxiliem a análise dos dados monitorados, que possam ser de interesse a este trabalho.
+AIMS é um projeto desenvolvido por o Centro de Pesquisa Ames na NASA.
+Pajé, atualmente, é um trabalho desenvolvido em parceria com o Departamento de Eletrônica e Computação da Universidade Federal de Santa Maria e o Laboratório de Informática Distribuída (Id-IMAG), França.
+A ferramenta Paradyn foi desenvolvida por o Departamento de Ciência da Computação da Universidade de Wisconsin.
+SvPablo foi desenvolvido por o grupo Pablo na Universidade de Illinois em urbana-Champaign e por o Centro de Pesquisa em Computação Paralela da Universidade de Rice.
+Vampir foi desenvolvido por o Instituto Central de Matematica Forschungszentrum em Jülich.
+Upshot e Jumpshot foram desenvolvidas por o Laboratório Nacional de Argonne.
+Aspectos arquiteturais e funcionais são brevemente comentados sobre cada projeto, a seguir.
+AIMS é uma ferramenta que consiste num conjunto de programas para análise de desempenho em programas paralelos, utilizando arquivos de rastro de pequena escala A AIMS utiliza para suas instrumentações as bibliotecas de comunicações, por troca de mensagens, MPI e PVM (Parallel Virtual Machine).
+Segundo Sarukkai, a ferramenta possui três tipos de análises de desempenho de programas paralelos:
+VK -- View K emel -- mostra como foi a execução do programa paralelo dinamica mente, usando para isso Visualizadores graficos com histograma de tempo;
+SK -- Statistics kernel -- fornece estatísticas sobre a execução do programa paralelo, principalmente em relação a o tempo total de execução com tempos parciais de para o cessadores, comunicações, procedimentos;
+LK -- Index kernel -- sugere índices normalizados para tentar localizar falhas de desempenho ou &quot;gargalos «de comunicação.
+Esses índices são encontrados através de heurísticas nos arquivos de rastro.
+Os índices IK são divididos em dois tipos:
+Índices de Localização (Locutor Indices):
+Tentam determinar as localizações das falhas de desempenho, ajudando isolar processadores, estruturas de dados e segmentos de código, com possíveis problemas de desempenho, para serem analisados;
+Índices de Caracterização (Characterízer Indices):
+Procuram as causas das falhas de desempenho, tentando encontrar a razão comportamental do mau desempenho, nos índices de localização.
+Os índices de localização (Locutor) identificam eventos de comunicação como definidos na Equação 3.1.1 e sincronização definidos na Equação 3.1.2, para análise de falhas de desempenho num determinado procedimento f;
+Por exemplo: Em um processador, uma função MPI, entre outras.
+Esses valores são referentes ã relação entre o tempo de execução de um evento (tempo total de comunicação ou tempo total de sincronização) com o tempo total de execução do programa paralelo, encontrando assim valores percentuais normalizados.
+Se os valores dos eventos forem bons, esses índices são próximos a zero (O), caso contrario, se forem valores próxi mos a um são maus índices.
+Normalmente, para Yan a caracterização de um pobre desempenho em programas paralelos e devido a sobrecarga de comunicação (Communication Over/ read) ou à contenção da rede de comunicação (network contention), entre outros problemas.
+O índice de sobrecarga de comunicação Com o, como definido na Equação 3.1.3, é associado ao tamanho das mensagens transmitidas entre um processador e outro, onde N é o número de mensagens transmitidas e f o procedimento a ser analisado.
+Se esse índice normalizado for grande significa que foram trocadas muitas mensagens de pequeno tamanho, sugerindo a combinação de tamanhos variados para ajudar a amortizar a sobrecarga de comunicação.
+If_ N* Taverhead Ile/ ul () O índice de contenção LC, definido na Equação 3.1.4, é referente a o acúmulo de espera para a realização de um determinado evento T] wait.
+Um exemplo típico em programas paralelos é o tempo de espera (block) de um receive para seu correspondente send.
+IéN: Tttl Oll Com as quatro heurísticas descritas, duas de localização e duas de caracterização, o módulo IK tenta auxiliar o programador na análise de falhas de desempenho em programas paralelos.
+Com os índices normalizados, são sugeridas melhoras nos programas paralelos, sem a necessidade dos usuários, (programadores), analisarem graficos complexos ou tabelas estatísticas com as métricas filtradas nos arquivos de rastro O programador pode escolher que tipo de análise utilizar para encontrar problemas de desempenho em programas paralelos.
+Uma das deficiências da ferramenta AIMS é somente funcionar em alguns tipos específicos de máquinas, como por exemplo, Intel iPSC/ 860.
+Pajé e uma ferramenta de visualização post mortem para análise de desempenho em programas paralelos.
+Sua construção ocorreu em paralelo com o projeto Apache, que desenvolveu um ambiente de programação paralelo para resolver calculos com um alto poder computacional.
+O ambiente ATHAPASCAN permite chegar a um bom compromisso de desempenho e portabilidade, pois, possui uma interface de programação baseada na transmissão assíncrona de dados distribuídos e suporte a múltiplas threads comunicantes.
+Com a construção desse ambiente sentiu- se a necessidade de uma ferramenta para visualização de programas paralelos desenvolvidos com ambiente ATHAPASCAN, que permitisse a produção de arquivos de rastro para posterior análise de desempenho.
+Atualmente Paje é uma ferramenta que não depende mais do ambiente ATHAPASCAN.
+A nova versão da Pajé utiliza as bibliotecas GNUstep.
+Acredita- se que para um programador iniciante a instalação desta ferramenta não é simples, devido as dependências das bibliotecas GNUstep, em comparação com a facilidade de utilizar aplicativos Web ou desenvolvidos com a linguagem Java.
+Pajé possui três características principais:
+Interatividade, extensibilidade e escala bilidade, que possuem uma correlação muito forte entre si.
+Interatividade: E a base da interface de utilização da Pajé.
+Os eventos mais impor tantes são:
+Permitir o deslocamento do tempo de execução do programa monitorado, sobre a tela de visualização, &quot;interrogatório «do usuário com os objetos visualizados;
+A arquitetura da Pajé constitui- se de:
+Arquivos de rastro, leitor dos rastros, um si mulador, dois módulos de visualização (timeline e estatístico) que dependem do tipo de filtragem.
+Arquivo de rastro:
+Onde são armazenados os dados de forma centralizada.
+Esse ar quivo inclui um cabeçalho com as instruções definidas e com os diferentes parametros do sistema de visualização, isto é, ã descrição do formato dos eventos são autodefinidos, classificados, segundo a seção 2.3, como arquivos de rastro Com MetaFormato.
+O formato dos arquivos de rastro da Pajé podem ser observados no Ar quivo 2* Leitor dos rastros:
+Responsável por a geração dos objetos que representam os eventos produzidos no tempo de execução do programa paralelo a partir de os dados lidos no disco.
+Simulador: Os eventos são entregues para o simulador que produz os objetos mais abstratos, como os estados das threads, comunicação, etc..
+Em este módulo existem filtros que eliminam dados que parecem não ser pertinentes.
+A Paje possui uma técnica que permite ocultar uma categoria de dados.
+Essa abstração é determinada por o usuário de forma interativa, dependendo da quantidade de detalhes que serão visualizados.
+Visualizadores: São representados através de um diagrama de &quot;Espaço x Tempo».
+O visualizador disponibiliza os dados e eventos com uma visão global e pertinente, com riqueza de informações e detalhes.
+As visualizações estatísticas possuem informações de contagem e cronometragem dos eventos ocorridos no programa paralelo.
+A Pajé tem como objetivo prover uma monitoração sobre um agregado de computadores para encontrar problemas de desempenho.
+Essa ferramenta possui algumas propriedades interessantes, como:
+Agregação, filtragem, visualização de históricos, etc, interessantes para o estudo deste trabalho.
+Essas propriedades permitem obter uma visão global e significativa do estado geral do agregado e do programa que está sendo executado.
+Paradyn é uma ferramenta para análise de medidas de desempenho em programas paralelos que exige longos períodos de tempo (horas, dias) e utilizam grande quantidade de nós (aproximadamente mil nós).
+As análises de desempenho são feitas durante a execução do programa paralelo, por isso, não é necessaria a utilização de arquivos de rastro.
+O estudo desta ferramenta, mesmo não utilizando monitoração post mortem, foi importante para este trabalho, porque possui heurísticas para a detecção de problemas paralelos.
+Os dados necessários para encontrar problemas de desempenho são coletados de forma dinâmica.
+Programas daemons realizam as coletas das informações necessarias que são registradas em arquivos com informações estatísticas para serem utilizadas na análise de métricas de desempenho.
+Para Miller, problemas de desempenho são as partes do programa que estão contribuindo para aumentar significativamente o tempo de execução do mesmo.
+A Paradyn possui um módulo para encontrar automaticamente problemas de desempenho, chamado &quot;W3 (Search Model&quot;).
+Os programas paralelos que podem ser analisados por a ferramenta são implementados na linguagem C, Fortran, C+ e HPF (High Performance Fortran), utilizando bibliotecas de comunicação por troca de mensagens, MPI e PVM.
+O modelo de pesquisa W3 basicamente tenta responder três questões, separadamente &quot;Por que «a aplicação tem um pobre desempenho?
+&quot;Onde «está o problema, &quot;gargalo&quot;?
+&quot;Quando «o problema ocorre?
+Eixo do &quot;Por que «A primeira pergunta de desempenho de um programador é:
+&quot;Por que meu programa executou lentamente?»
+A resposta para essa pergunta não é trivial e abrange varios tipos de problemas a serem atacados.
+Para responder esta pergunta o modelo de pesquisa W3 utiliza- se de hipóteses e testes.
+Hipótese representa o tipo fundamental de problemas de desempenho que ocorrem em programas paralelos, independente do algoritmo usado.
+Exemplo de problemas comuns que ocorrem em programas paralelos:
+Comunicação, sincronização, I/ O. As hipóteses podem ser refinadas através de outras hipóteses, caracterizando uma pesquisa no formato de arvore.
+Os testes são funções booleanas que avaliam a autenticidade da hipótese, calculando suas metricas.
+Por exemplo, o tempo total de sincronização bloqueada em relação a o tempo total de execução do programa paralelo e maior que vinte por cento.
+Com isso, a ferramenta consegue detectar qual problema de desempenho está acontecendo na sincronização dos eventos da aplicação.
+Eixo do &quot;Onde «O eixo do &quot;Por que «isola o tipo de problema, por exemplo, um problema de sincronização.
+Entretanto, existem diversos tipos de sincronizações, por isso, a segunda pergunta e feita:
+&quot;Onde a aplicação foi executada lentamente?»
+Em este eixo, tentase definir o problema específico do programa paralelo, de acordo com os resultados obtidos no eixo do &quot;Por que».
+Por exemplo, depois que se testou as hipóteses e se descobriu que o problema esta na sincronização, o eixo do &quot;Onde «pesquisa mais detalhes deste problema, tentando refinar cada vez mais sua análise investigativa.
+Eixo do &quot;Quando Por fim», a última pergunta é feita:
+&quot;Quando o programa paralelo foi executado lentamente?»
+Programas possuem fases distintas de execução e o eixo do &quot;Quando «representa a duração dessas diferentes fases.
+Um programa pode ter três fases:
+A habilidade para pesquisas automáticas de problemas de desempenho é a característica chave para o modelo de pesquisa Ws.
+Refinamentos são feitos atraves dos eixos &quot;Por que», &quot;Onde «e &quot;Quando», sem a necessidade de envolver o programador na análise de graficos de avaliação de desempenho, disponibilizados por os arquivos de rastro.
+Assim, a ferramenta Paradyn tenta diminuir os ciclos de desenvolvimento de um programa paralelo.
+A visualização grafica no Paradyn é feita através de um módulo, denominado Visi's, possuindo histogramas de tempo, gráficos estatísticos e tabelas.
+Outra característica importante da Paradyn é possuir versões para varios tipos de máquinas e sistemas operacionais.
+A descrição da ferramenta Paradyn, mesmo sendo uma ferramenta de monitoração Online, isto é, não possui arquivos de rastro, ajuda a entender a complexidade na utilização de heurísticas para a detecção de problemas paralelos, uma vez que a explicação da sua metodologia é bem apresentada.
+Contudo, não foram encontrados, em suas documentações, valores percentuais de suas métricas, bém como equações ou comparações para definir- se um problema de desem penho real.
+O que se encontrou foram exemplifícações, como citadas no exemplo da sincronização.
+SvPab1o (Source View Pablo) é uma ferramenta desenvolvida com o objetivo de auxiliar a melhora no desempenho em programas seqüenciais e paralelos, implementados na linguagem C, Fortran e HPF.
+A instrumentação do código fonte, a ser analisado, pode ser feita de forma automatica ou interativa.
+Um programa chamado SvPablo Combine, captura informações, definidas por Vraalsen como métricas de desempenho, nos arquivos de rastros, registrando- as num outro formato, denominado SDDF (SelfDejíning Data Format), para posterior análise.
+Uma característica muito interessante deste formato é a possibilidade de ser convertido para a linguagem XML.
+Vale ressaltar que arquivos de rastros registram as ocorrências de eventos no seu início e no seu término, como descrito na sub-seção 2.4.2;_
+ja arquivos estatísticos ou de métricas, como no caso de o formato SDDF, são registradas quantidades ou somatórios de tempos de certos eventos.
+A SvPablo possuí análises estatísticas das informações registradas nos arquivos SDDF.
+Essas métricas de desempenho, filtradas no tempo da execução do programa, são classificadas de duas formas:
+Métricas de procedimentos estatísticos e métricas de linhas estatísticas.
+Definem- se métricas de procedimentos estatísticos como:
+Números de procedimentos ativados;
+Tempo de duração de chamadas de procedimentos para outros procedimentos;
+Tempo de duração total dos procedimentos ativados.
+Definem- se métricas de linhas estatísticas como:
+Números de ocorrências de uma linha;
+Tempo total de execução de uma linha;
+Quantidade de mensagens enviadas;
+Quantidade de mensagens recebidas;
+Tempo de duração para o envio de mensagens;
+Tempo de duração para o recebimento de mensagens;
+Tamanho em bytes de uma mensagem enviada;
+Tamanho em bytes de uma mensagem recebida.
+As interfaces gráficas são associadas com o código fonte analisado.
+Existe uma re lação de rês cores para visualizações das métricas registradas nos arquivos SDDF.
+Essas cores são referentes a quais linhas ou procedimentos foram mais ou menos utilizados na execução do programa.
+Por exemplo: A cor vermelha identifica que o procedimento foi muito utilizado na execução do programa, enquanto a cor amarela identifica que o procedimento foi pouco acessado.
+Acredita- se que o usuario, através das cores, possa identificar um mau balanceamento de carga.
+A SvPablo não possui, em suas interfaces gráficas, Visualizadores graficos de desempenho, como histograma de tempo (Timeline) de execução ou gráficos estatísticos.
+Outra clificuldade na utilização da ferramenta é a criação de projetos para vincular o código fonte às métricas de desempenho.
+Upshot e uma ferramenta para análise de desempenho de programas paralelos que disponibiliza poucas funcionalidades, possuindo um gráfico de visualização com histograma de tempo dos eventos MPI, ocorridos na execução do programa, como pode ser observado na Figura Logging, com formato ASCII, descrito na sub-seção 2.4.2.
+As ferramentas Jumpshot e Jumpshot-S possuem basicamente as mesmas funcionalidades, porem a primeira interpreta arquivos CLOG e a segunda SLOG, gerados por a biblioteca de instrumentação MPE.
+A diferença principal entre os dois arquivos de rastro é:
+CLOG: Descendente do formato ALOG, de onde provêm os nomes, pois antes do formato CLOG desenvolveu- se o formato BLOG.
+Este formato é mais flexível, contendo informações para casos especiais, sem tornar o formato incompatível com os formatos existentes;
+SLOG: Desenvolvido para armazenar grandes quantidades de informações.
+Segundo Chan esse formato de arquivo de rastro é escalavel (Scalable Logjíle).
+SLOG são arquivos binários não permitindo a análise do seu conteúdo, apenas a ferramenta Upshot ou conversores conseguem analisar seu conteúdo.
+As duas ferramentas são de facil manipulação, por serem distribuídas juntas com o pacote MPICH e implementadas na linguagem Java, podendo com isso, serem executadas como applets num browser.
+Além de possuírem grafico de visualização com histograma de tempo, possuem gráficos estatísticos dos eventos MPI, ocorridos na execução do programa.
+Vampir (Performance Analysis Toolkit for MPI) é uma ferramenta que visualiza arquivos de rastro gerados por a biblioteca de instrumentação Vampirtrace, em a qual monitora programas paralelos que utilizam a biblioteca de comunicação, por troca de mensagens MPI.
+Segundo Nagel, Vampir divide- se em quatro categorias de visualização, para a análise de desempenho em programas paralelos:
+Histograma de Tempo:
+Visões dos eventos ocorridos em relação a o eixo do tempo;
+Estatística: Resume o comportamento do programa paralelo por os tempos de ocor rências de funções MPI;
+Animação: Investigação do comportamento dinâmico, utilizando para isso seqüências de tempos particulares;
+Tempo Instantâneo: Visualização dos eventos num tempo particular.
+A restrição da ferramenta Vampir, além de ser proprietária, é não visualizar arquivos com larga escala, isto é, somente manipula arquivos com no maximo 4M bytes.
+Isto pode justificar a migração para arquivos de rastro binários.
+Fazendo- se uma análise sobre as ferramentas de monitoração descritas nas seções ante riores pode- se destacar duas características relevantes, que podem ser observadas na Tabela 3.1: A utilização de graficos (histogramas de tempo, gráficos estatísticos e tabelas), para análise de desempenho dos programas paralelos.
+Em esta característica a ferramenta SvPablo e uma exceção, porque suas interfaces graficas tem a função de associar o código fonte com as métricas de desempenho registradas nos arquivos SDDF;
+A utilização de arquivos de rastro para posterior análise de desempenho.
+Em esta característica a ferramenta Paradyn e uma exceção, porque analisa o desempenho dos programas paralelos em tempo de execução.
+Pode- se também observar, analisado a Tabela 3.1, que as ferramentas Pajé, SvPablo e Paradyn manipulam grandes quantidade de informações (grandes escalas de dados), talvez isso justifique, nas duas últimas ferramentas, a utilização de arquivos estatísticos ou de métricas.
+Enfim, destacam- se as ferramentas AIMS e Paradyn por utilizarem heurísticas para análise de desempenho nos arquivos de rastro ou estatístico.
+Outros trabalhos destacam- se como ferramentas para análise de desempenho em programas paralelos, utilizando visualizadores graficos:
+APART, Carnival, ParaGraph e TraceView.
+Essas ferramentas não foram descritas neste trabalho, porque possuem fun cionalidades e arquiteturas semelhantes aos trabalhos analisados nas seções anteriores.
+Com o estudo das seis ferramentas citadas nas seções anteriores, percebe- se que existem grandes ificuldades em analisar arquivos de rastro.
+Essas dificuldades são justificadas, porque os arquivos de rastro possuem:
+Grandes quantidades de funções (informações) monitoradas;
+Grandes tempos de monitorações, acarretando arquivos de rastro muito grandes;
+As ferramentas para análise de desempenho, normalmente, possuem histograrnas de tempo, que mostram as ocorrências dos eventos no tempo em que o programa foi monitorado e/ ou gráficos estatísticos, mostrando comparações de funções, por exemplo, de comunicações.
+Cabe ao usuario, analisar e encontrar os problemas de desempenho em programas paralelos.
+A motivação deste trabalho é construir uma ferramenta que auxilie a análise de desempenho, utilizando para isso, graficos de visualização específicos que mostrem possíveis problemas em modelos de programas paralelos classicos, tais como:
+Pipeline e mestre/ escravo, que serão descritos na seção 6.1 e também heurísticas que auxiliem na interpretação destas aplicações.
+Os arquivos de rastro possuem registrados os eventos observados durante a execução do programa (sub-seção 2.4.2).
+A interpretação destes arquivos de rastro não é uma tarefa trivial, mesmo utilizando ferramentas de visualização como pode ser visto na Figura 3.3, que mostra o gráfico de visualização atraves de histograma de tempo da ferramenta Vampir.
+Outra motivação é permitir que a ferramenta trabalhe com um maior número de visualizações de análises possíveis.
+Para isso, utilizou- se o formato de arquivos de rastro XML, por ser portável, genérico e extensível.
+Acredita- se que, com uma estrutura de dados (DTD) mínima e suficiente, os arquivos de rastro XML possam tornar- se compatíveis com outras ferramentas de monitoração.
+Melhorando a análise de Desempenho Sobre Arquivos de Rastro Em este trabalho propõe- se melhorar a análise de desempenho utilizando gráficos de visualização específicosl e também heurísticas para auxiliar a interpretação dos resultados filtrados nos arquivos de rastro XML.
+Além de a programação paralela ser mais difícil (principalmente devido a os problemas relacionados a comunicação e sincronização), outros fatores dificultam a utilização da programação paralela, tais como técnicas para obter eficiência e portabilidade.
+O usuario, principalmente iniciante?,
+devido a dificuldade de visualizar o comportamento dos programas em tarefas executadas em diferentes processadores, pode utilizar gráficos de visualização específicos para analisar os desempenhos de programas paralelos.
+Caso essa análise seja pouco esclarecedora, pode- se analisar o comportamento dos programas através das interpretações desenvolvidas com heurísticas, desejando- se, com isso, reduzir o ciclo de desenvolvimento dos programas paralelos.
+Para melhorar a análise de desempenho sobre arquivos de rastro XML, trabalhou- se em quatro itens distintos:
+Ciclo de Desenvolvimento de um Programa Paralelo;
+Graficos de Visualização para análise de Desempenho;
+Heuristicas para Análise de Desempenho;
+Compatibilidade. Em a construção de um programa paralelo pode- se ter diferentes ciclos de desenvolvimento, desde ciclo com duas fases (tentativa e erro), que possui um tempo de desenvolvimento muito grande, até ciclos com varias fases, buscado reduzir o tempo de desenvolvimento de um programa paralelo.
+O ciclo de desenvolvimento de um programa paralelo, utilizando monitoração post mortem divide- se normalmente em:
+Codificar o algoritmo;
+Compilar o programa, indicando alguma biblioteca de comunicação, por troca de mensagem;
+Executar o programa numa máquina paralela e gerar arquivos de rastro, para posterior análise de desempenho, como descrito na seção 2.3;
+Depurar o programa, verificando se este tem o comportamento esperado, através da análise dos arquivos de rastro;
+Modificar o código fonte e voltar ao passo 2;
+Isto se torna um trabalho árduo e um ciclo de desenvolvimento muito longo, tendo em vista que programas paralelos podem demorar horas ou dias para serem executados e geram enormes arquivos de rastro Em uma monitoração post mortem, não se pode evitar as três primeiras fases no desenvolvimento de um programa paralelo.
+O que se esta propondo para melhorar a análise de desempenho sobre arquivos de rastro é qualificar o auxílio na interpretação de problemas de desempenho, uma vez que se utilizou um grande tempo para a geração das três primeiras fases, como pode ser visto na Figura 4.1.
+Em a parte direita da Figura 4.1 (4.
+Depuração) pode- se observar os ciclos de desenvolvimento utilizados na ferramenta SIGHT, onde após as fases iniciais, converte- se os arquivos gerados por uma biblioteca de monitoração (MPE) para arquivos de rastro XML, permitindo a utilização de uma portabilidade para um maior número de ferramentas de análise. Como
+descrito no Capítulo 3 existem muitas ferramentas de visualização post mortem que oferecem grande diversidade de graficos.
+Contudo, se a ferramenta não tem interatividade e escalabilidade, pode limitar a representação gráfica e o problema de desempenho da aplicação pode não ser detectado ou, ainda, se todas as informações forem apresentadas para o usuario, ficará difícil a compreensão de onde o problema ocorreu.
+Acredita- se que para melhorar a análise de desempenho, podem- se utilizar graficos de visualização específicos, com o objetivo de que cada gráfico auxilia na interpretação de um problema de desempenho.
+A simplificação de gráficos complexos facilita o entendimento do usuário na interpretação de problemas clássicos (específicos) em programação paralela, como por exemplo, Comunicação, balanceamento de carga, desempenho, entre outros.
+Essa simplificação não significa perda de informações, mas sim, uma visualização direcionada para analisar um determinado problema de desempenho.
+Por isso, os graficos foram divididos em quatro grupos:
+Padrão de Comunicação (Communication Pattern);
+Balanceamento da Componente de Calculo (Calculatton Component Balance);
+Funções de Comunicação MPI (Message Passtng Interface);
+Desempenho (Performance).
+A geração de todos os graficos da ferramenta SIGHT é realizada através das métricas entendimento de como podem ser utilizados:
+Descrição do grãfico;
+Que tipo de problema procura- se detectar;
+Como analisar as informações.
+Que pergunta de desempenho se tenta responder (sugestão da ferramenta Paradyn);
+O primeiro grupo, Padrão de Comunicação, possui um gráfico, que se chama Comuni cação entre Processadores (Process to Process Communication).
+Comunicação números de mensagens de comunicação, MPI_ Beastp) e Tll/[ Comunzvcação e o total das mensagens de comunicação em relação a todos os processadores envolvidos.
+Em a sub-seção 5.4.1 descrevese a construção do gráfico Process to Process Communication.
+TjuComunicação* Problema:
+Procura- se detectar a forma e a quantidade de comunicação entre os processadores.
+Como pode ser observado na Figura 4.2, o gráfico mostra a forma e a quantidade percentual de comunicação entre os dezesseis processadores envolvidos na execução do programa paralelo.
+Il Pergunta:
+Como ocorreu e qual a porcentagem de comunicação entre os proces sadores envolvidos na execução do programa paralelo?
+Il Como analisar as informações:
+Com o modelo de programação adotado e o tipo de aplicação que esta se implementando, pode- se detectar se a forma de comunicação é a melhor para a solução do problema e se a intensidade de comunicação entre os processadores é coerente e balanceada.
+Por exemplo, como visto na Figura 4.2, a forma de comunicação entre os processadores enquadra- se no modelo mestre/ escravo, como descrito na seção 6.1;
+e observando os índices de comunicação, percebe- se que o nó 00 realizou a metade das comunicações ocorridas durante a execução do programa;
+Entretanto, os outros nós realizaram uma quantidade de comunicação balanceada, 0, 0348 e 07 0302 por cento.
+Caso o gráfico não consiga esclarecer todas as dúvidas, pode se utilizar a interpretação da heurística de comunicação descrita na sub-seção 4.3.1.
+Balance) Em este trabalho define- se como Componente de Cálculo o tempo que o processador utilizou para a realização de um calculo matemático, sem considerar o tempo de comunicação e sincronização entre os processadores.
+A Equação 4.2.2 mostra a fórmula para encontrar a componente de calculo dos processadores, onde DataFZ- na¡ é o último registro de um evento capturado num processador (p), Data Inicia¡ é o primeiro registro de um evento capturado num processador (p) é a duração de todas as operações de e TempoComunícação/ Sincronízação comunicação e sincronização registradas num processador Componentep: (
+Datapinal r Datalnicial) (42.2) 7 Temp OComunicação/ Sincronização Em este grupo de Balanceamento da Componente de Calculo desenvolveu- se um grafico:
+Em a sub-seção 5.4.1 descreve- se a construção do gráfico Calculation Component Bar Chart.
+Problema: Com a visualização deste grafico pode- se detectar o quanto cada processador trabalhou na execução do programa paralelo.
+O grafico ajuda a detectar problemas de mau balanceamento da componente de calculo entre os processadores.
+Por exemplo, pode- se observar, na Figura 4.3, que os dois primeiros e os dois últimos processadores trabalharam menos que os quatro processadores internos (3, 4, 5 e 6).
+Pergunta: Como ocorreu o balanceamento da componente de calculo entre os para o cessadores envolvidos na execução da aplicação?
+A ferramenta SIGHT interpreta arquivos de rastro que utilizam a biblioteca de comunicação por troca de mensagens, MPI, por isso o terceiro grupo, Funções MPI, possui o gráfico Process Activity Chart, que auxilia a interpretação das funções desta biblioteca.
+Descrição: O balanceamento da componente de calculo em cada processador, bem como a quantidade de comunicação e sincronização são definidas por a utilização e funções MPI.
+A visualização de quais funções3 e da quantidade utilizada4, em cada processador, pode auxiliar a detecção de problemas de desempenho.
+Este gráfico, como pode ser observado por a Figura 4.4, possui uma legenda que mostra as cores e as funções MPI que são representadas por as fatias das circunferências de cada processador, bem como a duração do tempo de sua execução.
+Em a sub-seção 5.4.1 3A legenda do grafico e criada de acordo com a quantidade de funções MPI utilizadas no desenvolvimento da aplicação.
+Pergunta: Quantas e quais funções MPI foram utilizadas, em cada processador, na execução do programa paralelo?
+E¡ Como analisar as informações:
+Com a visualização do grafico Process Activity Chart, pode- se analisar a utilização de funções MPI, na aplicação paralela.
+Pode- se com a detecção de uma má utilização de funções MPI, em diferentes processadores, reavaliar a quantidade de certas funções MPI.
+Caso o grafico não consiga esclarecer todas as dúvidas, pode se utilizar a interpretação da heurística para o tempo total dos eventos descritos na sub-seção 4.3.3.
+Por fim, este grupo possui um grafico, com o objetivo de mostrar o desempenho da aplicação paralela.
+O grafico Summary Aplication Chart possui as seguintes funcionalidades:
+Descrição: O desempenho de uma aplicação paralela pode ser calculado por a soma dos tempos que se utilizou na execução de funções MPI e por os tempos utilizados nos cálculos efetuados sobre a aplicação na máquina paralela (componente de cálculo).
+Este grafico, como pode ser observado por a Figura 4.5, possui uma escala que mostra os dados (ãplicação5 e função MPIS, eixo Y) em relação a quantidade de tempo utilizado (eixo X) durante a execução global da aplicação.
+Em a sub-seção 5.4.1 descreve- se a construção do grafico Summary Aplication Chart.
+Problema: Com o grãfico Summary Aplication Chart, pode se detectar quanto tempo foi utilizado na execução do programa paralelo, para resolução de calculos e quanto tempo foi utilizado para as funções MPI.
+Em a Figura 4.5, pode- se observar que foram utilizados 3,4 segundos para a resolução de calculos da aplicação e 10,9 segundos para execução das funções MPI.
+Pergunta: Quanto tempo foi utilizado para a resolução de calculos, ou para funções MPI na execução da aplicação paralela?
+Il Como analisar as informações:
+Se o tempo de utilização das funções MPI foi muito ãSoma dos tempos utilizados para efetuar calculos matemáticos em todos os processadores envolvidos na execução.
+Deve- se analisar a quantidade e a maneira como as funções MPI foram utilizadas na construção do programa paralelo.
+A interpretação de graficos post mortem, com todas as informações dos arquivos de rastro, são normalmente complexas e custosas em relação a o tempo de análise, contudo a utilização de graficos simplificados pode fornecer pouca quantidade de informações para a análise de desem enho de programas paralelos.
+Com a utilização das heurísticas, tenta- se auxiliar a análise dos graficos simplificados, adquirindo informações para otimizar o programa paralelo e reduzir o ciclo do desenvolvimento deste.
+Permitindo assim, a escolha de qual módulo (graficos e/ ou heurís icas) sera utilizado na análise das informações de desempenho.
+Entendem- se como métodos heurísticos: (do grego heurís/ caiu:
+Descobrir), definidos segunco Newell &quot;um procedimento que pode solucionar um determinado problema, mas não oferece garantias sobre a solução encontrada, e, é chamado de uma heurística para este para o blema».
+De este modo, as heurísticas têm ganho muita importância para solucionar problemas reais ce consideráveis dimensões, em tempo de processamento razoável.
+Pode- se aplicar três tipos de heurísticas nas métricas filtradas nos arquivos de rastro, descritas na sub-seção 5.4.2, que armazenam informações sobre o comportamento do programa parale o.
+As informações armazenadas nas métricas servem para agilizar a criação de graficos e heurísticas, pois em elas são inseridas as informações mais relevantes extraídas em arquivos de rastro.
+Se a cada análise fossem filtradas as informações diretamente dos arquivos de rastro, as aplicações de visualização seriam muito lentas, haja vista o tamanho dos arquivos de rastro a serem investigados:
+Normalizadas: É a percentagem de uma cronometragem ou contagem, descritas na seção 2.3, de um evento em relação a cronometragem ou contagem total dos eventos ocorridos na execução do programa paralelo.
+Por exemplo, o tempo de execução de um nó em relação a o tempo total de execução do programa paralelo;
+Não Normalizadas:
+É a cronometragem ou contagem de um evento ocorrido na execução do programa paralelo expresso em taxas.
+Por exemplo, a quantidade de men sagens enviadas por um nó em segundos;
+Por Amostragem:
+São heurísticas basicamente iguais as Não Normalizadas, porém, não são representadas em taxas.
+Por exemplo, a quantidade de mensagens enviadas por um nó.
+As heurísticas desenvolvidas para a ferramenta SIGHT tem o propósito de auxiliar o programador na otimização de programas paralelos, utilizando a biblioteca de comunicação MPI.
+Para isso, analisam- se métricas de desempenho em três grupos:
+Comunicação (Communication):
+Calcula o desequilíbrio dos tempos utilizados nas mensagens de comunicações entre os diferentes processadores;
+Balanceamento da Componente de Calculo (Calculation Component Balance):
+Calcula o desequilíbrio dos tempos utilizados para determinar as componentes de calculo nos diferentes processadores;
+Tempos Totais (Total Times):
+Calcula o desequilíbrio dos tempos utilizados nas mensagens de comunicação e dos tempos utilizados para determinar as componentes de calculo nos diferentes processadores.
+As três heurísticas criadas baseiam- se em medidas de dispersão, que segundo Prince-ton são valores que mostram o quanto os dados estão dispersos em relação a o centro da distribuição de freqüência (geralmente através da média).
+As principais medidas de dispersão são:
+Variância e desvio padrão, mas existem outras, tais como:
+Amplitude total, desvio medio e coeficiente de variação.
+As medidas de dispersão são divididas em dois grupos:
+Medidas de dispersão absolutas, usadas neste trabalho, através do desvio padrão, que é a raiz quadrada da média aritmética dos quadrados dos afastamentos (desequilíbrios).
+Utilizou- se o desvio padrão como medida de dispersão absoluta, porque sua fórmula se relaciona diretamente com a media que se refere ao centro de distribuição da freqüência, conseguindo- se, com isso, um valor que representa o quanto esta heterogênea, mal balanceada, a aplicação paralela.
+Por isso, acredita- se que a média é a medida ideal na distribuição de uma quantidade limitada de trabalho, como no caso de a programação paralela.
+Em contra-partida, não se utilizou medida de dispersão relativa (segundo grupo), como por exemplo:
+O coeficiente de variação de Person, por ser a razão porcentual entre o desvio padrão e a média dos valores utilizados.
+Esta última é expressa em unidades diferentes dos valores e não possui uma relação direta com o centro da distribuição de freqüência, mas, sim se relaciona com duas medidas de dispersão absoluta.
+A comparação entre diferentes aplicações e diferentes modelos de programação não deve ser muito significativa, porque cada aplicação possui suas peculiaridades.
+Existem aplicações com granularidade forte ou fraca e modelos de programação com características para serem melhor 40 Capítulo 4.
+Melhorando a Análise de Desempenho Sobre Arquivos de Rastro aplicados em certos tipos de aplicações;
+Por esse, motivo a comparação entre diferente aplicações é descaracterizada.
+O objetivo destas heurísticas é mostrar o aperfeiçoamento de varias versões da aplicação para o desenvolvedor, mostrando com isso a evolução de seu aprendizado.
+Descrição: A heurística de comunicação não normalizada é determinada através da fórmula do desvio padrão, definida na Equação 4.3.1, por isso seu nome foi definido como Standard Deviation Communication.
+Em a Equação 4.3.1, encontra- se Tcomi que corresponde ao tempo de comunicação em cada processador,% a média dos tempos de comunicação entre os processadores e Npmmsor o número de processadores envolvidos na execução da aplicação.
+De este modo ã heurística é constituída da raiz quadrada da variância da comunicação entre os processadores.
+Nprocessor* Problema:
+Procura- se detectar através de uma medida de dispersão absoluta o quanto os tempos utilizados na comunicação em cada processador estão dispersos, isto é, mal balanceados.
+Esse desequilíbrio pode ser referente a o modelo de programação adotado por o programador, como descrito na seção 6.1 ou por deficiência da programação.
+Em a Figura 4.6 pode- se observar que o desvio padrão da comunicação é de 07 8655, este valor significa:
+A faixa máxima da dispersão de comunicação dos processadores envolvidos na comunicação em relação a sua média que e igual a O, 6979 (distribuição da comunicação ideal).
+Pergunta: Quanto os tempos de comunicação dos processadores envolvidos na exe cução estão dispersos em relação a a distribuição dos tempos de comunicação ideal?
+Como analisar as informações:
+Com o resultado da heurística de comunicação, como mostra a Figura 4.6, o programador pode melhorar sua aplicação paralela, tentando diminuir o resultado do desvio padrão de comunicação em relação a sua média.
+Quanto menor a diferença entre o valor do desvio padrão da comunicação e a média, melhor a distribuição da comunicação entre os processadores envolvidos na execução da aplicação.
+Caso a heurística de comunicação não consiga esclarecer todas as dúvidas, pode ser utilizado o gráfico de Padrão de Comunicação descrito na subseção 4.2.1, uma vez que os graficos e as heurísticas se complementam na análise de desempenho de uma aplicação.
+Para melhor organização do texto, a definição sobre como determinar a componente de cálculo está descrita na sub-seção 4.2.2, juntamente com a Equação 4.2.2.
+Descrição: A heurística para balanceamento da componente de cálculo não normalizada é determinada através da fórmula do desvio padrão, definida na Equação 4.3.2, Em a Equação 4.3.2, encontra- se Tcalc¡ que corresponde ao tempo da componente de cálculo em cada processador, É a média dos tempos da componente de cálculo entre os processadores e Npwmsg, o número de processadores envolvidos na execução da aplicação.
+De este modo a heurística é constituída da raíz quadrada da variância da componente de calculo entre os processadores.
+Problema: Procura- se detectar através de uma medida de dispersão absoluta, o quanto os tempos utilizados na componente de calculo, em cada processador, estão dispersos, isto é, mal balanceados.
+Esse desequilíbrio pode ocorrer por causa de a aplicação ter uma granularidade forte ou por a ma programação.
+Em a Figura 4.7 pode- se observar que o desvio padrão da componente de cálculo é de 1, 9646.
+Este Valor significa:
+A faixa máxima da dispersão da componente de cálculo nos processadores envolvidos em relação a média da componente de cálcn o que é igual a 1, (B6B (distribuição da componente de cálculo ideal).
+Pergunta: Quanto os tempos das componentes de cálculo dos processadores envolvi dos na execução estão dispersos em relação a distribuição dos tempos da componente de cálculo ideal?
+Como analisar as informações:
+Com o resultado da heurística da componente de cálculo, como mostra a Figura 4.7, o programador pode melhorar sua aplicação paralela, tentando diminuir o resultado do desvio padrão da componente de cálculo em relação a sua média.
+Quanto menor o valor encontrado do desvio padrão da componente de cálculo em relação a média, melhor a distribuição do trabalho entre os processadores envolvidos na execução da aplicação.
+Caso a heurística da componente de calculo não consiga esclarecer todas as dúvidas, pode- se utilizar os graficos de Balanceamento da Componente de Calculo descrito na sub-seção 4.2.2.
+TempoCamummç (io/ Sincronização e por a componente de calculo de cada processador, definido como:
+Tempo Componente de Cálculo, como mostra a Equação 4.3.3.
+Totalp z TempoComunicação/ Sincronização+ TempoComponente de Cálculo Descrição:
+A heurística dos tempos totais não normalizada é determinada através da fórmula do desvio padrão, definida na Equação 4.3.4, por isso seu nome foi definido corresponde ao tempo total em cada processador, É a média dos tempos totais entre os processadores e Npmcessor o número de processadores envolvidos na execução da aplicação.
+De este modo a heurística constitui- se da raiz quadrada da variância dos tempos totais entre os processadores.
+Problema: Procura- se detectar através de uma medida de dispersão absoluta o quanto os tempos totais utilizados em cada processador estão dispersos, isto é, mal balanceados.
+Esse desequilíbrio pode ser referente a o modelo de programação ado-tado por o programador, como descrito na seção 6.1, e/ ou por a aplicação ter uma granularidade forte, ou ainda, por a ma programação.
+Em a Figura 4.8 pode- se observar que o desvio padrão dos tempos totais é de 0, 8652.
+Este valor significa:
+A faixa maxima da dispersão dos tempos totais nos processadores envolvidos em relação a média dos tempos totais que é igual a 0, 6984 (distribuição dos tempos totais ideais).
+Pergunta: Quanto os tempos totais dos processadores envolvidos na execução estão dispersos em relação a distribuição dos tempos totais ideal?
+Como analisar as informações:
+Com o resultado da heurística dos tempos totais, como mostra a Figura 4.8, o programador pode melhorar sua aplicação paralela, tentando diminuir o resultado do desvio padrão dos tempos totais em relação a sua média.
+Provavelmente, quanto menor o valor encontrado no desvio padrão dos tempos totais em relação a média, melhor a distribuição dos tempos totais entre os processadores envolvidos na execução da aplicação.
+Caso a heurística dos tempos totais não consiga esclarecer todas as dúvidas, pode- se utilizar o grafico do Desempenho descrito na sub-seção 4.2.4.
+Uma contribuição não menos importante deste trabalho é o esforço feito para o aumento da compatibilidade com outras ferramentas de monitoração post mortem.
+A compatibilidade, isto é, a extensibilidade, a portabilidade que a ferramenta SIGHT possui, é garantida por a linguagem de marcação XML, descrita na seção 2.4.
+O único requisito para a portabilidade entre graficos e heurísticas é:
+Os arquivos de rastro das outras ferramentas possuírem os quatro requisitos mínimos e suficientes para a geração das métricas de desempenho definido na declaração do tipo do documento (Document Type -- DTD) XML da ferramenta SIGHT.
+Esse DTD é mostrado no Arquivo 3, na sub-seção 2.4.2, e atraves de sua utilização, pode- se converter outros formatos de arquivos que possuam os requisitos para utilizar os gráficos e as heurísticas da ferramenta SIGHT.
+Os requisitos mínimos e suficientes são quatro atributos, porque se fossem utilizados quantidades maiores tornariam- se- arquivos de rastro muito específicos (mesmo utilizando a biblioteca de comunicação padrão para troca de mensagens -- MPI), dificultando a compatibilidade com outras ferramentas.
+Em contra-partida se fossem utilizados menos atributos poderiam acarretar uma quantidade insuficiente de informações para a aplicação das análises de desempenho.
+Os atributos do DTD da ferramenta SIGHT são:
+Process: Número do processador;
+Timestamp: Registro da data de um evento MPI;
+Data: Evento MPI;
+Communication: Comunicação entre processadores7.
+Que acredita serem informações essenciais numa monitoração post mortem.
+Um exemplo dessa compatibilidade é a conversão de arquivos de rastro da biblioteca de instrumentação MPE para arquivos de rastro no formato XML proposto por este trabalho.
+Ferramenta SIGHT O principal objetivo da ferramenta SIGHT -- SImple Graphic Heuristic Trace -- é analisar o desempenho de programas paralelos, utilizando graficos de visualizações simplificados e heurísticas que auxiliam a interpretação destes graficos.
+Para isto analisam- se arquivos de rastro no formato XML.
+A ferramenta SIGHT possui as seguintes funcionalidades:
+Conversão de arquivos de rastro:
+Como descrito no sub-seção 2.4.2, não existe um formato padrão de arquivos de rastro.
+Pensando- se nisso, a ferramenta possui um módulo que converte arquivos de rastro ALOG para o tipo de documento DTD que a ferramenta SIGHT reconhece, e, extrai as métricas necessarias para auxiliar na análise de desempenho em monitoração post morrem.
+Este recurso pode ser utilizado acessando o menu File em Import Log Trace, como mostra a Figura 5.1 em (a);
+Visualização de gráficos:
+Analisar o desempenho em programas paralelos de forma visual é uma técnica muito utilizada, principalmente se forem quantidades de informações pequenas.
+Com o objetivo de auxiliar o programador num primeiro nível, a ferramenta SIGHT possui quatro graficos:
+Process to Process Communication;
+Calculation Component Bar Chart;
+Process Activity Chart; Summary Aplication Chart.
+Aplicação de Heurístícas: Como descrito na seção 4.3, a aplicação de heurísticas utilizando métricas filtradas nos arquivos de rastro pode auxiliar o programador de aplicações paralelas a analisar o desempenho após a execução da mesma.
+Foram criadas três heurísticas:
+Communication Pattern; Calculation Component Balance;
+Total Times. Que podem ser utilizadas acessando o menu Heuristics, como mostra a Figura 5.1 (c).
+Uma das preocupações na implementação da ferramenta SIGHT esta na facilidade de seu uso, uma vez que o público-alvo da ferramenta são programadores iniciantes que estão aprendendo os conceitos de programação paralela.
+A ferramenta divide- se em módulos, como descrito na sub-seção 5.4.4.
+A sua instalação também e simplificada;
+Para sua execução, o único prérequisito é a utilização da máquina Virtual Java (JVM -- Java Virtual Machine), com a versão JSDK 1.
+4. A descrição de como ocorre a instalação da ferramenta SIGHT está descrita no Anexo 1.
+Utiliza- se a língua inglesa na implementação dos labels, menus e botões da ferramenta SIGHT, por ser uma língua universal, isto é, qualquer usuário iniciante em programação paralela, poderá utilizas- la como ferramenta de auxílio por ser de fácil compreensão, manuseio e instalação.
+Os próximos itens deste capítulo descrevem cada uma das etapas de desenvolvimento da ferramenta SIGHT em detalhes.
+Quando se ttcarrega «um arquivo XML, cria- se uma seção para analisar um determinado programa paralelo.
+Poderão ser utilizados para interpretação de desempenho, quatro gráficos e três heurísticas para detectar o comportamento do programa paralelo.
+Com isso, o usuario poderá fazer uma análise global ou específica de acordo com os gráficos e/ ou as heurísticas utilizadas.
+Cabe ao usuário escolher o que deve ser investigado e quanto deve ser investigado, por exemplo, utilizar só Visualizadores graficos, só aplicações de heurísticas ou ambos.
+O primeiro passo a ser feito, como pode ser observado na Figura 5.1 em (a), e carregar o arquivo XML (Open XML), para posterior análise, utilizando graficos e heurísticas.
+Caso o arquivo não esteja convertido para o tipo do formato DTD da SIGHT, deve ser feita a conversão para o formato conhecido (Import Log Trace).
+Essa conversão é descrita na sub-seção 2.4.2, bem como uma discussão da padronização de arquivos de rastro para ferramentas que utilizam esses arquivos.
+A Figura 5.2 mostra como essa conversão é realizada na ferramenta SIGHT, onde em (a) mostra- se o arquivo ALOG gerado por a biblioteca de instrumentação MPE (a descrição de como ocorre a geração dos arquivos ALOG esta descrita no Anexo 1) e (b) como é o formato destino, utilizado por a ferramenta.
+Converteu- se apenas este tipo de formato ALOG, porque a biblioteca de instrumentação MPE é de fácil utilização, sendo distribuída com a própria biblioteca MPI na distribuição 1.2.0 e enquanto outros arquivos de rastro, por exemplo, da ferramenta AIMS, são de difícil utilização, como descrito na seção 3.1, e somente gerados em máquinas Intel iPSC/ 860.
+Segundo Stein a utilização de sistemas de visualização grãficos sofisticados é a técnica de apresentação mais freqüente.
+O &quot;motor «das ferramentas de visualização pode ser um simuladorl dirigido por os arquivos de rastro, que reconstitui a atividade dos processadores e as comunicações.
+A apresentação gráfica dos resultados dessa simulação tem por objetivo facilitar a compreensão,_ ja que a quantidade de informação apresentada pode ser bastante significativa.
+A ferramenta SIGHT possui quatro gráficos para auxiliar, num primeiro nível, o programador na análise de desempenho de programas paralelos.
+Esses graficos, como pode ser observado na Figura 5.1 (b) são:
+Padrão de Comunicação (Process to Process Communication);
+Balanceamento da Componente de Calculo (Calculation Component Bar Chart);
+Aplicações das Funções MPI (Process Activity Chart);now
+Desempenho (Summary Aplication Chart).
+A Figura 5.3 mostra como os graficos da ferramenta SIGHT são apresentados para o usuário, possuindo as seguintes informações:
+Título: Nome do grafico que esta sendo visualizado;
+Visualização: Mostra o desenho representando uma informação simplificada de um problema específico de desempenho;
+Eixos X e Y:
+Os eixos X e Y, bem como a legenda é uma opção da representação das informações de cada gráfico específico.
+AA aa real.
+A ferramenta SIGHT, além de disponibilizar gráfico de visualização, analisa problemas de desempenho utilizando heurísticas como visto na Figura 5.1 (c).
+O objetivo das heurísticas da ferramenta SIGHT é ajudar a interpretação dos gráficos, por isso, foram desenvolvidas três heurísticas, como observado na Figura 5.1 (c):
+Comunicação (Communication Pattern);
+Il Balanceamento da Componente de Cálculo (Calculatiun Component Balance);
+Tempos Totais (Total Times).
+Cada heurística, com suas funcionalidades, objetivos e características esta descrita na seção 4.3, bem como seus testes de avaliações no Capítulo 6.
+A Figura 5.4 mostra como os resultados das heurísticas são apresentados para o usuario, os quais se dividem em quatro tipos de informações:
+Descrição da heurística:
+Uma breve descrição do objetivo da heurística quando apliCada sobre as métricas filtradas nos arquivos de rastro e o valor da sua média referente a o tempo calculado;
+Resultado: Visualiza o índice calculado.
+O índice representa as dispersões em relação a média dos valores referentes a heurística analisada;
+Análise do Resultado:
+De acordo com os resultados obtidos, são feitos comentários e sugestões sobre melhorias na aplicação.
+A programação paralela, como descrito ao longo deste documento, não e uma tarefa trivial, por isso acredita- se que para analisar o desempenho de uma aplicação paralela pode- se utilizar o recurso de visualização grafica e/ ou de heurísticas.
+Porém o desejável é que o tempo de depuração do programa seja reduzido, e não aumentado com a análise de graficos ricos em informações, mas de difícil interpretação.
+Para a utilização de graficos de visualizações e heurísticas na análise de desempenho, interpretando arquivos de rastro, acredita- se que as informações devem ser filtradas, porque os arquivos de rastro possuem grandes quantidades de informações que acabam dificultando a compreensão desses gráficos e heurístícas.
+Esses filtros são conhecidos como métricas de análise de desempenho, como no caso de a ferramenta SvPablo, que possui arquivos estatísticos chamados SDDF, descritos na seção 3.4.
+Em esta sub-seção descrevem- se como os graficos foram projetados, isto é, como foram construídos para auxiliarem na interpretação de problemas de desempenho e serem visualizados para até dezesseis nós de um agregado, que é a máquina que se utilizou nos teste de avaliação, como descrito na seção 6.2.
+Gráfico Process to Process Communication Para a criação do grafico Process to Process Communication divide- se 360, que repre- sentam os graus de uma circunferência, por a quantidade de processadores envolvidos na execução da aplicação, isto é necessário para se encontrar o ângulo que definira a distancia de cada círculo representando cada um dos processadores.
+Com isso, partindo- se da posição inicial e trabalhandose com as funções seno e co-seno, encontra- se a posição das coordenadas X e Y de cada desenho que representam o número de um processador no círculo.
+As setas que representam as comuni cações são desenhadas, analisando as relações entre as tags process e communication no arquivo Gráfico Calculation Component Bar Chart Para a criação do grafico Calculation Component Bar Chart somam- se todos os tempos das componentes de calculos de cada processador;
+Isso é possível analisando as tags process e timestamp.
+Para mostrar a relação entre as diferentes componentes de calculo define- se como o maior valor da soma dos tempos da componente de calculo que é igual a cem por cento e, as demais, são proporções em relação a o maior valor do tempo da componente de calculo.
+A escala y é definida por a soma dos tempos, apenas transformando microssegundos em segundos.
+A escala do eixo x é fixa, definindo uma posição em relação a quantidade de processadores.
+Gráfico Process Activity Chart Para a criação do gráfico Process Activity Chart precisa encontrar- se os graus referentes as fatias de cada função MPI, multiplicando- se o valor do tempo de uma função MPI por 360, que representam os graus de uma circunferência, e dividem- se por a soma de todos os tempos das funções MPI, que ocorreram durante a execução da aplicação.
+Este calculo é realizado para 54 Capítulo 5.
+Ferramenta SIGHT cada processador utilizado no processamento paralelo.
+As tags analisadas do arquivo XML são process, timestamp e data.
+Gráfico Summary Aplicatian Chart A criação do grafico Summary Aplication Chart é muito semelhante a construção do grafico da Componente de Calculo;
+O maior somatório dos tempos é igual a cem por cento, porem, agora, representando o somatório de todas as funções MPI em relação a o somatório de todas as Componentes de Cálculos.
+As métricas definidas para a ferramenta SIGHT, filtradas nos arquivos de rastro XML, são nos formatos de cronometragem e contagem, como definido na seção 2.3.
+Essas métricas são referentes às funções MPI básicas.
+Não houve preocupação em disponibilizar métricas para todas as funções existentes, mas sim, apenas para as funções que são utilizadas normalmente por a maioria dos programadores.
+São utilizadas métricas de contagem para as seguintes funções MPI:
+Número de mensagens enviadas (MPI_ Send);
+Número de mensagens recebidas (MPI_ Reco);
+Número de testes de recebimento para mensagens (MPI_ Probc);
+Número de barreiras para todos os processadores (MPI_ Barríer);
+Número de mensagens enviadas para todos os processadores (MPI_ Beast);
+As funções MPI referentes as métricas de cronometragem são:
+Somatório dos tempos para envio de mensagens;
+Somatório dos tempos para recebimento de mensagens;
+Somatório dos tempos para testes de recebimento;
+Somatório dos tempos para barreiras nos processadores;
+Somatório dos tempos para envio de mensagens para todos os processadores;
+As métricas filtradas nos arquivos de rastro XML são armazenadas em vetores, para otimizar os calculos das heurísticas, como se pode observar no Arquivo 6.
+Com isso, novas inserções de funções MPI, para integrar as métricas da ferramenta SIGHT, são de fácil imple-mentação.
+Essas métricas são utilizadas na construção de graficos de visualização e na aplicação de heurísticas para análise de desempenho em programas paralelos.
+A ferramenta SIGHT e implementada através da linguagem Java e esta se ocupa dos conceitos de Orientação a Objetos.
+Os comentarios sobre sua implementação são realizados utilizando ferramentas para descrição UML (Unified Modeling Language) A UML e a linguagem padrão para visualizar, especificar, construir e documentar os artefatos de um sistema intensamente baseado em software.
+Pode ser usada com todos os processos, durante todo o ciclo de desenvolvimento, e com diferentes tecnologias de implementação.
+As visões são usadas em UML para descrever os diferentes aspectos do sistema que esta sendo modelado.
+Uma visão e uma abstração do sistema, formada por um conjunto de diagramas.
+A partir de um conjunto de visões se chega a uma descrição completa do sistema a ser construído.
+A seguir descrevem- se duas visões:
+Pacotes e classes.
+Cada módulo da ferramenta SIGHT é dividido em pacotes.
+Sendo assim, existem pacotes que definem as classes pertencentes ao módulo Filtro (Filter) (responsavel por a conversão para arquivos XML), ao módulo Graficos (Graphics), ao módulo Heurísticas (Heuristics) con-forme e mostrado na Figura 5.5.
+O pacote XMLRender, utilizando a API XML-SAX, foi disponibilizado por Megginson, como é descrito na sub-seção 2.4.2.
+Este pacote é responsável por a geração das métricas de desempenho, descritas na seção 5.4.2, utilizadas na criação dos graficos e na aplicação das heurísticas.
+Horda A classe Arrow utilizada na implementação da ferramenta SIGHT para desenhar os eixos X e Y e outras setas, foi disponibilizada por Neshkov e com isso, utilizou- se o conceito de reusabilidade da linguagem Orientada a Objetos.
+Em a Figura 5.6 não são mostradas todas as vinte e uma classes da ferramenta SIGHT, apenas as classes que possuem funcionalidades diretas nos objetivos da ferramenta.
+As classes que não são descritas possuem métodos genéricos que são herdados por as classes principais.
+Pode se observar que a classe Coards é uma das classes responsavel por a geração das métricas, isto é, faz a análise dos arquivos de rastro XML na busca de valores (getValue) para as referidas tags (getLabel Outra classe responsável por a geração das métricas é a Coordinate, que busca os registros dos eventos:
+Inicial (GetCoordI) e final (getCoordF).
+Esses valores são capturados nos arquivos de rastro XML, utilizando a classe Coordinate e armazenados nos vetores de métricas, mostrados no Arquivo 6, na sub-seção 5.4.2.
+Testes de Validação.
+Este capítulo objetiva mostrar exemplos práticos de como a ferramenta SIGHT pode ser usada no processo de desenvolvimento de prograanas paralelos.
+Descrevem- se os modelos de algoritmos paralelos, a plataforma computacional e por fim a avaliação utilizada.
+A ferramenta SIGHT tem como objetivo auxiliar o programador na análise de problemas de desempenho em programas paralelos.
+Sendo assim, as aplicações utilizadas como testes para suas avaliações são exercícios desenvolvidos por os onze alunos da disciplina de Tópicos Especiais de Sistemas Distribuídos na PUCRS.
+Acredita- se que esses alunos que apreenderam a modelar programas paralelos, durante a disciplina, representam bem o público alvo da ferramenta desenvolvida.
+Em a disciplina de Tópicos Especiais de Sistemas Distribuídos são desenvolvidos, por os alunos, vários programas paralelos, com diferentes modelos de programação paralela.
+Desejase mostrar com a ferramenta SIGHT, como o programa do aluno comportou- se durante sua execução, de acordo com o modelo adotado.
+Porque, segundo Espinosa, o modelo de programação implementado tem uma relação direta com o desempenho da aplicação paralela.
+Em a próxima seção são descritos alguns modelos implementados na disciplina.
+Utilizando os modelos de programação, o desenvolvedor tem a possibilidade de estruturar as complexas aplicações paralelas, pois cada uma destas se adapta melhor a determinado ambiente e/ ou tipo de problema.
+Em o modelo Pipeline um número de processos forma um Pipeline virtual.
+Um fluxo con tínuo de dados entra no primeiro estágio do Pipeline e os processos são executados nos demais 60 Capítulo 6.
+Testes de Validação estágios complementares, de forma simultânea, como mostra a Figura 6.1.
+Sua principal vantagem é a simplicidade da comunicação, pois cada processo comunica- se somente com o processo adjacente, não causando sobrecarga.
+Em contra-partida, o modelo não é tolerante a falhas.
+Se ocorrer algum problema num processador, toda a aplicação e perdida.
+Em este modelo, um processo mestre executa as tarefas essenciais do programa paralelo e divide o resto das tarefas para processos escravos, veja Figura 6.2.
+Quando um processo escravo termina sua tarefa, informa ao mestre, que atribui uma nova tarefa para o mesmo.
+Este modelo é bastante simples, visto que o controle está centralizado num processo mestre, por isso sua desvantagem e que o mestre torna- se um &quot;gargalo «na comunicação.
+Os testes da ferramenta SIGHT foram executados na máquina principal do CPAD (Centro de Pesquisa em Alto Desempenho -- PUCRS/ Hp).
+A máquina é um agregado composto por dezesseis servidores Hp-EGO com dois processadores Pentium III 550 MHZ (2-way SMP), 256 MB de memória principal e sistema operacional Gnu/ Linux versão 2.2.18, interligados numa rede primaria Myrinet e uma rede secundária Fast-Ethernet.
+Esta máquina se enquadra na classificação Norma, que possui a característica da não possibilidade da memória ser acessada remotamente, ou seja, não existe um espaço de endereçamento comum a todos os processadores.
+Por isso, um nó não pode acessar a memória de outro diretamente, sendo esse acesso feito somente por trocas de mensagens.
+Os testes de avaliação da ferramenta SIGHT foram realizados em diversos programas, utilizando diferentes modelos de programação e também diferentes aplicativos, tais como:
+Pipeline para eliminação dos números primos;
+Três tipos de ordenações de vetores, utilizando os modelos de programação:
+Pipeline e Mestre/ Escravo.
+Executou- se a maioria dos programas desenvolvidos por os alunos da turma de 2001 e 2002, isto significa, onze maneiras diferentes de resolver cinco exercícios.
+A metodologia utilizada para testar a funcionalidade da ferramenta SIGHT foi escolher o melhor e o pior programal desenvolvido por os alunos da disciplina de Tópicos Especiais de Sistemas Distribuídos, com o mesmo modelo de programação e, posteriormente, utilizando a ferramenta SIGHT, tentou- se encontrar os possíveis problemas de desempenho ocorridos no desenvolvimento da aplicação.
+Serão analisados, em detalhes, dois exemplos com diferentes modelos de programação, utilizados como exercícios da disciplina, que foram:
+Ordenação de N Vetores utilizando o modelo Mestre/ Escravo e identificação dos números primos utilizando o modelo Pipeline.
+O primeiro exemplo, ordenação de N vetores inteiros, utilizando o modelo Clássico Mestre/Escravo, como pode ser observado na Figura 6.3, possui o seguinte funcionamento:
+O mestre possui um repositório (cem vetores) com trabalho (mil valores);
+Os vetores são distribuídos a medida que os escravos solicitarem;
+O programa termina quando o mestre não possui mais vetores para distribuir entre Seus escravos;
+Após a conversão dos arquivos de ALOG, gerados por a biblioteca de comunicação MPI, para arquivos XML, gerou- se o primeiro grafico, Process to Process Communication, para analisar como ocorreram as comunicações entre os processadores, como pode ser observado na Figura 6.4.
+Em a comunicação entre os processadores, para a ordenação dos vetores, foi utilizado o modelo de programação Mestre/ Escravo, como descrito na sub-seção 6.1.2.
+Contudo a quantidade de distribuição de suas mensagens de comunicação foi diferente, como mostram os índices de comunicação entre processadores, e percebe- se também que no melhor caso as quantidades de comunicações dos processadores e melhor balanceada, sem a participação do mestre, que possui a função de distribuir as fatias de trabalhos aos escravos.
+Por isso, o segundo passo realizado foi analisar o resultado da heurística de comunicação.
+Como pode se observar na Figura 6.5, a diferença dos tempos de comunicação em relação a sua média é menor na aplicação de melhor desempenho, seu desvio padrão é de 0, 0045 e sua media é de 0,0079.
+Ja no pior caso encontrou- se um desvio padrão de 1, 1505 e media de O, 0260, isso significa que a raiz quadrada da média aritmética dos quadrados dos afastamentos é menor no melhor caso, ou seja, o balanceamento dos tempos de comunicação é melhor.
+Provavelmente quanto menor a discrepância em relação a média, melhor a distribuição dos tempos de comunicação.
+O seguinte passo foi analisar as quantidades de tarefas realizadas por as aplicações, para isso, observou- se o grafico de Calculation Component Bar Chart, como mostra a Figura maior dos tempos da componente de calculo e uma distribuição em relação a os processadores mais homogênea em comparação ao pior caso.
+Outra conclusão interessante é que os processadores mestres praticamente não tiveram tempos de componente de calculo;
+Pode- se observar o desequilíbrio da quantidade dos tempos de tarefas, aplicando- se a heurística da componente de calculo.
+Com ela pode- se confirmar o que foi analisado com o gráfico Calculation Component Bar Chart.
+Logo a heurística ajuda a interpretação deste gráfico.
+A aplicação de melhor desempenho possui uma distribuição dos tempos da componente de calculo em seus processadores mais balanceada, 0, 3511, com a média igual a 0,6102 que na aplicação que teve um pior desempenho, 0,4954, com a média igual a 0,8591.
+Esses índices podem ser observados na Figura 6.7.
+O programa de melhor desempenho possui uma menor diferença da média dos tempos da sua componente de cálculo em relação a o pior caso.
+O grafico Process Activity Chart e útil para se observar como e quais funções MPI foram utilizadas na construção de uma aplicação paralela.
+Como mostra a Figura 6.8, pode- se observar que o programa que teve um melhor desempenho, utilizou as seguintes funções MPI:
+E¡ MPI_ Reco:
+Rotina basica para recepção de mensagens no MPI, que utiliza o modo de comunicação blocking receive (recepção bloqueante), de forma que o processo espera até que a mensagem tenha sido recebida.
+Após o retorno, libera o system bujfer, que pode ser então, novamente utilizado.
+Caso a tag sondada for igual a um o mestre receberá um pedido de trabalho e se a tag for igual a dois o mestre recebera a devolução do resultado da ordenação.
+É importante ressaltar, como dito anteriormente, que a função MPI_ Pmbe é bloqueante, assim como a função MPI_ Rec7), porém sem a locação de recursos do sistema system bufer (veja processador 00, basicamente só sonda informações, melhor caso com um tempo de 0, 8762, e recebe informações, 66 Capítulo 6.
+Testes de Validação pior caso com um tempo de 2, 0990).
+Em este exemplo, a utilização deste recurso representa um ganho de desempenho de 31,82 por cento em relação a o pior caso, que não utiliza esse recurso.
+Analisando novamente a Figura 6.9, no programa de pior desempenho, percebe- se que a verificação para saber se a mensagem recebida no mestre é um pedido de trabalho ou uma devolução do resultado da ordenação, e realizada atraves da primeira posição do vetor, utilizando uma variável de condição GET_ Job e FLA G_ TERMINATE.
+Com isso sempre sera necessário a locação de recursos do sistema, system bufer, degradando desempenho.
+O último grafico Summary Aplication Chart mostra a quantidade dos tempos de utilização de Funções MPI em relação a os tempos da componente de calculo, durante a execução da aplicação.
+Pode- se observar na Figura 6.10, que as quantidades dos tempos utilizados para Funções MPI foram menores do que para realizações dos calculos.
+Isso mostra que a quantidade dos tempos de comunicação, uma vez que não foi utilizada sincronização, foram menores em relação a quantidade dos tempos de trabalho realizado.
+Em o grafico Summary Aplication Chart percebe- se que a quantidade de trabalho no pior caso foi maior.
+Isso é decorrente de uma otimização do algoritmo bubble sort no melhor programa, que percorre todo o vetor comparando e trocando as posições dos maiores valores por os menores.
+Quando o vetor estiver ordenado, o algoritmo termina, sem realizar o restante das comparações, estando ordenado, são realizados todos as possíveis comparações, utilizando para isso dois for.
+Essa simples otimização representa um ganho de desempenho de 57,35 por cento em relação a estes dois programas.
+Outra análise pode ser feita em relação a quantidade dos tempos de comunicação e dos tempos da componente de calculo, analisando- se os totais dos tempos.
+como se pode observar na Figura 6.11 a distribuição total dos tempos de comunicação e componente de calculo são melhores na aplicação de melhor desempenho 0,0119 com uma média de 0, 8691 em relação a aplicação de pior desempenho O, 0145 e média igual a 17 2149, mostrando que houve um melhor balanceamento na distribuição dos tempos totais em relação a média no melhor caso.
+O segundo exemplo, identificação dos números primos utilizando o modelo Pipeline, pode ser observado na Figura 6.12 e possui 0 seguin e funcionamento:
+Em um vetor existem posições com zero Em cada passagem por o pipeline ocorre lizados;
+Por exemplo: Em o estágio 1 retira os múltiplos de 3, no estágio 3, retira- se.
+Como a quantidade de processadores é a dez milhões de valores;
+Gerou- se o primeiro gráfico, Process to Process Communication, para analisar como ocorreram as comunicações entre os processadores, como pode ser observado na Figura 6.13.
+Process to Process Communication Cummunimíun Index Amor-w une Pmtesses nn s M191 n¡ s n2 n5| n2 s M255 nJ-Mass M -- turns us -- rum:
+Process to Process Communication Cnmmunlullnn Index Amam;
+Lhe Pmzexses nu -- M25 u¡ -- M25 uz s M25 n) s M25 M s M25 a5 s M25 m¡ s M25 n1 -- M25 As comunicações entre os processadores nos dois casos utilizam o modelo proposto no enunciado do trabalho, como descrito na sub-seção 6.1.1, e a quantidade de distribuição de suas mensagens de comunicação foram diferentes, como mostram os índices de comunicação entre processadores.
+Em o melhor programa ocorreu uma maior comunicação entre os primeiros processadores O, 1791 para a distribuição dos números primos que no pior caso O, 125, onde houve um equilíbrio nas mensagens de comunicação.
+Por isso, o segundo passo realizado, foi analisar o resultado da heurística de comunicação.
+Como pode se observar na Figura 6.14, a dispersão dos tempos de comunicação em relação a média e menor na aplicação de melhor desempenho.
+Seu desvio padrão e de 0, 4586 e sua média é igual a O, 2799 e no pior caso o desvio padrão é de 0,8189 e a media igual a 1, 4655.
+Isso significa que a raiz quadrada da media aritmética dos quadrados dos afastamentos é menor no melhor caso, ou seja, o balanceamento dos tempos de comunicação e melhor.
+Provavelmente quanto menor a dispersão em relação a média, melhor a distribuição dos tempos de comunicação.
+Seguindo a análise, tentou- se descobrir as quantidades dos tempos das tarefas realizadas por as aplicações.
+Para isso, observou- se o grãfico de Calculation Component Bar Chart, como mostra a Figura 6.15.
+Com ele pode- se observar que na aplicação de melhor desempenho existiu uma quantidade maior dos tempos de componente de calculo em comparação com o pior caso, que possui a menor quantidade de tempo de componente de calculo no processador l e a sua maior quantidade de cálculo é muito próxima a menor quantidade do melhor caso.
+Melhor Pior (lilculatinn Comnnnen!
+Bar Chan Calzulatlon Cnmponem Bal Chan rum, Hi8:
+Pode- se observar o desequilíbrio da quantidade de tarefas, aplicando- se a heurística da componente de calculo.
+Com ela pode- se confirmar o que foi analisado com o gráfico Calculation Component Bar Chart.
+Logo a heurística ajuda a interpretação deste grafico.
+A aplicação de pior desempenho possui uma distribuição dos tempos de componente de calculo em seus processadores menos balanceada, 4, 6457 com uma média de 0, 0019, em relação a aplicação de melhor desempenho, 1, 2486 com uma média de 0,0031, isso pode ser observado na Figura 6.16.
+O programa de melhor desempenho possui uma menor dispersão da média dos tempos da sua componente de calculo em relação a o pior caso.
+Com o grãfico Process Activity Chart pode- se observar como e quais funções MPI foram utilizadas na construção de uma aplicação paralela.
+Como mostra a Figura 6.17, observa- se que MPI_ Probe e no programa de pior desempenho foram utilizadas as funções MPI_ Send, MPI_ Rec7) e MPI_ Burner.
+Esta última possui a seguinte função:
+MPI_ Burner:
+Rotina que sincroniza todos os processos de um grupo.
+Um processo de um grupo que utiliza MPI_ Barrier interrompe a sua execução até que todos os processos, do mesmo grupo, executem também uma função MPI_ Barrier.
+Melhor Pior Process Actlvlry Chart r MPI new Process Acrlvlry Chart e Mn leu¡ I -- Mn Prnlle n -- MPllnnlel nn n:
+A2 na mnnzns 1.3941: Nnnux mms;
+O primeiro processador envia todos os números para o próximo processador do pipeline;
+E logo apos, e utilizada a função MPI_ Pmbe que sonda tudo o que o primeiro processador ira receber.
+Caso a tag sondada for igual ao &quot;Número «0 primeiro processador receberá os números primos e se a tag for igual ã &quot;Terminador «o primeiro processador recebera uma mensagem de finalização.
+Isso sera realizado sem a locação de recursos do sistema system bufer.
+Analisando novamente a Figura 6.18, no programa de pior desempenho, percebe- se que não se utilizou paralelismo, porque o vetor de posições é enviado para o próximo processador do pipeline, e aguarda- se o retorno deste vetor, seqüencialmente por o último processador;
+Com isso, não se fez uso do recurso do pipeline, totalmente.
+Outro problema encontrado no programa de pior desempenho é a utilização da função MPI_ Bariier para sincronizar o primeiro processador com o restante de processadores do pipeline.
+Isso acaba consumindo um tempo na utilização da função MPI_ Barrier que neste caso foi de 0,2057 segundos, somando a utilização dos oito processadores.
+Este tempo poderia ser eliminado se fosse utilizada uma sincronização como no programa de melhor desempenho que utilizou tag de verificação.
+O último grafico Summary Aplication Chart mostra a quantidade dos tempos de utilização de Funções MPI em relação a os tempos da componente de calculo durante a execução da aplicação.
+Pode- se observar na Figura 6.19, que as quantidades dos tempos utilizados para Funções MPI foram muito maiores do que para realizações dos calculos.
+Isso mostra que a quantidade dos tempos de comunicação, uma vez que não foi utilizada sincronização, foram grandes em relação a quantidade dos tempos de trabalho realizado.
+Por fim, uma outra análise pode ser feita em relação a a quantidade dos tempos de comunicação e dos tempos da componente de cálculo em função de suas média, analisando- se os totais dos tempos.
+como se pode observar na Figura 6.20 a distribuição total dos tempos de comunicação e da componente de cálculo são melhores na aplicação de melhor desempenho 0, 7049 com uma média de 0, 5573 em relação a aplicação de pior desempenho 0, 8123 e media igual a 1,4932, mostrando que houve um melhor balanceamento na distribuição dos tempos totais em relação a sua media no melhor caso.
+Acredita- se que com esses dois exemplos conseguiram- se demonstrar a funcionalidade da ferramenta SIGHT e sua utilização junto a alunos que estão aprendendo a programar de forma paralela.
+A utilização da ferramenta SIGHT no ciclo de desenvolvimento de um programa paralelo deve reduzir o tempo de compreensão de programadores com pouca experiência e auxiliar o entendimento de problemas clássicos em programação paralela.
+Conclusões Este trabalho descreveu uma ferramenta para análise de desempenho, utilizando arquivos de rastro.
+O objetivo deste trabalho é auxiliar programadores iniciantes a compreender os conceitos de programação paralela, bem como otimizar o ciclo de desenvolvimento deste tipo de aplicação.
+Uma ferramenta que auxilia a análise do desempenho de programas paralelos é muito útil, porém deve se tomar cuidado para que o ciclo de programação de uma aplicação não se torne muito grande e o entendimento da ferramenta muito complexo.
+Por isso, surgiu a motivação de criar- se uma ferramenta para análise de desempenho, tentando otimizar o ciclo de desenvolvimento do programa e aumentar o desempenho da aplicação.
+A ferramenta SIGHT insere essas idéias citadas no parágrafo anterior;
+Possui gráficos de visualização simplificados, de facil compreensão e três heurísticas que auxiliam o entendimento e a descoberta de discrepância das medidas absolutas de aplicações paralelas.
+Para isso são utilizados arquivos de rastro XML, que são filtrados através da conversão de arquivos ALOG, gerados por a biblioteca de instrumentação MPE.
+Acredita- se que este trabalho possui, entre outras, duas contribuições importantes na área de análise de desempenho:
+O auxílio a análise de desempenho, utilizando gráficos de visualizações simplificados e heurísticas para facilitar a compreensão da difícil tarefa de programar paralelamente;
+E a possibilidade da importação/ exportação de funcionalidades de gráficos e heurísticas de outras ferramentas que utilizem os atributos mínimos definidos no DTD da ferramenta.
+Como síntese das contribuições que este trabalho possibilitou:
+Construção de uma ferramenta que auxilia na análise de desempenho, tendendo a otimizar o ciclo de desenvolvimento de um programa paralelo;
+Criação de gráficos de visualização simplificados, tendendo a analisar problemas classicos específicos de desempenho, como por exemplo, comunicação e sincronização;
+Criação de heurísticas que mostram os desequilíbrios das medidas absolutas em re lação ã distribuição ideal (média) de programas paralelos;
+Criação de um arquivo de rastro XML, com atributos mínimos e suficientes que possibilitam a importação de graficos simplificados e heurístieas.
+A proposta inicial desta dissertação era a criação de heurísticas para auxiliar a análise de desempenho de programas paralelos.
+À medida que os estudos foram esclarecendo os problemas desta área de pesquisa, percebemse a dificuldade de encontrar índices, isto é, heurísticas genéricas que sirvam para as diferentes aplicações paralelas e para os diferentes modelos de programação.
+Com isso, mudou- se o enfoque do trabalho, criando graficos simplificados, porém específicos para detectar problemas clássicos de desempenho e heurísticas que interpretam esses gráficos, utilizando balanceamentos de comunicação e sincronização.
+Mesmo com esta alteração, acredita- se que a contribuição foi significativa e vai trazer melhorias na aprendizagem dos alunos inexperientes nos conceitos de programação paralela e distribuída.
+Espera- se que a ferramenta seja utilizada nas próximas turmas da disciplina de Tópicos Especiais em Sistemas Distribuídos para melhorar e ampliar a aprendizagem nesta difícil área.
+A ferramenta SIGHT possui três módulos:
+Import Trace, Graphics e Heurístic.
+A interface do usuário foi desenvolvida na linguagem Java, utilizando o pacote Swmgl para uma boa Visualização dos recursos disponíveis, bem como, uma fácil instalação em diferentes arquiteturas de computadores.
+Em a implementação da ferramenta utilizou- se a versão J SDK 1.
+4 da linguagem Java, que e disponibilizada por a Sun.
+Esta versão do JSDK mostrou- se ineficiente em vários aspectos:
+Problemas de compatibilidade com o sistema operacional Linux:
+Embora a Sun re porte que tal versão possua problemas com bibliotecas de distribuição Red Hat 7.2, lSwing é uma das Apis para Java utilizada para a criação de interfaces gráficas.
+D Uso da memória principal:
+Muitas execuções da ferramenta foram finalizadas por a JVM devido a o &quot;estouro «de memória.
+O problema se deve, porque além de os processos do sistema operacional, estavam os processos JVM e os da ferramenta SIGHT na memória principal.
+Por isso, em máquinas com pouca memória (menos que 256 MB), a Java não obtém bom desempenho e, por conseqüência, a ferramenta SIGHT tam bém não.
+Encontram- se algumas dificuldades na criação de graficos e índices para melhorar a análise de desempenho de programas paralelos, tais como:
+Gráficos: Dificuldade na criação de graficos escalares que interpretam razoáveis quantidades de informações em grandes máquinas paralelas.
+À medida que aumentam consideravelmente as informações, torna- se difícil a visualização de detalhes da para o gramação.
+D Índices:
+Dificuldade na geração de heurísticas genéricas, uma vez que existem aplicações com granularidade forte e fraca e/ ou diferentes modelos de programação, tornando estes muito específicos, para uma comparação relevante entre diferentes aplicações paralelas.
+Em seguida são relacionados possíveis trabalhos futuros:
+Criação de uma ferramenta (módulo) que gere, não apenas converta, arquivos num formato portavel e genérico,* Criação de um arquivo de rastro intermediário, mas com portabilidade.
+Arquivos Sem Meta--Formato são de difícil portabilidade e legibilidade, porem arquivos XML se tornam rapidamente arquivos muito grandes e de difícil manipulação, devido a grande quantidade de &quot;tags», D Criação de arquivos de métricas para tornar as heurísticas independentes dos arquivos de rastro;
+Conclusões Criação de arquivos de rastro que suportem registros de eventos com multiprogramação (threads);
+Criação de métricas para monitoração de hardware;
+Importação de arquivos de rastro de outras ferramentas;
+Elaboração de gráficos que suportem grandes quantidades de informações e continuem de facil interpretação;
+Uma vez que a ferramenta SIGHT foi projetada para interpretar graficos de no maximo dezesseis nós;
+Criação de heurísticas sobre métricas de monitoração de hardware;
+Criação de novas heurísticas para análise de desempenho em programas paralelos;
+Implementação de uma versão da ferramenta SIGHT que possa ser utilizada através da Internet;
+Utilizando applets ou JSP (Java Server Pages).

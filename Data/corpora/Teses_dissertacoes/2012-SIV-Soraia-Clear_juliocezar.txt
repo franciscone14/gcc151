@@ -1,0 +1,672 @@
+A segmentação (automática ou semi-automática) de pessoas em imagens estáticas é uma tarefa bastante desafiadora, principalmente devido a diversos fatores do mundo real, como por exemplo, fatores relacionados à iluminação da cena onde a imagem foi capturada, sombras, ruídos na imagem, oclusão, alta similaridade do objeto de interesse com o fundo da cena e a falta de informação inerente de profundidade quando uma cena é capturada numa imagem 2D.
+Em essa tese é apresentado um modelo para segmentação de pessoas em imagens baseado em esqueleto.
+Os dados de entrada para o modelo proposto, associados ao modelo de esqueleto, podem ser obtidos de forma automática (utilizando um algoritmo para estimativa de pose 2D de pessoas em imagens, por exemplo) ou manual (através de interação com usuário), dependendo da aplicação em questão.
+O modelo de esqueleto guia a segmentação da pessoa na imagem levando em consideração informações de cor, luminosidade, restrições de ângulos e parâmetros antropométricos.
+De uma forma geral, a idéia principal da abordagem proposta é construir um grafo ao redor de o modelo de esqueleto, para uma determinada imagem de entrada, e buscar o melhor caminho nesse grafo que satisfaça uma determinada condição (por exemplo, aquela que maximiza certo critério de energia), gerando assim o contorno da pessoa na imagem.
+Também está sendo proposta nessa tese uma abordagem para avaliar quantitativamente os resultados experimentais obtidos, a partir de informações fornecidas através de interação com usuário.
+Os resultados experimentais demonstram que o modelo proposto gera resultados satisfatórios para imagens não triviais, contendo pessoas com aparências e poses variadas (podendo haver membros parcialmente ocultos), em diversos ambientes complexos (e não controlados), com diferentes iluminações e qualidade de imagem, entre outros fatores.
+Os resultados obtidos com a utilização do modelo proposto também foram comparados com os obtidos por um trabalho considerado estado-daarte e os experimentos indicam que o nosso modelo gera resultados mais coerentes para o contorno da pessoa, enquanto que os contornos obtidos por o trabalho em questão apresentam formas mais suaves.
+O modelo de segmentação proposto é capaz de gerar um contorno fechado (para cada pessoa na imagem) contendo informação semântica, ou seja, cada ponto do contorno resultante está associado a uma determinada parte do corpo, que pode ser utilizada para diversos fins (por exemplo, construção de humanos virtuais com características extraídas da imagem, métodos para estimativa de roupas em imagens, estimativa da forma humana sobre as roupas, entre outros).
+Palavras-chave: Segmentação de pessoas em imagens, análise de imagens, informação semântica.
+Devido a um crescimento tecnológico bastante acelerado, existem atualmente diversos sistemas baseados em técnicas de processamento de imagens digitais ou visão computacional que visam detectar, identificar, rastrear, monitorar e compreender o comportamento dos mais diversos tipos de objetos, com a utilização de uma câmera de vídeo (ou múltiplas câmeras) e um computador (ou múltiplos computadores).
+Tal avanço tecnológico possibilitou fácil acesso a diversos meios de aquisição de imagens digitais, como por exemplo, câmeras de vídeo ou câmeras fotográficas com baixo custo, assim como equipamentos de visualização (monitores, celulares, projetores, impressoras, etc) e processamento (computadores, celulares, câmeras digitais, etc) bastante acessíveis.
+Com isso, o interesse na manipulação de imagens digitais (edição, análise, processamento, etc) tem sido objeto de pesquisa e atraído grande atenção da comunidade científica nas últimas décadas.
+Conforme Gonzales e Woods, o interesse em métodos de processamento de imagens digitais decorre de duas áreas principais de aplicação:
+Melhoria de informação visual para a interpretação humana e o processamento de dados de cenas para percepção automática através de máquinas (também relacionado hoje em dia com o termo &quot;visão computacional&quot;).
+O fácil acesso à tecnologia também pode ser considerado hoje em dia um grande motivador para aumentar o interesse nessa área de pesquisa.
+A tecnologia relacionada ao processamento de imagens digitais e visão computacional pode ser aplicada nas mais variadas áreas do conhecimento (Física, Biologia, Matemática, Medicina, Astronomia, Geologia, Psicologia, etc).
+Problemas típicos relacionados à visão computacional que normalmente utilizam técnicas de processamento de imagens são:
+Detecção e reconhecimento automático de indivíduos/ objetos, automação industrial (desenvolvimento e inspeção de objetos), aplicações militares, aplicações biométricas (reconhecimento automático de impressões digitais), monitoramento automático de tráfego, pessoas ou multidões, aplicações na medicina, interpretação de imagens aéreas ou capturadas via satélite, de entre várias outras.
+O processamento de imagens digitais abrange ampla escala de hardwares, softwares e fundamentos teóricos.
+Etapas fundamentais relacionadas ao processamento de imagens vão desde a aquisição da imagem digital propriamente dita, passando por outras etapas, como por exemplo, préprocessamento, segmentação, representação e descrição dos dados, reconhecimento e interpretação dos resultados.
+Obviamente, todas essas etapas não precisam necessariamente estar envolvidas em todas as aplicações de processamento de imagens ou visão computacional, estando isso diretamente relacionado com sua aplicação.
+Conforme relatado por Gonzalez e Wood, geralmente o primeiro passo em análise de imagens é a segmentação da imagem.
+A segmentação subdivide uma imagem em suas partes ou objetos constituintes.
+O nível até o qual essa subdivisão deve ser realizada depende do problema sendo resolvido.
+Ou seja, a segmentação deve parar quando os objetos de interesse na aplicação tiverem sido isolados.
+Em geral, a segmentação autônoma é uma das tarefas mais difíceis em processamento de imagens.
+Esse passo determina o eventual sucesso ou fracasso na análise.
+De fato, a segmentação efetiva pode aumentar a probabilidade de sucesso nas etapas posteriores do processamento (se houverem).
+Os algoritmos de segmentação de imagens são geralmente baseados numa das seguintes propriedades básicas:
+Descontinuidade e similaridade.
+Em a primeira categoria, a abordagem é particionar a imagem baseado em mudanças bruscas de valores, que podem indicar, por exemplo, a intensidade de nível de cinza num ponto da imagem.
+As principais abordagens da segunda categoria baseiam- se em limiarização, crescimento de regiões, e divisão e fusão de regiões.
+Ainda que grandes avanços tenham sido feitos nessa área, conforme relatado no trabalho de McGuinness, não há uma técnica padrão para selecionar um determinado algoritmo a ser usado numa determinada aplicação.
+Essa deficiência está associada com a ambiguidade inerente em se determinar o propósito e escopo da segmentação.
+Em trabalhos recentes encontrados na literatura existe um grande interesse em se determinar o contorno, ou forma (2 D ou 3 D) de objetos conhecidos, com aplicação em diversas áreas.
+Algumas abordagens utilizam novas propriedades para segmentar objetos, além de a descontinuidade e similaridade de suas partes, como por exemplo, forma dos objetos, simetria, perspectiva da câmera, entre outras.
+Uma área que tem despertado grande interesse da comunidade científica é a estimativa automática ou semi-automática da pose e/ ou forma (2 D ou 3 D), que está intimamente relacionada com a segmentação da pessoa numa imagem ou sequência de imagens.
+Guan e colaboradores relatam que enquanto a estimativa de pose 3D de seres humanos a partir de câmeras monoculares não calibradas tem recebido grande atenção nos últimos anos, há pouquíssima pesquisa na área de segmentação de pessoas (extração automática da forma do corpo) em imagens.
+A natureza articulada e deformável do corpo humano faz com que a estimativa de sua forma seja uma tarefa extremamente desafiadora, podendo ser utilizada em diversas aplicações que variam desde computação gráfica (criação de personagens virtuais a partir de imagens, por exemplo) à vigilância automática baseada em visão computacional.
+Entretanto, como relatado no trabalho de Zhou e sua equipe, apenas algumas técnicas para estimativa detalhada da forma humana, a partir de imagens, são encontradas na literatura nos tempos atuais.
+A segmentação automática de pessoas em imagens, com a utilização de técnicas de processamento de imagens e visão computacional, ainda é um problema em aberto, devido a a influências de inúmeros fatores do mundo real, como por exemplo, iluminação da cena, ruídos na imagem, oclusão de membros da pessoa (parcial ou total), muita similaridade com o fundo da imagem ou perda de informação de profundidade relacionado quando uma cena é capturada numa imagem bidimensional assim como a outros fatores associados à dinâmica do ser humano (grande variabilidade de poses, formas distintas do corpo, roupas, etc).&amp;&amp;&amp;
+Entretanto, alguns trabalhos encontrados recentemente na literatura demonstram que essa área de pesquisa tem se tornado foco de atenção nos últimos anos, podendo ser aplicado em diversas áreas, como por exemplo, estimativa de pose e forma da pessoa (2 D ou 3 D), edição/ manipulação da imagem, entre outras.
+De uma forma geral, a grande maioria dos trabalhos que utilizam algum método para estimativa de pose ou forma de um indivíduo, ou manipulação da imagem de uma pessoa numa imagem digital, utiliza alguma técnica de segmentação, seja ela automática, semi-automática, ou manual.
+Motivação A segmentação de pessoas em sequências de imagens (vídeo), ou trabalhos que estejam envolvidos com isso, são temas que têm atraído grande atenção da comunidade científica nos últimos anos, podendo ser utilizada em diversas áreas, como por exemplo, na detecção, reconhecimento e monitoramento de pessoas, grupos de pessoas, entre outras.
+Uma vantagem na utilização de sequências de imagens é a capacidade de se poder estimar o movimento dos objetos na cena, a partir de informação temporal, que pode facilitar sua segmentação se o objeto estiver em movimento.
+Outra vantagem, em se tratando de múltiplas imagens de um mesmo objeto/ indivíduo capturadas de diferentes locais, é que pode- se tentar resolver problemas de oclusão, como por exemplo, segmentar partes de uma pessoa/ objeto que estão mais visíveis numa imagem do que em outra.
+Porém, em se tratando de imagens estáticas, onde não há informação de profundidade, tempo e tão pouco de movimento, há uma grande dificuldade em se segmentar objetos complexos (pessoas, por exemplo) de forma automática ou semi-automática.
+Alguns trabalhos, relacionados a seguir, utilizam técnicas semi-automáticas ou manuais para realizar tal tarefa, podendo gerar informação de entrada para outros fins, como por exemplo, edição/ manipulação de imagens, estimativa 3D de pose ou forma das pessoas, entre outros.
+Recentemente, Hasler e colaboradores propuseram um método para estimativa 3D da forma do corpo de uma pessoa numa única imagem, múltiplas imagens ou até mesmo em pinturas digitalizadas.
+Em esse trabalho, os autores utilizam como dados de entrada a silhueta da pessoa, extraída da imagem, e marcações informadas através de usuário (posição das mãos e pés).
+A partir de um modelo 3D inicial, o método é capaz de computar correspondências entre sua forma e a silhueta extraída da imagem.
+Os parâmetros da pose e forma do corpo são determinados de forma a coincidir com a silhueta observada.
+Os autores relatam que devido a condições de iluminação e qualidade das imagens utilizadas, a maioria dos seus resultados foram gerados a partir de uma segmentação manual das pessoas nas imagens.
+Entretanto, em algumas imagens cuja a segmentação é considerada simples, foi utilizado um método semi-automático de segmentação de imagens (GrabCut,).
+Uma característica do modelo proposto é que, ao final da estimativa 3D da forma do corpo da pessoa, o método é capaz de estimar informações biométricas relacionadas à mesma, como por exemplo, peso e altura da pessoa, utilizando um simples regressor linear treinado a partir de uma base de dados.
+A Figura 1.1 exibe o resultado desse método para um exemplo apresentado.
+Para alcançar tal objetivo, num primeiro momento, é utilizado um modelo 3D de uma pessoa (3 D morphable model), o qual é sobreposto na imagem de entrada, de forma que haja um encaixe perfeito entre o modelo 3D e a pessoa na imagem.
+Esse primeiro passo é feito com intervenção manual do usuário.
+O usuário pode, nessa etapa, esculpir o modelo 3 D, reajustando alguns parâmetros, de forma que o mesmo se encaixe ao corpo da pessoa na imagem, como por exemplo, largura ou altura.
+Por fim, a forma da pessoa na imagem pode ser deformada, de modo que seus contornos sejam o mais semelhantes possível com as modificações feitas no modelo 3D.
+A Figura 1.2 ilustra parte desse processo.
+Os trabalhos apresentados na Seção 1.1, assim como os trabalhos exibidos na Seção 2.2, serviram como motivação para o desenvolvimento do modelo de segmentação de pessoas em imagens estáticas proposto nessa tese, devido a o interesse que esse tema tem recebido nos últimos anos e por o fato de ser uma tarefa bastante desafiadora.
+Objetivos Esse trabalho teve como objetivo geral inicial investigar métodos que pudessem auxiliar no pro-cesso de segmentação (automática ou semi-automática) de pessoas em imagens estáticas.
+Atingido tal objetivo, está sendo proposta nessa tese uma solução viável para a resolução do problema (segmentação de pessoas em imagens), que leve em consideração características antropométricas da forma humana (baseada num modelo de esqueleto), além de as características oriundas da imagem sendo analisada (cor, bordas, luminosidade, etc).
+No decorrer de o curso de doutorado foi proposta uma técnica para segmentação e estimativa automática da pose de pessoas em imagens estáticas, publicado numa conferência da área.
+Em esse trabalho, a segmentação da pessoa é realizada sem intervenção manual, inicializada a partir de um detector de faces automático, onde o objetivo inicial é encontrar cores predominantes em regiões específicas, estimadas a partir de parâmetros antropométricos.
+O resultado final desse trabalho é um método para estimativa de poses de pessoas em imagens estáticas (basicamente da parte superior do corpo -- tronco e membros superiores).
+A Figura 1.3 ilustra parte desse processo.
+Entretanto, devido a inúmeros fatores, que fazem com que não seja trivial a resolução desse problema de forma automática (tanto como o de segmentação como o de estimativa de poses), pretendeu- se também investigar vantagens/ desvantagens de métodos que permitam intervenção com o usuário, assim como estender o trabalho proposto em para segmentar o corpo todo (ao invés de somente a parte superior do corpo).
+O resultado final desse processo investigativo resultou no modelo proposto nessa tese, para segmentação de pessoas em imagens estáticas baseada em esqueleto, descrito em detalhes no Capítulo 3.
+Em o Capítulo 2 são apresentados alguns conceitos fundamentais sobre processamento de imagens, assim como trabalhos relacionados à segmentação de pessoas em imagens, considerados estado-da-arte.
+Resultados experimentais e estudos de caso (análise quantitativa, sensibilidade do modelo proposto, aquisição automática dos dados de entrada e comparação com estado- da arte) são apresentados no Capítulo 4.
+Por fim, considerações finais e sugestões para trabalhos futuros são apresentadas no Capítulo 5.
+Trabalhos publicados e prêmios recebidos durante o doutorado são listados nos Apêndices A e B, respectivamente.
+Em o Apêndice C é apresentada uma lista detalhada dos principais parâmetros usados no modelo proposto, assim como os valores padrão adotados.
+Imagens usadas neste trabalho para ilustrar algum resultado do modelo proposto são ilustradas no seu formato original (em cores e sem cortes, porém redimensionadas) no Apêndice D. Este capítulo visa introduzir alguns conceitos fundamentais sobre segmentação de imagens.
+O objetivo é apresentar algumas técnicas conhecidas de segmentação de imagens que podem, ou poderiam ser utilizadas para segmentação de pessoas em imagens estáticas.
+Em esse capítulo também são apresentados alguns trabalhos considerados estado- da arte no que tange segmentação de pessoas em imagens estáticas.
+Conceitos básicos Conforme mencionado anteriormente, os algoritmos de segmentação de imagens são geralmente baseados numa das seguintes propriedades básicas:
+Descontinuidade e similaridade.
+Em a categoria de algoritmos baseados em descontinuidades, a abordagem é particionar a imagem baseado em mudanças bruscas de valores, que podem indicar, por exemplo, a intensidade de nível de cinza num ponto da imagem.
+De uma forma geral, os três tipos de descontinuidades mais utilizados nesse processo de segmentação são:
+Detecção de pontos, linhas e bordas.
+Em a prática, a maneira mais comum de procurar por descontinuidades é através de uma varredura na imagem com a utilização de uma determinada máscara (ou filtro), que irá salientar alguma característica desejada na imagem (como pontos, linhas ou contornos, por exemplo).
+As principais abordagens da segunda categoria (similaridade) baseiam- se em limiarização, crescimento de regiões, e divisão e fusão de regiões.
+A técnica de limiarização é uma das mais importantes abordagens para a segmentação de imagens.
+Suponha que seja construído o histograma de níveis de cinza de uma determinada imagem f (x, y), composta por objetos iluminados sobre um fundo escuro, de maneira que os pixels do objeto e os do fundo tenham seus níveis de cinza agrupados em dois grupos dominantes.
+Uma maneira óbvia de extrair os objetos do fundo é através da seleção de um limiar T que separa os dois grupos.
+Então, cada pixel (x, y) tal que f (x, y)\&gt; T é denominado um ponto do objeto;
+Caso contrário, o ponto é denominado parte do fundo.
+Entretanto, na grande maioria das aplicações envolvendo processamento de imagens (em condições não controladas), dificilmente o histograma terá somente dois grupos dominantes, podendo haver diversos picos, associados aos diversos objetos contidos na imagem, fazendo com que não seja considerada uma tarefa trivial a escolha de múltiplos valores de limiar para isolar, de forma efetiva, um objeto de interesse, principalmente no que tange a escolha de valores de limiar de forma automática.
+A segmentação orientada a regiões baseia- se nos conceitos de crescimento, divisão e fusão de regiões.
+O crescimento de regiões é um procedimento que agrupa pixels ou sub-regiões em regiões maiores.
+A mais simples dessas abordagens é a agregação de pixels, que começa com um conjunto de pontos denominados &quot;semente «e, a partir de eles, a região cresce, de maneira que pixels que possuem propriedades similares (como níveis de cinza, textura ou cor) são anexados às essas &quot;sementes».
+Dois problemas imediatos, relacionado à essa abordagem, são a seleção de &quot;sementes «que representam adequadamente as regiões de interesse, bem como a seleção de propriedades apropriadas para a inclusão de pontos nas várias regiões durante o processo de crescimento.
+A seleção de um ou mais pontos iniciais pode frequentemente se basear na natureza do problema, assim como, se as &quot;sementes «são adquiridas de maneira automática, semi-automática ou manual.
+Outros fatores que devem ser levados em consideração são os critérios de similaridade usados, que estão intimamente relacionados com o tipo de dado em questão (imagem monocromática, colorida, térmica, etc) e o estabelecimento de uma condição de parada (o crescimento de uma região deveria parar quando uma determinada condição for satisfeita).
+O procedimento utilizado em abordagens baseadas em crescimento de regiões parte de um conjunto de &quot;sementes».
+Uma alternativa à essa abordagem seria subdividir a imagem de entrada num conjunto de regiões arbitrárias e disjuntas, e então realizar a divisão e/ ou fusão das regiões na tentativa de satisfazer alguma condição pré-estabelecida.
+O conceito de segmentação de uma imagem em descontinuidades ou em similaridade de valores pode ser aplicado tanto em imagens estáticas como em imagens dinâmicas (que variam com o tempo).
+Em esse último caso, porém, o movimento pode frequentemente ser usado como uma pista poderosa para melhorar a performance dos algoritmos de segmentação.
+Em aplicações de imageamento, o movimento é originado a partir de um deslocamento relativo entre o sistema de coordenadas do sensor e a cena sendo observada, como em aplicações de robótica, navegação autônoma e análise dinâmica de cenas (podendo ser considerado tanto no domínio espacial quanto no domínio das frequências).
+Trabalhos Relacionados Em esta seção são apresentados alguns trabalhos, considerados estado-da-arte no que tange a segmentação automática ou semi-automática de pessoas em imagens estáticas.
+Alguns trabalhos não associados diretamente à segmentação de pessoas também são relatados, por serem considerados importantes ou porque poderiam ser utilizados na construção de um novo modelo de segmentação de pessoas em imagens estáticas.
+Alguns métodos propostos para segmentação automática de pessoas em imagens inicializam seus modelos a partir de alguma pré-determinada informação, como por exemplo, região da face (usando um detector automático de faces), região ou pose estimada da pessoa (detecção automática de pessoas em imagens, ou estimativa de pose), como em, ou a partir de a região do torso (parte superior da pessoa), por exemplo, entre outras formas.
+Por outro lado, alguns trabalhos se propõem a detectar e segmentar as pessoas de forma simultânea, como em, ou, por exemplo.
+Além disso, métodos semi-automáticos podem ser uma alternativa para a resolução do problema, como em, por exemplo.
+Hornung e sua equipe apresentam um método para animar personagens em imagens (fotos ou pinturas digitalizadas), com a utilização de movimentos capturados do mundo real (motion capture).
+Dada a imagem de uma pessoa, ou personagem similar a um ser humano, o método faz uma estimativa do modelo de câmera perspectiva usado na composição dessa imagem, assim como da pose 3D do personagem contido na mesma, e transfere o movimento de um esqueleto 3D para o personagem na imagem, gerando uma impressão de movimento realístico.
+Em esse trabalho é considerado um modelo genérico de esqueleto 3D de um personagem virtual, e o usuário informa pontos de correspondência entre esse modelo 3D e o personagem na imagem 2D.
+A extração do contorno do personagem é feita de maneira semi-automática, em a qual um conjunto de templates de formas (shape templates), organizados hierarquicamente, é encaixado às partes do corpo desse personagem.
+Dado uma imagem de entrada, um determinado template de forma é selecionado automaticamente, explorando- se a pose que melhor se encaixa ao personagem, associado também ao modelo de câmera perspectiva estimado.
+Então esse template é deformado com a utilização de um algoritmo que preserva algumas características desejadas, como por exemplo, forma e proporção (denominado As Rigid As Possible, ou &quot;tão rígido quando possível&quot;), objetivando adequar o template inicial ao modelo de câmera estimado.
+Posteriormente, um algoritmo de segmentação baseado em informações de contornos (snakes 2D ­ Active Shape Models) é usado para aprimorar o encaixe entre o template ao contorno do personagem na imagem.
+Por fim, regiões do contorno não condizentes com o contorno esperado, são ajustadas manualmente com auxílio do usuário.
+De essa forma o personagem é segmentado, e animado com dados de movimentos capturados.
+A Figura 2.1 ilustra o resultado desse trabalho.
+Regiões ocultas do personagem, como do fundo de cena, são reconstruídas com uma técnica de síntese de texturas.
+Em o trabalho de Freifeld e equipe é proposto um modelo 2D da silhueta humana que pode ser utilizado para segmentação automática de pessoas em imagens.
+O modelo é construído a partir de representa detalhadamente formas e poses do corpo humano, de maneira natural, assim como essas variam numa população.
+Uma característica do modelo é que não se trata de um contorno simples de uma forma, visto que inclui informação semântica, ou seja, as partes do corpo são representadas no contorno por cores (ou índices) diferentes, como ilustrado na Figura 2.2 (à esquerda), o que torna possível que duas partes do corpo fiquem sobrepostas (por exemplo, o braço na frente de o tronco), mantendo uma conectividade coerente do contorno.
+A inicialização do método é feita automaticamente com a utilização de um detector automático de pessoas e pose.
+O modelo de deformação do contorno é composto por três partes:
+Variação de forma, mudanças do ponto de vista (de câmera) e rotação das partes.
+O resultado é um modelo 2D articulado e parametrizável.
+A pose e a forma estimadas são refinadas com a utilização de uma função de custo que segmenta a cena em objeto e fundo (foreground e background, respectivamente) baseada num modelo de segmentação semi-automático (Grab-Cut,).
+Um resultado desse trabalho é ilustrado com auxílio da Figura 2.2.
+Hu e sua equipe propõem um método para segmentação automática de roupas de pessoas em imagens estáticas sem qualquer modelo pré-definido de roupa.
+Tal abordagem não é usada especificamente para a segmentação da pessoa propriamente dita, porém pode ser usada para auxiliar nesse processo.
+Em essa abordagem, as roupas são extraídas usando um modelo bastante conhecido para segmentação de imagens, Graph Cuts, onde as &quot;sementes «do foreground (objeto a ser segmentado) e do background (fundo da cena) são obtidas de forma automática.
+As &quot;sementes «do foreground são obtidas com a utilização de um detector de tronco, baseado na segmentação de cores dominantes.
+As &quot;sementes «do background são estimadas com base na Triangularização de Delaunay.
+Após obter as &quot;sementes «do foreground e background, a distribuição de cores de ambos são modeladas com a utilização de Misturas de Gaussianas (GMM -- Gaussian Mixture Models).
+Os autores utilizam nesse trabalho um modelo probabilístico para segmentar pixels com tons de pele, criado a partir de os pixels da região da face.
+Relatam que remover pixels com tons de pele do objeto e associar- los ao fundo da cena gera resultados melhores, pois esses podem influenciar na distribuição de valores tanto do fundo da cena como do objeto, gerando um resultado de segmentação não muito acurado.
+Partem da hipótese que os tons de pele de um indivíduo são similares aos tons de pele de sua face.
+De essa forma, utilizam um algoritmo (k--means) para segmentar a região da face e assim, segmentam os pixels de tons de pele, assumindo que esses pixels são usualmente dominantes na região da face.
+A Figura 2.3 ilustra um resultado desse trabalho.
+Imagem à direita:
+Resultado da segmentação.
+E essa região pode se assemelhar à imagem de um gramado, ou o tronco de uma árvore.
+Porém, num contexto global (com uma mão, um ombro, um torso, etc), as partes podem fazer mais sentido, ou seja, muitas características de baixo nível agregam informações apenas quando consideradas dentro de seu contexto.
+Em esse trabalho, o modelo parte de um conjunto de características de baixo nível, com informações independentes de contexto, que usualmente representam partes salientes, possuindo informações suficientes em si mesmas para criar uma configuração parcial (por exemplo, &quot;se isso é um cotovelo e aquilo é um torso, então aquele deve ser o braço&quot;).
+De essa forma, existe um problema combinatorial para se determinar quais partes devem ser postas juntas para originar uma configuração parcial.
+Os autores utilizam algumas restrições globais, como por exemplo, escalas relativas, localização e cores, para remover combinações impossíveis.
+O restante da configuração é realizado através de uma busca por as partes restantes.
+Lin e sua equipe apresentam um modelo hierárquico baseado em template-matching para detecção e segmentação de pessoas em imagens.
+Template-matching é uma técnica bastante conhecida em processamento de sinais, porém é bastante sensível à mudanças de escala e rotação, também como é considerada computacionalmente cara.
+Os autores salientam que a detecção de uma pessoa é um problema fundamental em análise de imagens, pois pode prover inicialização para técnicas de segmentação, sistemas de rastreamento e identificação de indivíduos.
+Também classificam as abordagens para detecção de pessoas em imagens em duas categorias:
+Baseadas em forma (shape-based) e baseadas em objeto de foreground (blob-based).
+As formas, em técnicas baseadas em forma, podem ser modeladas como segmentos de curvas locais, ou diretamente com um modelo hierárquico global de forma, ou então representadas por descritores globais ou locais.
+Abordagens baseadas em forma possuem a vantagem de não necessitar de técnicas de subtração de fundo (background subtraction), porém têm a necessidade de &quot;varrer «toda a imagem, para encontrar o melhor matching, podendo gerar diversos alarmes falsos.
+Por outro lado, abordagens baseadas em objeto de foreground (blob-based) são computacionalmente mais eficientes, porém, seus resultados dependem de técnicas de subtração de fundo.
+A abordagem proposta em utiliza detectores de partes locais e globais, utilizando templatematching, através da decomposição de modelos globais de forma para a construção de uma estrutura em forma de árvore de templates de forma.
+Características de baixo nível, como bordas, são usadas para fazer o matching entre uma determinada região da imagem e um determinado template, gerando um conjunto de hipóteses de pessoas detectadas.
+A segmentação e estimativa da pose são obtidas de forma automática com a utilização de síntese de partes detectadas, com a utilização de um modelo Bayesiano.
+A Figura 2.6 ilustra uma árvore de templates de forma usado neste trabalho.
+Similarmente, Gravila propõem um modelo hierárquico usando template-matching, representado numa estrutura de árvore, combinado com uma abordagem Bayesiana.
+Entretanto, os objetos são descritos a partir de um conjunto de treinamento, baseados em forma ou exemplos, que cubram um determinado conjunto de aparências devido a a transformações geométricas (rotação e escala, por exemplo) e variação intra-classe (diferentes pedestres, poses, etc).
+Como critério de similaridade entre exemplos, nesse trabalho utiliza- se a distância de Chamfer, baseada na orientação das bordas, extraídas da imagem.
+Em o trabalho de Su e colaboradores, é proposta uma técnica que utiliza um par de imagens, com e sem flash, de um mesmo objeto para segmentar- lo, a qual os autores chamam de Flashcut.
+Essa técnica baseia- se na hipótese de que apenas o objeto de interesse é significativamente influenciado por o flash e que as mudanças geradas no fundo da cena (background) são menos significativas, podendo ser segmentadas facilmente (se o background estiver distante).
+A técnica suporta uma variação pequena de movimento do background assim como do foreground (objeto em questão).
+Uma desvantagem dessa abordagem é que não pode ser utilizada em imagens genéricas, encontradas na web, devido a a restrição do par de imagens sobre uma mesma cena assim como da necessidade do uso do flash.
+A Figura 2.8 ilustra parte desse processo.
+Recentemente, Guan e sua equipe propuseram uma abordagem semi-automática para estimar a forma do corpo e a pose de pessoas em imagens (ou pinturas digitalizadas).
+Em essa abordagem, são computados parâmetros de forma e pose de um modelo 3D de um corpo humano.
+É utilizado um modelo 3D de forma aprendido a partir de uma base de dados de treinamento denominada SCAPE, que incorpora grande variação de formas de pessoas como em poses.
+A partir de informações adquiridas através do usuário (altura estimada da pessoa na imagem e outros pontos de controle) é feita uma estimativa inicial de um modelo articulado 3D da pose e forma da pessoa na imagem.
+A partir de essa estimativa inicial, são gerados mapas de regiões contidas dentro de o objeto, fora de o objeto e ao longo de o contorno do objeto, usados para segmentar a imagem com o algoritmo de segmentação Grab-Cut.
+Os autores também utilizam um modelo linear de forma do corpo humano (com baixa dimensionalidade) em o qual variações devido a a altura da pessoa são concentradas ao longo de uma única dimensão, tornando possível a estimativa da forma do corpo com restrições de alto nível.
+Os autores também formulam o problema de estimativa de forma a partir da iluminação (sombreamento) contida na imagem (shading ­ shape from shading).
+De essa forma, é estimada a pose, forma do corpo e iluminação da cena, que produzem um corpo sintetizado que se encaixa de maneira adequada às evidências encontradas na imagem de entrada.
+O resultado dessa abordagem é um modelo de corpo que pode ser medido, animado, editado, para uma grande variedade de aplicações.
+A Figura 2.9 ilustra o resultado desse trabalho.
+Em o trabalho de Hu e sua equipe é proposta uma abordagem para estimativa de pose da parte superior do corpo de pessoas em imagens estáticas, a partir de três informações observadas num estágio inicial:
+Região da face, pixels em tons de pele e região do tronco.
+Então as juntas (ou articulações), que ligam as partes do corpo dessa pessoa, são inicializadas de acordo com as observações feitas e restrições com base em heurísticas definidas.
+O método de MCMC (Markov chain Monte Carlo), baseado em exemplos, é utilizado para determinar a estimativa final da pose.
+Ren e colaboradores propõem uma abordagem que incorpora restrições entre pares de partes do corpo, como por exemplo, escala, posição relativa, simetria da roupa e contorno suave na conexão entre partes, para estimar pose de pessoas em imagens de forma automática.
+Possíveis candidatos à parte do corpo são adquiridos através de uma abordagem botton-up, usando características como paralelismo e restrições impostas entre pares de partes do corpo.
+De forma a originar uma estimativa de pose final, a partir de o agrupamento das partes detectadas, é utilizada uma abordagem denominada Integer Quadratic Programming ­ IQP, a qual é relatada por os autores por poder agregar mais informações do que programação dinâmica (tipicamente aplicada à problemas de otimização), por exemplo.
+Em esse trabalho são utilizadas 15 imagens, segmentadas por especialista, usadas para o treinamento de um detector de baixo nível de partes do corpo, assim como para o aprendizado de determinadas restrições entre partes (exemplos de restrições são:
+Conexão entre as partes superiores das pernas devem estabelecer um determinado critério, assim como a posição relativa entre braços e pernas, por exemplo).
+A Figura 2.11 ilustra o resultado desse trabalho.
+Contexto desse trabalho no estado- da arte O modelo proposto nesta tese, descrito em detalhes no próximo capítulo, apresenta uma abordagem para segmentação de pessoas em imagens estáticas baseada em esqueleto.
+O modelo baseado em esqueleto guia a segmentação da pessoa na imagem levando em consideração informações de cor, contornos, restrições de ângulos e parâmetros antropométricos.
+De uma forma geral, a idéia principal da abordagem proposta é construir um grafo ao redor de o modelo de esqueleto, para uma determinada imagem de entrada, e buscar o melhor caminho nesse grafo que satisfaça uma determinada condição (por exemplo, que maximize certo critério de energia), gerando assim o contorno (ou silhueta) da pessoa na imagem.
+Em a abordagem proposta não são usados modelos 3D complexos da forma humana, como em[ 1, Uma característica importante, que deve ser salientada do modelo proposto, é que o resultado dessa abordagem gera um contorno fechado (onde o ponto inicial é igual ao ponto final) com informação semântica embutida, ou seja, cada ponto do contorno resultante está associado à uma determinada parte do corpo (similar ao trabalho de Freifeld e sua equipe).
+Resultados experimentais, exibidos em detalhes no Capítulo 4, demonstram que o modelo proposto gera resultados satisfatórios para imagens não triviais, contendo pessoas com aparências e poses variadas, em diversos ambientes complexos (e não controlados), com diferentes iluminações e qualidade de imagem, podendo haver membros parcialmente ocultos, entre outros fatores.
+Uma breve comparação de resultados gerados a partir de o modelo proposto com resultados ilustrados no trabalho de Freifeld e sua equipe, considerado estado- da arte, demonstram que o nosso modelo gera resultados mais coerentes para o contorno da pessoa, enquanto que os contornos ilustrados em apresentam formas mais suaves.
+Possíveis aplicações que poderiam se beneficiar de tal informação semântica, gerada a partir de a utilização da abordagem proposta, são modelos para construção de humanos virtuais (avatar) com características extraídas da imagem (como geometria ou textura), métodos para estimativa de roupas em imagens ou estimativa da forma humana sobre as roupas, entre outros.
+O modelo proposto nessa tese é descrito em detalhes a seguir.
+Segmentar pessoas em imagens estáticas com a utilização de técnicas de visão computacional é uma tarefa bastante desafiadora, assim como a de se obter informações semânticas das pessoas contidas nessas imagens.
+Isso se deve à grande variabilidade de aparências e poses que essas podem assumir, e fatores relacionados à imagem, como ruído, iluminação, entre outros.
+Segmentar partes de uma pessoa (em imagens estáticas), como braços, tronco, membros, entre outras, também não é considerada uma tarefa trivial.
+Segmentar uma imagem em segmentos quaisquer, sem informação semântica, pode ser diferente de segmentar um objeto específico de interesse, pois nesse último precisa- se saber qual parte da imagem é de interesse, no caso, o que é o braço, o que é a perna, a cabeça, etc, e não somente &quot;segmento 1», &quot;segmento 2», &quot;segmento 3», etc..
+Métodos de processamento de vídeo, por exemplo, podem utilizar informações que não estão disponíveis em imagens estáticas, como as de tempo e movimento, e assim segmentar/ detectar pessoas combinando essas características usando diferentes técnicas.
+A segmentação de uma imagem em segmentos quaisquer pode ser usada como dado de entrada para diversas aplicações (relacionados à figura humana), por exemplo, em técnicas que fazem estimativa de pose, forma humana, edição/ manipulação de imagens, entre outras.
+Por outro lado, a segmentação pode ser o resultado final de uma técnica que utilize alguma informação a priori sobre o objeto a ser segmentado, como a forma do objeto, localização, base de treinamento (aprendizado de informações), entre outras, podendo ser aplicado em segmentação de cor de pele, roupas, objetos, etc..
+De essa forma, um aspecto que deve ser levado em consideração quando se deseja segmentar um objeto de interesse é a quantidade e qualidade de informações envolvidas para resolução do problema.
+Conforme relatado por Hornung e sua equipe, a aquisição da postura 2D de um ser humano de forma interativa, que poderia ser utilizada para inicializar um método de segmentação, por exemplo, tem algumas vantagens quando comparada a métodos automáticos, pois a intervenção manual normalmente leva alguns minutos e gera resultados superiores em poses onde há alguma ambiguidade, se comparado a técnicas de estimativa de pose automáticas.
+Por outro lado, existem métodos automáticos que poderiam ser usados para estimar poses de pessoas em imagens estáticas sem qualquer intervenção humana, porém ainda não obtendo resultados tão bons quanto os obtidos de forma interativa, devido a diversos fatores, como grande variação de poses e aparências que as pessoas podem assumir, complexidade da cena capturada na imagem em análise, entre outros.
+O modelo de esqueleto utilizado nessa tese para guiar a segmentação pode ser obtido manualmente (através do usuário) ou de forma automática, com a utilização de um algoritmo para estimativa automática de poses 2D em imagens (como, por exemplo).
+Sob o ponto de vista semi-automático, a ideia inicial da segmentação baseada em esqueleto é que o usuário informe alguns dados pertencentes à pessoa na imagem (por exemplo, altura, posição da cabeça, mãos, pés, etc ­ associadas ao modelo de esqueleto), e a partir dai a segmentação é feita de forma automática.
+Sob o ponto de vista automático, a ideia é que esses dados sejam adquiridos sem intervenção com o usuário, fazendo que o modelo proposto seja capaz de extrair o contorno de uma pessoa numa imagem de forma totalmente automatizada.
+O modelo proposto nesta tese, descrito em detalhes neste capítulo, é definido inicialmente a partir de informações adquiridas de maneira semi-automática, ou seja, os dados de entrada relacionados ao modelo de esqueleto são informados através de interação com usuário.
+O objetivo dessa decisão é simplificar o sistema de entrada de dados, tornando- o também mais preciso.
+De essa forma, os resultados gerados por o modelo proposto não devem (ou não deveriam) ser influenciados, por exemplo, por um dado de entrada adquirido de forma imprecisa que por ventura possa ocorrer ao utilizar um algoritmo automático para estimativa de poses 2D de pessoas em imagens.
+Um estudo de caso, detalhando as vantagens/ desvantagens dessas duas abordagens (semi-automática × automática), assim como resultados experimentais do modelo proposto numa configuração totalmente automática é apresentado na Seção 4.4.
+Desconsiderando- se a variabilidade de poses e aparências que uma pessoa possa assumir, e fatores relacionados a qualidade da imagem em análise, como iluminação, ruído, entre outros, deve ser também considerado o tipo de dado em estudo, ou seja, número de pessoas na imagem, a distância que as pessoas estavam da câmera quando fotografadas (relacionados ao tamanho que a pessoa vai assumir na imagem -- proporção da pessoa × resolução da imagem), distância que as pessoas estavam umas das outras (podendo gerar oclusão ou ambiguidade), ambiente da cena (relacionado ao fundo da imagem -- homogêneo, texturizado, controlado), se a (s) pessoa (s) está (ão) com todo o corpo aparente na imagem, entre outros fatores.&amp;&amp;&amp;
+Em as próximas seções são descritas em detalhes as etapas que compõem o modelo de segmentação baseado em esqueleto.
+A Figura 3.1 exibe uma visão geral do modelo proposto.
+Mais especificamente, na Seção 3.1 são descritos os dados de entrada para a geração do contorno (esqueleto de entrada e altura estimada da pessoa na imagem).
+A definição do grafo criado ao redor de o modelo esqueleto, assim como a forma em a qual suas conexões especiais são definidas e a maneira como a energia de seus caminhos é medida são descritos na Seção 3.2.
+Em a Seção 3.2.5 é detalhado o método que encontra o melhor caminho desse grafo, originando o contorno da pessoa na imagem.
+Em a Seção 3.3 é apresentada uma abordagem que utiliza informações de cores predominantes da pessoa na imagem, para auxiliar no cálculo que irá gerar seu contorno.
+Estudos de caso e resultados experimentais são apresentados no Capítulo 4.
+Por fim, considerações finais e sugestões para trabalhos futuros são apresentadas no Capítulo 5.
+Todos os 19 pontos definidos no modelo de esqueleto (ilustrados na Figura 3.2) devem ser informados por um usuário/ especialista como dados de entrada (no caso semi-automático) ou adquiridos de forma automática por um algoritmo de estimativa de poses 2D de pessoas em imagens, para cada imagem analisada (a ser segmentada).
+Os pontos devem ser associados às suas respectivas partes do corpo, ou seja, devem ser adquiridos numa determinada ordem para que o modelo possa relacionar cada ponto de entrada à sua respectiva parte do corpo.
+Tabela 3.1: Partes do corpo relacionadas ao modelo de esqueleto usado.
+Primeira coluna:
+Índice de cada parte;
+Segunda coluna:
+Parte do corpo;
+Terceira coluna:
+Pontos que formam cada parte;
+Quarta coluna:
+Parâmetro usado no cálculo da estimativa da largura de cada parte.
+Parte do corpo Pontos fwi Cabeça Tronco Braço esquerdo Antebraço esquerdo Mão esquerda Braço direito Antebraço direito Mão direita Coxa esquerda Canela esquerda Pé esquerdo Coxa direita Canela direita Pé direito Ombro esquerdo Ombro direito Como mencionado no parágrafo anterior, outro dado de entrada importante a ser considerado no modelo proposto é a altura da pessoa na foto.
+Em a abordagem proposta, há duas formas de se estimar a altura de uma pessoa numa imagem (em coordenadas de imagem), através de intervenção manual:·
+Quando a pessoa está em pé na imagem, com todo o corpo visível (desconsiderando- se oclusão de membros superiores, como braços, por exemplo), o usuário simplesmente informa um ponto no topo da cabeça e outro logo abaixo de os pés da pessoa, obtendo- se a altura H diretamente.·
+Por outro lado, se a pessoa estiver sentada, ou com parte do corpo oculta (principalmente os membros inferiores), sua altura H é estimada a partir de o tamanho de sua face combinada com valores antropométricos, como descrito a seguir.
+Mais precisamente, o usuário informa um ponto no topo da cabeça da pessoa e outro na altura do queixo da mesma para se obter o comprimento da face hf.
+De essa forma, a altura dessa pessoa é então estimada utilizando- se a Equação 3.2.
+Uma alternativa ao usuário informar o tamanho da face (hf) seria capturar esse valor com a utilização de um algoritmo de detecção de faces.
+Entratanto, quando a pessoa está de corpo inteiro na imagem, a estimativa direta da altura H tem se mostrado mais convincente (gerando melhores resultados) que a altura estimada por o tamanho de sua face (conforme Equação 3.2), devido a diversos fatores, como perspectiva da câmera, pessoas com tamanhos diferentes, entre outros.
+De essa forma, essa abordagem alternativa tornaria- se- atrativa apenas em situações onde a altura não pudesse ser adquirira diretamente, necessitando talvez de uma confirmação do usuário, ou utilizando alguma métrica para detectar a ocorrência dessa situação automaticamente.
+Conforme mencionado anteriormente, na Seção 4.4 é apresentado um estudo de caso onde os dados de entrada são adquiridos sem intervenção do usuário e a segmentação é realizada de forma automática.
+Os dados obtidos nessa primeira etapa, como altura estimada, pontos de controle (esqueleto de entrada) e estimativas de larguras, são utilizados em diversas etapas do modelo de segmentação baseado em esqueleto proposto, descritos em detalhes nas próximas seções.
+Geração do grafo Conforme mencionado anteriormente, a ideia por trás do modelo proposto é criar um grafo ao redor de o esqueleto de cada pessoa na imagem e encontrar o melhor caminho nesse grafo, baseado num determinado critério (por exemplo, o melhor caminho é aquele que maximiza um determinado valor de energia), que irá compor o contorno ou silhueta da pessoa.
+Basicamente, são criados três grafos principais, A, B e C (um para a parte superior do corpo, grafo A, e outros dois para a parte inferior do corpo, grafos B e C).
+Para cada grafo é gerado um caminho (o melhor caminho), que representa o contorno da pessoa para aquele determinado subgrupo de partes do corpo.
+Em o final do processo, os três caminhos obtidos são conectados, originando um único contorno que irá representar a silhueta da pessoa na imagem.
+A Figura 3.3 (a) ilustra os três grafos gerados para uma determinada imagem (mais especificamente os níveis e limites de cada grafo), assim como a Figura 3.3 (b) ilustra o contorno resultante, representado por a conexão dos melhores caminhos, obtidos para cada grafo principal.
+A hipótese assumida nessa abordagem é que cada parte aproximadamente retangular do corpo (como braço, antebraço, perna, tronco, etc), definida a partir de dois pontos de controle (como descrito na Seção 3.1) é limitada por um contorno, que deve ter inclinação similar à do seu respectivo &quot;osso», gerado por a conexão entre os dois pontos de controle que o formam, assim como deve respeitar algumas restrições de distância (restrições baseadas em antropometria).
+Entretanto, nem sempre o contorno de uma determinada parte do corpo vai ser uma linha paralela à seu respectivo &quot;osso», como por exemplo, para o contorno da cabeça, mãos, pés, ou até mesmo por causa de as ondulações causadas por roupas, oclusões, etc, fazendo com que a resolução desse problema não seja considerada trivial.
+A busca por o melhor caminho é feita com a utilização de uma técnica chamada programação dinâmica, tipicamente aplicada em problemas de otimização.
+Conforme, programação dinâmica, assim como o método de dividir para conquistar, são formas de solucionar problemas combinando suas soluções em subproblemas.
+A forma em a qual os grafos são criados, caminhamentos possíveis, energia calculada, restrições antropométricas e detalhes da programação dinâmica são descritos a seguir.
+Considere Gi $= (S, E) um grafo gerado para cada parte do corpo i, constituído por um conjunto finito S de vértices (nodos, ou pontos) e um conjunto E de arestas (ou linhas), tal que E 2, ou seja, os elementos de E são pares de elementos do conjunto S. Os vértices formam uma estrutura tipo grid (grade ou rede) e são posicionados ao longo de uma região onde seja esperado que o contorno da pessoa esteja (a Figura 3.4 (d) exibe o grafo para o contorno externo do braço direito de uma pessoa).
+Os vértices formam níveis ao longo de o grid, onde cada nível é ortogonal ao segmento P 1 e P 2), associados a uma determinada parte do de reta que conecta seus dois pontos de controle (P corpo (&quot;osso&quot;).
+A extensão do grafo, assim como o número de vértices em cada nível, é baseada em valores estimados por antropometria, descritos na Tabela 3.1, que provê a largura estimada para cada relacionados à vértices mais próximos do seu respectivo &quot;osso».
+Cada vértice num determinado nível é conectado com os k vértices mais próximos do nível seguinte, com exceção dos níveis das bordas, onde o número de ligações é menor.
+A utilização de valores muito grandes para k (k\&gt; 3, por exemplo) faz com que o contorno de uma determinada parte do corpo possa assumir mudanças de direções muito bruscas, dependendo das bordas encontradas na imagem, podendo gerar efeitos desagradáveis (efeito zig-zag).
+Assim, definiu- se experimentalmente k $= 3.
+Um exemplo de um grafo, com seus vértices e arestas é ilustrado com auxílio da Figura 3.5.
+O número de níveis do grafo Gi, gerado para uma determinada parte do corpo i, e representado por M, (conforme ilustrado na Figura 3.5), é calculado diretamente através da distância (em pixels) P 1 e P 2), multiplicada por um determinado fator s4 (setado entre os dois pontos de controle (P experimentalmente para s4 $= 0.1).
+Essa discretização é feita com o objetivo de acelerar o cálculo do contorno (pois não é criado um vértice para cada pixel da imagem, por exemplo) sem desprezar a curvatura que um determinado contorno pode assumir.
+Assim, o número de níveis para o grafo Gi é dado por a Equação 3.3.
+M $= round, onde round(·) representa o valor arredondado de um número.
+Assim, podemos definir o vértice S1, N (ilustrado na Figura 3.5), como descrito na Equação 3.6.
+Onde é o ângulo formado por o vetor criado a partir de os pontos P 1 e P 2.
+Os demais vértices desse mesmo nível podem ser criados com a diminuição do valor de d, de acordo com algum critério estabelecido (número de subdivisões N, por exemplo).
+O número de vértices em cada nível (ou número de subdivisões N) também sofre uma discretização em função de a largura (wi) máxima estimada para o subconjunto de partes do corpo que o compõem, com o objetivo de acelerar o cálculo do contorno sem desprezar a curvatura que o mesmo pode assumir.
+Assim, o número de vértices em cada nível do grafo A (parte superior do corpo) é dado por a Equação 3.7.
+Seguindo o mesmo critério, o número de vértices em cada nível dos grafos B e C (parte inferior do corpo) é dado por a Equação 3.8 NA $= w2 s6, Nb $= NC $= w8 s6, onde s6 é um fator de proporcionalidade.
+Uma justificativa para o valor de s6 ser maior que o valor de s4 (relacionados ao valor de N e M, respectivamente), baseia- se na hipótese de que o contorno deve ser uma linha com orientação similar à do seu respectivo &quot;osso», necessitando de menos subdivisões para representar contornos com muitas curvas nessa direção de crescimento (relacionado ao valor de s4 e consequentemente M).
+Os vértices dos outros níveis podem ser definidos de maneira similar, através de multiplicação vetorial (de vetores criados a partir de os pontos P 1 e P 2, M e d), por exemplo.
+A definição do grafo descrita na seção anterior está focada numa única parte do corpo.
+Os 3 grafos principais (A, B e C), usados na abordagem proposta, são formados por diversas partes do corpo.
+Assim, os grafos gerados para cada parte do corpo devem ser conectados uns aos outros, de uma maneira coerente, para formar o grafo da parte superior (grafo A) e os dois grafos da parte inferior (grafos B e C).
+Quando uma determinada parte do corpo é conectada à outra, as regiões delimitadas por seus respectivos grafos podem se interceptar ou deixar &quot;buracos», dependendo do ângulo, formado no ponto de conexão.
+A Figura 3.6 exemplifica essa situação, para a conexão entre a canela e o pé direito de uma pessoa numa imagem.
+De uma forma geral, há intersecção quando 180, assim, alguns níveis devem ser removidos, e &quot;buracos «são originados quando\&gt; 180, então alguns níveis devem ser criados.
+&quot;ossos «até o ponto criado por a intersecção entre os dois segmentos de retas que delimitam aquele lado do grafo (ilustrado por um sinal de+ em azul).
+Em o contorno da parte interna há um &quot;buraco «não preenchido, e alguns níveis devem ser criados para formar uma conexão suave entre os dois grafos desse lado do &quot;osso «(ilustrado na Figura 3.7 (b)).
+Em esse caso também é gerado um &quot;nível de conexão», que irá conectar os dois grafos, porém, dependendo do ângulo formado nesse ponto, os níveis de cada grafo podem ser expandidos até encontrar o &quot;nível de conexão».
+Esse procedimento de conexão de dois grafos adjacentes, exemplificado para a conexão entre a canela e o pé direito, também é realizado entre as seguintes partes do corpo:
+Para o grafo da parte superior do corpo, entre ombro×braço, braço×antebraço, antebraço×mão, assim como para os grafos da parte inferior do corpo, entre tronco×coxa, coxa×canela e canela×pé.
+Também deve ser mencionado que quando $= 180 os grafos são simplesmente concatenados.
+Como o número de nodos em cada nível é o mesmo, para cada grafo principal (A, B e C), a conectividade entre os grafos individuais é mantida ao longo de a direção do &quot;osso».
+Em (a), os ângulos formados na conexão entre as duas partes.
+Em (b), regiões associadas a cada parte do corpo podem se interceptar ou deixar &quot;buracos», dependendo do ângulo formado no ponto de conexão.
+Modelagem das mãos e pés Mesmo que a maioria das partes do corpo gere um grafo numa região retangular, conforme descrito anteriormente, algumas partes específicas apresentam formas diferentes, como a cabeça, mãos e pés.
+Em a abordagem proposta, as mãos e pés são modelados por um setor circular onde os níveis são definidos por segmentos de reta radiais, discretizados por um ângulo de 22.5, setado experimentalmente.
+Inicialmente, ambas as partes (mãos e pés) tem seu respectivo &quot;osso «diminuído em suas extremidades por uma distância d/ 2, ou seja, a metade da largura usada na criação do seu respectivo grafo).
+O objetivo dessa redução é fazer com que a região esperada para a ocorrência do contorno esteja dentro de a região definida por o seu grafo, expresso por o setor circular, e não na borda dessa mesma região (assumindo- se que o ponto extremo do esqueleto das mãos e pés está associado ao ponto extremo dos mesmos membros na imagem).
+Posteriormente, os níveis criados por o setor circular (para cada mão e pé) são conectados ao seu respectivo grafo para a mão direita de uma determinada pessoa), de forma que níveis sobrepostos sejam removidos (ilustrado na Figura 3.8 (c)).
+Esse procedimento liga os dois lados/ grafos de cada braço e perna (em relação a os seus respectivos &quot;ossos «-- lado esquerdo e direito).
+&quot;osso&quot;), feita por a inserção do setor circular.
+Em (b) é ilustrado o setor circular criado, assim como a diminuição do &quot;osso «dessa extremidade em questão (distância d/ 2).
+Em (c) é ilustrado o grafo resultante.
+A partir de essa configuração inicial, o grafo da cabeça (mais especificamente associado à parte inferior hexágono) é criado com a mesma largura dos grafos dos braços, objetivando manter uma coerência global no grafo da parte superior do corpo (grafo A -- essa coerência é mantida para todo o grafo da cabeça).
+O ponto de intersecção entre as fronteiras do grafo do ombro e o grafo da parte inferior do hexágono da cabeça são adquiridos), para ambos os lados do corpo (esquerdo e direito).
+Esses pontos de intersecção irão unir o grafo criado para a cabeça aos dois ombros da pessoa na imagem, conforme ilustrado na Figura 3.10 (c).
+Os demais níveis do hexágono são criados e conectados uns aos outros como uma parte do corpo qualquer.
+Por fim, os níveis do hexágono (que não são conectados aos pontos de intersecção com os ombros) são normalizados por a largura do braço (também usada para criar o grafo da cabeça, como mencionado anteriormente), de forma que o grafo resultante tenha uma forma mais &quot;arredondada», conforme ilustrado na Figura 3.10 (d).
+Os procedimentos apresentados até aqui descrevem como os diversos grafos, associados às várias partes do corpo, são conectados uns aos outros, assim como definem como o grafo da parte superior do corpo é criado (grafo A -- ilustrado em vermelho na Figura 3.3 (a)).
+Os procedimentos usados para criar os grafos para a parte inferior do corpo (lado esquerdo e direito) são descritos a seguir.
+Após criar o grafo para o lado direito do tronco, o mesmo pode ser conectado ao grafo da perna direita, similarmente à conexão entre a canela e o pé (descrito anteriormente, no início da Seção 3.2.2), porém nesse caso o grafo do tronco é conectado apenas ao lado externo da perna, ilustrado na Figura 3.11 (c).
+Esse procedimento é repetido para o lado esquerdo do corpo.
+Modelagem da coxa (parte interna) Como pode ser visto na Figura 3.12 (a), o grafo criado para a coxa direita (similarmente para a coxa esquerda) de uma determinada pessoa, inicia no ponto definido por o inicio de seu respectivo &quot;osso «até sua conexão com a canela.
+Entretanto, na parte interna da coxa, pode- se verificar) que seu grafo (na parte superior) cobre uma determinada região onde geralmente o contorno esperado daquela parte não a atinge (associada à região do quadril).
+De essa forma, o grafo da coxa (lado esquerdo e direito do corpo) é diminuído na sua parte interna superior por um determinado fator lq (onde lq $= 0.0492 H), associado ao comprimento do quadril de uma pessoa de altura mediana (derivado a partir de valores antropométricos).
+O resultado desse procedimento, para o lado direito do corpo de uma determinada pessoa, é ilustrado na Figura 3.12 (b).
+Os procedimentos utilizados para a criação dos três grafos principais (grafos A, B e C) foram descritos até aqui.
+Em as próximas Seções (3.2.3 e 3.2.4) são descritos dois métodos utilizados para calcular a energia das arestas desses grafos, usadas na obtenção do contorno da pessoa na imagem.
+Definido o grafo Gi $= (S, E) para uma determinada parte do corpo i, onde E é o conjunto de arestas desse grafo (pares de elementos do conjunto S), assim como definidos os três grafos principais (grafos A, B e C), compostos por subconjuntos de partes do corpo, é preciso definir como são calculadas as energias de suas arestas.
+A energia de cada aresta irá representar o custo associado a um determinado caminho do grafo, que liga dois níveis adjacentes, podendo ser calculada por diferentes formas.
+Uma medida de energia amplamente utilizada em processamento de imagens para detecção de contornos é o valor da magnitude do gradiente dessa imagem.
+O gradiente I $= (Ix, Iy) T de uma imagem em escala de cinza (considere que a imagem de entrada, no espaço de cor RGB, é transformada para escala de cinza) pode ser computado através da convolução dessa imagem com um filtro de Sobel, por exemplo.
+A magnitude (ou módulo) I do gradiente de uma imagem é dada por a Equação 3.9.
+Ix A energia de cada aresta pode ser medida diretamente por os valores de I ao longo de os pixels da aresta (somando os valores, por exemplo).
+Entretanto, as arestas podem assumir tamanhos diferentes, conforme ilustrado na Figura 3.13, onde são exibidos (de forma salientada) quatro vértices conectados por três arestas.
+De essa forma, a energia w (ek) de cada aresta ek é obtida por o valor médio de suas energias ao longo de a aresta, conforme descrito na Equação 3.10.
+I (xj, yj), qk j $= 1 onde qk é o número de pixels ao longo de cada aresta e (xj, yj) representa a posição de cada pixel em coordenadas de imagem.
+O cálculo de energia para cada aresta, apresentado nessa seção, leva em consideração a mudança de intensidade nos níveis de cinza de uma determinada imagem (usando a magnitude do gradiente), ou seja, onde pode haver a ocorrência de uma borda (ou contorno).
+Entretanto, esse cálculo não leva em consideração a inclinação desse contorno e sua distância em relação a algum critério determinado (como por exemplo, distâncias baseadas em antropometria).
+De essa forma, qualquer borda saliente na imagem em análise poderia compor o contorno de uma determinada parte do corpo, mesmo que sua orientação seja completamente diferente da orientação esperada para essa determinada parte do corpo, assim como, não estabelecendo nenhuma relação de distância em função de seu respectivo &quot;osso».
+Assim o contorno de uma determinada parte do corpo poderia estar sobre o seu &quot;osso «gerador, ou muito distante de ele, o que não é esperado numa situação real.
+Em a Seção 3.2.4 é apresentada uma forma alternativa para o cálculo de energia de cada aresta, onde são levados em consideração outros fatores, além de a descontinuidade de valores da imagem em escala de cinza.
+O cálculo de energia para cada aresta do grafo pode envolver diversos fatores.
+Em esse trabalho, parte- se da hipótese que o contorno de uma determinada parte do corpo deve ter no mínimo duas relações fundamentais com seus respectivos &quot;ossos&quot;:·
+Similaridade entre ângulos:
+O contorno deve estabelecer uma relação com o seu respectivo &quot;osso», de forma que tenham inclinação similar (salvo a cabeça, mãos e pés);·
+Distância antropométrica:
+O contorno deve estar próximo a a uma determinada região, estimada através de valores antropométricos, para cada parte do corpo;
+Similaridade entre ângulos Objetivando encontrar contornos com orientação similar a do seu respectivo &quot;osso», é modificada a Equação 3.10, do cálculo de energia de cada aresta, de forma que seja levado em consideração também a orientação de cada aresta, a direção do vetor gradiente (computado da imagem), e a orientação do &quot;osso «associado à cada parte do corpo.
+Assim, o cálculo de energia w (ek) de cada aresta ek é definido através da Equação 3.11.
+P=1  e P 2).
+O primeiro termo da unitário normal ao formado por os pontos que compõem cada &quot;osso «(P Equação 3.11 faz com que bordas da imagem alinhadas com a orientação da aresta do grafo tenham prioridade.
+O segundo termo prioriza arestas que tenham orientação similar à do seu respectivo &quot;osso».
+A Figura 3.14 ilustra os vetores t k e u.
+É importante salientar que o vetor u (usado no cálculo da energia) pode estar associado a duas partes do corpo.
+Isso ocorre quando a energia é calculada para um determinado ponto que está localizado numa região de conexão entre duas partes do corpo.
+Em esse caso, u é um vetor unitário obtido por a soma entre os dois vetores (normalizada) associados a cada &quot;osso «(ou parte do corpo).
+A Figura 3.15 ilustra esse procedimento para a conexão entre a canela e o pé direito de uma determinada pessoa numa imagem.
+Distância antropométrica Objetivando estabelecer a segunda relação fundamental (listada no início da Seção 3.2.4), no cálculo de energia das arestas do grafo, é assumido que vértices muito próximos do seu respectivo &quot;osso «podem não estar associados ao contorno de uma determinada parte do corpo, assim como vértices muito distantes do &quot;osso «podem estar associados a contornos de outras estruturas (como o fundo da cena, por exemplo), que não o da parte de o corpo em análise.
+Objetivando tratar esse tipo de problema, é criada uma restrição, baseada em valores antropométricos, para auxiliar no cálculo da estimativa do contorno de uma determinada parte do corpo, ilustrada com auxílio da Figura 3.16, para a canela direita de uma determinada pessoa numa imagem.
+Transformada da Distância T Di da imagem exibida em (c). (
+e) mapa resultante Ri de valores de distâncias, usado no cálculo da energia do contorno para essa parte do corpo.
+A Figura 3.16 (d), exibe uma matriz T Di, resultado da Transformada da Distância aplicada para a imagem ilustrada na Figura 3.16 (c), associada a uma determinada parte do corpo i.
+A transformada da distância é uma operação normalmente realizada sobre uma imagem binária, produzindo uma imagem em escala de cinza cujas intensidades estão associadas às distâncias de um determinado ponto em relação a o ponto válido mais próximo de a imagem binária (no nosso caso, em relação a o ponto mais próximo contido no segmento de reta associado ao &quot;osso «-- na Figura 3.16 (d), pontos azuis representam distâncias pequenas e pontos vermelhos distâncias maiores).
+O mapa final Ri (normalizado), utilizado como restrição antropométrica para o cálculo da energia do contorno para essa determinada parte do corpo, ilustrado na Figura 3.16 (e), é descrito por uma função Gaussiana (o fator de escala da Gaussiana é dado por wi/ 4), onde o valor de cada pixel (x, y), contido em Ri, é dado por a Equação 3.12.
+O procedimento descrito para essa determinada parte do corpo, ilustrado com auxílio da Figura 3.16, é repetido para cada parte do corpo, de forma que cada região possua suas próprias restrições de distâncias, baseadas em valores antropométricos.
+Ri (x, y) $= e (T Di (x, y) wi/ 2) 2 (wi/ 4) 2 Em a Figura 3.16 (e) pode- se perceber que pontos com nível máximo (valor igual a 1, em vermelho) são os locais mais prováveis de se encontrar o contorno dessa determinada parte do corpo, enquanto que pontos com valores mínimos indicam locais com probabilidade nula de existência de um contorno.
+De essa forma, a energia de uma determinada aresta do grafo pode sofrer alguma &quot;penalidade «por não estar coerente à essa medida de distância e ter seu valor decaído, fazendo com que pontos que satisfazem essa condição sejam favorecidos.
+Esse procedimento é realizado diretamente por a multiplicação, ponto a ponto, do pixel em análise por Ri, alterando consideravelmente seu valor.
+Assim, o peso final w (ek) de cada aresta ek, para uma determinada parte do corpo i, é dado por a Equação 3.13.
+É importante salientar que o grafo é influenciado por partes do corpo adjacentes, nas regiões de conexão.
+Em essas regiões de conexão, como por exemplo, na conexão entre a canela e o pé direito), a distância antropométrica é computada como uma média ponderada (Ri) entre os mapas de distâncias relacionados às duas partes do corpo em questão (i e p).
+Essa ponderação é proporcional à distância que um determinado pixel está em relação a cada parte do corpo sendo analisada, definida na Equação 3.14.
+De essa forma as distâncias antropométricas nas regiões de conexão apresentarão conexões suaves.
+A Figura 3.17 (c) ilustra as distâncias antropométricas computadas para a conexão entre a canela e o pé direito.
+Ri (x, y) $= aRi (x, y)+ (1 -- a) Rp (x, y), onde a é o fator de proximidade que o pixel (x, y) está em relação a a parte do corpo i, Ri é a distância computada para o pixel (x, y) usando os valores associados à parte do corpo i e Rp é a distância computada para o mesmo pixel usando os valores associados à parte do corpo p.
+A Figura 3.17 (a-b) ilustra o percentual de proximidade a de um determinado pixel (x, y) em relação a a parte do corpo i (canela).
+A caráter ilustrativo, a Figura 3.18 exibe o mapa de magnitudes de uma determinada parte do corpo, sem (I) e com (I Ri (x, y) a influência do mapa de distâncias antropométricas, respectivamente.
+Conforme definido em, programação dinâmica (ou dynamic programming), assim como o método de dividir para conquistar, são formas de solucionar problemas combinando suas soluções em subproblemas.
+Entretanto, o método dividir para conquistar particiona o problema em subproblemas independentes, resolve os subproblemas de forma recursiva e combina suas soluções para resolver o problema original.
+Por outro lado, programação dinâmica é utilizada quando os subproblemas não são independentes, ou seja, quando os subproblemas compartilham subproblemas.
+Um algoritmo de programação dinâmica resolve cada subproblema apenas uma vez e salva sua solução numa &quot;tabela», evitando o recálculo toda vez que o subproblema em questão estiver envolvido.
+Programação dinâmica é tipicamente aplicada a problemas de otimização, onde tais problemas podem assumir diversas soluções.
+Em esses casos, cada solução está associada à um valor, e o objetivo final é encontrar a solução com valor ótimo (mínimo ou máximo).
+Usualmente, define- se &quot;uma «solução ótima ao invés de &quot;a «solução ótima, uma vez que pode haver diversas formas de se encontrar o valor ótimo.
+Como descrito no início da Seção 3.2, o modelo de segmentação de pessoas proposto nessa tese baseia- se na definição de três grafos principais (A, B e C), onde o objetivo é encontrar o melhor caminho para cada grafo, que maximiza o valor de energia de suas arestas.
+O algoritmo de Dijkstra é utilizado para encontrar o caminho de menor custo em grafos direcionados e ponderados, onde todas as arestas possuem pesos não negativos.
+Em o modelo proposto, esse algoritmo sofreu uma pequena alteração, de modo que o critério utilizado seja o oposto, ou seja, o melhor caminho do grafo é aquele que maximiza o valor de energia de suas arestas (caminho de maior custo).
+Salienta- se que o grafo é acíclico, de modo que os cálculos do custo máximo e mínimo são semelhantes.
+Considere o vértice S2, 2 do grafo A, descrito na Seção 3.2.2, e ilustrado na Figura 3.19.
+Os três caminhos possíveis para se chegar a S2, 2 são:
+E, E e E, referenciados também por as arestas e1, e2 e e3, cada qual com seu respectivo valor de energia.
+De essa forma, o melhor caminho para se chegar ao nível 2 (nível do vértice S2, 2), vindo do nível 1, e passando por S2, 2, é através da aresta ek que possuir maior valor de energia.
+Esse procedimento é realizado para todos os vértices do nível 2.
+Então, para cada vértice n do nível 2 é armazenado, numa tabela, o melhor caminho para se chegar até ele e o valor de energia de sua aresta ek.
+A verificação do melhor caminho para se chegar aos vértices dos próximos níveis segue a mesma lógica, porém, levando em consideração os valores de energias acumuladas para chegar aos níveis anteriores.
+De essa forma, a obtenção do melhor caminho não é baseada apenas numa decisão local, pois também leva em consideração as energias acumuladas.
+A o chegar ao último nível, o maior valor de energia acumulado representará o melhor caminho desse grafo, que liga o nível 1 ao nível M. Assim, o caminho que resultou esse valor acumulado pode ser resgatado e compor o contorno de uma determinada parte do corpo.
+É importante salientar que o caminho obtido para cada grafo principal (A, B e C) é computado a partir de o primeiro nível até o último nível do grafo, fazendo com que os braços sejam computados um após o outro (assim como as pernas são computadas separadamente, uma vez que estão em grafos distintos, B e C, respectivamente).
+De essa forma, mesmo que os braços (ou pernas) estejam cruzados, as arestas associadas ao braço (ou perna) esquerdo não estão conectadas diretamente ao braço (ou perna) oposto devido a a estrutura do grafo, organizada em níveis.
+Os pontos dos contornos dos braços a partir de os pontos de conexão são desconsiderados.
+Assim, o contorno de cada braço é conectado ao contorno do tronco por esses pontos de conexão, conforme ilustrado na Figura 3.22 (b).
+Conectando os contornos da parte interna das pernas Para conectar o contorno interno da perna direita ao contorno interno da perna esquerda, originando assim um contorno fechado da pessoa na imagem, é efetuado o seguinte procedimento.
+Inicialmente calcula- se a distância Euclidiana de todos os pontos do contorno interno da coxa esquerda em relação a todos os pontos do contorno interno da coxa direita.
+O ponto que obtiver a menor distância é considerado ponto de conexão.
+Se houver mais de um ponto de conexão (ou seja, mais de um ponto com a mesma distância mínima, ilustrados em vermelho na Figura 3.24), então o ponto mais próximo de P13 (associado ao modelo de esqueleto) é considerado o ponto de conexão (salientado por uma seta na Figura 3.24).
+A Figura 3.22 (b) ilustra o contorno resultante para uma imagem exemplo, após a conexão feita na parte interna das coxas.
+Os procedimentos descritos até aqui resultam num contorno fechado para uma pessoa numa imagem, gerados a partir de o modelo proposto nessa tese.
+Uma característica importante do contorno gerado é que possui informação semântica associada, ou seja, cada ponto do contorno está associado a uma determinada parte do corpo.
+Tal informação semântica torna possível, por exemplo, que duas partes do corpo fiquem sobrepostas (como os braços na frente de o tronco), mantendo ainda uma conectividade coerente do contorno (uma vez que se sabe quais partes do grafo estão associadas a quais partes do corpo e suas respectivas regiões de adjacência).
+Essa informação semântica pode ser utilizada para diversos fins e é ilustrada nos resultados experimentais por um contorno vermelho, que separa duas partes adjacentes do corpo (podendo ser observada na Figura 3.22 (b)).
+Em a Seção 3.3 é apresentada uma abordagem alternativa para o cálculo de energia das arestas, onde é considerada também informação de cor (cor RGB do pixel, por exemplo), contida na grande maioria das imagens digitais atuais.
+Inserindo informação de cor no modelo O método apresentado na Seção 3.2 descreve, de uma forma geral, a obtenção do contorno de uma pessoa numa imagem como sendo um caminho num determinado grafo (mais especificamente três caminhos -- um para cada grafo principal (A, B e C).
+Esses caminhos foram obtidos por um algoritmo que avalia o valor de energia das arestas desses grafos, onde uma determinada condição deve ser satisfeita (aquela que maximiza o valor de suas energias).
+Entretanto, os procedimentos descritos na Seção 3.2 não levam em consideração informações de cor para calcular o valor de energia das arestas desses grafos (cor RGB do pixel, por exemplo, contida na grande maioria das imagens digitais atuais).
+Em essa seção é apresentada uma variação do modelo de segmentação por cores, proposto por Jacques Junior e sua equipe, de maneira que a energia das arestas desses grafos (descritos na Seção 3.2) também inclua tal característica (informação de cor).
+Resumidamente, a ideia dessa abordagem é criar, num primeiro estágio, um modelo de cor para algumas partes do corpo (etapa de aprendizado da cor) e num momento posterior avaliar a similaridade de cada pixel da imagem (numa determinada região de busca) em relação a o seu modelo de cor associado (etapa de confronto).
+O resultado desse processo irá criar um mapa de distâncias, onde pode- se determinar quais regiões da imagem possuem cores similares às encontradas no corpo (ou roupas) da pessoa na imagem.
+A Figura 3.25 ilustra parte desse processo, onde as regiões de aprendizado e busca de uma determinada cor são ilustradas na Figura 3.25 (a) e pixels da imagem com cores similares ao modelo de cor daquela determinada parte do corpo (possuindo distâncias pequenas) são ilustrados na Figura 3.25 (b), em tons de azul.
+Diferentemente do modelo proposto em, onde é criado um modelo de cor para pixels com tons de pele e outro para pixels associados à região do tronco da pessoa na imagem, agora é criado um modelo de cor para cada parte do corpo da pessoa na imagem (com exceção dos ombros), como descrito em detalhes nas Seções 3.3.1 e 3.3.2.
+Deve ser salientado que uma análise sobre qual espaço de cor melhor se adapta à resolução desse problema (segmentação de pessoas em imagens estáticas) não é objetivo principal dessa tese (apesar de que isso possa que ser feito em estudos futuros), sendo adotado o espaço de cor RGB por o fato de ser amplamente utilizado em processamento de imagens digitais.
+A seguir são descritos os métodos para aprendizagem e busca das cores predominantes (Seção 3.3.3).
+A forma em a qual a informação de cor é utilizada para auxiliar no cálculo de energia das arestas dos grafos é descrita na Seção 3.3.4.
+O objetivo dessa etapa é criar um modelo de cor para cada parte do corpo (dados dois pontos de controle que formam o &quot;osso «de cada parte, associados ao modelo de esqueleto) que posteriormente será usado para avaliar a cor de cada pixel na imagem (numa determinada região de busca), utilizando uma determinada medida de distância.
+O objetivo desse procedimento é associar partes do corpo em análise à pixels com distâncias pequenas (em relação a a seus respectivos modelos de cor), gerando assim informações relevantes, utilizadas no modelo de segmentação proposto nessa tese.
+Basicamente 14 partes do corpo são utilizadas nesse processo, dados seus pontos de controle (são elas:
+Cabeça, tronco, braço direito e esquerdo, antebraço direito e esquerdo, mão direita e esquerda, coxa direita e esquerda, canela direita e esquerda, pé direito e esquerdo).
+As únicas duas partes do corpo associadas ao modelo de esqueleto, descrito na Seção 3.1, que não passam por esse processo de aprendizado e busca de cores predominantes (ao menos diretamente) são os ombros (direito e esquerdo).
+Isso ocorre, porque a região de busca do tronco quando combinada com a região de busca dos braços (conforme descrito na Seção 3.3.4) é suficiente para englobar as regiões dos ombros, fazendo com que essa parte do corpo seja inserida de forma indireta nessa abordagem.
+Inicialmente é definida uma região de aprendizado T r i (ilustrada na Figura 3.25 (a) por um retângulo verde) ao redor de cada parte do corpo i.
+Essa região será usada para o aprendizado da cor (ou cores) predominante de cada parte do corpo.
+A região de aprendizado é um retângulo, com eixo central igual à da parte de o corpo correspondente, que idealmente deveria conter apenas pixels relacionados àquela parte do corpo.
+Em a abordagem proposta, o comprimento desse retângulo é igual à distância entre os dois pontos que definem cada parte do corpo (&quot;osso&quot;), e sua largura é uma fração s1 da largura esperada para aquela parte do corpo wi, conforme definido na Tabela 3.1.
+É importante salientar que a largura wi de cada parte do corpo é usada ao invés de a distância 2D entre os dois pontos que formam cada &quot;osso «(que poderia ser calculada diretamente em coordenadas de imagem).
+De fato, usar diretamente a distância dos pontos 2D de cada parte do corpo que não está no plano da imagem (por exemplo, braços paralelos ao chão) pode levar a resultados incoerentes, devido a a questões de perspectiva, como ilustrado com auxílio da Figura 3.26.
+Uma vantagem de se utilizar um modelo Gaussiano simples é que pode- se verificar facilmente quando uma determinada amostra se adequa ao modelo, usando a distância de Mahalanobis, o que se torna mais complicado ao utilizar modelos mais complexos (como GMM ­ Gaussian Mixture Models, por exemplo).
+Em a Seção 3.3.1 foi apresentada uma proposta para criação de um modelo de cor associado à uma determinada parte da imagem (ou parte do corpo).
+Porém, em algumas situações o modelo de cor criado pode não representar de forma adequada a cor predominante numa determinada região, mais especificamente quando essa região possui valores muito homogêneos em todas suas camadas de cores (RGB), por exemplo, para regiões de cor preta, representada por R $= 0, G $= 0 e B $= 0, ou branca, representada por R $= 255, G $= 255 e B $= 255 (no espaço de cor RGB), onde a variação dos 3 canais de cor é muito baixa ou as vezes chegando a zero.
+Em a prática, isso acaba ocorrendo quando os canais de cor (ou dois de eles) são bastante correlacionados.
+Em esses casos, o determinante da matriz de covariância gerada pode ser próximo de zero ou igual a zero, indicando que essa matriz não pode ser invertida, ou sua inversa pode ser instável numericamente.
+Um problema associado à impossibilidade da matriz ser invertida é que esse procedimento é necessário no cálculo da distância de Mahalanobis, conforme definido na Equação 3.18, usada para verificar a coerência entre um determinado pixel e o modelo de cor estimado.
+A análise dos componentes principais (Principal Component Analysis ­ PCA) é utilizada para reduzir a dimensão do modelo de cor gerado, através de uma transformação linear que combina a informação dos três canais de cores.
+Essa transformação geralmente é efetuada quando os canais de cor (ou dois de eles) são bastante correlacionados.
+Em a análise dos componentes principias (PCA), são calculados os autovalores e autovetores da matriz de covariância criada.
+O problema mencionado acima, sobre o determinante da matriz de covariância ser quase nulo, normalmente está relacionado com alguns autovalores muito pequenos, quando comparados com os demais.
+A matriz de covariância representa um elipsóide, e os tamanhos dos semi-eixos (autovalores) representam a variância ao longo de a direção correspondente (autovetor).
+Se um dos autovalores é muito pequeno, então o elipsóide fica achatado (e o determinante próximo de zero).
+Considere k e v k os autovalores e autovetores, respectivamente, da matriz de covariância C ij, onde 1 2 3.
+A proporção do autovalor k sobre os demais é representada por rk, definida na Equação 3.15.
+Quando uma determinada dimensão é removida, o novo modelo de cor é criado da seguinte forma:
+C ij 3 × 3), associ· Redução para 2 D:
+Apenas uma dimensão é removida do modelo original (C ada ao menor valor de rk que não satisfaz a condição do valor mínimo Tp.
+Um novo vetor 2D F) com os mesmos pixels utilizados para a criação do modelo original (modelo 3 D), é criado (F porém com apenas os componentes que irão compor o novo modelo de cor (associados aos autovetores v k, computados na análise dos componentes principais).
+Consideram- se mesmo pixels aqueles que não foram removidos por serem considerados outliers, através da utilização do algoritmo proposto em.
+Assim, cada pixel com cor c $= (R, G, B) T desse novo vetor, terá seu valor transformado como descrito na Equação 3.17.
+A criação do novo modelo de cor 2D requer um novo cálculo de um vetor média µ ij e uma nova matriz de covariância C ij (agora com dimensão 2×2), gerados a partir de o novo vetor de características F $ , de maneira similar à descrita anteriormente, utilizando o algoritmo proposto em.·
+Redução para 1 D:
+Duas dimensões são removidas do modelo original (3 × 3), associada aos dois menores valores de rk que não satisfazem a condição do valor mínimo Tp.
+De maneira F F para a criação do modelo original, porém com apenas os componentes que irão compor o novo modelo de cor.
+Assim, cada pixel com cor c $= (R, G, B) T desse novo vetor, terá seu valor transformado como descrito na Equação 3.17.
+A criação do novo modelo de cor 1D requer o cálculo de um valor de média (µij) e um valor de desvio padrão (ij), gerados a parir do novo vetor 1D de características F $= (F1).
+Deve- se salientar que, tanto para a redução para o 2D como para 1 D, devem ser armazenados também seus respectivos autovetores v para que a mesma transformação feita na etapa da criação do modelo de cor também possa ser feita na etapa de confronto (como descrito na Seção 3.3.3).
+Para localizar pixels relacionados a uma determinada parte do corpo i (após a criação de um modelo de cor para essa parte), uma região de busca T ei é definida.
+Diferentemente da região de aprendizado T ri, a região de busca deve ser grande o suficiente para englobar todos os pixels relacionados a cada parte do corpo.
+De uma forma geral, a região de busca T ei é uma versão aumentada da região de aprendizado T ri.
+O comprimento da região de busca é igual ao comprimento da região de aprendizado T ri, multiplicado por um fator s2.
+A largura de T ei é baseada em valores estimados para cada parte do corpo multiplicados também por outro determinado fator s3 (setado experimentalmente para s3 $= 2, para poder suportar pessoas com diferentes tamanhos, ou com larguras acima de a média ­ esse fator pode ser aumentado para englobar partes do corpo de pessoas muito obesas ou que estão vestindo roupas muito largas, por exemplo).
+A Figura 3.25 (a) ilustra os pontos de controle (que compõem o &quot;osso&quot;) para uma determinada parte do corpo (pontos azuis), a região de aprendizado T ri usada para o aprendizado do modelo de cor (retângulo verde) dessa determinada parte do corpo e sua respectiva região de busca T ei (retângulo preto).
+Para calcular a coerência entre o modelo de cor de uma determinada parte do corpo i (e modelo de cor j) e a cor de um pixel da região de busca T ei, é utilizada a distância quadrada de Mahala2 (c) é obtida através da nobis.
+Para cada pixel com cor c, a distância quadrada de Mahalanobis Dij Equação 3.18 (nos casos 3D e 2 D).
+Dij (c ij (c Para que um pixel da região de busca (no espaço de cor RGB) possa ser confrontado com o c $= T).
+Essa modelo de cor 2 D, sua cor c $= (R, G, B) T deve ser transformada para 2D (c transformação é feita de maneira similar à utilizada na criação do modelo de cor, ou seja, com a utilização do autovetor v, computado na análise dos componentes principais (PCA), como definido na Equação 3.17.
+Em os casos onde o modelo de cor é reduzido para 1 D, sua cor c $= (R, G, B) T deve ser transformada para 1D).
+Essa transformação é feita de maneira similar à utilizada na redução para o 2 D, ou seja, com a utilização do autovetor v 1, computado na análise dos componentes principais (PCA), como definido na Equação 3.17.
+A distância de Mahalanobis para o caso 1D é definida na Equação 3.19.
+Dij (c -- µij) 2 ij onde µij e ij são a média e desvio padrão, respectivamente, para uma determinada parte do corpo i (e modelo de cor j), do modelo de cor 1D.
+O confronto entre o modelo de cor criado para uma determinada parte do corpo i e uma região 2.
+A Figura 3.25 (b) ilustra um mapa de distâncias de busca T ei gera um mapa de distâncias Dij de Mahalanobis, gerado a partir de o confronto entre uma região de busca e um modelo de cor criado a partir de a região definida na Figura 3.25 (a) (também ilustrada na Figura 3.27 (f)).
+Podese verificar, na Figura 3.25 (b), que pixels com distâncias muito pequenas (em azul) possuem cor semelhante à da região usada para criação do modelo de cor para essa determinada parte do corpo (como ilustrado com auxílio da Figura 3.25 (a)).
+Também é possível verificar na Figura 3.25 (b) que o mapa de distâncias de Mahalanobis gerados para essa determinada parte do corpo possui uma característica importante:
+As regiões associadas ao modelo de cor (exibidas em tons de azul) possuem alto contraste em relação a a outras partes da imagem.
+Essas regiões de descontinuidades geralmente oferecem informações relevantes para a obtenção do contorno de uma pessoa numa imagem, como descrito na Seção 3.3.4.
+Os mapas de distâncias de Mahalanobis Dij gerados na etapa de confronto dos modelos de cor com as regiões de busca, para cada parte do corpo (descritos na Seção 3.3.3) também podem ser utilizados para auxiliar no cálculo do valor de energia das arestas dos grafos (descrito na Seção 3.2).
+Conforme descrito na Seção 3.2.3, o gradiente da imagem em escala de cinza I foi utilizado como atributo para avaliar o valor de energia das arestas, assim como na Seção 3.2.4 outros fatores foram utilizados, como por exemplo, restrições de ângulos e distâncias antropométricas.
+A ideia agora é criar um único mapa distâncias de Mahalanobis Di para cada parte do corpo, e a partir desse mapa, computar o seu gradiente Di e combinar- lo com o gradiente gerado a partir de a imagem em escala de cinza I. Esse procedimento irá compor uma nova matriz de gradientes I, onde serão inseridas informações de luminosidade e cores predominantes do objeto de desejo, servindo como dado de entrada para o modelo descrito na Seção 3.2.
+A Equação 3.20 define o valor do gradiente de um pixel (x, y) para essa nova matriz de gradientes.
+I (x, y) $= (I (x, y)+ Di (x, y), onde as magnitudes do gradiente I e Di estão normalizados no intervalo.
+A Figura 3.28 ilustra parte desse processo.
+Considere a imagem exibida na Figura 3.28 (a) como sendo a parte do corpo sendo analisada (no caso, o braço direito) e sua respectiva imagem em escala de cinza na Figura 3.28 (b).
+As distâncias de Mahalanobis obtidas para essa parte do corpo, com a utilização do modelo descrito na Seção 3.3.3, são ilustradas na Figura 3.28 (c) (onde valores escuros representam distâncias pequenas e valores claros o contráriod) e (e) representam a magnitude do gradiente (normalizado) das imagens ilustradas nas Figuras 3.28 (b) e (c), respectivamente.
+A Figura 3.28 (f) ilustra a magnitude do gradiente (I) obtido por a média dos gradientes usados para gerar as Figuras 3.28 (d) e (e).
+Essa nova matriz de gradientes I, composta por a combinação entre a imagem em escala de cinza e as distâncias de Mahalanobis de cada parte do corpo, será usada para auxiliar no cálculo de energia das arestas.
+Assim, o modelo de segmentação baseado em esqueleto também estará considerando informação de cor, associada àquela determinada parte do corpo, ao invés de considerar apenas valores em níveis de cinza da imagem de entrada.
+Magnitude do gradiente gerado por a média dos gradientes normalizados usados para gerar as imagens (d) e (e).
+A o transformar uma imagem colorida para tons de cinza, perde- se muita informação.
+Assim, regiões coloridas, visualmente muito diferentes umas das outras, podem parecer muito parecidas após a transformação para a escala de cinza.
+Em regiões de conexão entre duas partes do corpo os mapas de distâncias de Mahalanobis se interceptam, uma vez que são regiões retangulares expandidas em relação a a seus respectivos &quot;ossos «geradores, conforme descrito na Seção 3.3.3, ou podem até deixar &quot;buracos «(dependendo do ângulo formado no ponto de conexão entre os dois &quot;ossos&quot;).
+Em o primeiro caso, quando um pixel (x, y) da imagem está associado a mais de um mapa de distâncias de Mahalanobis, é utilizada abordagem similar à descrita no parágrafo anterior, ou seja, o valor de distância associado a esse pixel será a menor distância em relação a os mapas de distâncias o qual pertence.
+Em o segundo caso não é diferente, porém é necessário computar a distância de Mahalanobis associada aos n modelos de cor para aquele ponto.
+A Figura 3.31 ilustra esse processo, onde um mapa de distâncias Mahalanobis é gerado por a combinação de três mapas (distâncias de Mahalanobis para as regiões do braço, antebraço e mão direita), usando o critério que retém o valor mínimo de cada ponto.
+Deve ser salientado que a Figura 3.31 é usada apenas para ilustrar como um pixel associado à duas partes do corpo recebe apenas um valor de distância de Mahalanobis, uma vez que as regiões de busca de cada parte do corpo (que geram os mapas de distâncias de Mahalanobis para as mesmas) são definidas em função de seus respectivos &quot;ossos «e dados antropométricos (descritos na Tabela 3.1 e ilustradas na Figura 3.31 (a)), que definem principalmente suas inclinações e dimensões (o que não está sendo preservado na Figura 3.31 (b-c) -- as imagens exibidas na Figura 3.31 (b-c) ilustram regiões que englobam a real região de busca de cada parte do corpo).&amp;&amp;&amp;
+Em (a), imagem RGB de entrada (usada para aprendizado e busca dos modelos de cor -- regiões de busca são ilustradas por retângulos pretos).
+Em (b), três mapas distâncias de Mahalanobis para três partes do corpo (braço, antebraço e mão direita).
+Em (c), mapa distâncias de Mahalanobis gerado por a combinação dos três mapas exibidos em (b), usando o critério que retém o valor mínimo para cada ponto.
+Em o próximo capítulo são apresentados resultados experimentais gerados a partir de a utilização do modelo proposto nessa tese, assim como são apresentados estudos de caso envolvendo aquisição automática do esqueleto, sensibilidade do modelo em relação a a diferentes usuários (diferentes dados de entrada para uma mesma imagem e tempo médio de captura dos dados de forma empírica) e comparação com um modelo considerado estado-da-arte.
+Em esse capítulo são apresentados resultados experimentais do modelo baseado em esqueleto para segmentação de pessoas em imagens.
+Os resultados são avaliados quantitativamente (com exceção do estudo de caso apresentado na Seção 4.5), com a utilização de uma base de dados contendo 277 imagens (adquiridas desde bases de dados públicas, imagens encontradas na web, a imagens adquiridas em nosso laboratório com a utilização de uma câmera fotográfica convencional).
+Cada imagem utilizada nos experimentos (das 277 imagens da base de dados) teve seu ground truth (tabela verdade) demarcado manualmente por um usuário (mais especificamente, 3 indivíduos se dividiram para efetuar essa tarefa), com o objetivo de poder avaliar quantitativamente os resultados do modelo proposto.
+A criação do ground truth é descrita em detalhes a seguir.
+De uma forma geral, nesse capítulo são apresentados cinco experimentos, onde foram analisados os seguintes aspectos:·
+Criação de ground truth para análise quantitativa;·
+Características usadas no modelo proposto (tipos de energia avaliada);·
+Sensibilidade do modelo (experimento com usuários -- tempo médio computado para entrada de dados e variação dos dados de entrada);·
+Esqueleto de entrada adquirido de forma manual (usuário) × automática (kinect);·
+Comparação qualitativa com estado-da-arte.
+Criação de ground truth para análise quantitativa Objetivando avaliar quantitativamente os resultados deste trabalho, também está sendo proposta uma metodologia para medir o erro entre o contorno gerado para uma determinada pessoa numa imagem e seu contorno esperado (estimado manualmente).
+O termo ground truth pode ser utilizado para diferentes finalidades, dependendo da aplicação em uso, porém sua característica principal é informar o que é dito como verdade (ou considerado como certo/ verdadeiro).
+Por exemplo, em algoritmos de subtração de fundo (background subtraction) pode- se criar um ground truth onde para cada quadro da sequência de vídeo seja criado um mapa que informe onde está localizado o (s) objeto (s) em movimento na cena (foreground).
+Assim, o pesquisador pode medir o quão seu modelo segmentou corretamente o fundo dos objetos em movimento.
+No caso de segmentação de pessoas em imagens estáticas, mais especificamente no caso deste trabalho, onde também há informação semântica envolvida, a criação do ground truth não é tão trivial, devido a a diversos fatores:·
+Grande complexidade e variação de poses e aparência que as pessoas podem assumir;·
+Grande variação de roupas e acessórios que as pessoas podem usar;·
+Grande variação de cortes/ tipos de cabelos (curtos, compridos, encaracolados, arrepiados, etc);·
+Oclusão parcial ou total de membros;·
+Conforme List e sua equipe, inspeção manual é dependente de usuário, ou seja, duas pessoas analisando a mesma imagem podem (e provavelmente irão) produzir diferentes dados de ground truth;·
+A criação do ground truth é uma tarefa extremamente tediosa e demorada.
+De essa forma, o ground truth criado nesse trabalho possui algumas simplificações que devem ser esclarecidas, de maneira que o leitor possa compreender o que está sendo avaliado e de que maneira.
+Simplificações adotadas:
+Representa a silhueta esperada para uma pessoa numa imagem;
+A Figura 4.1 ilustra cada uma das simplificações enumeradas acima.
+A Figura 4.1 (a) ilustra o ground truth gerado, de forma que não haja falhas ou buracos nessa curva, ou seja, o contorno é fechado (o ponto inicial dessa curva coincide com o ponto final da mesma).
+Figura 4.1 (b) exibe a informação semântica embutida em cada dado de ground truth (ilustrada por diferentes coresc) é exibida uma imagem em a qual o usuário estimou suas partes ocultas, assim como ilustra o contorno da cabeça sem considerar saliências do cabelo.
+Em a Figura 4.1 (d) é exibido novamente o detalhe do contorno da cabeça estimada por o usuário, onde o cabelo é desconsiderado.
+Roupas muito salientes ou largas são consideradas objetos que obstruem partes do corpo, como ilustrado na Figura 4.1 (e).
+Também pode ser observado na Figura 4.1 (e) que uma pequena porção do tronco dessa pessoa foi estimado por o usuário (devido a o braço esquerdo da mesma estar obstruindo- o).
+De uma forma geral, o ground truth gerado servirá para analisar quantitativamente os resultados desse trabalho.
+Essa análise será feita de diferentes formas, como descrito a seguir.
+Ilustração do contorno fechado. (
+b) Ilustração da semântica associada a cada parte do corpo. (
+c) Partes ocultas (parcialmente ou totalmente) são estimadas por o usuário. (
+d) O contorno do cabelo não é considerado, ou seja, o usuário gera o ground truth esperado da cabeça. (
+e) Roupas folgadas são consideradas objetos que obstruem partes do corpo.
+Características usadas no modelo proposto Em essa seção são avaliadas as características usadas no modelo baseado em esqueleto.
+Basicamente são analisadas 7 diferentes formas de se calcular a energia das arestas dos grafos.
+A energia calculada é utilizada na aquisição do contorno de cada pessoa, desde a forma mais simples (apenas utilizando a magnitude do gradiente de uma imagem em escala de cinzas, detalhada na Seção 3.2.3) até a sua forma mais completa (utilizando informações de luminosidade/ cor, distâncias antropométricas e restrições de ângulos, conforme descrito na Seção 3.3.4).
+O objetivo desse experimento é avaliar o impacto causado por cada característica usada.
+Para isso, a taxa de acerto de cada versão utilizada é avaliada como descrito a seguir.
+Para avaliar o erro entre o ground truth e o resultado gerado com a utilização do modelo proposto, foi utilizada uma versão modificada da distância de Hausdorff, proposta por Hossain e sua equipe.
+A distância de Hausdorff é uma métrica muito utilizada em várias aplicações envolvendo processamento de imagens e visão computacional, incluindo detecção de objetos em movimento, casamento de padrões, rastreamento e reconhecimento de objetos, entre outras.
+H (A, B) $= max (h (A, B), h (B, A), h (A, B) $= max min a -- b.
+Intuitivamente, o significado da distância de Hausdorff para a validação dos resultados obtidos do braço direito de uma determinada pessoa e o conjunto B representa os pontos dessa mesma parte do corpo, porém informados por o usuário (ground truth).
+Para cada ponto do conjunto A é calculado a distância Euclidiana em relação a todos os pontos do conjunto B. A distância mínima é armazenada num vetor de &quot;mínimos».
+Esse procedimento é repetido para o conjunto B, em relação a o conjunto A. A distância de Hausdorff é a distância máxima obtida, armazenada nesses vetores de mínimos.
+Conforme relatado por Hossain e sua equipe, o valor máximo obtido é muito sensível a ruídos, propondo em seu trabalho a utilização do valor médio (média dos valores mínimos, definida na Eq.
+4.3) ao invés de o valor máximo.
+Essa métrica, denominada em nosso trabalho por distância de Hausdorff modificada, é utilizada para avaliar os resultados experimentais.
+Os resultados experimentais são avaliados quantitativamente de três diferentes formas:
+Armazenado para cada imagem é a média das distâncias computadas.
+Permite avaliar a taxa de acerto de cada imagem considerando a semântica associada às partes do corpo.
+Permite avaliar a taxa de acerto de cada imagem, considerando a semântica associada às partes do corpo, e salientando imperfeições associadas à alguma determinada parte do corpo.
+Hausdorff modificada é aplicada ao contorno completo.
+Permite avaliar a taxa de acerto de cada imagem de uma forma global.
+O erro médio, assim como o erro máximo, é computado para 14 partes do corpo, uma vez que a cabeça e os ombros são avaliados como uma única parte e exemplificado com auxilio da Tabela 4.2).
+Deve- se salientar que os erros avaliados nesse experimento consideram todos os pontos do contorno gerados por o método proposto, ou seja, incluindo os pontos ocultos estimados na etapa de criação do ground truth.
+Também é importante mencionar que os erros avaliados foram normalizados em função de a altura estimada para cada pessoa na imagem.
+Essa normalização é feita por o fato das imagens possuírem diferentes resoluções, o que poderia afetar a análise dos resultados (por exemplo, numa imagem com alta resolução, um erro $= 5 pixels de distância pode ser considerado pequeno, enquanto que numa imagem em baixa resolução esse mesmo valor possa ser considerado moderado ou grande).
+Além disso, pessoas contidas em imagens com mesma resolução podem apresentar tamanhos diferentes (uma pessoa em relação a a outra ou devido a a distância que estavam da câmera quando fotografadas), fazendo com que alguma normalização seja desejável.
+Figura 4.2: Resultado experimental obtido (em azul) e ground truth (em verde).
+A Tabela 4.3 exibe os erros (normalizados em função de a altura, para as 7 versões utilizadas para computar a energia das arestas dos grafos -- v1 a v7) avaliados para as 277 imagens da base de dados, usando como métrica a distância de Hausdorff modificada, conforme mencionado anteriormente.
+Com base nas Tabelas 4.3 e 4.1, podemos concluir que a versão do modelo proposto que possuiu maior taxa de acerto (menor erro médio e menor erro global) e consequentemente a que gerou melhores resultados foi a versão mais completa.
+Entretanto, também pode- se observar que a informação de cor influenciou pouco nos resultados (na forma como foi utilizada), devido a baixa diferença nos erros obtidos entre as versões v1 e v2.
+A restrição de ângulos também teve pouca influência numa análise global dos resultados, como pode- se observar na baixa diferença dos erros obtidos nas versões v2 e v3 (com e sem restrições de ângulos+ distâncias antropométricas), assim como entre as versões v4 e v5 (com e sem restrições de ângulos+ magnitude do gradiente).
+Para esse exemplo, o erro médio foi 2.4442 (em pixels) e 0.0053 (normalizado).
+O erro máximo foi 3.5881 (em pixels) e 0.0079 (normalizado).
+Desconsiderando as partes do corpo, tratando o contorno como uma única curva, o erro global foi 2.0969 (em pixels) e 0.0046 (normalizado). (
+localmente, em algumas imagens onde uma ou outra determinada característica possa fazer a diferença).
+A Figura 4.3, por exemplo, ilustra dois resultados experimentais obtidos ao utilizar o modelo proposto nas suas versões v2 e v3 (com e sem a restrição de ângulos, respectivamente).
+Mahalanobis concatenadas gerando um único mapa para todo o corpo (com PCA). (
+d) Resultado do modelo proposto usando a versão v7.
+A característica usada que mais influenciou positivamente nos resultados foram as distâncias antropométricas, como pode- se observar na grande diferença entre os erros obtidos para as versões v2 e v4 (Tabela 4.3).
+A Figura 4.6 ilustra dois resultados experimentais gerados a partir de o modelo proposto utilizando as versões v2 e v4 (com e sem restrições de distâncias antropométricas, respectivamente).
+As partes em vermelho do contorno simbolizam pontos do contorno que estão numa região que divide duas partes do corpo adjacentes, fazendo possível que a informação semântica embutida nos resultados também possa ser visualizada.
+A Tabela 4.4 exibe os erros avaliados para as imagens ilustradas na Figura 4.7.
+A Tabela 4.4 serve para ilustrar valores de erros associados à resultados considerados muito bons através de inspeção visual, uma vez que os valores apresentados até aqui (erros normalizados em função de a altura) dificultam a interpretação de qual valor de erro deveria ser considerado baixo/ médio/ alto.
+Por outro lado, a Tabela 4.5 exibe os erros computados para as imagens ilustradas na Figura 4.8, associados à resultados considerados aceitáveis (através de inspeção visual).
+Outro aspecto que deve ser mencionado em relação a o modelo proposto, além de avaliar e ilustrar seus resultados, é informar quais seriam suas limitações, ou seja, em que situações o modelo não deve funcionar corretamente ou pode apresentar resultados incoerentes.
+Uma limitação do modelo proposto é tratar poses onde o movimento dos membros (das pessoas contidas nas imagens) não estão aproximadamente no mesmo plano da imagem (o que afeta as estimativas antropométricas na imagem projetada), ilustrada com auxílio da Figura 4.9.
+Por exemplo, considere a pessoa contida na imagem mais à esquerda, ilustrada na Figura 4.9, com o braço direito apontando para frente.
+Em esse exemplo, os pontos do esqueleto associado ao braço esquerdo (braço+ antebraço+ mão) estariam praticamente sobrepostos (no caso 2 D).
+De essa forma, a informação 2D associada a esse determinado membro é praticamente nula.
+A utilização de um algoritmo de estimativa 3D de pose de pessoas em imagens poderia ser utilizado para identificar esse tipo de situação e então aplicar um tratamento especial adequado.
+Outros fatores podem fazer com que os resultados gerados sejam indesejáveis, como mencionados anteriormente:
+Grande complexidade da pose, oclusão parcial ou total de membros, problemas associados a fatores de iluminação, entre outros.
+Figura 4.9: Limitação do modelo:
+Partes do corpo que não estão aproximadamente no mesmo plano da imagem podem produzir resultados indesejados.
+Além disso, o custo computacional associado ao modelo proposto pode se tornar relevante quando o mesmo estiver associado a uma aplicação comercial, onde o processamento em temporeal normalmente é desejável.
+Como o tempo de processamento de cada imagem no modelo proposto está relacionado ao tamanho, ou altura (em pixels) da pessoa nessa imagem, a avaliação apresentada na Tabela 4.6 foi realizada levando- se em consideração esse fator.
+Basicamente, a Tabela 4.6 exibe o tempo de processamento gasto para cada versão do modelo proposto, avaliado para 3 imagens, contendo uma única pessoa em cada, com alturas distintas.
+As imagens foram selecionadas com base nos seguintes critérios:
+Pessoa com menor altura da base de dados usada;
+pessoa com altura igual a média das alturas da base de dados usada (igual a 463 pixels);
+E pessoa com maior altura da base de dados usada.
+O protótipo do modelo proposto foi implementado em MATLAB sem nenhuma otimização, ou seja, acreditase que os valores apresentados na Tabela 4.6 possam melhorar significativamente se o modelo for implementado de maneira otimizada numa linguagem compilada como C/ C+, por exemplo, ao invés de uma linguagem interpretada como o MATLAB.
+O hardware utilizado foi uma máquina Wokstation Hp xw8600, com processador Intel Xeon, Core2 Quad, 2.83 GHz, com 3 Gb de memória.
+Com base nos valores apresentados na Tabela 4.6 podemos concluir que o modelo sofre uma queda de performance significativa quando a informação de cor é inserida, como pode ser observado na diferença entre os tempos apresentados para as versões v1, v6 e v7 em relação a as demais (v2, v3, v4 e v5) que não utilizam tal característica.
+Acredita- se que isso esteja relacionado com a forma em a qual esse módulo foi implementado, sem otimização e utilizando laços para percorrer varios pontos da imagem (o que normalmente aumenta o tempo de processamento em aplicações rodadas no MATLAB).
+Também pode ser observado, com auxílio da Tabela 4.6, o melhor e pior tempo de execução para cada versão do modelo, assim como o tempo de processamento em função de a altura de cada pessoa.
+Em o melhor caso o modelo segmentou uma imagem utilizando aproximadamente 2 segundos, enquanto que no pior caso a aplicação necessitou em torno de 100 segundos para ser executada.
+Em essa seção é apresentado um estudo de caso para avaliar a sensibilidade do modelo proposto em relação a os dados de entrada (modelo de esqueleto).
+Em esse experimento, 24 usuários (pessoas de diversas áreas do conhecimento e não especificamente de processamento de imagens) foram instruídos a clicar em 3 imagens (contendo uma única pessoa em cada imagem) para inserir os dados de entrada (estimativa da altura e pontos do esqueleto), visando avaliar se o modelo proposto é sensível a pequenas modificações em relação a os dados de entrada.
+O objetivo secundário desse experimento é analisar o tempo que uma pessoa leva para informar os dados de entrada.
+Cada usuário que realizou o experimento recebeu as seguintes instruções:·
+Para cada imagem, você deve estimar a altura da pessoa (clicando num ponto no topo da cabeça e outro abaixo de os pés, onde considera a base da pessoa na imagem);·
+Após estimar a altura, você deve informar os pontos do esqueleto (associados ao modelo de esqueleto), numa ordem pré-determinada;·
+Primeira restrição:
+Os pontos informados devem estar centralizados nas suas respectivas partes do corpo.
+Por exemplo, ao informar o ponto do joelho, você deve clicar no centro do joelho e não na sua fronteira;·
+Segunda restrição:
+Em as partes do corpo associadas à extremidades (mãos, cabeça e pés), você deve informar como ponto extremo, o ponto da imagem mais extremo em relação a aquela parte, ou seja, clicar no final da mão, no final do pé, no início da cabeça, ao invés de clicar no centro da mão ou pé ou cabeça, por exemplo.
+A Tabela 4.8 exibe os erros avaliados nesse experimento (erro médio, erro máximo e erro global) de maneira individual (para cada imagem) e global (para as 3 imagens agrupadas, (a), (b) e (c), ilustradas na Figura 4.10), usando a versão v1 do modelo proposto.
+Com base na Tabela 4.8, podemos concluir que os resultados foram coerentes em relação a diferentes dados de entrada, uma vez que o desvio padrão foi relativamente baixo para cada imagem, assim como para todas as imagens, numa análise global.
+A Figura 4.11 ilustra os diversos contornos obtidos para cada imagem usada nesse experimento, sobrepostos na imagem de entrada.
+Figura 4.11: Contornos obtidos a partir de os dados de entrada informados por 24 usuários, sobrepostos nas imagens usadas (resultados obtidos exibidos em verde e ground truth em azul).
+A Tabela 4.9 exibe os tempos que os usuários levaram para informar os dados de cada imagem.
+É importante salientar que as imagens foram exibidas aos usuários sempre na mesma ordem, ou seja, primeiro cada usuário informou os dados de entrada para a imagem (a), depois para a imagem (b) e posteriormente para a imagem (c).
+É possível observar no gráfico exibido na Figura 4.12 (assim como na Tabela 4.9) que houve uma curva de aprendizagem, ou seja, os usuários foram informando os dados de entrada de maneira mais ágil (ou mais rápida) à medida que as imagens eram exibidas.
+Embora apenas 3 imagens tenham sido usadas, espera- se que essa curva tenda a atingir um limite de tempo mínimo.
+De qualquer forma, o experimento apresentado na Seção 4.3 não visa demonstrar que um usuário pode informar os dados de entrada em tempo ótimo, e sim ilustrar como é simples e prática a entrada de dados via usuário, sem que seja necessário demasiada interação e perda de tempo.
+Em a próxima seção é apresentado um estudo de caso onde o esqueleto de entrada é obtido de forma automática, fazendo com que o modelo de segmentação de pessoas baseado em esqueleto proposto nessa tese possa ser executado sem qualquer intervenção com o usuário.
+Figura 4.12: Tempo (em segundos) que os usuários levaram para informar os dados de entrada:
+Curva de aprendizagem, assumindo- se que as imagens foram exibidas para os usuários sempre na mesma ordem (a b c).
+Esqueleto de entrada adquirido de forma manual × automática Em essa seção é apresentado um experimento onde os dados de entrada (altura e pontos associados ao modelo de esqueleto) são capturados de forma automática, fazendo com que o modelo proposto seja executado sem qualquer intervenção manual.
+Em esse estudo de caso foram utilizadas 8 imagens, capturadas com um dispositivo especial (Kinect), bastante popular nos dias de hoje, em o qual os pontos do esqueleto podem ser adquiridos facilmente através de um software disponível na internet 1.
+É importante salientar que o Kinect foi utilizado apenas na captura dos pontos associados ao modelo de esqueleto de cada pessoa num único quadro de um vídeo (ou seja, de uma única imagem), os quais foram pós-processados de maneira que a altura de cada pessoa na imagem pudesse ser estimada.
+As informações disponíveis por este dispositivo, como por exemplo, mapa de profundidades (capturadas por um sensor infravermelho) assim como informação de movimento (uma vez que o dispositivo captura vídeos) não estão sendo consideradas.
+O estudo de caso apresentado nessa seção, utilizando o Kinect para captura dos dados de entrada de forma automática, objetiva apenas demonstrar que o modelo proposto pode ser executado de forma automatizada se os dados de entrada forem obtidos de maneira similar.
+Deve- se salientar que a utilização do Kinect inviabiliza qualquer experimento com imagens que não foram capturadas por o mesmo, como por exemplo, imagens encontradas na web, adquiridas em nosso laboratório por uma câmera fotográfica convencional ou de base de dados públicas, conforme mencionado no início desse capítulo.
+Entretanto, existem modelos para obtenção de pose articulada de pessoas em imagens propostos na literatura que poderiam ser usados para obtenção dos dados de entrada do modelo proposto de forma automática, porém não foram usados por não oferecerem código fonte (ou programa executável) disponível para testes ou por não estimarem a pose do corpo todo (como em, 1 Kinect por exemplo).
+Ferrari e sua equipe disponibilizam na internet um software para estimativa 2D de poses de pessoas em imagens 2, entretanto tal abordagem gera um modelo de esqueleto bastante diferente do utilizado nessa tese (principalmente nos pontos de conexão entre duas partes adjacentes -- articulações), o qual deveria passar por algumas adaptações ou etapas de pós-processamento para que pudesse ser usado de forma adequada.
+De qualquer forma, o objetivo desse estudo de caso é ilustrar o funcionamento do modelo proposto nessa tese numa configuração totalmente automática, e não salientar qual algoritmo para estimativa de pose 2D de pessoas em imagens melhor se adapta à resolução desse problema.
+A Tabela 4.10 exibe os erros avaliados para as 8 imagens utilizadas nesse experimento (em comparação com o ground truth criado para as mesmas), com dados de entrada adquiridos de forma automática (usando o Kinect) e manual (informados por o usuário).
+Em (a) e (d), imagens de entrada, capturadas por a câmera do Kinect.
+Em (b) e (e), resultados (em vermelho), usando os dados de entrada capturados por o Kinect (ground truth exibido em azul).
+Em (c) e (f), resultados (em vermelho), usando os dados de entrada informados por o usuário (ground truth exibido em azul).
+Comparação qualitativa com estado-da-arte Em essa seção é apresentada uma breve comparação qualitativa entre alguns resultados gerados por o modelo proposto nessa tese e resultados gerados no trabalho de Freifeld e sua equipe, considerado estado- da arte.
+É importante salientar que os dados de entrada utilizados nesse estudo de caso, além de serem adquiridos de maneiras diferentes (manualmente no modelo proposto e de forma automática em), também diferem entre si (diferentes modelos de esqueleto).
+A Figura 4.15 (c) ilustra os dados de entrada (gerados de maneira automática usando) utilizados no trabalho de Freifeld e sua equipe.
+Qualitativamente, os resultados experimentais exibidos na Figura 4.15 (a-b) demonstram que o modelo apresentado nesta tese gera resultados mais coerentes para o contorno da pessoa, enquanto que os contornos gerados por o trabalho de Freifeld e sua equipe apresentam formas mais suaves.
+Deve ser salientado que nesse estudo de caso está sendo desconsiderada a forma em a qual os dados de entrada foram obtidos e suas diferenças.
+Freifeld e sua equipe também compararam seus resultados com os obtidos usando GrabCut, conforme ilustrado com auxílio da Figura 4.16 (b-c).
+É importante mencionar que a informação semântica associada ao contorno, assim como sua própria conectividade, estão sendo desconsideradas nesse tipo de análise, uma vez que o objeto segmentado (blob ou objeto de foreground) por o Grab-Cut não oferece esse tipo de informação.
+Objetivando ilustrar o problema mencionado no parágrafo anterior, considere por exemplo, uma pessoa numa imagem, com os braços cruzados na frente de o tronco.
+O método Grab-Cut, assim como o algoritmo Graph Cuts, iria gerar um único blob (objeto segmentado ou objeto de foreground), onde os braços cruzados e o tronco iriam estar unidos por um conjunto de pixels, conforme ilustrado na Figura 4.17 (c).
+A seguir, no Capítulo 5, são apresentadas considerações finais sobre o modelo de segmentação de pessoas em imagens estáticas baseado em esqueleto, proposto nessa tese, assim como sugestões de aperfeiçoamentos e trabalhos futuros.
+Segmentar pessoas em imagens estáticas, com a utilização de técnicas de visão computacional, é uma tarefa bastante desafiadora, assim como a de se obter informações semânticas das pessoas contidas nessas imagens, devido a diversos fatores do mundo real, como por exemplo, grande variabilidade de aparências e poses que essas podem assumir, assim como fatores relacionados à iluminação da cena onde a imagem foi capturada, sombras, ruídos na imagem, oclusão, alta similaridade do objeto de interesse com o fundo da cena e a falta de informação inerente de profundidade quando uma cena é capturada numa imagem 2D.&amp;&amp;&amp;
+No decorrer de o curso de doutorado foi proposta uma técnica para segmentação e estimativa automática da pose 2D de pessoas em imagens estáticas, publicada numa conferência da área.
+Em, a segmentação da pessoa é realizada sem intervenção manual, inicializada a partir de um detector de faces automático, onde o objetivo inicial é encontrar cores predominantes em regiões específicas, estimadas a partir de parâmetros antropométricos.
+O resultado final desse trabalho é um método para estimativa de poses 2D de pessoas em imagens estáticas (basicamente da parte superior do corpo -- tronco e membros superiores).
+Entretanto, conforme relatado por Hornung e sua equipe, a aquisição da postura 2D de um ser humano de forma interativa tem algumas vantagens quando comparada à métodos automáticos, pois a intervenção manual normalmente leva alguns minutos e gera resultados superiores em poses onde há alguma ambiguidade, se comparado à técnicas de estimativa de pose automáticas.
+De essa forma, devido a inúmeros fatores que fazem com que não seja trivial a resolução desse problema (tanto o de estimativa de poses como o de segmentação automática), pretendeu- se também investigar vantagens/ desvantagens de métodos que permitam intervenção com o usuário, assim como estender o trabalho proposto em para segmentar o corpo todo (ao invés de somente a parte superior do corpo).
+O resultado final desse processo investigativo resultou no modelo proposto nessa tese, para segmentação de pessoas em imagens estáticas baseada em esqueleto.
+Em a abordagem proposta não são usados modelos 3D complexos da forma humana, como em[ 1, modelo de esqueleto guia a segmentação da pessoa na imagem, levando em consideração informações de cor, luminosidade, restrições de ângulos e parâmetros antropométricos.
+De uma forma geral, a idéia principal da abordagem proposta é construir um grafo ao redor de o modelo de esqueleto, para uma determinada imagem de entrada, e buscar o melhor caminho nesse grafo que satisfaça uma determinada condição (por exemplo, aquela que maximiza certo critério de energia), gerando assim o contorno da pessoa na imagem.
+Uma característica importante, que deve ser salientada do modelo proposto, é que o resultado dessa abordagem gera um contorno fechado (onde o ponto inicial é igual ao ponto final) com informação semântica embutida, ou seja, cada ponto do contorno resultante está associado a uma determinada parte do corpo (similar ao trabalho de Freifeld e sua equipe, considerado estado- da arte).
+Tal informação semântica torna possível, por exemplo, que duas partes do corpo fiquem sobrepostas (como os braços na frente de o tronco, ou pernas cruzadas), mantendo ainda uma conectividade coerente do contorno (uma vez que se sabe quais partes do grafo estão associadas a quais partes do corpo e suas respectivas regiões de adjacência).
+Tal característica pode ser utilizada para diversos fins, como por exemplo a construção de humanos virtuais baseada imagem (como geometria ou textura), métodos para estimativa de roupas em imagens, estimativa da forma humana sobre as roupas, entre outros.
+Em processamento de imagens é bastante comum a utilização de base de dados gerada por especialista para avaliar experimentos.
+Para avaliar as características usadas no modelo proposto, assim como outros aspectos referentes ao mesmo, foi proposta uma abordagem para analisar quantitativamente os resultados experimentais obtidos, a partir de informações adquiridas manualmente, descrita em detalhes na Seção 4.1.
+A metodologia proposta permite avaliar, de maneira local ou global, o erro entre o contorno gerado para uma determinada pessoa numa imagem e seu contorno esperado (estimado manualmente).
+As simplificações adotadas, assim como desafios enfrentados, são discutidas na Seção 4.1 e podem servir como ponto de partida para trabalhos futuros.
+As características usadas no modelo de segmentação proposto, para avaliar a energia do contorno, foram avaliadas no estudo de caso apresentado na Seção 4.2.
+Com base no experimento apresentado na Seção 4.2, pôde- se verificar que algumas características usadas tiveram pouca influência nos resultados, assim como, também pôde- se observar quais de elas tiveram maior impacto nos resultados.
+Com base nas métricas de erro empregadas, a abordagem utilizada que apresentou melhores resultados foi aquela que levava em conta todas as características mencionadas (informações de cor, luminosidade, restrições de ângulos e parâmetros antropométricos).
+O modelo de segmentação proposto também foi avaliado em relação a a sensibilidade em função de os dados de entrada.
+Em a Seção 4.3 foi apresentado um estudo de caso onde 24 usuários (pessoas de diversas áreas do conhecimento e não especificamente de processamento de imagens) foram instruídos à clicar em 3 imagens (contendo uma única pessoa em cada imagem) para inserir os dados de entrada (altura e pontos do esqueleto, associados ao modelo de esqueleto).
+Com base nesse experimento, pôde- se concluir que, apesar de os usuários informarem os dados de entrada de maneira variada, os resultados mantiveram- se satisfatórios, fazendo com que pequenas variações em relação a os dados de entrada não acarretassem alterações muito impactantes nos contornos obtidos.
+O experimento conduzido no estudo de caso apresentado na Seção 4.3 também pode demonstrar o quão simples pode ser a entrada de dados via usuário, uma vez que apenas alguns cliques são necessários, fazendo com que a média de tempo gasto para cada imagem seja menor que 2 minutos.
+O modelo proposto nessa tese, descrito em detalhes no Capítulo 3, utiliza dados de entrada (associados ao modelo de esqueleto) que podem ser obtidos de forma automática (utilizando um algoritmo para estimativa de pose 2D de pessoas em imagens, por exemplo) ou manual (informados por um usuário), dependendo da aplicação em questão.
+O estudo de caso apresentado na Seção 4.4 indica que os resultados de segmentação obtidos com os dados de entrada inseridos de forma manual geram resultados mais coerentes do que os obtidos com os dados de entrada adquiridos de forma automática (uma vez que existem diversos desafios a serem superados em se tratando de métodos automáticos para estimativa de pose 2D de pessoas em imagens).
+Entretanto, o experimento apresentado na Seção 4.4 demonstra que os resultados de segmentação obtidos com os dados de entrada adquiridos de forma automática também podem ser considerados satisfatórios, mesmo que não superem os obtidos a partir de dados adquiridos através de intervenção com usuário.
+Os resultados obtidos com a utilização do modelo proposto também foram comparados (qualitativamente) com os obtidos por um trabalho considerado estado- da arte, no estudo de caso apresentado na Seção 4.5.
+Os experimentos indicam que o modelo proposto nessa tese gera resultados mais coerentes para o contorno da pessoa, enquanto que os contornos obtidos por o trabalho em questão apresentam formas mais suaves.
+De uma forma geral, os experimentos realizados demonstram que o modelo proposto nessa tese gera resultados satisfatórios para imagens não triviais, contendo pessoas com aparências e poses variadas (podendo haver membros parcialmente ocultos), em diversos ambientes complexos (e não controlados), com diferentes iluminações e qualidade de imagem, entre outros fatores.
+Uma limitação do modelo proposto é tratar poses onde o movimento dos membros (das pessoas contidas nas imagens) não está aproximadamente no mesmo plano da imagem (o que afeta as estimativas antropométricas na imagem projetada).
+Outros fatores podem fazer com que os resultados gerados sejam indesejáveis, como por exemplo, grande complexidade da pose, oclusão parcial ou total de membros, problemas associados a fatores de iluminação, entre outros.
+De essa forma, pretende-se investigar, em trabalhos futuros, alternativas para minimizar os problemas relacionados aos fatores mencionados, assim como tratar poses mais complexas, principalmente àquelas onde os membros das pessoas não estão aproximadamente no mesmo plano da imagem.
+A estimativa de pose 3D de uma pessoa numa imagem estática também é um trabalho bastante desafiador.
+De certa forma, outra sugestão para trabalho futuro seria utilizar o contorno obtido através da utilização do modelo proposto, combinado com os valores de energia associados a cada ponto do contorno, para construir um modelo de estimativa de pose 3D de pessoas em imagens estáticas, assumindo- se que regiões ocultas do contorno deveriam apresentar valores de energia baixo em relação a a pontos não ocultos, fazendo com que essa informação gerada por o modelo proposto (energia associada ao contorno) se torne relevante.
+Isso possibilitaria com que ela fosse utilizada também para outras finalidades que não a de segmentação de pessoas em imagens estáticas.

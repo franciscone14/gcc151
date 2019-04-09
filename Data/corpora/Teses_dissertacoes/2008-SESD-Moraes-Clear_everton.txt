@@ -1,0 +1,467 @@
+As NoCs estão surgindo como uma possível solução para as restrições das arquiteturas de interconexões existentes devido as seguintes características:
+Eficiência no consumo de energia;
+Largura de banda escalável, quando comparada à arquiteturas de barramento tradicionais;
+Reusabilidade; Desisões de roteamento distribuídas;
+Paralelismo na comunicação.
+Graças a essas características, as NoCs tornam- se a melhor opção de estrutura de comunicação para o projeto de sistemas multiprocessados (MPSoCs).
+MPSoCs são antes de tudo SoCs, os quais incluem diversos processadores programáveis.
+SoCs geralmente visam a especialização, procurando atingir objetivos como alto desempenho, e redução de custo e consumo.
+MPSoCs tentam balancear especialização e programação, pois os processadores permitem que o SoC seja programado após sua fabricação.
+São muitas vezes referidos como plataformas porque viabilizam muitas implementações para um determinado tipo de sistema.
+A programação oferece como vantagens o fato do mesmo chip pode ser usado em diversos produtos, reduzindo o custo do produto e proporcionando um tempo de vida útil superior a um SoC especializado.
+MPSoCs tem sido a arquitetura escolhida por muitas indústrias.
+Muitos estão hoje disponíveis para diferentes tipos de aplicações.
+Multimídia móvel:
+Exige alto desempenho e baixo consumo de energia.
+As arquiteturas St Nomadik e Ti OMAP são MPSoCs especializados para áudio, vídeo e comunicações.
+Home multimídia:
+Não é tão rígida quanto a o consumo como a multimídia móvel, mas requer alto desempenho para aplicações como HDTV.
+A arquitetura Philips Nexperia é um MPSoC bem conhecido para aplicações set-top box.
+Networking: Requer alto desempenho proporcionando paralelismo especializado.
+Alguns processadores da Intel e Cisco usam arquiteturas heterogêneas para processar pacotes a altas taxas.
+Um dos pontos críticos no projeto de MPSOCs é a validação dos mesmos.
+Simulação é o estado da arte na verificação do desempenho de MPSoCs, no entanto ela possui desvantagens conceituais que a torna inviável conforme a complexidade do sistema cresce.
+Em esse caso uma possível solução é utilizar a emulação, onde monitores de tráfego capturam informações relativas ao MPSoC em hardware enquanto este está em funcionamento.
+Essa técnica é eficiente e confiável, pois obtém informações relativas ao real funcionamento do MPSoC.
+O Capitulo 6 apresenta a estrutura do monitor de tráfego utilizado para a avaliação do MPSoC através da técnica de emulação e os resultados obtidos.
+Finalmente, o Capitulo 7 apresenta algumas conclusões.
+O presente relatório de pesquisa tem por objetivo apresentar o sistema MPSoC-H, desenvolvido a partir de o sistema MultiNoC.
+O objetivo do projeto MPSoC-H é estender o sistema MultiNoC para uma rede Mesh de fato, uma fez que a topologia do MultiNoC é praticamente um anel bi-direcional (Malha 2x2) e incrementar o número de processadores de 2 para 8.
+O sistema MPSoC-H (MPSoC-Hermes) proposto foi implementado a partir de o sistema o máximo de reutilização de hardware validado.
+Como ilustra a Figura 1, o sistema MultiNoC é composto por os seguintes módulos:
+Rede Hermes de tamanho 2x2 com controle de fluxo baseado em handshake;
+processadores R8 com 1024 palavras de memória cache;
+memória compartilhada de 1024 palavras;
+interface serial com o computador hospedeiro.
+As principais diferenças entre o sistema MultiNoC e o sistema MPSoC-H (Figura 2) são:
+Rede Hermes de tamanho 3x3 com controle de fluxo baseado em créditos;
+8 processadores R8 com 12K palavras de memória cache;
+Ausência de uma memória compartilhada.
+Descreve- se sucintamente nas sessões seguintes as características dos IPs utilizados nos sistemas MPSoC-H e MultiNoC.
+Maiores detalhes relativos à arquitetura e implementação destes IPs estão disponíveis em.
+Hermes é uma infra-estrutura usada para gerar NoCs com chaveamento por pacotes para diferentes tamanhos de flits, profundidades de buffer, controle de fluxo, canais lógicos e algoritmos de roteamento.
+A Hermes implementa três níveis hierárquicos do modelo de referência OSI:
+Físico corresponde à definição da interface de comunicação entre os roteadores, enlace -- adota o protocolo handshake ou baseado em créditos para o envio e recebimento de dados de forma confiável, supondo que o meio físico seja confiável, e rede em o qual é implementado o modo de chaveamento wormhole.
+O principal componente desta infra-estrutura é o roteador (Figura 3 a).
+Este roteador possui uma lógica de controle e pode ser composto por até 5 portas bidirecionais:
+East, West, North, South e Local.
+Cada porta possui uma fila de tamanho parametrizável para o armazenamento temporário de flits.
+A porta Local estabelece a comunicação entre o roteador e seu IP.
+As demais portas são todas opcionais e ligam os roteadores aos seus roteadores vizinhos.
+Trata- se de um processador com uma arquitetura Von Neumann com CPI entre 2 e 4.
+Esse processador é praticamente uma máquina RISC, faltando contudo algumas características que existem em qualquer máquina RISC, tal como pipelines.
+A seguir são apresentadas algumas características específicas desse processador.
+dados e endereços são de 16 bits.
+endereçamento de memória a palavra.
+banco de registradores com 16 registradores de uso geral.
+flags de estado:
+Negativo, zero, carry, overflow.
+O conjunto de instruções do processador realiza as seguintes operações:
+Operações lógicas e aritméticas binárias (com 2 operandos):
+Soma, subtração, E, Ou exclusivo.
+Operações lógicas e aritméticas com constantes curtas:
+Soma, subtração.
+Operações unárias:
+Deslocamento para direita ou esquerda e inversão (NOT).
+Carga de metade de um registrador com uma constante (LDL e LDH).
+Inicialização do apontador de pilha (LDSP) e retorno de subrotina (RTS).
+NOP (no operation):
+Operação vazia (útil para laços de espera e reserva de espaço).
+HALT: Suspende a execução de instruções.
+Load: Leitura de posição de memória para um registrador (LD).
+Store: Armazenamento de dado de um registrador numa posição de memória (St).
+Saltos e chamada de subrotina com endereçamento relativo com deslocamento curto ou longo (contido num registrador) e endereçamento absoluto (a registrador).
+Inserção e remoção de valores em o/ do topo da pilha (PUSH e Pop).
+A interface serial é responsável por proporcionar a comunicação entre o usuário num computador hospedeiro e os módulos do sistema dentro de o FPGA.
+A comunicação é realizada utilizando- se um protocolo RS-232 padrão.
+A função básica da interface serial é montar de desmontar pacotes.
+Quando recebe informações do computador hospedeiro, a interface serial as encapsula em pacotes e envia para os módulos através da NoC.
+Quando um pacote é recebido da NoC ele é desmontado e de ele são retiradas as informações relevantes, as quais são enviadas para o computador hospedeiro.
+As principais funcionalidades da Interface serial são:
+Carga e dump das memórias do sistema (cache ou memória compartilhada);
+Ativação dos processadores;
+Entrada/ Saída de dados do sistema;
+Debug do sistema.
+Para possibilitar a integração do processador R8 ao sistema MPSoC-H foi necessário encapsular- lo dentro de um wrapper.
+A função desse wrapper é controlar a execução do processador, provocando pausas toda a vez que o mesmo executar instruções de leitura, escrita, de entrada ou de saída e proporcionar um conjunto de serviços que dê suporte à comunicação com os demais módulos do sistema MPSoC-H..
+Além de o processador R8, o wrapper também encapsula uma memória que serve de cache para o processador.
+A Figura 4 mostra um diagrama de blocos do wrapper.
+Observe que a memória, além de a interface com o processador, tem também uma interface para a rede (tx, data_ out, credit_ i, rx, data_ in, credit_ i), pois ela precisa ser carregada com programas e dados através da rede.
+Essa interface também possibilita sua conexão a um roteador qualquer podendo ser usada como uma memória remota.
+As caches do sistema foram implementadas a partir de módulos de BlockRAM configurados como 2048 palavras de 8 bits.
+Para obter- se uma memória de 12K palavras de 16 bits foram usadas 12 BlockRAMs.
+A Figura 5 mostra como as BlockRAMs foram associadas afim de criar uma memória com capacidade maior.
+A implementação em hardware dos serviços relacionados ao processador visam reduzir o tempo de execução e a complexidade dos programas escritos em linguagem de montagem, ao custo do aumento da complexidade e do tamanho do wrapper.
+Todos os serviços do wrapper do processador foram mapeados em memória, portanto são efetuados usando as instruções de acesso a memória Load (Ld) e Store (St).
+A seguir será apresentada uma breve descrição dos serviços, bem como um trecho de programa em assembly mostrando como eles são invocados via software e o formato do pacote gerado.
+Alguns desses serviços são direcionados a outro processador R8, e outros à sua memória cache, pois o wrapper encapsula dois IPs (processador e memória).
+StartP: Permite que um processador inicialize um outro processador que ainda não iniciou sua execução.
+O trecho de código abaixo mostra a inicialização do processador P3 a partir de o processador P1.
+A partir desse código, o wrapper gera um pacote de quatro flits, sendo os dois primeiros informações de controle (destino e tamanho do payload) e os dois subseqüentes payload (origem e serviço).
+Printf: O processador envia uma palavra de 16 bits para interface serial, a qual é exibida na tela do computador hospedeiro.
+Exemplo: P2 executa um printf da palavra 0x1234.
+Pacote gerado por o wrapper, considerando o IP serial conectado ao roteador 0x00:
+IPdestino Tamanhodopayload IPorigem IDdo Serviço Palavra (34h) Scanf:
+O processador faz uma requisição de entrada de dados através do computador hospedeiro.
+Como o processador faz um Load num endereço de entrada, ele fica bloqueado até a ocorrência de um evento, nesse caso, até o wrapper receber um pacote de resposta com os dados de entrada.
+Exemplo: P4 executa Scanf.
+Wait: Bloqueia a execução do processador até o wrapper receber de outro IP um pacote contendo o serviço notify.
+Exemplo: P1 executa o comando wait e espera por um notify do P2.
+O serviço wait não gera nenhum pacote, pois se trata de um serviço local que suspende temporariamente a execução do processador que o executou.
+Notify: Desbloqueia um outro processador que tenha executado, via software, um comando de wait.
+Exemplo: P5 notifica P8.
+Pacote gerado por o wrapper:
+Serviço visa a comunicação entre processadores através da troca de mensagens.
+Para a assim o endereço de um IP qualquer é o endereço do roteador ao qual ele está conectado.
+A Tabela 1 mostra esse mapeamento.
+Esse serviço é semelhante ao printf.
+A diferença básica é que o printf envia pacotes somente para a interface serial, enquanto que esse pode enviar para qualquer outro IP do sistema.
+Receive msg: O processador lê uma mensagem de 16 bits do buffer de mensagens recebidas (buffer este localizado no wrapper).
+As mensagens armazenadas no buffer de mensagens operação é bloqueante, ou seja, caso o buffer esteja vazio, o processador fica bloqueado até que alguma mensagem seja recebida.
+Esse serviço foi mapeado no endereço de memória 0xFFF0.
+Exemplo: P1 lê uma mensagem do buffer de mensagens.
+Ldl r9,&amp; F0h;
+Carrega em r9 o endereço em o qual ldh r9,&amp; FFh;
+O serviço receive msg foi mapeado.
+O serviço receive msg não gera nenhum pacote.
+Return read: Resposta a um pacote de read recebido por o wrapper de um processador.
+Read é um serviço da Interface Serial.
+O pacote de read é destinado à memória cache bem como a geração do pacote de resposta, o qual contém a palavra contida no endereço de leitura do pacote de read.
+Exemplo: O wrapper do P4 recebeu um pacote de read para o endereço 0x0301.
+Pacote gerado por a memória:
+Os dois últimos flits contêm a palavra 0xAB34, a qual está armazenada no endereço de memória 0x0301.
+A seguir serão apresentadas as duas máquinas de estados que controlam a entrada e a saída de pacotes do wrapper do processador seguidas de uma descrição.
+A Figura 6 apresenta a máquina de estados responsável por a entrada de pacotes no wrapper seguida de uma descrição.
+S0: A máquina somente avança para o estado S1 quando receber um flit e detectar que a memória não está enviando um pacote.
+S1: Em esse estado é lido da rede o flit que correspondente ao tamanho do payload (size) do pacote que está sendo recebido.
+Quando chegar um novo flit a máquina avança para o estado S2:
+Em esse estado é lido da rede o flit que correspondente ao identificador do IP origem (source) do pacote que está sendo recebido.
+Quando chegar um novo flit a máquina avança para o estado S3.
+S3: Em esse estado é lido da rede o flit que contém o serviço (command) do pacote.
+A partir de o serviço, o próximo estado é decidido.
+StartP: O processador é habilitado para a execução através do sinal startP e a máquina volta para o estado S0.
+Notify: Através do sinal receiveNotify o wrapper do processador verifica que um pacote contendo o serviço notify foi recebido.
+O processador é desbloqueado e máquina volta para o estado S0.
+Read ou write:
+Serviços destinados à memória cache.
+A máquina avança para o estado S7.
+S4: Em esse estado é armazenado no sinal doutNoC a parte alta do dado recebido.
+Quando chegar um novo flit a máquina avança para o estado S5.
+S5: Em esse estado é armazenado no sinal doutNoC a parte baixa do dado recebido.
+Para o estado S6.
+S6: Armazena no buffer de mensagens (msg_ buffer) a mensagem recebida (doutNoC).
+S7: Permanece nesse estado até que todo pacote destinado a memória cache seja recebido.
+O sinal SizePayload conta o número de flits recebidos do pacote.
+A Figura 7 apresenta a máquina de estados responsável por a saída de pacotes do wrapper e abaixo uma descrição.
+S0: Enquanto a máquina está em S0, o wrapper mantém o processador bloqueado até receber um pacote contendo o serviço startP, quando então avança para o estado S1.
+Os sinal txR8 e busyNoCR8 em nível baixo indicam que o processador não quer transmitir nenhum pacote.
+S1: Em esse estado o processador é desbloqueado e a máquina avança para o estado S2.
+S2: Em esse estado o processador está executando um programa.
+Dependendo do comando executado, o novo estado da máquina é definido.
+Processador executa a instrução halt e a máquina avança para o estado S12.
+Memória cache não está enviando nenhum pacote, então a máquina avança para o estado S4.
+Processador invocou um dos serviços anteriores, porém a memória cache está enviando um pacote, então a máquina avança para o estado S3.
+Processador invocou o serviço wait e a máquina avança para o estado S14.
+Processador invocou o serviço receive msg e a máquina avança para o estado S15.
+S3: A máquina permanece nesse estado até a memória terminar de enviar seu pacote, então avança para o estado S4.
+S4: O wrapper indica que o processador quer enviar um pacote através dos sinais txR8 e busyNoCR8.
+O destino do pacote é enviado e a máquina avança para o estado S5.
+S5: O tamanho do payload do pacote (tam_ payload) é enviado e a máquina avança para o estado S6 se houver crédito.
+S6: A origem do pacote é enviada (source_ ES) e a máquina avança para o estado S7 se houver crédito.
+S7: O serviço do pacote é enviado (command_ ES) e a partir de ele o novo estado é decidido se houver crédito.
+Scanf: A máquina avança para o estado S13.
+StartP ou notify:
+A máquina avança para o estado S17.
+Leitura ou escrita remota:
+A máquina avança para o estado S8.
+Esses dois serviços proporcionam acesso à uma memória compartilhada, como no caso de o sistema MultiNoC.
+Ambos foram temporariamente desabilitados porque o sistema MPSoC não possui uma memória compartilhada.
+S8: A parte alta do endereço remoto) é enviada e a máquina avança para o estado S9 se houver crédito.
+S9: A parte baixa do endereço remoto) é enviada e se houver crédito a máquina avança para o estado S13 no caso de uma leitura remota ou para o S10 no caso de uma escrita remota.
+S10: A parte alta do barramento de dados do processador) é enviada se houver crédito e a máquina avança para o estado S11.
+S11: A parte baixa do barramento de dados do processador) é enviada se houver crédito e a máquina avança para o estado S17.
+S12: Em esse estado o processador é bloqueado e a máquina retorna ao estado S1.
+S13: O fim do pacote é indicado através dos sinas txR8 e busyNoCR8.
+O processador fica bloqueado e a máquina permanece nesse estado até a chegada um dado, quando então a máquina avança para o estado S1.
+S14: O processador fica bloqueado e a máquina permanece nesse estado até a chegada de um pacote contendo o serviço notify, quando então a máquina avança para o estado S1.
+S15: Os ponteiros do buffer de mensagem (first e last) são testados para ver se há alguma mensagem.
+Se houver a máquina avança para o estado S16, caso contrário permanece nesse estado até a chegada de uma mensagem.
+S16: O processador lê uma mensagem do buffer, ela é removida e a máquina avança para o estado S1.
+S17: O fim de um pacote é indicado através dos sinais txR8 e busyNoCR8 e a máquina avança para o estado S1 se houver crédito.
+A seguir será apresentado, através de formas de onda, a validação do wrapper do processador.
+As formas de onda mostrarão o envio e a recepção de um pacote.
+A Figura 8 ilustra o wrapper enviando um pacote para a interface serial contendo o serviço scanf.
+O processador invoca, via software, o serviço scanf através da instrução Load (Ld) tendo como endereço 0 xFFFF e colocando em nível alto o sinal ce.
+Os sinais txR8, busyNoCR8 e a saída tx vão para nível alto indicando que o wrapper está enviando um pacote.
+A saída data_ out recebe o valor 0x00, o qual corresponde ao Id do destino do pacote, nesse caso, a interface serial.
+O tamanho do payload do pacote é enviado.
+O Id da origem do pacote é enviado, nesse caso 0x01, pois o wrapper está conectado ao roteador 0x01.
+O identificador do serviço scanf é enviado.
+Como o sinal credit_ i está em nível baixo indicando que o buffer a rede está cheio, o valor 0x04 é mantido até credit_ i voltar para nível alto.
+Os sinais txR8, busyNoCR8 e a entrada tx vão para nível baixo indicando o fim do pacote.
+O wrapper agora espera por um pacote contendo dados de entrada.
+A Figura 9 ilustra o wrapper recebendo um pacote de resposta ao serviço scanf, contendo dados de entrada.
+A entrada rx em nível alto indica que a rede tem um pacote para o wrapper.
+O wrapper armazena no sinal size o tamanho do payload do pacote.
+O wrapper armazena em source o Id origem do pacote, nesse caso 0x00 que corresponde à interface serial.
+O wrapper armazena em command o serviço contido no pacote.
+O wrapper armazena em doutNoC a parte alta do dado recebido.
+O wrapper armazena em doutNoC a parte baixa do dado recebido.
+O sinal returnRead vai para nível alto indicando que o dado já está disponível para o processar ler.
+A entrada rx em nível baixo indica a final do pacote.
+De a mesma forma que o processador R8, a interface serial foi encapsulada dentro de um wrapper para possibilitar sua integração ao sistema MPSoC-H..
+Dentro desse wrapper estão implementados todos os serviços necessários para a interação do computador hospedeiro com o resto do sistema.
+A Figura 10 mostra a interface externa do wrapper.
+Os sinais txd e rdx conectam o wrapper ao computador hospedeiro enquanto que os demais o conectam à rede.
+A primeira operação a ser realizada por a interface serial é ajustar- se à taxa de transmissão/ recepção do computador hospedeiro.
+Isso é feito através do envio do byte 0x55 do computador hospedeiro para a interface serial.
+Esse procedimento deve ser realizado toda vez que o sistema MPSoC-H for reinicializado.
+Feito isso, o wrapper está pronto para receber e enviar dados.
+Os serviços implementados no wrapper serial podem ser invocados através de um software que acesse a porta serial que esteja executando no computador hospedeiro.
+A Figura 11 mostra a interface gráfica do software serial utilizado.
+Em a área de texto superior estão os bytes que serão enviados para o wrapper e na área inferior estão os bytes recebidos do wrapper.
+A seguir será apresentada uma breve descrição dos serviços bem como a seqüência de bytes necessária para invocar- los através do software serial e o formato do pacote gerado.
+Read: Realiza uma leitura das memórias.
+Tem o seguinte formato:
+Exemplo: Ler 1 palavra da cache conectada ao roteador 0x11, a partir de o endereço 0x0243.
+Seqüência: 00 11 00 01 02 43 Se o número de palavras a serem lida (nword) for maior que um, o wrapper simula uma leitura em burst, gerando um número de pacotes igual ao número de palavras a serem lidas.
+Write: Realiza escrita nas memórias.
+Tem o seguinte formato:
+Exemplo: Escrever no endereço 0x01 F6 da cache conectada ao roteador 0x21 a palavra 0 xABCD.
+Se o número de palavras a serem escritas (nword) for maior que um, o wrapper simula uma escrita em burst, gerando um número de pacotes igual ao número de palavras a serem escritas.
+StartP: Inicializa um processador que ainda não tenha iniciado sua execução.
+Tem o seguinte formato:
+Exemplo: Inicializar o processador conectado ao roteador 0x12.
+Return Scanf: Envia um pacote contendo uma palavra de dados como resposta a um serviço scanf.
+Tem o seguinte formato:
+Exemplo: Enviar a palavra 0 xFFFF para o processador conectado ao roteador 0x01.
+Notify: Desbloqueia um processador que tenha executado, via software, um comando de wait.
+Tem o seguinte formato:
+Exemplo: Notificar o processador conectado ao roteador 0x22.
+A seguir serão apresentadas as duas máquinas de estados que controlam a entrada e a saída de pacotes do wrapper da serial seguidas de uma descrição.
+A Figura 12 apresenta a máquina de estado responsável por a entrada de pacotes no wrapper, ou seja, recepção de dados oriundos da rede e abaixo sua descrição.
+S0: A máquina permanece nesse estado até começar a receber um pacote quando então avança para o estado S1.
+S1: A máquina espera por a chegada do flit de tamanho do payload do pacote.
+Quando chega o flit a máquina avança para o estado S2 sem armazenar- lo, pois essa informação não será utilizada durante o processamento do pacote.
+S2: A máquina espera por a chegada do flit que indica a origem do pacote (sourceReceive) e avança para o estado S3.
+S3: A máquina espera por a chegada do flit que indica o serviço do pacote (commandReceive) e avança para o estado S4.
+S4: Se o serviço lido no estado anterior (commandReceive) for scanf (0x04) ou notify (0x08) a máquina indica através do sinal busySerial que não pode receber dados da rede no momento, pois estará ocupada enviando dados ao computador hospedeiro e avança para o estado S8.
+A máquina espera por a chegada da parte alta da palavra contida no pacote e avança para o estado S5.
+S5: A máquina espera por a chegada da parte baixa da palavra contida no pacote e avança para o for reurn read a máquina avança para o estado S12.
+O sinal busySerial é setado indicando que a serial não pode receber dados da rede no momento, pois estará ocupada enviando dados ao computador hospedeiro.
+S8: A interface serial sinaliza através do sinal rx_ start_ ER que deseja transmitir a origem do pacote recebido (sourceReceive) para o computador hospedeiro e a máquina avança para o estado S9.
+S9: A máquina espera o dado ser transmitido e avança para o estado S10.
+S10: A interface serial sinaliza através do sinal rx_ start_ ER que deseja transmitir o serviço contido no pacote recebido (commandReceive) para o computador hospedeiro e a máquina avança para o estado S11.
+S11: A máquina espera o dado ser transmitido.
+Se o serviço recebido no pacote foi scanf ou notify a máquina sinaliza através do sinal busySerial que está apta novamente a receber pacotes da rede e retorna ao estado S0.
+Caso contrário a máquina avança para o estado S12.
+S12: A interface serial sinaliza através do sinal rx_ start_ ER que deseja transmitir a parte alta da palavra recebida para o computador hospedeiro e a máquina avança para o estado S13.
+S13: A máquina espera o dado ser transmitido e avança para o estado S14.
+S14: A interface serial sinaliza através do sinal rx_ start_ ER que deseja transmitir a parte baixa da palavra recebida para o computador hospedeiro e a máquina avança para o estado S15.
+S15: A máquina espera o dado ser transmitido e retorna ao estado S0.
+A Figura 13 apresenta a máquina de estados responsável por a saída de pacotes do wrapper seguida de uma descrição.
+S0: A máquina fica nesse estado até receber um comando do computador hospedeiro quando então avança para o estado S1.
+S1: Em esse estado o computador hospedeiro transmite o Id do IP destino e dependendo do comando (command) recebido no estado anterior o próximo estado é decidido.
+Read ou write:
+A máquina avança para o estado S2.
+­startP ou notify:
+A máquina avança para o estado S8.
+S2: Em esse estado o computador hospedeiro transmite a parte alta do número de palavras (nWord) a serem lidas ou escritas na memória e a máquina avança para o estado S3.
+S3: Em esse estado o computador hospedeiro transmite a parte baixa do número de palavras a serem lidas ou escritas na memória e a máquina avança para o estado S4.
+S4: Em esse estado o computador hospedeiro transmite a parte alta do endereço (addr) a ser lido ou escrito e a máquina avança para o estado S5.
+S5: Em esse estado o computador hospedeiro transmite a parte baixa do endereço a ser lido ou escrito e dependendo do comando (commmand) a máquina avança para o estado S8 no caso de read ou para S6 no caso de write.
+S6: Em esse estado o computador hospedeiro transmite a parte alta da palavra a ser escrita e a máquina avança para o estado S7.
+S7: Em esse estado o computador hospedeiro transmite a parte baixa da palavra a ser escrita e a máquina avança para o estado S8.
+S8: A interface serial indica o inicio de uma transmissão através do sinal tx.
+O Id destino (target) do pacote é enviado e a máquina avança para o estado S9.
+S9: Dependendo do comando que está sendo processado, o tamanho do payload do pacote é enviado e a máquina avança para o estado S10.
+Write: O valor 0x06 é enviado. --
+startP ou notify:
+O valor 0x02 é enviado.
+S10: O Id da interface serial é enviado e a máquina avança para o estado S11.
+S11: O serviço (command) do pacote é enviado e dependendo de ele o próximo estado é decidido:
+Read ou write:
+A máquina avança para o estado S12.
+S12: A parte alta do endereço a ser lido ou escrito é enviado e a máquina avança para o estado S13:
+A parte baixa do endereço a ser lido ou escrito é enviado.
+No caso de estar sendo realizada uma leitura, se o número de palavras que se deseja ler (nWord) for igual ao número de palavras lidas (counterWord), a máquina avança para o estado S16 (1), senão retorna ao estado S8.
+Se está sendo realizada uma escrita, a máquina avança para o estado S14.
+S14: A parte alta do dado a ser escrito é enviada e a máquina avança para o estado S15.
+S15: A parte baixa do dado a ser escrito é enviada e a máquina avança para o estado S16.
+S16: A saída tx vai para nível baixo indicando o final do pacote.
+Se o serviço executado escritas foi atingido (counterWord $= nWord), a máquina avança para o estado S0 (1).
+Se o serviço for write e ainda restam palavras a serem escritas (counterWord\ nWord) a máquina retorna ao estado S6 para realizar uma nova escrita.
+A seguir será apresentada, através de formas de onda, a validação do wrapper serial.
+As formas de onda mostrarão a recepção e o envio de um pacote.
+A Figura 14 ilustra o wrapper recebendo um pacote do processador P1 contendo o serviço scanf.
+O envio desse pacote corresponde à Figura 8 da seção 3.3.
+A entrada rx em nível alto indica a chegada de um pacote.
+O Id do roteador em o qual P1 está conectado é armazenado no sinal sourceReceive.
+O serviço do pacote é armazenado no sinal commandReceive.
+O sinal busySerial indica que o wrapper não pode receber nenhum pacote da rede no momento porque vai começar a enviar dados para o computador hospedeiro.
+O Id da origem do pacote é enviado para o computador hospedeiro.
+O serviço do pacote é enviado para o computador hospedeiro.
+A Figura 15 ilustra o wrapper recebendo dados do computador hospedeiro e os enviando num pacote de resposta a um pedido de scanf.
+O computador hospedeiro envia a seqüência de bytes:
+O wrapper recebe do computador hospedeiro o Id do serviço e o armazena em command.
+O wrapper recebe do computador hospedeiro o Id do destino do pacote e o armazena em target.
+O wrapper recebe do computador hospedeiro a parte alta do dado e o armazena em dataH.
+O wrapper recebe do computador hospedeiro a parte baixa do dado e o armazena em dataL.
+A saída tx é setada indicando o início do envio do pacote e o destino do pacote (target) é enviado.
+O tamanho do payload do pacote (tam_ payload) é enviado.
+O Id da origem do pacote (source) é enviado.
+O serviço do pacote (command) é enviado.
+A parte alta do dado (dataH) é enviada.
+A parte baixa do dado é (dataL) enviada.
+A saída tx é resetada indicando o fim do pacote.
+Para a avaliação do sistema MPSoC-H, procurou- se uma aplicação onde houvesse uma interação entre os processadores na busca por o resultado final do problema.
+Essa interação se dá para ser executado num sistema multiprocessado.
+O algoritmo apresentado a seguir calcula o grau de semelhança entre duas strings quaisquer utilizando programação dinâmica.
+Este algoritmo, denominado Smith-Waterman é muito utilizado para verificar o grau de semelhança entre duas seqüências de DNA, as quais podem ser facilmente representadas por duas strings.
+Dada uma seqüência X de n caracteres e uma seqüência Y de m caracteres, constrói- se uma matriz M de dimensões (n+ 2) x (m+ 2).
+Exemplo: X $= GATACA, Y $= CACACA.
+O primeiro passo do algoritmo consiste na inserção dos escores iniciais como sendo um progressão aritmética de razão igual ao GAP (penalidade de alinhamento, igual a 2) e primeiro elemento igual a 0.
+O preenchimento da matriz M é dado por a seguinte função de recorrência:
+Onde: MAX:
+Maior valor Observe que, segundo a função, o valor de uma determinada célula (x, y) depende do valor das células vizinhas, e.
+Exemplo: Cálculo do valor da célula (2,2).
+A matriz pode ser preenchida seqüencialmente na direção vertical, conforme apresentado abaixo:
+A matriz totalmente preenchida é apresentada a seguir.
+O valor da célula final da matriz corresponde ao grau de semelhança entre as duas seqüências.
+Quanto maior esse valor, maior é a semelhança entre as seqüências.
+O valor máximo é igual ao tamanho das strings, no caso de as duas seqüências serem idênticas.
+Como mostrado anteriormente, a matriz pode ser preenchida tanto na direção horizontal quanto na direção vertical, logo, o algoritmo pode ser facilmente paralelizado preenchendo- se a tabela nas duas direções ao mesmo tempo.
+Inicialmente somente a célula (2,2) pode ser calculada.
+Calculado o valor da célula (2,2), as células (3,2) e (2,3) podem ser calculadas em paralelo, visto que não há nenhuma dependência entre elas, pois ambas possuem as células vizinhas necessárias para o cálculo.
+Em seguida podem ser calculadas as células (4,2), (3,3), (2,4) e assim por diante até que toda tabela esteja preenchida.
+A idéia da execução do algoritmo num sistema multiprocessado é que cada célula calculada em paralelo seja de responsabilidade de um processador.
+A cada processador é atribuída uma ou mais colunas da matriz, dependendo do número de processadores utilizados.
+Observe que as linhas diagonais indicam células sendo calculadas em paralelo.
+Exemplo 2: Preenchimento da matriz utilizando 3 processadores.
+Observe que, com um número menor de processadores, a matriz é preenchida em regiões e não em sua totalidade como no caso de o exemplo 1.
+A cada célula calculada, o valor calculado é enviado ao processador responsável por a coluna adjacente, devido a a necessidade do valor das células vizinhas para o cálculo.
+No caso de o exemplo 2, quando a região 2 da matriz começa a ser processada, o processador P3 começa a enviar o valor de suas células calculadas para o processador P1.
+Observe também que as células da última coluna da matriz não são enviadas, pois elas não são necessárias para o cálculo de outras células.
+O estudo de caso implementado verifica o grau de semelhança entre uma seqüência de 100 caracteres e outra de 96.
+A matriz gerada tem as dimensões x $= 102 x 98.
+Como o sistema MPSoC-H dispõem de 8 processadores, cada processador fica responsável por 12 colunas da matriz.
+A cada célula de uma coluna calculada o resultado é enviado, a exceção da última coluna, a qual os valores das células não necessitam ser passados adiante.
+Logo, o número de mensagens que trafega no sistema é igual a 9500.
+As setas da Figura 16 indicam as trocas de mensagens entre os processadores durante a execução do algoritmo.
+Observe que as posições dos processadores foram atribuídas visando obter- se a menor latência possível na troca de mensagens.
+Inicialmente todos processadores têm armazenado em suas memórias a matriz inicial, a qual contém somente as seqüências a serem comparadas e os escores iniciais.
+Durante a execução, os processadores enviam as células calculadas e recebem mensagens correspondentes às células das colunas adjacentes às quais estão sendo calculadas.
+A o final da execução, os processadores têm armazenada a matriz parcialmente preenchida, ou seja, os valores da matriz estão distribuídos entre os processadores.
+Cada processador tem armazenado somente as colunas calculadas por eles e as colunas adjacentes às mesmas, as quais foram enviadas por os processadores vizinhos.
+O grau de semelhança entre as seqüências, que é o valor da última célula da matriz, encontra- se armazenado na memória do processador responsável por o processamento da última coluna da matriz.
+Esse valor pode ser buscado da memória utilizando- se a interface serial ou o processador pode enviar- lo à interface serial ao final da execução.
+Devido a o tamanho da matriz utilizada na aplicação ser grande, os tempos de simulação, tanto do software (assembly) da aplicação quanto o hardware (VHDL), tornaram- se muito grandes, e isso impossibilitou sua simulação.
+Para resolver esse problema, utilizou- se uma matriz menor para a simulação.
+Tendo validado esta, bastou alterar os parâmetros do software da aplicação para ela tratar uma matriz maior.
+Para garantir que o valor retornado por a aplicação está correto, foi escrito um programa em linguagem C que calcula o valor de todas as células da matriz.
+Porém, um dos objetivos do trabalho é a avaliação do tráfego gerado por a aplicação utilizando uma matriz grande, pois esta gera um alto número de troca de mensagens entre processadores.
+A solução para este problema foi a criação de um monitor de tráfego o qual dá suporte para o uso da técnica de emulação.
+Através dessa técnica torna- se possível a avaliação da aplicação funcionando em tempo real, graças a os dados capturados por o monitor de tráfego.
+O monitor de tráfego funciona como um sniffer de rede, monitorando todo o tráfego que passa no canal ao qual está ligado.
+O monitor implementado tem duas interfaces de rede, uma de entrada e outra de saída, desta maneira é possível monitorar um canal de entrada e um canal de saída ao mesmo tempo.
+A Figura 17 ilustra o diagrama de blocos do monitor.
+As informações relativas ao tráfego monitorado durante a execução da aplicação são armazenadas em BlockRAM.
+Essas informações são selecionáveis através da entrada medida e são elas:
+Carga oferecia, Tráfego aceito e Latência.
+Os dados armazenados em BlockRAM podem ser lidos a partir de o software serial utilizando o comando 0x09.
+Esses dados, quando lidos do monitor através do software serial, não trafegam por a rede, pois ele tem uma interface direta com o módulo serial.
+Observe que tanto a interface de entrada quanto a de saída são entradas do monitor, pois ele somente monitora os canais da rede ao qual está ligado, ou seja, ele não interfere no tráfego da rede.
+O monitor é ligado no canal entre o IP e o roteador ao qual ele está conectado.
+A Figura 18 mostra uma possível ligação do monitor ao sistema.
+A seguir serão apresentas as máquinas de estado que controlam as interfaces de entrada e saída do monitor de tráfego.
+A Figura 19 mostra a máquina de estados que controla a interface de saída do monitor seguida de uma descrição.
+S0: Dependendo da medida selecionada o próximo estado é decidido:
+Carga oferecida:
+O monitor detecta que o IP deseja transmitir o tempo global (cont_ clock) é armazenado em data.
+Se a rede tiver espaço no buffer para armazenar o flit o sinal we_ sniffer é setado indicando uma escrita na memória e a máquina avança para o estado S1.
+Tráfego aceito:
+O monitor detecta que o IP tem um pacote para receber o tempo global (cont_ clock) é armazenado em data.
+Se o IP puder armazenar o flit (credit_ o $= '1') o sinal we_ sniffer é setado indicando uma escrita na memória e a máquina avança para o estado S3.
+Latência: O monitor detecta que o IP deseja transmitir o tempo global (cont_ clock) é armazenado em data e a máquina avança para o estado S5.
+S1: Data é gravado na memória, o sinal we_ sniffer é resetado e o endereço de escrita add_ sniffer é incrementado.
+A máquina permanece nesse estado até o IP transmitir o tamanho do payload, o qual é armazenado em payload.
+Em seguida a máquina avança para o estado S2.
+S2: A máquina permanece nesse estado até o IP enviar todo o pacote para a rede, quando então retorna ao estado S0.
+S3: Data é gravado na memória, o sinal we_ sniffer é resetado e o endereço de escrita add_ sniffer é incrementado.
+A máquina permanece nesse estado até o IP receber o tamanho do payload, o qual é armazenado em payload.
+Em seguida a máquina avança para o estado S4.
+S4: A máquina permanece nesse estado até o IP receber todo o pacote da rede, quando então retorna ao estado S0.
+A Figura 20 mostra a máquina de estados que controla a interface de entrada do monitor seguida de uma descrição.
+A função dessa máquina é sinalizar através do sinal last_ flit, o momento em que a rede disponibiliza para o IP o último flit de um pacote.
+Esta sinalização é utilizada para o cálculo da latência.
+S0: O sinal last_ flit é resetado e a máquina avança para o estado S1 quando a medida selecionada for latência.
+S1: A máquina espera o IP receber o primeiro flit do pacote e avança para o estado S2.
+S2: O tamanho do payload do pacote é armazenado em payload2 e a máquina avança para o estado S3.
+S3: A máquina permanece nesse estado até que o último flit do pacote seja disponibilizado por a rede.
+Em seguida o sinal last_ flit é setado e a máquina retorna ao estado S0.
+A seguir será apresentada, através de formas de onda, a validação do monitor.
+A Figura 21 mostra o processador conectado ao roteador 0x11 enviando um pacote para o processador conectado selecionada é carga oferecida, ou seja, o tempo em que o primeiro flit de cada pacote é disponibilizado por o IP é armazenado na memória.
+O monitor detecta que o processador deseja enviar um pacote para rede.
+O momento em que o flit foi disponibilizado para a rede é armazenado em data e é gravado na memória no endereço 0x00.
+O fim da escrita em memória é sinalizado, o endereço de escrita é incrementado e o tamanho do payload do pacote é armazenado em payload.
+O pacote foi todo armazenado por a rede o fim da transmissão é sinalizado por o IP.
+Duas distribuições espaciais de tráfego são utilizadas.
+Uma ideal (Figura 22 (a)), onde os roteadores estão dispostos de modo que a distância entre todos os pares origem-destino seja de 1 hop.
+Em a segunda configuração (Figura 22 (b)) procurou- se estabelecer maiores distâncias entre determinados pares origem-destino (situação denominada como Cenario2).
+Em ambos os cenários descritos as setas sólidas indicam os fluxos gerados.
+Foi realizada a comparação de uma seqüência com 96 caracteres.
+Ambas seqüências estão dispostas na matriz segundo mostrado na Figura 23.
+São gerados em cada processador 1200 pacotes de 6 flits, a exceção do processador P8, o qual gera 1100 pacotes, pois ele processa a última coluna (que possui o resultado da comparação) e não envia resultados desta coluna para o processador P1.
+Estes flits contém o destino do pacote, o tamanho do payload do pacote, a origem do pacote e 2 flits contendo o resultado da comparação.
+Cada processador processa 12 colunas da matriz, porque temos 96 colunas distribuídas entre 8 processadores.
+Os dados coletados para análise de como o tráfego é gerado e verificação de desempenho são mostrados na Figura 24.
+Os dados obtidos para verificação da geração de tráfego são coletados por um monitor de tráfego conectado à interface de saída do gerador de tráfego (processador).
+Esta coleta é empregada quando se deseja conhecer o comportamento de um tráfego real no momento em que a aplicação que gera este tráfego executa sobre a rede.
+Desta forma, é possível utilizar este trace para auxiliar na caracterização deste tipo de aplicação, quando se deseja simular este tipo de tráfego.
+O parâmetro a ser medido com os dados desta coleta é a carga oferecida.
+Os dados medidos para avaliação de desempenho são coletados tanto na interface de saída de um núcleo gerador quanto na interface de entrada de um núcleo receptor.
+As métricas de avaliação de desempenho adotadas neste experimento são o tráfego aceito e latência da rede.
+A latência de rede é o intervalo de tempo entre a inserção do primeiro flit de um dado pacote na rede e a chegada do último flit do mesmo pacote no núcleo destino.
+A Figura 24 mostra dados coletados para avaliação de desempenho neste Estudo de Caso.
+Onde: Tpfin:
+Momento em que o primeiro flit de um pacote i é injetado na rede;
+Com relação a a geração de tráfego, a carga oferecida por um pacote i (offeredload) considera o seu tamanho (pcksize), o momento em seu primeiro flit é disponibilizado para transmissão (tpfin) e o momento em que o primeiro flit de seu subseqüente é disponibilizado para transmissão (tpfin).
+A carga oferecida de um pacote i é definido por a Equação 1: O tráfego aceito de um pacote i (acceptedtraffic) considera o seu tamanho (pcksize), o momento de saída da rede do primeiro flit (tpfout) e o momento em que o primeiro flit de seu subseqüente sai da rede (tpfout).
+O tráfego aceito de um pacote i é definido por a Equação 2: Para calcular a latência de um pacote i é necessário o conhecimento do momento em que o pacote está disponível para transmissão (tpfin) e do momento em que o último flit do pacote chega ao destino (tplout).
+A latência de rede para um pacote i (latency) é dado por a Equação 3: A Tabela 2 resume os resultados obtidos, tanto para as medições da carga oferecida ao sistema, quanto para os parâmetros de avaliação de desempenho adotados.
+Através da análise da Tabela 2 é possível perceber dois fatos.
+O primeiro fato diz respeito à manutenção das taxas de injeção serem mantidas nos destinos.
+Observa- se que tanto as taxas de injeção quanto as de recepção tiveram praticamente os mesmos valores em termos de média e desvio padrão.
+Estes baixos valores são justificados por dois fatores:
+Tamanho reduzido do pacote (6 flits) e (ii) elevado intervalo entre pacotes.
+Tais fatores indicam que não houve concorrência por recursos em nenhum dos dois cenários estabelecidos.
+A Figura 25 mostra as curvas de distribuição de carga oferecida (em (a)) e tráfego aceito (em (b)) ocorreram de maneira similar em todos os fluxos.
+A reduzida carga na rede explica- se por o fato da aplicação gastar a maior parte do tempo realizando processamento do algoritmo Smith-Waterman e gastando um reduzido tempo na comunicação entre os núcleos.
+Outro fato percebido diz respeito às latências obtidas para o fluxo com origem em P1.
+Verifica- se que a latência média para os pacotes pertencentes a este fluxo possuem valores de média e desvio padrão diferentes do restante dos fluxos, em ambos os cenários.
+A Figura 26 mostra as duas distribuições de latência para o fluxo gerado por P1, em Cenário (a) e Cenário (b).
+A Figura 26 (a) mostra que, em torno de 1130 pacotes possuem a latência de 19 ciclos, enquanto que em torno de 60 pacotes tiveram latência de 1185 ciclos.
+Em (b) observa- se que 1130 pacotes possuem a latência de 33 ciclos, enquanto que em torno de 50 pacotes tiveram latência de 1180 ciclos.
+Os valores elevados de latência ocorrem no início da execução da aplicação, quando P1 não possui dados a receber de P8.
+Por o fato de P1 possuir armazenado os escores iniciais da matriz, ele tem condições de calcular e enviar dados de seu processamento sem depender de P8.
+O problema é que P2 não consegue processar os dados que recebe na mesma velocidade em que P1 os produz, o que leva os pacotes com resultados da primeira coluna serem aceitos por P2 muito tempo após eles serem disponibilizados, gerando um alto valor de latência para estes pacotes.
+Quando P1 começa a processar outra coluna, ele passa a depender do processamento de P8.
+Enquanto P1 espera por os dados de P8, o processador P2 consegue computar os dados anteriormente gerados por P1.
+Quando P1 voltar a gerar dados, P2 poderá consumir os pacotes no mesmo ritmo em que o processador P1 produz, porque agora os processadores demandam a mesma quantidade de tempo para processar uma comparação, pois devem esperar um processamento anterior para realizar o seu próprio processamento.
+Este estudo de caso permitiu a validação do processo de avaliação de desempenho em NoCs através de emulação.
+Futuros estudos de caso, com aplicações dominadas por comunicação e não por processamento, estão entre os trabalhos futuros.
+Como mostrado no Capítulo 3, a implementação de serviços em hardware torna o wrapper do processador complexo, com máquinas de estados grandes e confusas.
+A cada novo serviço implementado, novos estados são acrescentados às máquinas de estado, acarretando no aumento da área em hardware do MPSoC.
+Isso torna o projeto não escalável, de maneira que a plataforma que o suporta tenha que ser substituída por uma de maior capacidade conforme o incremento dos serviços.
+Outra desvantagem é que serviços implementados podem não ser utilizados por as aplicações, gerando assim um desperdício de área.
+Uma outra abordagem seria a implementação dos serviços em software.
+De esta maneira o wrapper do processador pode conter apenas serviços básicos de montagem/ desmontagem de pacotes implementados em hardware, enquanto drivers em software implementam serviços específicos, tornando assim o hardware simples e escalável.
+Os serviços em software podem ser implementados como subrotinas e ao código das aplicações será agregado somente os serviços utilizados por ela.
+Serviços em software podem ser implementados e validados mais rapidamente do que em hardware.
+A desvantagem dessa abordagem é um maior tempo de execução, no entanto isso pode não ser problema dependendo dos requisitos da aplicação.
+Avaliação do compromisso entre drivers implementados em software ou hardware é exemplo de trabalho futuro.
+Em relação a a distribuição de tarefas no MPSoC, o sistema operacional deve realizar a melhor atribuição possível, visando balanceamento de carga e latência mínima na intercomunicação dos processadores.
+Em o estudo de caso apresentado, os resultados obtidos nas duas distribuições apresentadas foram semelhantes porque o tráfego gerado por a aplicação não era intenso.
+No entanto, a distribuição de tarefas em aplicações que trabalham com grandes volumes de dados tem papel fundamental no desempenho do sistema.
+Em MPSoCs híbridos o grau de processamento tanto das tarefas quanto dos processadores devem ser levados em conta na distribuição, atribuindo adequadamente as tarefas que demandam mais processamento aos processadores de maior capacidade.
+Da mesma maneira que as NoCs trazem os conceitos de redes de computadores para dentro de o chip, os MPSoCs agregam os conceitos de arquiteturas e sistemas operacionais paralelos.

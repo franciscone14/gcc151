@@ -1,0 +1,1547 @@
+A proposição de redes intra-chip (NoCs) para futuros e modernos sistemas embarcados baseia- se no fato de que barramentos apresentam degradação do desempenho quando compartilhados por um grande número de núcleos.
+Mesmo a pesquisa de NoCs sendo um campo relativamente novo, a literatura possui muitas proposições de arquiteturas de tais redes.
+Muitas destas proposições objetivam prover garantias de qualidade de Serviço (QoS), o que é essencial para aplicações de tempo real e multimídia.
+O método mais amplamente usado para obter algum grau de garantia de QoS é dividido em duas etapas.
+A primeira etapa é caracterizar a aplicação através da modelagem de tráfego e simulação.
+A segunda etapa consiste em dimensionar uma determinada rede para alcançar garantias de QoS.
+Projetos de NoCs destinados a atender QoS usualmente provêem estruturas especializadas para permitir ou a criação de conexões (chaveamento por circuito) ou a definição de prioridades para fluxos sem conexão.
+É possível identificar três desvantagens neste método de duas etapas.
+Primeiro, não é possível garantir QoS para novas aplicações que venham a ser executadas no sistema, se estas são definidas depois da fase de projeto da rede.
+Segundo, mesmo com garantias de latência fim-a-fim, métodos sem o estabelecimento de conexão podem introduzir jitter.
+Terceiro, modelar tráfego precisamente para uma aplicação complexa é uma tarefa muito difícil.
+Se este problema é contornado por a simplificação da fase de modelagem, erros podem ser introduzidos, conduzindo a uma parametrização da NoC pobremente adaptada para atender à QoS requerida.
+Este documento tem dois principais objetivos.
+O primeiro é avaliar o compromisso área-desempenho e as limitações do chaveamento por circuito e do escalonamento baseado em prioridades para prover QoS.
+Esta avaliação mostra quando tais implementações são realmente apropriadas para atender requisitos de QoS, e quando mecanismos mais elaborados são necessários.
+O segundo objetivo é propor o uso de um escalonamento baseado em taxas para atender requisitos de QoS, considerando o estado da NoC em tempo de execução.
+A avaliação do chaveamento por circuito e do escalonamento baseado em prioridades mostra que:
+chaveamento por circuito pode garantir QoS somente para um pequeno número de fluxos;
+Esta técnica apresenta baixa escalabilidade e pode desperdiçar largura de banda;
+escalonamento baseado em prioridades pode apresentar comportamento melhor esforço e, em situações de pior caso, pode conduzir a uma latência inaceitável para fluxos de baixa prioridade, além de ser sujeito a jitter.
+Por estas limitações, o escalonamento baseado em taxas surge com uma opção para melhorar o desempenho de fluxos QoS quando cenários de tráfego variáveis são usados.
+Palavras Chave: Qualidade de Serviço (QoS), rede intra-chip (NoC), chaveamento por circuito, escalonamento baseado em prioridades, escalonamento baseado em taxas.
+O aumento do número de transistores e da freqüência de operação, o curto tempo de projeto e a redução do ciclo de vida dos produtos eletrônicos caracterizam o cenário atual da indústria de semicondutores.
+Sob essas circunstâncias, os projetistas estão desenvolvendo circuitos integrados compostos por elementos funcionais heterogêneos e complexos num único al.
+E Bergamaschi o projeto de um SoC é baseado no reuso de núcleos de propriedade intelectual.
+Gupta e Zorian definem núcleo com um módulo de hardware préprojetado e pré-verificado, que pode ser usado na construção de aplicações complexas.
+No entanto, núcleos não compõem SoCs sozinhos, eles devem incluir uma arquitetura de interconexão e interfaces para dispositivos periféricos.
+Usualmente, a arquitetura de interconexão é baseada em canais ponto-a-ponto ou barramento compartilhado.
+Canais ponto-a-ponto são eficientes para sistemas com um pequeno número de núcleos, mas o número de fios em torno de o núcleo aumenta à medida que a complexidade do sistema cresce.
+Conseqüentemente, canais ponto-a-ponto têm escalabilidade e flexibilidade pobre.
+Um barramento compartilhado é um conjunto de fios comuns para múltiplos núcleos.
+Esta forma de interconexão possui maior escalabilidade e reusabilidade, quando comparada com canais ponto-a-ponto.
+Entretanto, barramentos possuem diversas desvantagens:
+Apenas uma troca de dados pode ser realizada por vez;
+Existe necessidade de desenvolver mecanismos inteligentes de arbitragem do meio;
+A escalabilidade é limitada, tipicamente na ordem de poucas dezenas de núcleos conectados ao barramento;
+O uso de linhas globais num circuito integrado com tecnologia submicrônica impõe sérias restrições ao desempenho do sistema devido a as altas capacitâncias e resistências parasitas inerentes aos fios longos.
+Estas desvantagens podem ser parcialmente contornadas através do uso de, por exemplo, hierarquia de barramentos, onde o problema continua existindo, sendo apenas minimizado.
+De acordo com vários autores, entre eles, a arquitetura de interconexão baseada em barramentos compartilhados não fornecerá suporte aos requisitos de comunicação dos futuros circuitos integrados.
+De acordo com o ITRS, circuitos integrados serão capazes de conter bilhões de transistores, com tamanho de dispositivos em torno de 50 nm e freqüências de relógio em torno de 10 GHz em 2012.
+Em este contexto, uma possível solução pode ser buscada nas redes de computadores e redes de comunicação e aplicada a sistemas embarcados, criando o conceito de redes intra-chip (NoC, do inglês Network-on-Chip) Como descrito em, redes intra-chip estão emergindo como uma solução para as restrições existentes em arquiteturas de interconexão, devido a as seguintes características:
+Eficiência de energia e confiabilidade;
+Escalabilidade de largura de banda quando comparadas a arquitetura de barramento;
+Reusabilidade; Decisões distribuídas de roteamento.
+Em as redes intra-chip, os núcleos do sistema são interligados por meio de uma rede composta por roteadores e canais ponto-a-ponto.
+A comunicação entre os núcleos ocorre por a troca de mensagens transferidas por meio de roteadores e canais intermediários até atingir o seu destino.
+Atualmente, a maioria das redes provêem suporte somente ao serviço melhor esforço (Be, do inglês Best Effort), incluindo a rede intra-chip comercializada por a companhia Arteris.
+Este serviço não oferece nenhuma garantia temporal às aplicações, há apenas o compromisso de entregar ao receptor a informação enviada por o emissor.
+Em o serviço Be, todas as aplicações são tratadas de forma igual e o envio de pacotes pode sofrer atraso arbitrário.
+No entanto, de forma bastante generalizada, pode- se dizer que uma mensagem de texto enviada através de correio eletrônico não tem a mesma necessidade de prazo de entrega ao destinatário do que a transmissão de uma rede de distinguir fluxos diferentes e prover níveis diferentes de serviço para estes fluxos.
+Conseqüentemente, serviços Be são inadequados para satisfazer requisitos de QoS de determinadas aplicações/ módulos, como no caso, por exemplo, de fluxos multimídia.
+Para atender requisitos de desempenho e por conseqüência garantir QoS, a rede necessita incluir características específicas a fim de conhecer a prioridade relativa e os requisitos de cada fluxo na rede, permitindo que recursos sejam alocados de um modo mais eficiente do que se todos os fluxos recebessem exatamente a mesma prioridade.
+Uma característica necessária, porém não suficiente, para garantir QoS é a utilização de canais virtuais, ou seja, o compartilhamento da largura de banda do canal físico entre l canais virtuais.
+Sem o uso de canais virtuais, quando um pacote aloca um canal físico, nenhum outro pacote pode usar- lo até que este pacote o libere, mesmo que o pacote aguardando possua prioridade maior.
+O uso de canais permite que mecanismos de alocação de recursos sejam utilizados por a rede, possibilitando que fluxos sejam tratados de forma diferenciada.
+As implementações atuais de redes intra-chip que provêem suporte à QoS tentam atender os requisitos de desempenho em tempo de projeto.
+A rede é projetada de acordo com as aplicações, requerendo modelagem e simulação correta do tráfego para obter o desempenho desejado por as aplicações alvo.
+Os resultados obtidos através da simulação permitem dimensionar a rede para dar suporte aos requisitos das aplicações.
+A síntese da rede ocorre após a simulação.
+Entretanto, é ainda possível que garantias de QoS não sejam conhecidas para novas aplicações.
+SoCs modernos, tal como telefones 3 G, suportam um conjunto de aplicações que varia conforme a utilização do sistema.
+Projetar a rede para suportar todos os possíveis cenários de tráfego é inviável em termos de tempo de projeto, área e consumo de potência.
+Logo, novos mecanismos devem ser usados em tempo de execução para habilitar a rede a atender os requisitos de QoS para um amplo conjunto de aplicações.
+Exemplos destes mecanismos são freqüentemente encontrados em redes IP e ATM, como controle de admissão, controle de congestionamento e condicionamento de tráfego.
+A principal vantagem de usar tais mecanismos é suportar novas aplicações depois do projeto da rede, com um custo extra de área e potência dissipada.
+Propostas de redes intra-chip para garantir QoS (por exemplo,) adotam chaveamento por circuito e/ ou escalonamento baseado em prioridades na arquitetura de seus roteadores.
+Entretanto, estas técnicas são implementadas em tempo de projeto para alguns cenários de tráfego.
+Para aplicações reais, onde os fluxos podem desaparecer e reaparecer aleatoriamente ou periodicamente, esta técnica pode apresentar um erro significativo em tempo de execução.
+Em o conhecimento da Autora, não existem implementações de redes intra-chip com mecanismos que atendam os requisitos de QoS em tempo de execução.
+O objetivo estratégico da presente Dissertação é dominar a tecnologia de redes intra-chip e os mecanismos utilizados para prover QoS aos núcleos conectados a ela.
+De entre os objetivos específicos enumera- se:
+Adicionar canais virtuais à rede intra-chip Hermes, possibilitando que mecanismos para atender os requisitos de QoS (como diferenciação e priorização entre fluxos) sejam implementados sobre a rede.
+Implementar sobre a rede Hermes mecanismos para prover QoS encontrados nas redes intra-chip atuais, como chaveamento por circuito e escalonamento baseado em prioridades.
+Avaliar a implementação destes mecanismos, a fim de identificar onde tais implementações são realmente apropriadas para atender aos requisitos de QoS, e quando mecanismos mais elaborados são necessários.
+Implementar sobre a rede Hermes mecanismos mais sofisticados para prover QoS a um conjunto maior de aplicações.
+Avaliar os mecanismos mais sofisticados para prover QoS frente a os mecanismos usados por as redes intra-chip atuais.
+O presente documento está organizado da seguinte forma.
+Em os Capítulos 2 e 3 são apresentados os conceitos básicos e a revisão do estado da arte necessários ao entendimento do presente trabalho.
+Em o Capítulo 2 são abordados os conceitos que caracterizam as redes intra-chip, as aplicações que utilizam a rede e os serviços oferecidos por a mesma, e também são descritos os mecanismos utilizados para prover QoS.
+Em o Capítulo 3 é discutido o estado da arte em redes intrachip que oferecem QoS e algumas destas redes são detalhadas.
+Os Capítulos 4 a 8 apresentam as contribuições deste trabalho.
+Em o Capítulo 4 é detalhada a inserção de canais virtuais sobre a rede Hermes.
+A rede Hermes com canais virtuais é denominada Hermes-VC.
+Como mencionado anteriormente, o uso de canais virtuais é importante porque permite priorizar a alocação da largura de banda do canal físico, possibilitando à rede fornecer serviços diferenciados aos fluxos.
+No entanto, a rede Hermes-VC usa o escalonamento Round-robin, que compartilha a largura de banda do canal físico de forma igual entre os canais virtuais e, portanto, sem diferenciar fluxos.
+A inserção do chaveamento por circuito sobre a rede Hermes é descrita no Capítulo 5.
+A rede Hermes que combina chaveamento por pacote e chaveamento por circuito é denominada Hermes-CS.
+Em a Hermes-CS, os fluxos com requisitos de desempenho (fluxos QoS) são transmitidos utilizando chaveamento por circuito, enquanto fluxos com serviço melhor esforço (fluxos Be) são transmitidos utilizando chaveamento por pacote.
+Desta forma, a rede Hermes-CS é a primeira implementação realizada ao longo deste trabalho que oferece algum grau de QoS.
+A diferenciação entre fluxos através do escalonamento baseado em prioridades é apresentada no Capítulo 6.
+Em o escalonamento baseado em prioridades, cada fluxo possui uma prioridade e é servido conforme esta prioridade.
+Dois tipos de escalonamento baseado em prioridades são implementados sobre a rede Hermes:
+Escalonamento baseado em prioridades fixas (Hermes-FP) e (ii) escalonamento baseado em prioridades dinâmicas (Hermes-DP).
+As conclusões e direcionamentos para trabalhos futuros são apresentados no Capítulo 9.
+O Apêndice I contém a lista das publições realizadas no período do mestrado e o Apêndice II apresenta e detalha o ambiente Atlas, o qual foi desenvolvido para integrar as ferramentas que automatizam os vários processos relacionados ao fluxo de projeto da rede Hermes.
+Este Capítulo apresenta conceitos básicos relacionados ao desenvolvimento deste trabalho.
+A Seção 2.1 aborda os conceitos que caracterizam as redes intra-chip.
+Os conceitos relacionados às aplicações que utilizam a rede e os serviços oferecidos por a mesma são apresentados na Seção 2.2.
+A Seção 2.3 descreve os conceitos relacionados à qualidade de serviço (QoS).
+Esta Seção apresenta conceitos básicos relacionados a redes.
+São abordados conceitos que caracterizam as redes como conectividade, roteamento, modo de chaveamento, multiplexação e controle de fluxo.
+Posteriormente, o modelo de referência OSI (do inglês Open System Interconnection) é revisado, porque muitas redes são estruturadas em camadas que encapsulam funções equivalentes às definidas por este modelo.
+Uma rede de interconexão deve prover conectividade entre um conjunto de nodos.
+A conectividade da rede ocorre em níveis diferentes.
+Em o nível mais baixo, uma rede pode consistir de dois ou mais nodos conectados diretamente por algum meio físico.
+Usualmente, este meio físico é chamado de enlace ou canal.
+Como ilustrado na Figura 1, canais físicos são algumas vezes limitados a um par de nodos (ponto-a-ponto), enquanto que em outros casos mais de dois nodos compartilham o mesmo canal (barramento).
+Conectividade entre dois nodos não necessariamente implica numa conexão direta entre eles.
+Conectividade indireta pode ser alcançada entre um conjunto de nodos que cooperam.
+Considere o exemplo ilustrado na Figura 2, onde cada nodo possui um ou mais canais ponto- aponto.
+Para existir conectividade indireta, os nodos que se conectam a no mínimo dois canais (nodos no interior da nuvem) devem ser capazes de transmitir dados recebidos de um canal para outro.
+Os nodos com esta capacidade são comumente chamados de chaves ou roteadores.
+Os demais nodos (nodos no exterior da nuvem), comumente chamados de hospedeiros ou núcleos, usam a rede e suportam usuários e aplicações.
+Dado um conjunto de nodos conectados indiretamente, é possível que um núcleo envie mensagens para um outro através de uma seqüência de canais e roteadores.
+Para assegurar a correta funcionalidade da rede em termos de entrega de mensagens, uma rede deve evitar deadlock, livelock e starvation.
+Deadlock pode ser definido como uma dependência cíclica entre dois ou mais nodos requisitando acesso a um conjunto de recursos, de forma que nenhum possa obter progresso algum, independente da seqüência de eventos que ocorra.
+Livelock refere- se a mensagens circulando na rede sem fazer nenhum progresso em direção a o seu destino.
+Este é um problema que normalmente atinge algoritmos de roteamento adaptativos não mínimos.
+Isto pode ser evitado, restringindo o número de desvios que a mensagem pode efetuar.
+Starvation ocorre quando uma mensagem requisita um recurso, sendo bloqueada por um tempo indeterminado porque o recurso está alocado sempre a outra mensagem.
+Para que um nodo pertencente a um conjunto de nodos conectados direta ou indiretamente possa se comunicar com qualquer outro nodo do conjunto, é necessário que um endereço seja atribuído a cada nodo.
+Um endereço identifica de forma única um nodo.
+Quando uma origem quer que a rede entregue uma mensagem a um determinado nodo destino, ela especifica o endereço do destino.
+Se os nodos origem e destino não estão conectados diretamente, então os roteadores da rede usam este endereço para decidir como a mensagem é enviada na direção do destino.
+O processo que determina como enviar mensagens na direção do nodo destino baseado em seu endereço é chamado roteamento.
+Algoritmos de roteamento podem ser classificados de acordo com vários critérios tais como:
+Número de destinos de cada mensagem;
+Local de decisão de roteamento;
+Adaptabilidade; E minimalidade.
+Os algoritmos de roteamento podem ser classificados como unicast ou multicast de acordo com o número de destinos.
+Um algoritmo de roteamento é dito unicast quando as mensagens têm um único destino.
+Quando as mensagens podem ter mais de um destino, o algoritmo de roteamento é denominado multicast.
+Um caso particular é o broadcast, onde todos os possíveis destinos são destinos da mensagem.
+Segundo Mohapatra, de acordo com o local de decisão de roteamento, algoritmos podem ser classificados como roteamento na origem ou roteamento distribuído.
+Em algoritmos de roteamento na origem o caminho é decidido no roteador origem, ou no núcleo, antes da mensagem ser enviada.
+As desvantagens desta abordagem são:
+O cabeçalho da mensagem deve carregar todas as informações de roteamento;
+O método não é tolerante a falhas, ou seja, caso um caminho apresente defeito, todas as mensagens que deveriam passar por este caminho serão bloqueadas.
+Em algoritmos de roteamento distribuído, cada roteador que recebe a mensagem decide para onde irá enviar- la.
+A decisão é feita a partir, por exemplo, do endereço de destino presente no cabeçalho da mensagem.
+Algoritmos de roteamento também podem ser classificados como determinísticos ou adaptativos.
+Um algoritmo de roteamento determinístico, também chamado roteamento oblivious, provê sempre o mesmo caminho entre um par origem-destino.
+Isto ocorre porque ele decide qual o caminho a ser tomado em função apenas dos endereços do roteador atual e do roteador destino.
+Um algoritmo de roteamento adaptativo decide qual o caminho a ser tomado em função de o tráfego da rede.
+A vantagem desse método é que o pacote tem mais de uma alternativa para chegar ao destino.
+Como desvantagem pode- se citar a possibilidade de entrega de pacotes fora de ordem, caso pacotes com mesmo par origem-destino percorram caminhos distintos.
+O roteamento adaptativo é subdividido em parcialmente adaptativo e totalmente adaptativo.
+Em o método parcialmente adaptativo, apenas um subconjunto dos caminhos físicos disponíveis é alocado para a comunicação.
+Em o método totalmente adaptativo, todos os caminhos físicos da rede podem ser utilizados para enviar uma dada mensagem, podendo, entretanto ocorrer deadlock.
+Quanto a minimalidade, algoritmos de roteamento podem ser classificados como sendo mínimos ou não mínimos.
+Quando o algoritmo de roteamento é mínimo, a mensagem é transmitida por um dos menores caminhos entre o par origem-destino.
+A vantagem é a garantia que a cada chaveamento a mensagem se aproxima do destino, portanto evitando a ocorrência de livelock.
+Quando o algoritmo de roteamento é não mínimo, a mensagem pode escolher caminhos diferentes dos caminhos mínimos.
+A vantagem é a maior disponibilidade de alternativas de caminhos em relação a os roteamentos mínimos.
+A desvantagem é que isso pode causar livelock.
+Para que um roteador transfira dados de um canal da rede para outro, é necessário que um modo de chaveamento seja adotado.
+Os modos mais utilizados são chaveamento por circuito e chaveamento por pacotes.
+Em o chaveamento por circuito, uma conexão é estabelecida antes do início da transmissão dos dados.
+Para a conexão ser estabelecida, os recursos requisitados por a aplicação devem estar disponíveis em todos os roteadores no caminho da conexão.
+Redes que utilizam este método de chaveamento, em princípio, não necessitam de buffers intermediários, porque após o estabelecimento da conexão os dados não são bloqueados.
+Conseqüentemente, estas redes provêem QoS porque garantem que os dados são entregues ao destino com as mesmas características em que são inseridos por a origem.
+Porém, como a maioria das aplicações não gera dados numa taxa constante, mas tipicamente envia dados em rajada, este método pode causar a degradação do desempenho do sistema como um todo, porque, mesmo no período em que a aplicação não está enviando dados, os recursos permanecem alocados.
+Em o chaveamento por pacotes, um fluxo1 é quebrado em frações denominadas pacotes, que são transmitidos através da rede.
+Cada pacote é individualmente roteado da origem até o destino, devendo carregar um cabeçalho que contém informações de roteamento e de controle.
+A taxa média em a qual as origens transmitem dados deve ser menor do que a capacidade do canal.
+No entanto, a taxa máxima total em a qual as origens podem transmitir dados tipicamente excede a capacidade do canal.
+Em este caso, os dados em excesso devem ser armazenados num buffer, e tal armazenamento ocasiona atraso na transmissão dos dados (aumento da latência).
+Se não há espaço disponível no buffer para armazenar o dado, então este pode ser perdido.
+Quando uma rede utiliza chaveamento por pacotes, os requisitos de QoS são usualmente expressos em termos de latência máxima ou probabilidade máxima de perda de pacotes.
+O chaveamento por pacotes requer o uso de uma política de repasse de pacotes, a qual define como os pacotes se movem através dos roteadores.
+As três políticas mais utilizadas são storeand-- forward, virtual-cut-through e wormhole.
+Em a política store- and-- forward, um roteador não pode enviar adiante um pacote até que este tenha sido completamente recebido.
+Cada vez que um roteador recebe um pacote, seu conteúdo é examinado para decidir o que fazer, implicando uma latência por roteador proporcional ao tamanho do pacote.
+Em a política virtual-- cutthrough, um roteador pode enviar um pacote adiante assim que o roteador seguinte der uma garantia que o pacote será aceito completamente.
+Logo, é necessário um buffer para armazenar pelo menos um pacote completo, como no store- and-- forward.
+Contudo, neste caso a latência de comunicação é menor.
+Wormhole é uma variação do virtual-cut-through que evita a necessidade de grandes espaços de memória no roteador.
+Um pacote é transmitido entre roteadores em unidades chamadas flits2.
+Somente o flit de cabeçalho tem a informação de roteamento.
+Logo, os demais flits que compõem um pacote devem seguir o mesmo caminho reservado por o cabeçalho.
+Freqüentemente, em redes intra-chip, o tamanho de um flit é igual à largura do canal físico (ou phit).
+Um fluxo pode ser todas as mensagens geradas por uma determinada origem, aquelas sendo transmitidas em direção a um destino comum ou todas as mensagens enviadas por uma aplicação.
+Segundo Dally, flit é a menor unidade de informação sobre a qual se realiza controle de fluxo.
+Para atravessar a rede, uma mensagem deve alocar recursos:
+Canais e buffers.
+Existem diferentes formas de dividir a largura de banda do canal físico entre canais virtuais.
+Um método comumente utilizado é a multiplexação por divisão síncrona de tempo (STDM, do inglês Synchronous Time--Division Multiplexing).
+O princípio do STDM é dividir o canal físico em fatias de tempo, onde cada fatia é usada por um canal virtual específico.
+Sua principal desvantagem é que, quando um canal virtual não tem dados para transmitir, sua capacidade é desperdiçada, mesmo se outros canais virtuais possuem dados para transmitir.
+Outra forma de multiplexação é a multiplexação estatística.
+Como STDM, a multiplexação estatística também divide o canal físico em fatias de tempo, porém os dados são transmitidos sob demanda ao invés de em fatias de tempo pré-determinadas.
+Logo, se somente um canal virtual tem dados para transmitir, ele transmitirá os dados sem esperar por sua fatia de tempo, podendo assim ocupar toda a largura de banda do canal físico.
+Em a multiplexação estatística, a largura de banda do canal físico pode ser alocada usando um algoritmo de arbitragem (aleatório, round-robin ou prioridade) ou um escalonamento em função de a idade do pacote ou do tempo limite para o pacote alcançar o destino.
+A possibilidade de priorizar a alocação de canais virtuais pode ser usada para prover diferentes classes de serviço, permitindo à rede prover qualidade de serviço.
+Controle de fluxo é um protocolo de sincronização para transmissão e recepção de informação.
+Este protocolo possibilita ao transmissor saber se o receptor está habilitado a receber dados (o receptor pode estar com os buffers de recepção cheios ou com algum problema momentâneo que o impossibilita de receber dados).
+Dally descreve três tipos de controle de fluxo como sendo os mais utilizados:
+Credit based, on/ off e ack/ nack.
+Em o controle de fluxo baseado em créditos (credit based), quando um roteador deseja enviar um dado para um roteador vizinho, ele verifica se o canal selecionado para a transmissão dos dados possui créditos, ou seja, se o buffer associado ao canal possui espaço disponível para armazenamento do dado.
+Enquanto existir espaço disponível no buffer, os dados são armazenados e os créditos são decrementados no destino.
+Quando o número de créditos alcançar zero, nenhum dado adicional pode ser recebido.
+Os créditos são incrementados quando um dado é consumido por o roteador destino, ou seja, o roteador transmite um dado do canal ao núcleo local ou a um roteador vizinho, disponibilizando espaço no buffer.
+Em o controle de fluxo On/ Off, um único bit de controle indica se o roteador pode receber dados (on) ou não (off).
+Um sinal é transmitido por o roteador ao roteador vizinho quando é número de espaços ocupados é maior que o limite máximo estipulado.
+Se o bit de controle é off e o ilustra a operação do buffer com o uso do controle de fluxo On/ Off.
+Em o controle de fluxo Ack/ Nack não existe controle da disponibilidade de espaço no buffer.
+O roteador origem transmite dados no momento em que esses se tornam disponíveis.
+Se o roteador destino tem espaço disponível no buffer, o dado é aceito e o roteador destino envia um sinal de confirmação (ack) ao roteador origem.
+Se não há espaço disponível quando o dado é transmitido, o roteador destino descarta o dado e envia o sinal de confirmação negado (nack).
+O roteador origem armazena o dado até receber um ack.
+Se um nack é recebido, o dado é retransmitido.
+Segundo Dally, o controle de fluxo Ack/ Nack é menos eficiente no uso dos buffers do que o controle de fluxo baseado em créditos.
+Esta redução da eficiência ocorre porque os dados ficam armazenados nos buffers por um tempo adicional à espera do ack.
+O controle de fluxo Ack/ Nack também é ineficiente no uso da largura de banda quando não há espaço no buffer e este transmite dados que são descartados.
+Quando uma aplicação necessita se comunicar com outra, existem muitos serviços a serem executados além de o simples envio da mensagem de um nodo para o outro.
+Uma opção é o projetista da aplicação implementar estes serviços dentro de cada aplicação.
+No entanto, como muitas aplicações necessitam serviços comuns, é mais lógico implementar estes serviços comuns uma única vez e então conduzir o projetista a construir a aplicação utilizando estes serviços.
+O desafio do projetista da rede é identificar o conjunto correto de serviços comuns, objetivando esconder a complexidade da rede das aplicações, sem restringir demasiadamente o projetista.
+O modelo de referência OSI (do inglês Open System Interconnection) é uma estrutura hierárquica de camadas de protocolos que define os requisitos para comunicação entre terminais de uma rede.
+Cada camada oferece um conjunto de serviços à camada superior, usando funções disponíveis na mesma camada e nas camadas inferiores.
+O modelo OSI possui sete camadas, como pode ser observado na Figura 5.
+As camadas de transporte e superiores são tipicamente implementadas apenas em terminais (núcleos), enquanto que as três camadas inferiores (física, enlace e rede) são implementadas em terminais e elementos da rede.
+As camadas inferiores são descritas abaixo.
+As camadas inferiores possuem as seguintes características:
+Camada física:
+Realiza a transferência de dados em nível de bits através de um canal.
+Camada de enlace:
+Efetua a comunicação em nível de quadros (grupos de bits).
+Preocupa- se com o enquadramento dos dados e com a transferência desses quadros de forma confiável, realizando o tratamento de erros e o controle do fluxo de transferência de quadros.
+Camada de rede:
+Faz a comunicação em nível de pacotes (grupos de quadros).
+Responsável por o empacotamento das mensagens, roteamento dos pacotes entre a origem e o destino da mensagem, controle de congestionamento e contabilização de pacotes transferidos.
+Para projetar um sistema que sirva tanto à satisfação de QoS quanto a a eficiência de utilização de recursos, é importante classificar as aplicações do sistema de acordo com seus requisitos de QoS e mapear seus dados para níveis de serviço apropriados.
+Este trabalho propõem a classificação ilustrada na Figura 6.
+Os parâmetros de desempenho utilizados para quantificar os requisitos de QoS das aplicações são apresentados na Seção 2.2.1.
+A classificação das aplicações é detalhada na Seção 2.2.2.
+A Seção 2.2.3 descreve os níveis de serviços e os acordos de nível de serviços são apresentados na Seção 2.2.4.
+Garantias de Serviço são quantificadas em termos de um ou mais parâmetros de desempenho.
+Geralmente, parâmetros de QoS incluem vazão, latência, jitter e taxa de perda.
+A vazão diz respeito à taxa em a qual pacotes são encaminhados por a rede, ou seja, a quantidade de informação encaminhada por unidade de tempo.
+A vazão é medida através da contagem do número de bits que chegam aos destinos num intervalo de tempo para cada fluxo (par origem-destino), computando a partir de esta taxa a fração do fluxo encaminhado.
+Alternativamente, a vazão pode ser medida como uma fração da capacidade do canal.
+Uma rede com carga uniforme opera no limite de sua capacidade se o canal de comunicação é utilizado 100% do tempo.
+A latência é o intervalo de tempo entre o momento que a transmissão de um pacote é iniciada até este pacote ser recebido no nodo destino.
+Também pode ser definida como sendo o tempo necessário para um pacote atravessar a rede do roteador origem até o roteador destino.
+Segundo Duato, a definição de latência é vaga e pode ser interpretada de maneiras diferentes.
+Aqui, a latência é definida com o tempo decorrido entre a injeção do pacote no buffer do núcleo origem até o momento em que o último dado deste pacote é entregue ao núcleo destino, ou seja, o tempo em que o pacote permanece no buffer do núcleo origem é computado no cálculo da latência.
+A latência é medida em unidades de tempo.
+Jitter é a variação na latência entre dois pacotes adjacentes dentro de um determinado fluxo.
+Todas as redes apresentam certa quantidade de jitter, devido a os atrasos diferenciados enfrentados por os pacotes em cada roteador da rede.
+Quando o jitter é controlado, é possível manter a qualidade de serviço.
+Jitter baixo é freqüentemente um requisito para aplicações de tempo real, para as quais a regularidade do intervalo de dados é importante.
+A redução do efeito jitter requer que os pacotes sejam armazenados por tempo suficiente em buffers, o que é igualmente um problema.
+É requisito do projetista da rede determinar um ponto de equilíbrio na configuração.
+Perda é a fração de pacotes descartados por a rede.
+Para algumas aplicações, nenhuma perda de pacote é permitida.
+No entanto, para outras, uma pequena fração do fluxo pode ser perdido sem afetar o desempenho.
+De o ponto de vista de aplicações em tempo real, um pacote que chega ao destino depois de um limite de latência determinado pode ser considerado como perda, pois não atende aos requisitos temporais.
+A perda pode ser conseqüência de erros provenientes do meio de transmissão físico ou do congestionamento da rede.
+Quanto maior o congestionamento da rede, maior o número de pacotes que poderão ser descartados.
+Como pode ser observado na Figura 6, as aplicações são classificadas em dois grandes grupos:
+Aplicações de tempo real e aplicações de tempo não real.
+Aplicações de tempo real são aquelas que têm uma relação temporal rígida entre a origem e o destino.
+Uma informação recebida no destino depois de um limite de tempo determinado é considerada inútil e é descartada.
+Este limite de tempo deve ser conhecido tanto por a origem quanto por o destino.
+Como um exemplo concreto de aplicação de tempo real, considere uma aplicação de áudio digital.
+Os dados são gerados coletando amostras de um microfone e digitalizando- as usando um conversor analógico-digital.
+As amostras digitais são inseridas em pacotes, os quais são transmitidos através da rede e recebidos num terminal.
+Em o destino, os dados devem ser reproduzidos numa taxa apropriada.
+Por exemplo, se a amostra de voz foi coletada a uma taxa típica de uma a cada 125 µs, eles devem ser reproduzidos na mesma taxa.
+Então, cada amostra tem um tempo particular de reprodução.
+Em o exemplo da voz, cada amostra tem um tempo de reprodução que é 125 µs após a amostra precedente.
+Se dados chegam depois do momento apropriado de reprodução, ou porque ele foi atrasado na rede ou porque ele foi descartado e subseqüentemente retransmitido, ele é considerado inútil.
+A completa inutilidade de dados com atraso é que caracteriza aplicações de tempo real.
+Um modo de fazer a aplicação de voz funcionar é tornar seguro que todas as amostras levem exatamente a mesma quantidade de tempo para atravessar a rede.
+De este modo, se as amostras são injetadas a uma taxa de 1 por 125 µs, então elas irão ser entregues no receptor na mesma taxa, prontas para serem reproduzidas.
+Entretanto, é geralmente difícil garantir que todos dados atravessando uma rede chaveada por pacotes possuam exatamente a mesma latência.
+Pacotes são armazenados em buffers nos roteadores e a ocupação destes buffers podem variar com o tempo, significando que a latência tende a variar com o tempo e ser potencialmente diferente para cada pacote no fluxo de áudio.
+Uma forma de resolver este problema é armazenar os dados no receptor final e reproduzir- los somente no tempo certo.
+Observar a Figura 7.
+Quando um pacote chega ao destino, ele é armazenado num buffer até seu tempo de reprodução chegar.
+Quanto menor a latência do pacote na rede, maior será o tempo de espera no buffer.
+Quanto maior a latência do pacote na rede, menor será o tempo de espera no buffer.
+Logo, um contrabalanço constante é adicionado ao tempo de geração de todos os pacotes, como uma forma de garantia.
+Esse contrabalanço é chamado de ponto de reprodução.
+As aplicações de tempo real podem ser classificadas como tolerantes ou intolerantes (Figura 6) dependendo se podem ou não desrespeitar, dentro de certos limites, os requisitos de QoS.
+As aplicações intolerantes são aquelas que possuem requisitos rígidos de QoS, que uma vez violados, a aplicação produz resultados com qualidade inaceitável.
+Por oposição, as aplicações tolerantes exigem um determinado nível de QoS, mas cada parâmetro de QoS pode ter uma certa perda admissível, sem por isso inutilizar o resultado.
+As aplicações tolerantes podem ser divididas em adaptativas e não adaptativas.
+Uma aplicação adaptativa é capaz de, por exemplo, variar o ponto de reprodução de acordo com a latência da rede.
+Se pacotes estão quase sempre chegando ao destino num limite de 300ms após serem transmitidos por a origem, então o ponto de reprodução pode ser definido de acordo com este limite.
+As aplicações adaptativas podem ser ajustadas de acordo com a latência, como no exemplo acima, ou de acordo com a taxa.
+Em o segundo caso, as aplicações podem manter um compromisso entre a taxa de transmissão de bits e a qualidade.
+Por exemplo, os parâmetros de uma aplicação podem ser definidos de acordo com uma determinada largura de banda da rede.
+Se mais largura de banda torna- se disponível, a aplicação pode mudar seus parâmetros para aumentar a qualidade.
+Diferente das aplicações de tempo real, as aplicações de tempo não real não exigem taxas rígidas para alcançar a qualidade de serviço necessária.
+Para estas aplicações, a recepção correta dos dados é mais importante do que a sua transferência numa taxa constante, embora possam se beneficiar de latências menores.
+Exemplos de aplicações de tempo não real são:
+Correio eletrônico, transferência de arquivos, consultas interativas a informações e aplicações cliente/ servidor tradicionais.
+As aplicações de tempo não real incluem aplicações assíncronas e interativas, conforme ilustrado na Figura 6.
+Aplicações assíncronas são relativamente insensíveis ao tempo.
+Um exemplo de uma aplicação assíncrona é o correio eletrônico.
+Quando uma mensagem de correio eletrônico é enviada, a origem não recebe nenhuma confirmação do destino, exceto quando existe um erro na informação do destino ou quando a origem solicita notificação de recebimento.
+Aplicações assíncronas têm pouco ou nenhum efeito na arquitetura e no projeto da rede e usualmente são ignoradas.
+Aplicações interativas assumem alguma relação temporal entre a origem e o destino enquanto um fluxo está sendo transmitido.
+Entretanto, a relação temporal não é tão rígida quanto em aplicações de tempo real.
+Aplicações interativas exigem que seus dados sejam entregues ao destino tão rápido quanto possível.
+Aplicações interativas podem ser divididas em dois tipos de interatividade:
+Rajada e volume.
+A diferença entre esses dois tipos é sutil.
+Aplicações interativas do tipo rajada são aquelas que interagem rápida e freqüentemente com um usuário, onde a latência fim-a-fim da rede é a latência predominante.
+Devido a a sensibilidade à latência da rede, este tipo de aplicação deve ser identificado para que a arquitetura e o projeto da rede satisfaçam seus requisitos de latência.
+Um exemplo de uma aplicação interativa do tipo rajada é o telnet.
+Aplicações interativas do tipo volume são aquelas onde o processamento realizado por a aplicação possui a latência predominante.
+É importante salientar que, os requisitos de latência da rede para estas aplicações tornam- se menos significativos, porque os mesmos são escondidos por a latência da aplicação.
+Por exemplo, quando uma aplicação tem latência de processamento alta (na ordem de segundos), a flexibilidade para suportar a latência da rede é maior do que se a latência de processamento fosse na ordem de microssegundos.
+Um exemplo de uma aplicação interativa do tipo volume é a transferência de arquivos (FTP).
+Diferentes níveis de serviço, também chamados de modelos de serviço, envolvem diferentes compromissos entre garantias de QoS e utilização de recursos.
+Três níveis de serviços são descritos a seguir:
+Garantido, diferenciado e melhor esforço.
+Em o nível de serviço garantido, também chamado de serviço determinístico ou serviço integrado, existe um contrato entre a rede e o cliente.
+O lado cliente do contrato determina as características do fluxo, por exemplo, a vazão máxima oferecida.
+O lado rede aceita o contrato se possuir recursos suficientes para garantir o desempenho requisitado por o cliente.
+Geralmente, o contrato é acertado antes da transferência de dados, durante o processo de estabelecimento de conexão3, e é mantido ao longo de o tempo de vida da conexão.
+Para aumentar a dinamicidade e flexibilidade, este nível de serviço pode ser estendido para permitir que o contrato seja modificado durante a existência de uma conexão.
+Uma conexão é estabelecida com base nas características das conexões existentes.
+Em o serviço garantido, se a rede está funcionando e o cliente está transmitindo dados com as características estabelecidas no contrato, então o serviço é atendido.
+Este nível de serviço não requer que os outros clientes da rede concordem com suas características do fluxo.
+Por esse motivo, o serviço garantido é indicado para aplicações de tempo real intolerantes, rígidas, que não permitam perda de pacotes e que necessitam de garantias absolutas sobre o serviço que recebem.
+Uso do Recurso Serviços garantidos exigem reserva de recursos para os cenários de pior caso, o que pode ser caro.
+Observe a Figura 8.
+Para garantir vazão a um fluxo, deve- se reservar largura de banda para sua vazão máxima, mesmo quando sua vazão média é muito mais baixa.
+Como conseqüência, quando serviços garantidos são usados, os recursos são freqüentemente subutilizados.
+Além de a baixa utilização dos recursos, os serviços garantidos necessitam armazenar o estado de cada fluxo nos roteadores ao longo de o caminho reservado.
+Por isto o serviço garantido possui baixa escalabilidade.
+Serviço diferenciado ­ também chamado de serviço probabilístico, serviço previsível ou serviço estatístico ­ explora a característica de algumas aplicações tolerantes, que são capazes de adaptar- se a variações modestas no desempenho da rede.
+Ele permite perdas controladas.
+Controlada significa que o cliente admite algum nível de perda para o qual a rede fez um Em este contexto, o termo conexão não necessariamente implica em chaveamento por circuito.
+Ele é usado num nível mais alto de abstração.
+Um serviço diferenciado é mais flexível e possui maior escalabilidade do que o serviço garantido, porque não necessita armazenar informação de estado para cada fluxo.
+O serviço diferenciado distingue classes de fluxos para as quais os recursos são alocados, ao invés de distinguir fluxos individuais.
+Pacotes são divididos em classes, e geralmente carregam a informação da classe a que pertencem em seu cabeçalho.
+O serviço diferenciado possui duas importantes diferenças em relação a o serviço garantido.
+Primeiro, quanto a o estabelecimento da conexão.
+Em o serviço diferenciado, a conexão é estabelecida com base em medidas, ao contrário de o serviço garantido, que se baseia nas características das conexões existentes.
+Como a carga medida da rede pode variar, o acordo de serviço para serviços diferenciados é menos confiável.
+Segundo, no serviço garantido, somente o cliente pode alterar as características da conexão, enquanto que no serviço diferenciado, as características da conexão são determinadas por a rede e podem variar conforme a carga desta.
+Serviço melhor esforço significa que todos os pacotes são tratados igualmente.
+Um serviço melhor esforço não possui nenhum contrato com a rede, exceto a promessa de não atrasar ou descartar pacotes desnecessariamente.
+Serviços melhor esforço usam bem os recursos porque são tipicamente projetados para cenários de caso médio em lugar de cenários de pior caso.
+Eles também são fáceis e rápidos para usar, porque não exigem reserva de recursos.
+Sua principal desvantagem é que estes pacotes podem ter atraso arbitrário ou até mesmo serem descartados.
+Devido a estas características, o serviço melhor esforço normalmente é utilizado para transportar dados de aplicações de tempo não real.
+Acordos de nível de serviço (SLA, do inglês Service-Level Agreements) são contratos formais entre a rede e um cliente.
+Esses contratos especificam os direitos e responsabilidades, os benefícios que serão oferecidos, as condições sobre as quais os benefícios serão garantidos, e as penalidades caso as promessas mútuas não sejam mantidas.
+Em este sentido, a rede tem a responsabilidade de monitorar e gerenciar os serviços, para assegurar que os clientes estão recebendo o que eles esperam e que os clientes estão cientes do que está disponível para eles Os SLA especificam níveis de latência, vazão e confiabilidade4 para vários tipos de clientes.
+A Tabela 1 é um exemplo para ilustrar como um SLA pode ser estruturado.
+Um serviço básico é aquele onde todas as características de desempenho são melhor esforço.
+Este serviço é o padrão e pode normalmente ser provido para qualquer cliente.
+Os outros níveis de serviço (prata, ouro e platina) especificam níveis crescentes de desempenho de vazão, latência e confiabilidade.
+Confiabilidade $= 1 ­ taxa de perda Dependendo dos requisitos dos clientes da rede, os SLAs podem ser mais simples, com dois ou três níveis de serviço, ou mais complexos do que o exemplo apresentado.
+A implementação de QoS em redes apóia- se sobre a existência de mecanismos de condicionamento de fluxos, alocação de recursos, armazenamento e escalonamento de pacotes e controle de congestionamento, como ilustrado na Figura 9.
+Condicionamento de fluxo é um conjunto de mecanismos que modificam o desempenho de determinados fluxos.
+Mecanismos de condicionamento de fluxo são detalhados na Seção 2.3.1.
+Mecanismos de alocação de recursos reservam recursos da rede para que fluxos possam receber garantias de QoS.
+A alocação de recursos é discutida na Seção 2.3.2.
+Mecanismos de escalonamento determinam a ordem em a qual fluxos são processados para transmissão e a ordem em a qual são descartados.
+Tais mecanismos geralmente incluem buffers para armazenar os dados.
+Mecanismos de armazenamento e escalonamento são descritos na Seção 2.3.3.
+Mecanismos de controle de congestionamento necessitam ser implementados para tratar condições de sobrecarga dos buffers sem alterar os requisitos de QoS.
+Uma aplicação negocia sua QoS e os requisitos de largura de banda via um contrato.
+O mecanismo de alocação de recursos reserva a largura de banda suficiente para atender os requisitos de QoS do fluxo.
+Entretanto, a alocação de recursos não é suficiente para assegurar que a QoS é atendida.
+Um fluxo poderia (intencionalmente ou acidentalmente) exceder o fluxo contratado e provocar degradação da QoS.
+Mais importante, este fluxo pode afetar a QoS de outros fluxos bem comportados.
+Desde modo, a rede deve garantir QoS pelo menos para os fluxos que estão de acordo com o contrato.
+Para isto, uma rede utiliza mecanismos de condicionamento de fluxo.
+Condicionamento de fluxo é um conjunto de mecanismos que modificam (aumentam ou diminuem) o desempenho de determinados fluxos.
+O condicionamento de fluxo normalmente é implementado somente nos terminais da rede.
+Esse mecanismo envolve a classificação, medição e uma subseqüente ação, para os pacotes que não estão dentro de o perfil contratado.
+Funções de condicionamento de fluxo são apresentadas na Figura 10.
+A classificação é a habilidade de identificar fluxos.
+A classificação geralmente é realizada através da inspeção dos campos de cabeçalho, mas pode também se basear nos endereços de origem e destino ou no número de portas.
+Quando, o pacote está usando o serviço melhor esforço, ele é encaminhado sem nenhum processamento adicional.
+Caso o pacote pertença a outro serviço, ele é encaminhado para a fase de medição.
+Medir um fluxo permite determinar se um fluxo está dentro ou fora de os limites de desempenho estipulado.
+Embora vários mecanismos de medição possam ser utilizados, o mais utilizado é o balde de fichas (token bucket), mostrado na Figura 11.
+Esse mecanismo é descrito por dois parâmetros:
+Taxa de fichas r e profundidade do balde b.
+Esse mecanismo funciona como segue.
+Para habilitar o envio de um byte, deve existir uma ficha.
+Para enviar um pacote de tamanho n, é necessário n fichas.
+O balde inicia sem nenhuma ficha e as acumula numa taxa de r fichas por segundo.
+Não podem ser acumuladas mais do que b fichas.
+O que isto significa é que o tamanho máximo de uma rajada é b.
+Quando um pacote de tamanho n chega é existem n ou mais fichas no balde, o pacote é dito estar dentro de os limites de desempenho e n fichas são retiradas do balde.
+Se não houver fichas suficientes, então o fluxo é dito estar fora de o perfil especificado.
+Tipicamente, nenhuma ação é realizada com os fluxos dentro de os limites de desempenho.
+Entretanto, quando o fluxo está fora de o perfil especificado, este está sujeito à formatação ou descarte.
+Formatação consiste em atrasar o fluxo para mudar as suas características de desempenho, e descarte é desfazer- se do fluxo.
+Um fluxo fora de o perfil também pode ser marcado, quando nenhuma outra ação é realizada.
+Máximo b fichas Pacotes Fichas?
+Para formatar um fluxo fora de perfil, ele pode ser enviado para um buffer onde um atraso é adicionado antes do fluxo ser transmitido por a rede.
+Por atrasar o fluxo, um buffer muda o desempenho deste fluxo.
+Considere um acordo para um fluxo que especifica uma taxa máxima de 1,5 Mb/ s.
+Um medidor está medindo este fluxo, calculando a taxa abaixo.
+Esta taxa é comparada com o especificado no acordo e o fluxo é determinado como fora de o perfil.
+Os pacotes subseqüentes são enviados para um buffer, sendo atrasados, e enviados a cada 10 ms.
+Como resultado, somente 100 pacotes podem ser transmitidos por segundo, e a taxa do fluxo torna- se:
+A formatação continuará ou por um período específico ou até que o fluxo esteja novamente dentro de o perfil.
+A ação mais drástica de condicionamento de fluxo é o descarte de pacotes.
+Isto é realizado quando um fluxo está seriamente excedendo seus limites de desempenho ou quando a rede está congestionada a ponto de o descarte de pacotes ser necessário.
+Os recursos da rede são alocados para os fluxos conforme suas exigências.
+Porém, freqüentemente, não é possível atender às exigências de todos os fluxos, significando que alguns de eles devem receber menos recursos de rede do que desejam.
+Parte do problema da alocação de recursos está em decidir quando rejeitar um fluxo.
+Apresenta- se a seguir a classificação dos mecanismos de alocação de recursos.
+Posteriormente, discute- se o mecanismo de controle de admissão, adotado por as redes que utilizam alocação de recursos baseado em reservas.
+Existem diversas formas de classificar mecanismos de alocação de recursos.
+Três formas de caracterizar mecanismos de alocação de recursos são abordadas nesta Seção.
+Mecanismos de alocação de recursos podem ser classificados em dois amplos grupos:
+Aqueles que endereçam o problema do lado da rede (roteadores ou chaves) e aqueles que endereçam na fronteira da rede (terminais ou núcleos).
+Em um projeto centrado no roteador, cada roteador tem a responsabilidade de decidir quando os pacotes são transmitidos e selecionar quais pacotes são descartados, bem como informar aos núcleos que estão gerando o fluxo quantos pacotes eles podem enviar.
+Em o projeto centrado no núcleo, os núcleos observam as condições da rede (por exemplo, quantos pacotes estão sendo entregues com sucesso) e ajustam seu comportamento de acordo com estas condições.
+É importante ressaltar que os dois grupos não são mutuamente exclusivos.
+Algumas vezes, os mecanismos de alocação de recursos também são classificados quanto a o uso ou não de reserva de recursos.
+Em o método baseado em reservas, o núcleo requisita à rede certa quantidade de recursos para que um fluxo seja transmitido.
+Cada roteador então aloca recursos suficientes para satisfazer esta requisição.
+Se a requisição não pode ser atendida em algum roteador, então o roteador rejeita o fluxo.
+Em o método sem reservas baseado em retornos (feedback), o núcleo começa transmitindo dados, sem primeiro reservar recursos, e em seguida ajusta sua taxa de transmissão de acordo com o retorno que ele recebe.
+Este retorno pode ser ou explícito (por exemplo, um roteador congestionado envia uma mensagem ao núcleo pedindo para que ele reduza a taxa de transmissão) ou implícito (por exemplo, o núcleo ajusta sua taxa transmissão de acordo com o comportamento da rede, tal como perda de pacotes).
+Note que um método baseado em reservas sempre implica num mecanismo de alocação de recursos centrado no roteador.
+Isto porque cada roteador é responsável por manter a quantidade de seus recursos que está atualmente reservada.
+Por outro lado, um método baseado em retornos pode implicar ou num mecanismo centrado no roteador ou num mecanismo centrado no núcleo.
+Tipicamente, se o retorno é explícito, então o roteador é envolvido na reserva de recursos.
+Se o retorno é implícito, então quase sempre o mecanismo é centrado no núcleo e os roteadores, quando se tornam congestionados, descartam pacotes silenciosamente.
+A terceira forma de caracterizar mecanismos de alocação de recursos é se eles são baseados em janelas ou baseados em taxas.
+Esta terminologia é usada tanto para controle de fluxo quanto para mecanismos de alocação de recursos, porque ambos necessitam expressar ao transmissor a quantidade de dados que ele pode transmitir.
+Em o método baseado em janela, o receptor envia uma janela ao transmissor.
+Esta janela corresponde à quantidade de espaço no buffer que o receptor possui, e isto limita a quantidade de dados que o transmissor pode transmitir.
+Em o método baseado em taxa, o comportamento do transmissor é controlado usando uma taxa.
+O receptor informa quantos bits por segundo ele é capaz de absorver, e então o transmissor se adequa a esta taxa.
+Redes que usam alocação de recursos baseada em reservas necessitam de um mecanismo de controle de admissão.
+O mecanismo de controle de admissão determina se um novo fluxo pode ser admitido por a rede sem colocar em risco as garantias de desempenho dadas aos fluxos já estabelecidos.
+Uma conexão somente pode ser aceita se os recursos de rede necessários estão disponíveis para estabelecer a conexão fim-a-fim com a qualidade de serviço requisitada.
+Controle de admissão usa níveis de prioridade para mudar o comportamento de acesso à rede.
+Em uma rede sem controle de admissão (melhor esforço), o acesso à rede é democrático, pois todos os fluxos têm uma chance igual de receber recursos da rede.
+Com controle de admissão, o acesso é permitido, negado, ou algumas vezes atrasado, baseado na prioridade relativa do fluxo.
+Existem duas classes amplas de algoritmos de controle de admissão:
+Controle de admissão determinístico e estatístico.
+Para serviços de tempo real que necessitam de limites rígidos e absolutos no atraso de cada pacote, uma admissão determinística é usada.
+Para tais serviços determinísticos, um algoritmo de controle de admissão calcula o comportamento de pior caso dos fluxos existentes em adição ao de entrada, antes de decidir se o novo fluxo deve ser admitido.
+Esta classe subutiliza os recursos da rede, especialmente quando os fluxos são transmitidos em rajada.
+Muitas das novas aplicações tais como os fluxos de mídia não necessitam garantias de desempenho rígidas e podem tolerar uma pequena violação no limite de desempenho.
+Um controle de admissão estatístico pode ser usado para tais aplicações.
+Em este método, uma largura de banda efetiva maior do que a taxa média, mas menor do que a taxa limite é comumente usada.
+A largura de banda pode ser computada usando um nível estatístico ou uma aproximação flexível do fluxo.
+Parte do problema da alocação de recursos está em decidir quando rejeitar um fluxo.
+Um dos critérios usados para decidir admitir ou não um fluxo adicional na rede é reservar não mais do que 90% da largura de banda para fluxos de tempo real, permitindo aos demais fluxos ter acesso à no mínimo 10% da largura de banda do canal.
+Este valor numérico é apenas um exemplo, e experiências podem sugerir que outros valores sejam mais efetivos.
+Esta cota assegura que o serviço melhor esforço fique operacional todo tempo.
+Adicionalmente, esta cota assegura que existe capacidade de reserva suficiente para acomodar flutuações nos fluxos de serviço diferenciado.
+Mecanismos de alocação de recursos necessitam que cada roteador implemente algum mecanismo de escalonamento que determine a ordem em a qual fluxos são processados para transmissão e a ordem em a qual são descartados.
+O escalonamento também pode afetar diretamente a latência de um pacote, por determinar quanto tempo um pacote espera para ser transmitido.
+Escalonadores podem ser proprietários ou baseado em padrões.
+Alguns algoritmos de escalonamento padrão comumente usados incluem mecanismos de armazenamento para escolher qual o próximo pacote a ser enviado.
+Cada mecanismo é desenvolvido para alcançar um objetivo particular no processamento de pacotes.
+Por exemplo, um mecanismo de escalonamento pode tratar todos os pacotes do mesmo modo, pode selecionar pacotes aleatoriamente, ou pode favorecer determinados pacotes.
+A estrutura de armazenamento e o correspondente algoritmo de escalonamento tentam alcançar os seguintes objetivos:
+Flexibilidade: Para suportar uma variedade de serviços, e facilmente suportar novos serviços;
+Escalabilidade: Para ser simples o bastante para permitir escalonar o número máximo de fluxos enquanto permite implementação com baixo custo;
+Eficiência: Para maximizar utilização de recursos da rede;
+QoS garantido:
+Para prover limites baixo de jitter e de latência fim-a-fim para fluxos de tempo real;
+Isolamento: Para reduzir a interferência entre classes de serviço e conexões;
+Justiça: Para permitir redistribuição rápida e justa de largura de banda que se torna dinamicamente disponível.
+Os algoritmos de escalonamento podem ser classificados em quatro tipos:
+Escalonamento baseado em prioridade;
+Escalonamento com divisão justa work-- conserving;
+Escalonamento com divisão justa non-work-- conserving;
+E formatador de tráfego.
+Um escalonador baseado em prioridades define uma prioridade para cada buffer e os serve de acordo com esta prioridade.
+Um buffer com prioridade menor é servido somente quando não existe nenhum dado esperando para ser servido nos buffers com prioridade maior, ou seja, dados com prioridade maior são servidos primeiro, mesmo quando dados de prioridade menor estão esperando por mais tempo.
+A oportunidade de transmissão dos buffers de prioridade baixa depende da carga dos buffers de prioridade alta, o qual pode variar dinamicamente.
+Por esta razão, os limites de latência fim-a-fim não podem ser determinados para todos os buffers, apenas para o buffer com prioridade mais alta.
+Conseqüentemente, é difícil suportar serviços múltiplos com QoS garantido.
+Escalonamento baseado em prioridade provê uma arbitragem muito simples e eficiente entre um número pequeno de buffers.
+Ele pode, por exemplo, prover uma classe para fluxos de tempo real, uma classe para fluxos de tempo não real com taxa de perda garantida, e uma classe melhor esforço.
+Uma alternativa para o escalonamento prioritário é o escalonamento com divisão justa, em o qual para cada buffer é garantida sua parte da largura de banda do canal de acordo com um peso definido.
+O escalonador com divisão justa é um conceito que introduz isolamento entre os vários buffers num modo que minimiza a interação entre os fluxos nos diferentes buffers.
+No entanto, é importante salientar que a alocação de largura de banda justa é possível somente entre os buffers e não entre os fluxos que compartilham um buffer.
+Por exemplo, se fluxos de cada classe de serviço são agrupados num buffer, então a alocação justa é possível entre as classes de serviço, mas não entre os fluxos da mesma classe.
+Os algoritmos de divisão justa garantem uma determinada taxa mínima alocada entre buffers.
+Mecanismos baseados em taxas podem ser classificados dentro de duas categorias:
+Taxa distribuída e taxa controlada.
+Em o mecanismo baseado em taxa distribuída, um buffer pode ser servido num taxa mais alta do que a taxa de serviço mínimo, enquanto as garantias feitas a outros serviços não forem prejudicadas.
+Em o mecanismo baseado em taxa controlada, nenhum buffer é servido num taxa mais alta do que a taxa de serviço determinada sob alguma circunstância.
+A Figura 12 descreve a diferença entre os dois mecanismos.
+Cada buffer necessita uma garantia de largura de banda mínima, ri no exemplo.
+O escalonador deve tentar alcançar esta garantia de largura de banda mínima para todos os buffers.
+Virtual Clock O algoritmo de escalonamento virtual clock é uma emulação do STDM.
+STDM, como apresentado na Seção 2.1.5, é um sistema baseado em fatias temporais que não permite nenhuma multiplexação estatística e garante uma largura de banda fixa para fluxos por determinar fatias fixas.
+Se um buffer não tem nenhum dado para transmitir em determinada fatia, a fatia não é usada e a largura de banda é desperdiçada.
+Logo, STDM é uma disciplina non-work-- conserving.
+Entretanto, com virtual clock, multiplexação estatística é possível e fatias são utilizadas quando algum buffer tem dados para transmitir.
+Enquanto um relógio de tempo real é usado num sistema STDM para definir as fatias de tempo, um relógio virtual é usado para etiquetar os dados no escalonamento virtual clock.
+A cada dado é determinado um tempo virtual, o qual é o tempo que um dado deveria ser transmitido se o sistema STDM fosse usado.
+Então, dados são enviados na ordem dos tempos virtuais.
+Quando fluxos requisitam transmissão, o valor Vticki $= 1/ ARi é computado, onde ARi é a taxa de transmissão média indicada na requisição.
+Quando chegar o primeiro pacote do fluxoi, VirtualClo cki tempo real Quando receber cada pacote do fluxoi, avançar VirtualClocki para Vticki, marcando o pacote com o valor do VirtualClocki.
+Transmitir os pacotes na ordem crescente de valores de VirtualClock.
+Quando chegar um pacote e o buffer estiver cheio, descartar o último pacote do buffer.
+Observe na Figura 13 que o fluxo 1 tem Vtick igual a 1 e o fluxo 2 tem Vtick igual a 2.
+Por conseqüência, os pacotes do fluxo 1 são marcados com valores de VirtualClock que possuem intervalo 1 e pacotes do fluxo 2 são marcados com valores de VirtualClock que possuem intervalo 2.
+Depois de atribuir o valor de VirtualClock a cada pacote, o algoritmo virtual clock meramente transmite os pacotes ordenados em função deste valor.
+Cabe ressaltar que o algoritmo de escalonamento virtual clock é classificado como work-- conserving.
+Portanto, sempre que existe largura de banda disponível e dado para transmitir, este dado é transmitido.
+Por exemplo, o pacote do fluxo 2 com VirtualClock igual a 6 é transmitido antes do pacote do fluxo 1 com VirtualClock igual a 5.
+Isto ocorre por três razões:
+Existem recursos disponíveis;
+O fluxo 1 não possui pacotes com VirtualClock menor aguardando transmissão (o pacote com VirtualClock igual a 5 ainda não chegou);
+E (3) o fluxo 2 possui pacotes para transmitir.
+Weighted Fair Queuing (WFQ) O WFQ também é conhecido como PGPS (do inglês Packet--Based Generalized Processor Sharing).
+Em o WFQ, um peso pode ser atribuído a cada buffer.
+Este peso controla a percentagem da largura de banda do canal que este buffer receberá.
+FQ (do inglês Fair Queuing) simples atribui a cada buffer um peso 1, o que significa que cada buffer recebe 1/ n da largura de banda do canal quando existem n buffers.
+Com WFQ, entretanto, um buffer pode ter peso 2, um segundo buffer pode ter peso 1, e um terceiro pode ter peso 3.
+Assumindo que cada buffer sempre possui pacotes esperando para serem transmitidos, o primeiro buffer receberá 1/3, o segundo receberá 1/6 e o terceiro receberá 1/2 da largura de banda disponível.
+Delay Earliest Due Date (Delay-EDD) O algoritmo Delay Earliest Due Date ou Delay-EDD é uma extensão do escalonamento clássico Earliest Due Date First (EDD ou EDF).
+Em o Delay-EDD, o servidor negocia um contrato de serviço com cada origem.
+O contrato determina que se a origem obedecer a sua especificação de fluxo, então o servidor garantirá um limite de latência.
+O servidor atribui um prazo ao pacote que determina quando ele deve ser transmitido caso seja recebido conforme o contrato.
+Isto é apenas o tempo de chegada esperado adicionado ao limite de latência no servidor.
+Por exemplo, se um cliente assegura que ele transmite pacotes a cada 0,2 segundo, e o limite de latência num servidor é 1 segundo, então o terceiro pacote do cliente terá um prazo de 1,6 segundo (0,2 n+ 1, onde n é o número de pacotes).
+Stop-and-Go Este esquema é baseado numa estratégia de enquadramento, como ilustrado na Figura comprimento constante T. Stop-and-Go define quadros de partida e chegada para cada canal.
+Em cada roteador, o quadro de chegada de cada canal de entrada é mapeado para o quadro de partida do canal de saída, introduzindo uma latência constante, onde 0 T. Em o Stop-and-Go, a transmissão de um pacote que chegou a um canal l durante o quadro f deve sempre ser postergada até o início do próximo quadro.
+de este modo, mesmo que existam pacotes no roteador para serem transmitidos, o canal de saída pode ficar ocioso, caracterizando a política non-work-- conserving.
+Stop-and-Go assegura que pacotes no mesmo quadro na origem permanecerão no mesmo quadro em toda rede. Por esta razão, limites de latência fim-a-fim podem ser garantidos.
+No entanto, a estratégia de enquadramento introduz o problema de acoplamento entre o limite da latência e a granularidade da alocação de largura de banda.
+A latência de um pacote num único roteador é limitada a duas vezes a dimensão do quadro.
+Para reduzir a latência, um quadro menor é desejado.
+Entretanto, o quadro também é usado para especificar o tráfego.
+Logo, para ter maior flexibilidade na alocação da largura de banda, um quadro maior é preferido.
+Conseqüentemente, um limite baixo de latência e uma granularidade fina da alocação da largura de banda não podem ser alcançados simultaneamente numa estratégia de enquadramento como Stop-and-Go.
+Para resolver este problema de acoplamento, uma versão generalizada do Stop-and-Go com tamanhos diferentes de quadro é proposta em.
+Em o Stop-and-Go generalizado, o eixo tempo é dividido dentro de uma estrutura de quadros hierárquicos como apresentado na Figura 15.
+Desta forma, é possível prover limites mais baixos de latência para alguns canais colocando- os em quadros com um tempo de quadro menor, e alocar largura de banda com granularidade fina para outros canais, colocando- os em níveis com tempo de quadro maior.
+Entretanto, o acoplamento entre latência e granularidade da alocação da largura de banda ainda existe dentro de cada quadro.
+Jitter Earliest Due Date (EDD) O Jitter-EDD é uma extensão do delay-EDD para prover limites de latência e jitter.
+Este método provê limites máximo e mínimo de latência.
+Para garantir limites de latência e jitter, cada nodo na rede tem que preservar o padrão de chegada do fluxo.
+Em este esquema, cada dado é marcado com um valor (chamado de termo de correção), que é a diferença do tempo entre o instante que o dado é servido e o instante que supostamente ele deveria ser servido (seu prazo).
+Um formatador de tráfego é usado no próximo roteador para atrasar o dado por este tempo antes de declarar que o dado pode ser transmitido.
+Note que este esquema requer a participação do próximo roteador para controlar a latência.
+Como descrito na Seção 2.3.1, o objetivo de um formatador de tráfego é criar uma conformidade entre um fluxo e o seu perfil previamente especificado.
+Geralmente, o formatador de tráfego é utilizado somente nos núcleos ou interfaces de rede.
+No entanto, esta Seção apresenta a função de um formatador implementado em roteadores da rede.
+O formatador de tráfego pode ser aplicado a um grupo de canais virtuais ou a canais virtuais individuais.
+Em geral, contudo, a formatação é aplicada a canais virtuais individuais usando a informação sobre o perfil do fluxo.
+Logo, o formatador de tráfego é pouco diferente de um escalonador com divisão justa non-work-- conserving.
+Em os escalonamentos com divisão justa non-work-- conserving descritos acima, o fluxo é atrasado para controlar latência e jitter (Stopand-Go, EDD) ou taxa e jitter (HRR).
+Os esquemas de formatação de tráfego controlam a taxa dos fluxos com algoritmos como o balde de fichas (token bucket).
+Porém, em alguns casos, é necessária uma arquitetura que combine um formatador de tráfego e um escalonador.
+T) t+ t;
+O formatador usa o tempo de conformidade para escalonar os fluxos.
+Um classificador de tempos é usado para organizar os fluxos em ordem crescente de tempo de conformidade.
+Cada posição do classificador de tempos corresponde a um tempo de conformidade, e a lista encadeada de cada posição corresponde aos dados que possuem este tempo de conformidade.
+Em a Figura 17, uma posição do classificador de tempos ocupada por a letra E (do inglês Empty) indica que nenhum dado foi escalonado para aquele tempo e que esta posição está vazia.
+Os dados no classificador de tempos são lidos no tempo atual e inseridos numa FIFO, de onde são transmitidos.
+Outros exemplos de arquiteturas que combinam um formatador de tráfego e um escalonador podem ser encontrados em.
+Congestionamento em redes é basicamente um problema de compartilhamento de recursos.
+Ele ocorre quando os núcleos inserem na rede uma quantidade maior de dados do que ela é capaz de tratar.
+Existem duas atividades distintas relacionadas ao controle ou gerenciamento de congestionamento.
+A primeira é a prevenção de congestionamento, que tenta detectar possíveis condições que levem a congestionamentos futuros e executar procedimentos para impedir que estas ocorram.
+A segunda é a recuperação de congestionamento, que atua quando um congestionamento já ocorreu para que a rede volte ao seu estado normal.
+Esta Seção descreve o exemplo predominante de controle de congestionamento fim-a-fim, que é utilizado por TCP.
+A estratégia essencial de TCP é enviar pacotes para rede sem reserva e então reagir à ocorrência de eventos.
+A idéia do controle de congestionamento TCP é que cada origem determina quantos pacotes ela pode seguramente transmitir.
+Como uma determinada origem transmite muitos pacotes, ela usa a chegada de um ack como um sinal que um dos seus pacotes deixou a rede e, portanto, ela pode seguramente inserir um novo pacote sem elevar o nível de congestionamento.
+No entanto, determinar a capacidade disponível num primeiro momento não é uma tarefa fácil.
+Adicionalmente, como conexões são estabelecidas e fechadas, a capacidade disponível da rede muda ao longo de o tempo.
+Isto significa que alguma origem específica deve ser capaz de ajustar o número de pacotes que ela está transmitindo.
+A proposta original do controle de congestionamento TCP é implementada por os dois mecanismos descritos a seguir.
+Aumento Aditivo/ Redução Multiplicativa TCP mantém uma variável de estado para cada conexão, chamada de janela de congestionamento (CongestionWindow), que é usada por a origem para limitar quantos dados ela pode transmitir numa determinada janela de tempo.
+O mínimo entre as variáveis CongestionWindow e AdvertisedWindow determina o número máximo de dados que podem ser enviados sem o recebimento de um ack.
+A variável AdvertisedWindow corresponde ao tamanho de janela aconselhado por o destino.
+O destino seleciona um valor adequado para AdvertisedWindow baseado na quantidade de memória alocada para bufferização.
+A janela efetiva de TCP é definida como segue:
+MaxWindow $= Min (CongestionWindow, AdvertisedWindow) EffectiveWindow $= MaxWindow -- (Último byte enviado -- Último byte que recebeu ack) Um problema é como TCP determina um valor inicial apropriado para CongestionWindow.
+A origem TCP modifica o valor de CongestionWindow de acordo com o nível de congestionamento da rede.
+Isto envolve a redução do valor de CongestionWindow quando o nível de congestionamento cresce e o aumento do valor quando o nível de congestionamento diminui.
+As origens TCP interpretam o estouro de prazos finais (timeouts) como um sinal de congestionamento e reduzem a taxa em a qual transmitem dados.
+A cada momento em que o prazo final para o recebimento da confirmação de transmissão de dados (ACK) é atingido, a origem atribui à CongestionWindow a metade de seu valor.
+Por exemplo, suponha que o valor atual de CongestionWindow é 16.
+Se uma perda é detectada, CongestionWindow recebe 8.
+Perdas adicionais causam a redução de CongestionWindow para 4, então 2, e finalmente 1.
+CongestionWindow não pode ser reduzido abaixo de o tamanho de um único pacote, ou, na terminologia de TCP, MSS (do inglês Maximum Segment Size).
+Uma estratégia que somente reduza o valor de CongestionWindow é obviamente conservadora.
+O mecanismo deve ser capaz de aumentar este valor para usufruir as vantagens quando a capacidade torna- se novamente disponível.
+Cada vez que uma origem transmite os pacotes com sucesso, ela adiciona o equivalente a um pacote à CongestionWindow.
+Este crescimento linear é ilustrado na Figura 18 (a).
+Nota- se que, na prática, TCP não espera por o recebimento da confirmação (ACK) da janela inteira para adicionar um pacote à janela de congestionamento.
+Ao invés de isto, incrementa CongestionWindow por a chegada de apenas um ACK.
+Especificamente, o valor de CongestionWindow é incrementado como segue, cada vez que um ACK chega:
+Incremento $= MSS × (MSS/ CongestionWindow) CongestionWindow+ $= Incremento Este padrão de continuamente aumentar e reduzir a janela de congestionamento continua durante todo tempo de vida de uma conexão.
+Slow Start O mecanismo de aumento aditivo como descrito é o método correto para usar quando a origem está operando perto de a capacidade disponível da rede, mas não é adequado quando a origem está no início da transmissão.
+TCP conseqüentemente provê um segundo mecanismo, chamado de Slow Start, que é usado para incrementar o valor de CongestionWindow rapidamente do ponto inicial.
+Slow Start incrementa a janela exponencialmente, ao invés de linearmente.
+Especificamente, a origem inicia atribuindo um pacote à CongestionWindow.
+Quando um ack para este pacote chega, TCP adiciona 1 à CongestionWindow e então envia dois pacotes.
+Quando recebe os correspondentes dois acks, TCP incrementa CongestionWindow de 2, um para cada ack, e envia quatro pacotes.
+A Figura 18 (b) apresenta o crescimento exponencial do número de pacotes transmitidos durante o Slow Start.
+Mais detalhes sobre o Slow Start podem ser encontrados em.
+Em esta Seção, são descritos três mecanismos diferentes utilizados para evitar situações de congestionamento.
+Os dois primeiros usam um método similar.
+Eles colocam uma quantidade pequena de funcionalidades adicionais dentro de o roteador para ajudar o nodo final a antecipar o congestionamento.
+O terceiro mecanismo é muito diferente dos dois primeiros.
+Ele tenta evitar o congestionamento puramente nos nodos finais.
+DECbit O primeiro mecanismo, denominado DECbit, baseia- se na idéia de espalhar a responsabilidade por o controle de congestionamento entre os roteadores e os nodos finais.
+Cada roteador monitora a ocupação média de seu buffer e explicitamente notifica o nodo destino quando uma situação de congestionamento está próxima de ocorrer.
+Esta notificação é implementada configurando um bit de congestionamento nos pacotes deste fluxo.
+O destino do fluxo então copia este bit de congestionamento dentro de o ACK e envia de volta à origem.
+Finalmente, a origem ajusta sua taxa de transmissão de maneira a evitar o congestionamento.
+Em este mecanismo, um único bit de congestionamento é adicionado ao cabeçalho do pacote.
+Um roteador ativa este bit num pacote se o comprimento médio de seu buffer é maior ou igual a 1 no tempo em que o pacote chega.
+Este comprimento médio do buffer é medido sobre um intervalo de tempo que compreende o último ciclo ocupado+ ciclo ocioso+ ciclo ocupado atual.
+A Figura 19 apresenta um exemplo do comprimento do buffer num roteador, em função de o tempo.
+Essencialmente, o roteador calcula a área abaixo de a curva e divide o valor por o intervalo de tempo para computar o comprimento médio do buffer.
+Usando um comprimento de buffer igual a 1 para ativar o bit de congestionamento.
+Em o lado do nodo destino, a origem armazena quantos de seus pacotes tiveram seu bit de congestionamento ativado em algum roteador.
+Com este objetivo, a origem mantém uma janela de congestionamento e verifica qual a fração dos pacotes da última janela que tiveram seu bit configurado.
+Se menos do que 50% dos pacotes tiveram seu bit configurado, então a origem aumenta sua janela de congestionamento num pacote.
+Se 50% ou mais dos pacotes tiveram seu bit configurado, então a origem diminui sua janela de congestionamento em 0,875 vezes o seu valor anterior.
+Random Early Detection (RED) O segundo mecanismo, denominado RED (do inglês Random Early Detection), é similar ao esquema do DECbit em que cada roteador é programado para monitorar seu comprimento de buffer, e quando detecta que um congestionamento está iminente, notifica a origem para ajustar sua janela de congestionamento.
+O RED difere do DECbit em dois aspectos.
+O primeiro é que RED é mais comumente implementado como uma notificação implícita à origem através do descarte de um de seus pacotes.
+A origem é efetivamente notificada por o fim de prazo ou ACK duplicado.
+Os roteadores que implementam RED descartam poucos pacotes antes de seus buffers estarem completamente cheios, o que causa a redução da taxa de transmissão da origem, para que muitos pacotes não tenham que ser descartados se ocorrer um congestionamento.
+A segunda diferença entre RED e DECbit é a escolha de quando descartar um pacote e qual pacote descartar.
+O algoritmo RED, originalmente proposto por Floyd e Jacobson, é descrito em.
+Baseado na Origem Ao contrário de os dois métodos anteriores, que dependem de mecanismos nos roteadores, este método baseia- se na idéia de observar alguns sinais da rede para detectar quando situações de congestionamento estão próximas de acontecer.
+Um algoritmo particular observa a rede como segue.
+A janela de congestionamento é incrementada como em TCP, mas a cada dois RTT5 (do inglês Round- Trip Time), o algoritmo verifica se o RTT atual é maior do que a média dos RTTs mínimo e máximo.
+Se for, então o algoritmo diminui a janela de congestionamento de 1/8.
+Um segundo algoritmo faz algo similar.
+A decisão se muda ou não o tamanho da janela atual é baseada no RTT e no tamanho da janela.
+A janela é ajustada uma vez a cada dois RTTs baseado no resultado da expressão da Equação 3.
+Se o resultado é positivo, a origem diminui o tamanho da janela de 1/8.
+Se o resultado é negativo ou zero, a origem aumenta a janela por o tamanho máximo de pacote.
+Um terceiro esquema observa a mudança na taxa de vazão, ou mais especificamente, mudanças na taxa de transmissão.
+Este algoritmo, chamado de TCP Vegas, compara a vazão alcançada com a vazão esperada.
+O TCP Vegas usa a idéia de medir e controlar a quantidade de dados extras que uma conexão transmite, onde &quot;dados extras «significa os dados que a origem não teria transmitido se ela tentasse se adequar exatamente à largura de banda disponível da rede.
+Obviamente, se uma origem está transmitindo dados extras, causará latências longas e possibilitará congestionamentos.
+Menos óbvio, se uma conexão está enviando poucos dados extras, não responderá suficientemente rápido ao aumento de largura de banda disponível.
+Ações para evitar congestionamento do TCP Vegas são baseadas em mudanças na quantidade de dados extras estimados na rede, não somente no descarte de pacotes.
+Detalhes sobre este algoritmo são apresentados em.
+RTT é a estimativa do tempo total de transmissão de ida e volta numa determinada conexão.
+Projetos de redes intra-chip atuais adotam um destes três métodos para prover QoS:
+Dimensionamento da rede para prover largura de banda suficiente para satisfazer os requisitos de todos os núcleos no sistema;
+Prover suporte ao chaveamento por circuito para todos ou para núcleos selecionados;
+Tornar disponível o escalonamento baseado em prioridades para transmissão de pacotes.
+Harmanci et al.
+Apresentam uma comparação quantitativa entre o chaveamento por circuito e o escalonamento baseado em prioridades, mostrando que a priorização de fluxos sobre uma rede sem estabelecimento de conexão é capaz de garantir latências fim-a-fim menores do que em redes com chaveamento por circuito.
+Entretanto, a referência não apresenta resultados numéricos.
+Uma possível explicação para isto é o uso de uma modelagem SystemC TLM, ao invés de modelos com precisão de ciclo de relógio utilizados neste trabalho.
+O primeiro método para prover QoS mencionado acima é adotado, por exemplo, por a rede intra-chip Xpipes.
+Um projetista dimensiona a Xpipes de acordo com os requisitos das aplicações, ajustando a largura de banda de cada canal a fim de atender totalmente a esses requisitos.
+Entretanto, quanto maior for a velocidade de processamento e a largura de banda, mais e mais novas aplicações demandando níveis superiores de desempenho de rede serão criadas.
+Adicionalmente, aplicando somente este método, não é garantido que congestionamentos locais (hot spots) sejam evitados, mesmo se a largura de banda é amplamente aumentada.
+Por estas razões, este método torna- se inadequado para satisfazer aos requisitos de um conjunto amplo de aplicações distintas.
+O segundo método, chaveamento por circuito6, provê QoS através do estabelecimento de conexões.
+Este método é usado nas redes intra-chip, aSOC, Octagon, Nostrum e SoCBUS.
+Por exemplo, a rede intra-chip Nostrum adota circuitos virtuais, com roteamento dos fluxos QoS decidido em tempo de projeto.
+As comunicações nos canais físicos são escalonadas globalmente em fatias de tempo (TDM).
+Circuitos virtuais garantem vazão e latência constante em tempo de execução, mesmo com taxas de inserção de tráfego variáveis.
+As redes com chaveamento por circuito criam conexões para todos ou para fluxos selecionados.
+O estabelecimento das conexões requer alocação de recursos, tais como buffers e/ ou largura de banda do canal.
+Este método tem a vantagem de garantir limites temporais rígidos para fluxos individuais.
+No entanto, este método tem duas desvantagens:
+Pobre escalabilidade, pois a área do roteador cresce proporcionalmente ao número de conexões suportadas;
+Uso ineficiente da largura de banda, devido a a alocação de recursos ser baseada em cenários de pior caso, desperdiçando os recursos da rede, especialmente quando fluxos são transmitidos em rajada.
+QNoC, DiffServ-NoC e RSoC são exemplos de redes intrachip que adotam o terceiro método, chaveamento por pacote com escalonamento baseado em Em este documento, o termo chaveamento por circuito refere- se às redes provendo estruturas de nível físico entre a origem e o destino, como também às redes com chaveamento por pacote que adotam serviços de níveis mais altos (tal como circuitos virtuais) para estabelecer conexões.
+Nem chaveamento por circuito nem escalonamento baseado em prioridades garante QoS para múltiplos fluxos concorrentes.
+Quando se usa o chaveamento por circuito, a rede pode rejeitar um número de fluxos, devido a a quantidade limitada de conexões simultaneamente suportadas, mesmo se a rede possui largura de banda disponível.
+Quando múltiplos fluxos com mesma prioridade competem por os mesmos recursos, redes com escalonamento baseado em prioridades têm comportamento semelhante à rede com serviço Be, como será demonstrado no Capítulo 8.
+Como mencionado anteriormente, redes usando um dos três métodos descritos acima adotam técnicas em tempo de projeto para garantir QoS, através da modelagem do tráfego, dimensionamento da rede (topologia, profundidade dos buffers, largura do flit) baseado em simulação e síntese da rede.
+As desvantagens do dimensionamento da rede em tempo de projeto são:
+A complexidade da modelagem do tráfego e da simulação do sistema é muito alta, sendo então propensas a erros;
+E a rede projetada neste modo pode não garantir QoS a novas aplicações.
+A primeira desvantagem pode forçar o uso de modelos simplificados, o que pode conduzir ao dimensionamento incorreto dos parâmetros da rede para a síntese.
+A segunda desvantagem pode surgir se novas aplicações devem executar no sistema depois de alguma implementação inicial, como ocorre em sistemas reconfiguráveis e/ ou programáveis.
+Os principais parâmetros de desempenho usados por as redes revisadas acima são latência fim-a-fim e vazão.
+No entanto, quando QoS é considerado, outro conceito pode ser relevante, jitter.
+Jitter pode ser definido como a variação da latência, causada por congestionamentos na rede ou variações de caminho.
+Em redes sem estabelecimento de conexão, buffers introduzem jitter.
+Quando pacotes são bloqueados, a latência aumenta.
+Uma vez a rede podendo liberar pacotes de bloqueios, a latência diminui, devido a o envio de pacotes em rajada.
+Conseqüentemente, redes usando somente escalonamento baseado em prioridades não podem garantir jitter controlado.
+Alguns outros trabalhos usam métodos diferentes para atender requisitos de QoS.
+Por exemplo, Andreasson e Kumar propuseram um roteamento chamado slack-time aware routing, uma técnica de roteamento na origem para melhorar a utilização da rede através do controle dinâmico da inserção de pacotes Be em caminhos específicos, enquanto pacotes com vazão garantida (GT, do inglês Guaranteed Throughput) não estão usando estes caminhos.
+Entretanto, este trabalho não é diretamente relacionado ao atendimento à QoS.
+As informações apresentadas acima são resumidas na Tabela 2.
+O método melhor esforço, onde a rede não provê nenhuma garantia temporal aos fluxos, também é apresentado nesta Tabela.
+As redes intra-chip Xpipes, QNoC e são detalhadas a seguir, como exemplos de cada uma das diferentes técnicas para prover QoS em NoCs.
+A rede intra-chip Hermes[ MOR04], usada como base para o desenvolvimento deste trabalho, é detalhada no próximo Capítulo.
+A rede Hermes, assim como as redes Xpipes, e QNoC, possui um fluxo de projeto que é composto por as etapas de geração da rede, geração do tráfego, simulação e avaliação de desempenho.
+Este fluxo de projeto é automatizado por o ambiente Atlas (Apêndice II).
+A rede Xpipes foi proposta por Bertozzi et al.
+Para SoCs multiprocessados.
+Ela possui roteamento wormhole e faz uso do algoritmo de roteamento estático denominado street sign routing.
+Este algoritmo de roteamento permite uma implementação simples do roteador porque nenhuma decisão dinâmica tem que ser tomada no mesmo.
+Uma das principais preocupações no projeto da Xpipes foi o suporte à comunicação confiável.
+Isto foi alcançado por meio de detecção de erro distribuída, ou seja, em cada roteador.
+Embora a detecção de erro distribuída cause uma sobrecarga de área nos roteadores da rede se comparada com uma solução fim-a-fim, ela é melhor capacitada para conter os efeitos da propagação de erros, por exemplo, impedindo que um cabeçalho corrompido seja transmitido para um caminho errado.
+A rede intra-chip Xpipes possui alto grau de parametrização.
+A parametrização inclui o tamanho do flit, o espaço de endereçamento dos núcleos, o número máximo de roteadores entre dois núcleos, o número máximo de bits para controle de fluxo fim-a-fim, a profundidade do buffer, o número de canais virtuais por canal físico, entre outros.
+O roteador Xpipes é ilustrado na Figura 20.
+Em o exemplo, o roteador possui 4 entradas, 4 saídas e 2 canais virtuais multiplexados sobre o mesmo canal físico.
+O roteador adota bufferização de saída e a arquitetura resultante consiste de múltiplas replicações do mesmo módulo de saída, apresentado na Figura 21, um para cada porta de saída do roteador.
+Todas as portas de entrada são conectadas a cada entrada do módulo.
+Os sinais de controle de fluxo gerados em cada módulo (tal como ack e nack para flits de entrada) são coletados por uma unidade centralizada do roteador, a qual transmite ao roteador fonte apropriado.
+Como pode ser observado na Figura 21, cada módulo de saída tem 7 estágios de pipeline para maximizar a freqüência de operação de relógio do roteador.
+Os decodificadores CRC para detecção de erro trabalham em paralelo com a operação do roteador, desse modo ocultando sua latência.
+O primeiro estágio do pipeline verifica o cabeçalho dos pacotes nas diferentes portas de entrada para determinar se os pacotes têm que ser roteados através de determinada porta de saída.
+Somente pacotes direcionados para a esta porta de saída são enviados para o segundo estágio, em o qual são resolvidas disputas baseadas numa política round-robin.
+A arbitragem é realizada quando o flit terminador do pacote antecessor é recebido, de modo que todos os outros flits de um pacote possam ser propagados sem contenção referente a o atraso neste estágio.
+É gerado um nack para flits de pacotes não selecionados.
+O terceiro estágio possui apenas um multiplexador, o qual seleciona a porta de entrada prioritária.
+O estágio seguinte de arbitragem guarda o estado do buffer de canal virtual e determina se flits podem ser armazenados no buffer ou não.
+O flit de cabeçalho é enviado para o buffer com o maior número de posições livres, seguido por sucessivos flits do mesmo pacote.
+O quinto estágio é o estágio de bufferização, e a resposta ack/ nack neste estágio indica se um flit foi armazenado corretamente ou não.
+O estágio seguinte cuida do envio do controle de fluxo:
+Um flit é transmitido para o próximo roteador somente quando a porta de saída do roteador destino possuir posições livres disponíveis no buffer adequado.
+O último estágio de arbitragem multiplexa os canais virtuais no enlace do canal físico.
+A metodologia de projeto baseado na Xpipes necessita uma ferramenta para instanciar os blocos construtivos da rede (roteadores, canais e interfaces de rede) em função de uma aplicação específica.
+Esta ferramenta é denominada XpipesCompiler.
+O fluxo de projeto adotado por a XpipesCompiler é mostrado na Figura 22.
+Partindo da especificação de uma aplicação, o projetista cria uma visão de alto nível do SoC, incluindo roteadores, canais e interfaces de rede.
+A informação sobre a arquitetura da rede é especificada num arquivo de entrada para a XpipesCompiler.
+As tabelas de roteamento para as interfaces de rede também são especificadas.
+A ferramenta também utiliza a biblioteca Xpipes de componentes de rede como uma entrada adicional.
+A saída é uma descrição SystemC hierárquica, a qual inclui todos os roteadores, canais, interface de redes e suas conectividades.
+Então, a descrição final pode ser compilada e simulada com precisão ao nível de ciclo e ao nível de sinal.
+Figura 22 ­ Fluxo de projeto da rede Xpipes com a ferramenta XpipesCompiler.
+QNoC adota topologia malha irregular e emprega o chaveamento de pacotes wormhole com controle de fluxo baseado em créditos.
+A QNoC oferece quatro classes de serviço:
+Signalling: Nível de serviço com a maior prioridade na rede, para assegurar baixa latência.
+É utilizado por interrupções e sinais de controle.
+real-time: Nível de serviço que garante largura de banda e latência para aplicações de tempo real.
+Read/ Write (RD/ WR):
+Nível de serviço projetado para suportar acessos curtos a memórias e registradores.
+Block--Transfer: Nível de serviço usado para transferência de mensagens longas e blocos grandes de dados, tal como conteúdo de cache e transferências DMA.
+O pacote é dividido em flits que são classificados dentro de os seguintes tipos:
+FP (Full Packet):
+Pacote com um único flit.
+BDY (Body):
+Não é o último flit do pacote.
+O tipo do flit e o nível de serviço são indicados em fios separados de controle.
+A Tabela 3 descreve os sinais da porta de saída.
+A Figura 23 ilustra a arquitetura do roteador.
+O roteador suporta até cinco conexões:
+Quatro para roteadores vizinhos e uma para o núcleo local.
+O roteador transfere pacotes das portas de entrada para as portas de saída.
+Dados são recebidos em flits.
+Cada flit que chega é primeiro armazenado em buffers de entrada.
+Existem buffers separados para cada um dos quatro níveis de serviço.
+O algoritmo de roteamento determinístico XY é executado quando o primeiro flit do pacote é recebido.
+O primeiro flit contém o endereço destino do pacote e é utilizado para determinar a qual porta de saída o pacote é destinado.
+O número da porta de saída selecionada para a transmissão do pacote de cada nível de serviço é armazenado na tabela CRT (do inglês Current Routing Table).
+Quando um flit é enviado da porta de entrada para a porta de saída, uma posição no buffer torna- se disponível e um crédito é enviado ao roteador anterior.
+A porta de saída gerência o número de posições disponíveis no buffer de cada nível de serviço da próxima porta de entrada.
+Este número é decrementado quando um flit é transmitido e incrementado quando um crédito do próximo roteador é recebido.
+A porta de saída escalona a transmissão de flits de acordo com a disponibilidade de espaço no buffer do próximo roteador, com a prioridade do nível de serviço e com a arbitragem roundrobin das portas de entrada esperando transmissão de pacotes dentro de o mesmo nível de serviço.
+O número de espaços disponíveis no buffer do próximo roteador é armazenado na tabela NBS (do inglês Next Buffer State) de cada nível de serviço de cada porta de saída.
+A prioridade dos níveis de serviço é fixa, ordenada com Signalling tendo a maior prioridade, real-time tendo a segunda, RD/ WR a terceira e o Block--Transfer a última.
+O estado atual da arbitragem round-robin é armazenado na tabela CSIP (do inglês Currently Serviced Input Port number) para cada nível de serviço de cada porta de saída.
+Este número avança quando a transmissão de um pacote é finalizada ou se nenhuma transmissão de uma determinada porta de entrada e nível de serviço existe.
+Essa política de escalonamento implica que um flit seja transmitido por a porta de saída tão logo exista espaço disponível no buffer do próximo roteador e não exista nenhum pacote com prioridade maior pendente na porta de saída específica.
+Uma vez que um pacote com maior prioridade chegue a uma porta de entrada, a transmissão do pacote atual é preemptada e o pacote de prioridade maior começa a ser transmitido.
+A transmissão de um pacote com menor prioridade é reiniciada somente depois que todos os pacotes com prioridade maior foram transmitidos.
+A arquitetura da QNoC não faz bom uso do espaço disponível para armazenamento, porque particiona estaticamente o espaço do buffer em T/ 4, onde T é o espaço total de armazenamento e 4 é o número de classes de serviço.
+De este modo, se um pacote de um dado serviço requisita uma porta de saída bloqueada, os flits do pacote são armazenados no buffer destinado ao serviço e o bloqueio é propagado aos demais roteadores no caminho do pacote, mesmo que exista espaço disponível no buffer T. A QNoC possui um fluxo de projeto que permite que o projetista da rede altere e ajuste os parâmetros da rede a fim de satisfazer as exigências de um SoC particular.
+O fluxo de projeto da QNoC é apresentado na Figura 24.
+Primeiramente, os núcleos do sistema são definidos e conectados por uma infra-estrutura ideal de interconexão com largura de banda ilimitada e latência programável.
+Em a seqüência, o fluxo entre núcleos é caracterizado.
+Esta caracterização é conduzida analisando os núcleos interconectados e sua especificação de fluxo.
+Para verificar a caracterização, o fluxo entre núcleos é medido e dividido em classes de serviço usando uma simulação de alto nível.
+Similarmente, as exigências de QoS são derivadas para cada classe de serviço, observando o desempenho real, bem como a avaliação através de simulação do efeito da latência e da vazão.
+Uma vez especificados os padrões de tráfego, os núcleos são posicionados a fim de minimizar a densidade espacial do tráfego do sistema.
+Somente após o posicionamento dos núcleos e os requisitos de comunicação entre núcleos serem determinados, a QNoC podem ser construída.
+A arquitetura da QNoC é finalizada, e os parâmetros arquiteturais são ajustados de acordo com o número de núcleos, a sua posição espacial, e os níveis de serviço de QoS a serem suportados.
+A topologia inicial é ajustada a uma malha e o tráfego requerido é traçado na grade de acordo com um algoritmo do roteamento, tal como o roteamento XY.
+Como as partes da grade podem não ser utilizadas inteiramente, alguns vértices e canais podem ser eliminados.
+Uma vez que o algoritmo do roteamento é selecionado, caminhos de comunicação entre todos os pares de núcleos podem ser determinados e otimizações da largura de banda do canal podem ser realizadas.
+A carga média do tráfego em cada canal pode ser calculada, desde que o roteamento seja fixo e os padrões de tráfego sejam conhecidos previamente.
+A largura de banda do canal pode ser atribuída proporcionalmente à carga calculada nesse canal, variando o número dos fios num canal ou sua freqüência.
+De esta maneira, o projetista calibra os recursos de sistema de modo que a utilização média de todos os canais na rede seja aproximadamente igual.
+Em este momento, o cálculo da carga média fornece somente larguras de banda de canal relativas.
+Para finalizar o projeto, a QNoC pode ser simulada e analisada mais precisamente por um simulador de rede.
+A largura de banda real pode então ser atribuída aos canais, de acordo com exigências de QoS e os resultados da simulação.
+Goossens et.
+Al. Propuseram a rede intra-chip.
+Ela oferece serviços diferenciados com conexão.
+Uma conexão descreve a comunicação entre um núcleo origem e um ou mais núcleos destino, com um nível de serviço associado.
+Conexões devem ser criadas expressando o nível de serviço requisitado.
+A aceitação da conexão pode incluir a reserva de recursos na rede, tais como buffers ou o percentual de largura de banda do canal.
+Depois do uso, a conexão é finalizada e os recursos liberados.
+Diferentes conexões podem ser criadas ou finalizadas independentemente.
+A rede intra-chip possui um roteador que combina vazão garantida (GT, do inglês Guaranteed Throughput) e melhor esforço (Be), como ilustrado na Figura 25.
+De esse modo é garantido desempenho, mesmo quando os fluxos estão transmitindo com vazão máxima (cenário de pior caso), aliado a uma boa média de uso de recursos.
+O serviço GT oferece uma latência fim-afim fixa e tem prioridade mais alta, forçada por o árbitro.
+O serviço Be usa toda a largura de banda que não está reservada ou não é usada por o tráfego GT.
+Recursos são sempre utilizados quando existem dados disponíveis.
+As conexões GT são criadas ou removidas através de pacotes Be que reservam um caminho na rede, dependendo da disponibilidade de recursos (linha &quot;program «na Figura 25).
+Os pacotes Be usam roteamento wormhole na origem, e os fluxos GT usam chaveamento por circuito com STDM.
+Roteadores usam buffers virtuais de saída para o fluxo Be.
+O fluxo GT é fortemente escalonado para minimizar a bufferização.
+Roteadores não descartam ou ordenam pacotes.
+Uma variante do algoritmo de escalonamento iSLIP é usada para o fluxo Be.
+A construção de uma rede baseia- se num fluxo de projeto que possui como etapas principais a geração, configuração e a verificação/ simulação, como ilustrado na Figura 26.
+Segundo os proponentes desta rede, tal divisão traz como benefícios:
+Simplificação para se adotar heurísticas, aumentando o controle do usuário sobre o processo;
+Redução da complexidade para otimização da rede;
+E facilidade para o usuário personalizar, adicionar ou substituir partes do fluxo de forma a melhorar seu desempenho.
+Em o fluxo de projeto, a construção da rede (geração de topologia e mapeamento dos núcleos) é realizada ao mesmo tempo que o seu balanceamento (dimensionamento dos canais com menor carga), diferentemente do que acontece na QNoC, onde a construção da rede é feita, seguida da análise interna de desempenho, para posteriormente otimizar a rede.
+A etapa de geração da rede intra-chip recebe como dados de entrada arquivos formatados em XML contendo:
+Requisitos da aplicação (requisitos.
+Xml e comunicação.
+Xml/ xls), onde são especificados:
+Uma lista de conexões, sendo que cada conexão especifica qual mestre se comunicará com qual escravo (padrão espacial de tráfego), a largura de banda mínima a ser utilizada, a latência máxima permitida, o tamanho da rajada para leitura ou escrita de dados e a classe de serviço que deve atender o fluxo (podendo ser Be ou GT).
+Um exemplo de especificação da aplicação (arquivo de comunicação) é mostrado na Figura 27 (a);
+Especificação dos núcleos conectados à rede (núcleo.
+Xml): Onde cada porta deve especificar o protocolo de comunicação com a rede e a largura da palavra de dados.
+Um exemplo de especificação de núcleos é mostrado na Figura 27 (b).
+A o final da etapa de geração são criados os arquivos XML descrevendo a topologia e o mapeamento dos núcleos, os quais são entradas para a etapa de configuração.
+Em a etapa de configuração da rede é gerado um arquivo com informações para síntese do hardware contendo, para cada conexão, o caminho do mestre até o escravo e o número de créditos para controle de fluxo.
+Um exemplo de arquivo de configuração gerado é mostrado na Figura 28.
+A etapa de verificação da rede recebe como entrada o arquivo de configuração e são realizados cálculos analíticos para determinar a vazão mínima, a latência máxima, e a quantidade máxima de espaços em buffer utilizados.
+Os resultados obtidos são comparados aos requisitos das aplicações (descritos nos arquivos de comunicação) e mostrados numa tabela indicando através de cores se os requisitos foram atendidos (verde) ou não (vermelho).
+Um exemplo de arquivo de verificação é mostrado na Figura 29.
+A etapa de verificação oferece suporte apenas a comunicações GT, e calcula os valores de pior caso para vazão, latência e utilização de buffers, sem considerar casos médios.
+A etapa de simulação oferece suporte à avaliação de desempenho no caso médio para conexões tanto Be quanto GT.
+Dois tipos de simulação podem ser adotados:
+RTL VHDL (com precisão de bit e de ciclo) e SystemC (nível de flit).
+Esta etapa recebe como entrada o mesmo arquivo de configuração recebido por a verificação.
+Como saída a etapa de simulação gera uma tabela semelhante à gerada no processo de verificação, tendo como resultados adicionais as medições para valores médios de vazão, latência e alocação de buffers.
+Este Capítulo apresenta a primeira contribuição deste trabalho, a inserção de canais virtuais na rede Hermes (Hermes-VC).
+A inserção de canais virtuais permite que mecanismos de alocação de recursos sejam utilizados por a rede, possibilitando que fluxos sejam tratados de forma diferenciada.
+No entanto, é importante ressaltar que a rede Hermes-VC fornece apenas o serviço Be, ou seja, todos os fluxos são tratados de forma igual.
+A diferenciação entre fluxos é apresentada nos próximos Capítulos.
+A Seção 4.1 descreve o projeto da rede Hermes-VC.
+A validação funcional do roteador Hermes-VC é apresentada na Seção 4.2.
+As redes descritas neste Capítulo e nos Capítulos seguintes usam o mesmo conjunto básico de características:
+Topologia malha bidirecional, chaveamento por pacote wormhole, roteamento XY (determinístico e distribuído), e canais físicos multiplexados em pelo menos dois canais virtuais.
+Isso certamente não cobre todas as possíveis características encontradas nas arquiteturas de redes propostas na literatura.
+Entretanto, todo ou um conjunto dessas características são encontradas na maioria das redes.
+A rede Hermes é uma infra-estrutura para a geração de redes intra-chip com topologia malha bidirecional, chaveamento por pacote wormhole e baixa sobrecarga de área.
+Diz- se infra-estrutura porque não se trata de uma única rede intra-chip.
+Existe um conjunto de parâmetros definíveis por o usuário (Apêndice II), tais como:
+o controle de fluxo;
+a dimensão da rede;
+a largura do canal de comunicação;
+A profundidade dos buffers;
+E o algoritmo de roteamento.
+O uso da topologia malha bidirecional é justificado por facilitar as tarefas de posicionamento e de roteamento em circuitos integrados e/ ou FPGAs.
+Em essa topologia, cada roteador tem um número diferente de portas, dependendo de sua posição no que diz respeito aos limites da rede, conforme apresentado na Figura 31.
+Por exemplo, o roteador central tem cinco portas.
+Entretanto, cada roteador do limite da rede tem somente três ou quatro portas.
+O chaveamento por pacote wormhole implica a divisão do pacote em flits.
+O tamanho do flit na infra-estrutura Hermes é parametrizável, e o número máximo de flits num pacote é fixado em 2 (tamanho do flit em bits) 1.
+O primeiro e o segundo flit de um pacote são informações de cabeçalho, sendo respectivamente o endereço do roteador destino e o número de flits do corpo do pacote.
+O chaveamento por pacote wormhole permite que cada canal físico seja multiplexado em l canais virtuais.
+Embora a multiplexação de canais físicos aumente o desempenho do chaveamento, é importante manter o compromisso entre o desempenho, a complexidade e a área do roteador.
+A rede Hermes suporta duas estratégias de controle de fluxo:
+Handshake e credit based.
+O controle de fluxo baseado em créditos (credit based) é utilizado ao longo de o presente trabalho.
+Trata- se de um protocolo síncrono que possui melhor desempenho se comparado ao protocolo handshake.
+O protocolo de controle de fluxo, para permitir o compartilhamento do canal físico por l canais virtuais, deve ser capaz de distinguir entre os l canais virtuais usando o canal físico.
+Porta De clock_ rx rx lane_ rx data_ in credit_ out clock_ tx tx lane_ tx data_ out credit_ in l lanes n bits l lanes clock_ rx Porta De rx lane_ rx data_ in credit_ out A interface de comunicação entre roteadores Hermes-VC vizinhos é apresentada na Figura Tx:
+Indica disponibilidade de dado;
+Lane_ tx:
+Indica o canal virtual transmitindo dado;
+Data_ out:
+Dado a ser transmitido;
+Credit_ in:
+Informa disponibilidade de buffer no roteador vizinho, para cada canal virtual.
+O número de canais virtuais (l lanes) e a largura do barramento de dados (n bits) são parametrizáveis em função de os recursos de roteamento disponíveis e da memória disponível para esquemas de bufferização.
+O roteador Hermes possui uma lógica de controle de chaveamento centralizada e até 5 portas bidirecionais:
+East, West, North, South e Local.
+A porta Local estabelece a comunicação entre o roteador e seu núcleo local.
+As outras portas do roteador são conectadas aos roteadores vizinhos.
+Cada porta unidirecional (de entrada ou de saída) do roteador corresponde a um canal físico.
+A Figura 33 apresenta a arquitetura do roteador Hermes-VC com dois canais virtuais por canal físico.
+Cada porta de entrada tem um buffer para diminuir a perda de desempenho com o bloqueio de flits.
+A perda de desempenho ocorre porque quando um flit é bloqueado num dado roteador, os flits seguintes do mesmo pacote também são bloqueados neste, em outros roteadores ou no núcleo local.
+Com a inserção de um buffer, o número de roteadores afetados por o bloqueio dos flits potencialmente diminui.
+O buffer inserido no roteador Hermes funciona como uma fila FIFO (do inglês First In First Out) circular, cuja profundidade p é parametrizável.
+Quando o canal físico é dividido em l canais virtuais, um buffer com profundidade p/ l é associado a cada canal virtual.
+Por exemplo, o roteador apresentado na Figura 33 possui um espaço de armazenamento de 8 flits por porta de entrada.
+Como cada canal físico é multiplexado em dois canais virtuais, o buffer associado a cada canal virtual tem profundidade de 4 flits.
+A porta de entrada recebe flits e armazena- os no buffer do canal virtual indicado por o sinal lane_ rx (Figura 32).
+Depois, o número de créditos (espaços livres para armazenamento) do canal virtual é decrementado.
+Quando a porta de saída transmite um flit, este flit é removido do buffer e o número de créditos é incrementado.
+Os créditos disponíveis alcançam o roteador vizinho através do sinal credit_ out (Figura 32).
+Se o pedido de roteamento do pacote é atendido por o árbitro, o algoritmo de roteamento XY é executado para conectar o canal virtual de entrada a um canal virtual de saída.
+O algoritmo de roteamento XY encaminha os pacotes primeiro na direção X e depois na direção Y. O comportamento deste algoritmo permite a implementação de um crossbar parcial, como ilustrado na Figura 33.
+Pacotes recebidos por as portas Local, East ou West podem ser transmitidos por qualquer porta, exceto por a porta de recebimento.
+Pacotes recebidos por a porta North podem ser transmitidos somente por as portas Local e South, enquanto que pacotes recebidos por a porta South podem ser transmitidos somente por a porta Local e North.
+A adoção de um crossbar parcial reduz a área do roteador em 3% comparado a um crossbar completo.
+O algoritmo de roteamento XY pode retornar uma porta de saída livre ou ocupada.
+Quando o algoritmo retorna uma porta de saída ocupada, todos os flits deste pacote são bloqueados.
+Quando o algoritmo retorna uma porta de saída livre, a conexão entre o canal virtual de entrada e o canal virtual de saída é estabelecida e uma tabela de chaveamento é atualizada.
+Em o roteador Hermes-VC, uma porta (canal físico) é considerada ocupada apenas quando todos os seus canais virtuais estão ocupados.
+Em o algoritmo de roteamento XY não é necessário estabelecer uma ordem entre os canais virtuais, porque a restrição de percorrer primeiro a coordenada X e depois a coordenada Y é suficiente para evitar a ocorrência de deadlock.
+A Figura 35 ilustra o caminho percorrido por quatro pacotes numa rede Hermes-VC 8x8 com dois canais virtuais.
+Assume- se que:
+L2 somente é utilizado quando L1 está ocupado;
+Alguns canais virtuais podem estar bloqueados (x na Figura 35); (
+iii) um pacote usa sempre o mesmo canal virtual num mesmo canal físico, porém pode usar canais virtuais diferentes em canais físicos diferentes, como ocorre nos caminhos 2, 3 e 4.
+A informação de ocupação dos canais virtuais das portas de um roteador é coletada numa tabela de chaveamento, cuja estrutura é ilustrada na Figura 36.
+A tabela de chaveamento é composta por três vetores:
+In, out e free.
+O vetor in descreve conexões entre um canal virtual de entrada (índice de In) e um canal virtual de saída (conteúdo de In).
+O vetor out descreve conexões de um canal virtual de saída (índice de Out) a um canal virtual de entrada (conteúdo de Out).
+O vetor free armazena o estado dos canais virtuais de saída:
+Livre ou ocupado.
+Os vetores In e Out são preenchidos por um identificador único (id) construído por a combinação do número da porta (np), do número de canais virtuais por canal físico (ncv) e por o número do canal virtual (cv), como apresentado na Equação 4: As portas East, West, North, South e Local são numeradas de 0 a 4, respectivamente.
+Os Considere um roteador com dois canais virtuais por canal físico, o canal virtual L1 da porta North possui o identificador 4 (2 × 2)+ 0) e o canal virtual L2 possui o identificador 5 (2 × 2)+ 1).
+A tabela de chaveamento apresentada na Figura 36 (b) representa o estado de chaveamento ilustrado na Figura 36 (a).
+Considere a porta North.
+O canal virtual de saída L1 está ocupado e conectado ao canal virtual de entrada L1 da porta West (out $= 2).
+O canal virtual de saída L2 está ocupado e conectado ao canal virtual de entrada L1 da porta South (out $= 6).
+O canal virtual de entrada L1 está conectado ao canal virtual de saída L1 da porta Local e o canal virtual de entrada L2 está conectado ao canal virtual de saída L1 da porta South (in $= 6).
+A tabela de chaveamento apresenta informações redundantes com o objetivo de aumentar o desempenho do algoritmo de roteamento.
+Depois do roteamento, um escalonador é responsável por alocar a largura de banda entre os l canais virtuais de cada porta de saída.
+Cada canal virtual, se tem flits para transmitir e créditos para transmissão usa no mínimo l da largura de banda do canal físico.
+Se um único canal virtual satisfaz esta condição, ele usa toda largura de banda do canal físico.
+A Figura 37 ilustra um exemplo de alocação de banda de um canal físico.
+O canal físico é compartilhado por dois canais virtuais, onde um transmite o pacote A e o outro o pacote B. Quatro situações de alocação são apresentadas na Figura.
+A primeira situação corresponde à alocação da metade da largura da banda para cada canal virtual, supondo que ambos possuem créditos para transmissão.
+A segunda e a quarta situações ilustram a alocação de toda a largura de banda para apenas um dos canais virtuais, porque o outro não possui créditos para transmissão.
+Em a terceira situação, a largura de banda não é utilizada, porque nenhum dos canais virtuais possui créditos para transmissão.
+Depois que todos os flits do pacote são transmitidos, a conexão entre o canal virtual de entrada e o canal virtual de saída deve ser encerrada.
+Isto pode ser feito de dois modos diferentes:
+Hermes-VC possui um contador para cada canal virtual de entrada.
+O contador de um canal virtual específico é inicializado quando o segundo flit do pacote é recebido, indicando o número de flits que compõe a carga útil do pacote.
+O contador é decrementado a cada flit transmitido com sucesso.
+Quando o valor do contador alcança zero, a posição do vetor free correspondente ao canal virtual de saída vai para um, encerrando a conexão.
+O roteador recebe um pacote por o canal virtual L1 da porta West.
+O canal virtual L1 da porta de entrada West requisita roteamento ativando o sinal h).
+A arbitragem é executada e o pacote recebido por o canal virtual L1 da porta de entrada West recebe permissão de roteamento.
+O algoritmo de roteamento é executado, a tabela de chaveamento é atualizada $= 0), e o sinal ack_ h é ativado, indicando que a conexão entre o canal virtual L1 da porta de entrada West e o canal virtual L1 da porta de saída East foi estabelecida.
+O roteador começa a transmitir o pacote por o canal virtual L1 da porta de saída East.
+Todos os flits do pacote são transmitidos e a conexão entre o canal virtual L1 da porta de entrada West e o canal virtual L1 da porta e saída East é encerrada $= 1).
+A latência ideal em ciclos de relógio para transferir um pacote da origem para o destino é dada por a Equação 5: P é o tamanho do pacote em flits.
+Em a simulação apresentada na Figura 38, observa- se que o pacote é transmitido por o roteador com latência igual a ideal, 13 ciclos de relógio, onde 5 ciclos de relógio são gastos por o algoritmo de arbitragem/ roteamento e 7 ciclos de relógio são gastos na transmissão dos sete flits que compõem o pacote.
+Uma simulação funcional do compartilhamento da largura de banda do canal de saída East P. Entrada Local por dois pacotes oriundos das portas de entrada Local e West é apresentada na Figura 39.
+Os passos da simulação são descritos abaixo, onde a numeração tem correspondência na Figura 39.
+Local e outro por a porta de entrada West.
+Ambos têm como destino a porta de saída East.
+O roteador recebe simultaneamente um pacote por a porta de entrada Local (índice 4) e outro por a porta de entrada West, ambos destinados à porta de saída East.
+Ambos requisitam roteamento ativando o sinal h..
+A arbitragem é executada e o pacote recebido por o canal virtual L1 da porta de entrada West recebe permissão de roteamento.
+O algoritmo de roteamento é executado, a tabela de chaveamento é atualizada $= 0), e o sinal ack_ h é ativado, indicando que a conexão entre o canal virtual L1 da porta de entrada West e o canal virtual L1 da porta de saída East foi estabelecida.
+O roteador começa a transmitir o pacote oriundo do canal virtual L1 da porta de entrada West por o canal virtual L1 da porta de saída East.
+A arbitragem é executada novamente e o pacote recebido por o canal virtual L1 da porta de entrada Local (sel $= 4) recebe permissão de roteamento.
+O algoritmo de roteamento é executado, a tabela de chaveamento é atualizada $= 0), e o sinal ack_ h é ativado, indicando que a conexão entre o canal virtual L1 da porta de entrada Local e o canal virtual L2 da porta de saída East foi estabelecida.
+O canal virtual L2 é selecionado para transmissão porque o canal virtual L1 já está ocupado.
+A largura de banda da porta de saída East começa a ser compartilhada por os canais virtuais L1 e L2.
+O canal virtual L1 envia o último flit do pacote e a largura de banda da porta de saída East passa a ser totalmente alocada para o canal virtual L2.
+A conexão entre o canal virtual L1 da porta de entrada West e o canal virtual L1 da porta de saída East é encerrada $= 1).
+A conexão entre o canal virtual L1 da porta de entrada Local e o canal virtual L2 da porta de saída East é encerrada $= 1).
+Em a simulação apresentada na Figura 39, observa- se as quatro situações de compartilhamento de largura de banda ilustradas na Figura 37.
+Em o instante inicial da simulação, nenhum canal virtual possui flits para transmitir.
+Em o intervalo de tempo entre 220 ns e 320 ns, o canal virtual L1 começa a transmitir flits utilizando a largura de banda total do canal físico.
+Entre o intervalo de 320 ns e 400 ns, os canais virtuais L1 e L2 compartilham o canal físico, cada canal virtual alocando a metade da largura de banda.
+Em 400 ns, o canal virtual L1 termina de transmitir seus flits e o canal virtual L2 passa a alocar toda largura de banda.
+Em 500 ns o canal virtual L2 termina de transmitir seus flits e a condição inicial é retomada.
+Este Capítulo apresenta a segunda contribuição deste trabalho, a diferenciação entre fluxos através do estabelecimento de conexão.
+Em este projeto, a rede oferece um serviço com vazão garantida (GT) aos fluxos com requisitos de QoS e um serviço Be aos fluxos sem requisitos de QoS.
+Este método, GT mais Be, é similar ao implementado na rede.
+A Seção 5.1 descreve o projeto da rede Hermes com chaveamento por circuito (Hermes-CS).
+A validação funcional desta rede é apresentada na Seção 5.2.
+Este projeto parte de uma versão da Hermes com dois canais virtuais, L1 e L2.
+O canal virtual L1 transporta dados utilizando chaveamento por circuito, enquanto o canal virtual L2 transporta dados utilizando chaveamento por pacote.
+Fluxos GT têm maior prioridade do que fluxos Be, com garantia de latência fim-a-fim.
+Quando um fluxo GT deixa um canal físico livre, fluxos Be podem usar este canal, sem com isto penalizar o fluxo GT.
+A Figura 40 ilustra o compartilhamento da largura de banda da porta North por um fluxo GT (oriundo da porta South) e um fluxo Be (oriundo da porta West).
+Observe que o fluxo Be utiliza a largura de banda não utilizada por o fluxo GT.
+A Figura 41 ilustra a interface entre os roteadores deste projeto.
+Os seguintes sinais compõem a porta de saída:
+Clock_ tx:
+Sincroniza a transmissão de dados;
+Tx: Indica dado disponível;
+Lane_ tx:
+Indica o canal virtual transmitindo o dado;
+Data_ out:
+Dado a ser enviado;
+Credit_ in:
+Indica existência de espaço disponível no buffer do canal virtual L2;
+ack_ out:
+Indica a criação &quot;1 «ou remoção &quot;0 «de uma conexão.
+Um fluxo GT requer o estabelecimento de uma conexão antes da transmissão dos dados.
+Uma conexão entre um núcleo origem e um núcleo destino requer a reserva do canal virtual L1 ao longo de o caminho entre seus respectivos roteadores.
+Esta reserva de caminho evita outras conexões no mesmo caminho.
+A implementação do chaveamento por circuito é mais simples do que o chaveamento por pacote, permitindo que:
+Um registrador seja usado no canal virtual L1 ao invés de um buffer;
+E o controle de fluxo no canal virtual L1 seja simplificado, não requerendo nem handshake nem controle baseado em créditos.
+Algumas redes, como a, armazenam numa tabela de dados a largura de banda requerida por os fluxos GT.
+Esta tabela aumenta significativamente a área do roteador.
+Utilizando essa tabela, a rede permite que múltiplos fluxos GT utilizem o mesmo canal físico, multiplexando a largura de banda via TDM.
+Em a Hermes-CS, somente uma conexão pode ser estabelecida por canal físico, não requerendo essa área adicional.
+A Figura 42 ilustra o protocolo usado para transmitir dados dos fluxos GT.
+Os passos deste protocolo são descritos abaixo, onde a numeração tem correspondência na Figura 42.
+O núcleo origem envia um pacote Be de controle (através do canal virtual L2) ao núcleo destino, solicitando a criação de uma conexão.
+O sinal ack é ativado quando o pacote de controle chega ao núcleo destino.
+O sinal ack é propagado até o núcleo origem em r ciclos de relógio, onde r é o número de roteadores no caminho da conexão (destino e origem inclusive).
+Quando o sinal ack chega ao núcleo origem, a conexão é efetivamente estabelecida e os dados podem ser transmitidos através do canal virtual L1.
+Quando a origem não tem mais dados para transmitir, ela envia um pacote Be de controle (através do canal virtual L2) solicitando a remoção da conexão.
+Quando o pacote de controle chega ao núcleo destino, o sinal ack é desativado, sendo esta informação propagada até a origem em r ciclos de relógio.
+Quando o sinal ack desativado chega ao núcleo origem, a conexão é efetivamente removida.
+Em resumo, conexões são estabelecidas ou removidas usando pacotes Be de controle.
+Estes pacotes são diferenciados dos pacotes Be de dados por o bit mais significativo do primeiro flit de cabeçalho.
+Quando este bit é` 1', o pacote Be tem função de controle e o segundo flit do pacote informa o comando a ser executado (atualmente, dois pacotes de controle são definidos, estabelecimento e remoção da conexão).
+Pacotes Be de controle não possuem corpo.
+A Figura 43 apresenta um pacote Be de controle que solicita o estabelecimento de uma conexão entre um núcleo qualquer conectado à rede Hermes-CS e o núcleo destino 22.
+A implementação atual de chaveamento por circuito na rede Hermes pode ser aprimorada por a adição de um mecanismo de prazo final para o estabelecimento de uma conexão.
+Este mecanismo pode evitar a reserva de um caminho por um longo período quando alguma porção da rede apresenta congestionamento.
+Mesmo que fluxos Be possam usar um caminho reservado sem uso, como relatado acima, a reserva de caminhos (sem efetivo estabelecimento da conexão) pode evitar o estabelecimento de outras conexões.
+A rede Hermes-CS foi descrita em VHDL e validada por simulação funcional.
+A Figura 44 mostra a simulação funcional do estabelecimento de uma conexão entre os núcleos 00 e 20.
+Os passos da simulação são descritos abaixo, onde a numeração tem correspondência na Figura 44.
+O roteador 00 recebe um pacote por o canal virtual L2 da porta Local (índice 4).
+O bit mais significativo do primeiro flit está ativo, indicando pacote Be de controle.
+Conseqüentemente, o pacote contém os campos ilustrados na Figura 43: A parte baixa do primeiro flit indica o endereço do roteador destino e o segundo flit indica o comando.
+O roteador 00 realiza o roteamento, estabelece a conexão entre o canal virtual L2 da porta de entrada Local e o canal virtual L2 da porta de saída East e então transmite o pacote.
+O roteador 10 recebe o pacote por o canal virtual L2 da porta West, realiza o roteamento, estabelece a conexão entre o canal virtual L2 da porta de entrada West e o canal virtual L2 da porta de saída East e então transmite o pacote.
+O roteador 20 recebe o pacote por o canal virtual L2 da porta West, realiza o roteamento, estabelece a conexão entre o canal virtual L2 da porta de entrada West e o canal virtual L2 da porta de saída Local (índice 4) e então transmite o pacote.
+O núcleo destino recebe o pedido de estabelecimento de conexão e então ativa o sinal ack, informando que a conexão foi estabelecida com sucesso.
+O sinal ack é propagado até a origem, consumindo um ciclo de relógio em cada roteador no caminho da conexão.
+Quando o sinal ack chega ao núcleo origem, o núcleo pode começar a enviar os dados.
+A latência ideal em ciclos de relógio para estabelecer e remover uma conexão é dada por a Equação 6.
+Após o estabelecimento da conexão, a latência para transmitir dados QoS do núcleo origem ao núcleo destino é igual a n, ou seja, um ciclo de relógio por roteador no caminho da conexão.
+Em a simulação apresentada na Figura 44, observa- se que o núcleo destino ativa o sinal ack um ciclo de relógio após o recebimento do pacote.
+No entanto, este tempo pode variar de acordo com a implementação da interface de rede que conecta o núcleo à rede.
+Depois do envio de todos os dados QoS, o núcleo origem deve enviar um outro pacote Be de controle, removendo a conexão.
+Este procedimento é semelhante ao apresentado na Figura 44, à exceção de o segundo flit do pacote que deve conter o comando 02 (remoção da conexão).
+A simulação apresentada na Figura 46 mostra um exemplo de compartilhamento da largura de banda entre dados de uma conexão QoS e um pacote Be.
+Os dados da conexão QoS são transmitidos em rajadas de 5 flits com taxa de inserção de 50%.
+O pacote Be é composto por nove flits (dois flits de cabeçalho e sete flits de dados úteis) transmitidos numa única rajada.
+Os passos P. Entrada Local da simulação são descritos abaixo, onde a numeração tem correspondência na Figura 46.
+O roteador recebe simultaneamente um pacote Be por o canal virtual L1 da porta Local (índice 4) e dados QoS por o canal virtual L2 da porta West (índice 1), ambos destinados a porta de saída East.
+Como os dados QoS têm prioridade maior em relação a o pacote Be, eles são transmitidos por a porta de saída East usando toda a largura de banda do canal.
+É importante observar que um dado QoS possui latência de um ciclo de relógio entre a recepção por a porta de entrada e a subseqüente transmissão por a porta de saída.
+Quando a conexão QoS não possui dados para transmitir, os flits do pacote Be são transmitidos.
+A conexão QoS possui dados para transmitir, conseqüentemente aloca toda a largura de banda da porta de saída East.
+A conexão QoS não possui dados para transmitir, então o restante dos flits do pacote Be são transmitidos.
+O pacote Be terminou de transmitir os seus flits e a conexão QoS não possui dados para transmitir, conseqüentemente a largura de banda da porta de saída East fica ociosa.
+A conexão QoS possui novamente dados para transmitir, então aloca toda a largura de banda da porta de saída East.
+A latência ideal para transmitir pacotes Be na rede Hermes-CS é a mesma da rede HermesVC (Equação 5, página 75).
+Este Capítulo apresenta a terceira contribuição deste trabalho, a inserção de mecanismos de alocação de recursos baseados em prioridades na rede Hermes.
+Estes mecanismos de alocação permitem a diferenciação dos fluxos de acordo com suas necessidades de desempenho.
+Dois mecanismos baseados em prioridades são implementados:
+Mecanismo baseado em prioridades fixas e mecanismo baseado em prioridades dinâmicas.
+O projeto da rede Hermes com mecanismo baseado em prioridades fixas (Hermes-FP) é descrito na Seção 6.1 e a validação funcional do roteador desta rede é apresentada na Seção 6.2.
+A Seção 6.3 descreve o projeto da rede Hermes com o mecanismo baseado em prioridades dinâmicas (Hermes-DP) e a validação do roteador desta rede é apresentada na Seção 6.4.
+Em o projeto Hermes-FP, cada canal virtual é associado a uma prioridade estática e é servido conforme esta prioridade.
+A prioridade de cada canal virtual é dada por seu índice, como definido por a Equação 7.
+De este modo, esta rede é capaz de diferenciar até n fluxos, onde n é o número de canais virtuais por canal físico.
+Para diferenciar fluxos, um novo campo, denominado priority, é inserido na parte alta do primeiro flit do pacote, conforme ilustrado na Figura 48.
+Este campo determina qual canal virtual é usado para transmissão do pacote.
+Por exemplo, o canal virtual L2 transmite pacotes com prioridade O usuário deve atribuir ao campo priority um valor entre zero e, sendo zero atribuído aos pacotes de menor prioridade e aos de maior prioridade.
+Somente o roteador origem verifica o campo priority.
+Os demais roteadores transmitem pacotes usando o mesmo canal virtual alocado por o roteador origem.
+Como mencionado anteriormente, a atribuição de prioridades fixas aos canais virtuais requer modificações na política de arbitragem e escalonamento do roteador.
+Em ambos, o pacote associado ao canal virtual com prioridade maior é servido primeiro, mesmo se os outros pacotes estão esperando há mais tempo.
+Logo, a transmissão dos dados dos canais virtuais com prioridade menor depende da carga dos canais virtuais com prioridade maior, a qual pode variar dinamicamente.
+Por esta razão, os limites de latência fim-a-fim não podem ser determinados para todos os pacotes, apenas para os pacotes transmitidos por o canal virtual com prioridade mais alta.
+Quando pacotes com a mesma prioridade competem por recursos, o mecanismo de prioridades fixas não provê garantias rígidas a nenhum dos pacotes.
+Conseqüentemente, é difícil dar suporte a serviços múltiplos com QoS garantida.
+A Figura 49 ilustra a alocação de banda de um canal físico utilizando o escalonamento baseado em prioridades fixas.
+O canal físico é compartilhado por dois canais virtuais onde um transmite o pacote A com prioridade 1 e o outro o pacote B com prioridade 0.
+Três situações de alocação são apresentadas na Figura.
+A primeira situação corresponde à alocação de toda a largura de banda para o pacote A porque este tem prioridade maior do que o pacote B. Em a segunda situação, o pacote B utiliza toda a largura de banda porque o pacote A não possui créditos para transmissão.
+Em a terceira situação, a largura de banda não é utilizada porque nenhum dos pacotes possui créditos.
+Arbitragem e escalonamento baseado em prioridades fixas são eficientes para um número pequeno de canais virtuais.
+Por exemplo, é possível reservar um canal virtual para fluxos de tempo real, um segundo para fluxos de tempo não real com taxa de perda garantida, e um terceiro para fluxos melhor esforço.
+A desvantagem deste método é o fato da área do roteador aumentar aproximadamente com o quadrado do número de canais virtuais.
+Prioridade 1 corresponde a pacote QoS.
+Prioridade 0 corresponde a pacote Be.
+O roteador recebe simultaneamente um pacote com prioridade 1 (QoS) por o canal virtual L2 da porta Local (índice 4) e um pacote com prioridade 0 (Be) por o canal virtual L1 da porta West.
+A prioridade de cada pacote pode ser observada na parte alta do primeiro flit.
+Ambos requisitam roteamento, ativando os sinais h e h..
+A arbitragem é executada e o pacote recebido por o canal virtual L2 da porta de entrada Local (sel $= 4) recebe permissão de roteamento, porque o canal virtual L2 tem prioridade maior do que o outro canal requisitando roteamento.
+O algoritmo de roteamento é executado, a tabela de chaveamento é atualizada $= 0), e o sinal ack_ h é ativado, indicando que a conexão entre o canal virtual L2 da porta de entrada Local e o canal virtual L2 da porta de saída East foi estabelecida.
+O roteador começa a transmitir o pacote oriundo do canal virtual L2 da porta de entrada Local por o canal virtual L2 da porta de saída East.
+É importante lembrar que na Hermes-FP os pacotes são transmitidos usando o mesmo canal virtual utilizado na recepção dos mesmos.
+A arbitragem é executada novamente e o pacote recebido por o canal virtual L1 da porta de entrada West recebe permissão de roteamento.
+O algoritmo de roteamento é executado, a tabela de chaveamento é atualizada $= 0), e o sinal ack_ h é ativado, indicando que a conexão entre o canal virtual L1 da porta de entrada West e o canal virtual L1 da porta de saída East foi estabelecida.
+O último flit do pacote QoS é transmitido por o canal virtual L2 da porta de saída East.
+Imediatamente após, o pacote Be começa a ser transmitido por o canal virtual L1 desta porta.
+Em a simulação apresentada na Figura 50, observa- se que a conexão entre a porta de entrada West e a porta de saída East é estabelecida em 300 ns, semelhante ao que ocorre na simulação do roteador Hermes-VC, ilustrada na Figura 39.
+No entanto, aqui a largura de banda do canal físico não é compartilhada por os dois canais virtuais, porque o canal virtual L2 tem prioridade maior.
+P. Entrada Local A simulação funcional quando dois pacotes com mesma prioridade competem por os mesmos recursos é apresentada na Figura 51.
+Os passos da simulação são descritos abaixo, onde a numeração tem correspondência na Figura 51.
+O roteador recebe simultaneamente dois pacotes com mesma prioridade por as portas de entrada Local (índice 4) e West (índice 1).
+Ambos requisitam roteamento ativando o sinal h..
+Como os dois pacotes requisitando roteamento possuem a mesma prioridade, a arbitragem Round-robin é usada para determinar qual terá acesso ao roteamento.
+Em este caso, a requisição do canal virtual L2 da porta de entrada West é atendida.
+O algoritmo de roteamento é executado, a tabela de chaveamento é atualizada $= 0), e o sinal ack_ h é ativado, indicando que a conexão entre o canal virtual L2 da porta de entrada West e o canal virtual L2 da porta de saída East foi estabelecida.
+O roteador começa a transmitir o pacote oriundo do canal virtual L2 da porta de entrada West por o canal virtual L2 da porta de saída East.
+A arbitragem é executada novamente, e o pacote recebido por o canal virtual L2 da porta de entrada Local (sel $= 4) recebe permissão de roteamento.
+O algoritmo de roteamento é executado.
+No entanto, o canal virtual L2 da porta de saída East está ocupado.
+Conseqüentemente, a conexão não pode ser estabelecida.
+A solicitação de roteamento permanece ativa até que o canal virtual L2 seja liberado.
+Quando isto ocorre $= 14) (1) é ativado, indicando que a conexão entre o canal virtual L2 da porta de entrada Local e o canal virtual L2 da porta de saída East foi estabelecida.
+O roteador começa a transmitir o pacote oriundo do canal virtual L2 da porta de entrada Local por o canal virtual L2 da porta de saída East.
+Em a rede Hermes-FP, a latência ideal em ciclos de relógio para transferir um pacote (Be ou QoS) da origem para o destino é a mesma da rede Hermes-VC (veja na Equação 5, página 75).
+Este projeto é semelhante à Hermes-FP, porém um mecanismo de alocação de recursos baseado em prioridades dinâmicas é utilizado para prover serviços diferenciados aos fluxos.
+Este mecanismo, como o anterior, não necessita alterações na interface do roteador (Figura 32).
+Em o projeto Hermes-DP, a prioridade de cada canal virtual varia conforme a prioridade do pacote que o mesmo está transmitindo.
+Isto permite:
+A transmissão de pacotes por qualquer canal virtual livre;
+A transmissão de um pacote por canais virtuais diferentes em roteadores diferentes;
+Em este projeto, o campo priority também é incluído no cabeçalho do pacote, conforme ilustrado na Figura 48.
+No entanto, o usuário pode atribuir a este campo um valor entre zero e, onde t é a largura em bits de um flit.
+Conseqüentemente, a Hermes-DP pode diferenciar um número maior de fluxos (2 t) do que a Hermes-FP.
+A alocação de recursos baseada em prioridades dinâmicas requer modificações na política de arbitragem, no roteamento e no escalonamento do roteador, conforme ilustrado na Figura 52.
+A política de arbitragem é a mesma adotada por a Hermes-FP, ou seja, o pacote com prioridade maior é servido primeiro.
+Em caso de empate, uma política de arbitragem round-robin é usada.
+No entanto, como neste projeto a prioridade está associada somente ao pacote, é necessário um circuito mais complexo para determinar qual pacote tem prioridade maior e, portanto, terá acesso ao roteamento.
+Este circuito utiliza comparadores em cadeia conforme ilustrado na Figura arbitragem.
+Entretanto, o número de ciclos excedentes depende do número de canais virtuais.
+Quanto maior o número de canais virtuais, maior o número de níveis da cadeia de comparadores e por conseqüência maior o número de ciclos consumidos.
+Em o roteamento, a tabela de chaveamento é estendida por um novo vetor, denominado priority.
+O vetor priority informa a prioridade dos canais virtuais de saída.
+Durante o roteamento, a posição do vetor priority correspondente à porta e canal virtual de saída selecionados é preenchida com o valor do campo priority do pacote que está sendo roteado.
+A tabela de chaveamento apresentada na Figura 54 (b) representa os chaveamentos ilustrados na Figura 54 (a).
+Considere a porta North.
+O canal virtual de saída L1 está ocupado e conectado ao canal virtual de entrada L1 da porta West (out $= 2).
+O canal virtual de saída L2 está ocupado e conectado ao canal virtual de entrada L1 da porta South (out $= 6).
+A posição do vetor priority correspondente ao canal virtual de saída L1 é preenchida com a prioridade do pacote B, enquanto que a posição correspondente ao canal virtual de saída L2 é preenchida com a prioridade do pacote A.
+Em o escalonamento, o vetor priority é verificado para determinar qual canal virtual tem o pacote com maior prioridade.
+Em o exemplo apresentado na Figura 54, o pacote A tem maior prioridade e por esta razão usa toda a largura de banda do canal físico.
+Em caso de empate, uma das seguintes abordagens é adotada:
+Round-robin, onde os x pacotes com maior prioridade recebem 1/ x da largura de banda do canal físico;
+Ou um dos pacotes com maior prioridade recebe 100% da largura de banda do canal físico.
+A abordagem utilizada por o escalonador é parametrizável e deve ser definida na fase de projeto da rede.
+O empate pode ocorrer porque pacotes com a mesma prioridade podem ser transmitidos por canais virtuais diferentes, o que não é possível na HermesFP.
+A principal desvantagem deste projeto é a falta de reserva de recursos, o que permite que pacotes Be ocupem todos os canais virtuais, impedindo a transmissão de fluxos com prioridade maior.
+Esta desvantagem é ilustrada na Figura 55, onde o pacote C possui prioridade maior do que os pacotes A e B, porém não pode ser transmitido porque os pacotes A e B foram chaveados primeiro.
+Logo, o pacote C deve aguardar que um dos canais virtuais seja liberado para depois ser transmitido.
+É importante ressaltar que o chaveamento por pacote wormhole dificulta o uso de preempção de pacotes.
+O método wormhole funciona como um pipeline, onde os flits de cabeçalho (contendo informações do destino) se movem por a rede e todos os flits de dados (payload) os seguem.
+Depois que a conexão entre o canal virtual de entrada e o canal virtual de saída é estabelecida, todos os flits do pacote devem ser transmitidos antes da conexão ser encerrada.
+L1 da porta de entrada West.
+Ambos têm como destino a porta de saída East.
+Os passos da simulação são descritos abaixo, onde a numeração tem correspondência na Figura 56.
+O roteador recebe simultaneamente um pacote com prioridade 3 por o canal virtual L1 da porta de entrada Local (índice 4) e um pacote com prioridade 5 por o canal virtual L1 da porta de entrada West.
+A prioridade de cada pacote pode ser observada na parte alta do primeiro flit.
+Ambos requisitam roteamento ativando o sinal h..
+A arbitragem é executada e o pacote recebido por o canal virtual L1 da porta de entrada West recebe permissão de roteamento, porque o pacote associado a esta porta tem prioridade maior.
+O algoritmo de roteamento é executado, a tabela de chaveamento é atualizada $= 0), e o sinal ack_ h é ativado, indicando que a conexão entre o canal virtual L1 da porta de entrada West e o canal virtual L1 da porta de saída East foi estabelecida.
+É importante lembrar que, durante o roteamento, a posição do vetor priority correspondente à porta e canal virtual de saída selecionados é preenchida com o valor do campo priority do pacote que está sendo roteado $= 5).
+O roteador começa a transmitir o pacote oriundo do canal virtual L1 da porta de entrada West por o canal virtual L1 da porta de saída East.
+A arbitragem é executada novamente e o pacote recebido por o canal virtual L1 da porta de entrada Local (sel $= 4) recebe permissão de roteamento.
+O algoritmo de roteamento é executado, a tabela de chaveamento é atualizada $= 0), e o sinal ack_ h é ativado, indicando que a conexão entre o canal virtual L1 da porta de entrada Local e o canal virtual L2 da porta de saída East foi estabelecida.
+Quando o canal virtual selecionado possui créditos para recepção de dados, os flits são transmitidos num ciclo de relógio.
+Caso contrário, o canal virtual libera o canal físico para ser utilizado por outro canal virtual.
+Se nenhum canal virtual pode usar o canal físico, o sinal tx é desativado.
+Aqui, o canal físico fica ocioso porque o canal virtual L1 não possui créditos e o canal virtual L2 não possui dados para transmitir.
+A falta de dados no canal virtual L2 deve- se ao fato que a conexão com este canal virtual é estabelecida no tempo 480 ns e, portanto, somente no ciclo de relógio seguinte esta conexão começará a transmitir dados.
+O canal virtual L2 começa a transmitir seus dados, aproveitando que o canal virtual L1 (que possui prioridade maior) não possui créditos para transmissão.
+O canal virtual L1 (com prioridade maior) volta a ter créditos e, por conseqüência, volta a ocupar toda a largura de banda do canal físico.
+O canal virtual L1 termina de transmitir seus dados.
+Conseqüentemente, o canal virtual L2 passa novamente a transmitir seus dados.
+O canal físico fica ocioso porque o canal virtual L1 não possui dados para transmitir e o canal virtual L2 não possui créditos para a transmissão.
+A simulação funcional quando dois pacotes com mesma prioridade competem por os mesmos recursos é apresentada na Figura 57.
+Os passos da simulação são descritos abaixo, onde a numeração tem correspondência na Figura 57.
+Em esta simulação, o escalonador adotada a abordagem round-robin em caso de empate entre pacotes com mesma prioridade.
+O roteador recebe simultaneamente dois pacotes com prioridade 5 por as portas de entrada Local (índice 4) e West (índice 1).
+A prioridade de cada pacote pode ser observada na parte alta do primeiro flit.
+Ambos requisitam roteamento ativando o sinal h..
+Como os dois pacotes requisitando roteamento possuem a mesma prioridade, a arbitragem Round-robin é usada para determinar qual terá acesso ao roteamento.
+Em este caso, a requisição do canal virtual L1 da porta de entrada West é atendida.
+O algoritmo de roteamento é executado, a tabela de chaveamento é atualizada $= 0), e o sinal ack_ h é ativado, indicando que a conexão entre o canal virtual L1 da porta de entrada West e o canal virtual L1 da porta de saída East foi estabelecida.
+O roteador começa a transmitir o pacote oriundo do canal virtual L1 da porta de entrada West por o canal virtual L1 da porta de saída East.
+A arbitragem é executada novamente e o pacote recebido por o canal virtual L1 da porta de entrada Local (sel $= 4) recebe permissão de roteamento.
+O algoritmo de roteamento é executado, a tabela de chaveamento é atualizada $= 0), e o sinal ack_ h é ativado, indicando que a conexão entre o canal virtual L1 da porta de entrada Local e o canal virtual L2 da porta de saída East foi estabelecida.
+O canal físico fica ocioso porque o canal virtual L1 não possui créditos e o canal virtual L2 não possui dados para transmitir.
+O motivo da falta de dados no canal virtual L2 é o mesmo apresentado na simulação Figura 56, ou seja, a conexão com este canal virtual é estabelecida no tempo 480 ns e somente no ciclo de relógio seguinte ela começará a transmitir dados.
+O canal virtual L2 começa a transmitir seus dados.
+Em este momento, o canal virtual L1 continua sem créditos para transmissão.
+O canal físico começa a ser compartilhado por os canais virtuais L1 e L2, que possuem a mesma prioridade.
+O canal virtual L1 termina de transmitir seus dados.
+Conseqüentemente, o canal virtual L2 passa a ocupar toda a largura de banda do canal físico.
+O canal físico fica ocioso porque o canal virtual L1 não possui dados para transmitir e o canal virtual L2 não possui créditos para a transmissão.
+Em a simulação apresentada na Figura 57, observa- se o compartilhamento da largura de banda do canal físico entre dois pacotes com a mesma prioridade.
+Este compartilhamento não é possível na rede Hermes-FP, porque esta não permite a transmissão de pacotes com mesma prioridade por canais virtuais diferentes.
+P. Entrada South A principal desvantagem do mecanismo baseado em prioridades dinâmicas, a falta de reserva de recursos, é observada na simulação funcional apresentada na Figura 58.
+Esta simulação funcional mostra um pacote com prioridade maior aguardando roteamento porque todos os canais virtuais estão ocupados.
+Os passos da simulação são descritos abaixo, onde a numeração tem correspondência na Figura 58.
+O roteador recebe um pacote com prioridade 5 por o canal virtual L1 da porta de entrada South (índice 3).
+A prioridade do pacote pode ser observada na parte alta do primeiro flit.
+O canal virtual L1 da porta South requisita roteamento ativando o sinal h (h (3) (0)).
+A arbitragem é executada e o pacote recebido por o canal virtual L1 da porta de entrada South (sel $= 3) recebe permissão de roteamento.
+O algoritmo de roteamento é executado.
+No entanto, como todos os canais virtuais da porta de saída escolhida por o roteamento (porta Local) estão ocupados (free (4)(0) = 0 e free (4)(1) = 0), a conexão não é estabelecida.
+A solicitação de roteamento permanece ativa até que um canal virtual seja liberado.
+Quando isto ocorre (free (4)(0) = 1), o roteamento é executado com sucesso, a tabela de chaveamento é atualizada (free (4)(0) = 0) e o sinal ack_ h (3) (0) é ativado, indicando que a conexão entre o canal virtual L1 da porta de entrada South e o canal virtual L1 da porta de saída Local foi estabelecida.
+A largura de banda da porta de saída Local é totalmente alocada para o canal virtual L1, porque a prioridade do pacote associado a este canal é maior.
+Em a simulação apresentada na Figura 58, observa- se que a prioridade dos pacotes que estão ocupando os canais virtuais da porta de saída Local (priority (4)(0) = 0 e priority (4)(1) = 0) é menor do que a do pacote que está esperando o roteamento (priority $= 5).
+Isto revela que:
+Se todos os canais virtuais da porta de saída escolhida por o roteamento estão ocupados, não importa a prioridade do pacote aguardando roteamento, ele deverá esperar até que um canal virtual seja liberado.
+Não existe reserva de recursos para pacotes com prioridades como na rede Hermes-FP.
+Outra diferença da Hermes-DP em relação a Hermes-PF está no cálculo da latência ideal, ilustrada na Equação 8.
+Note que a rede Hermes-DP consome dois ciclos de relógio a mais para realizar o algoritmo de arbitragem/ roteamento em cada roteador.
+Esse acréscimo refere- se à necessidade de um circuito mais complexo para determinar qual pacote possui prioridade maior.
+P é o tamanho do pacote em flits.
+Em este Capítulo é proposto o projeto de rede que utiliza mecanismos de alocação de recursos baseados em taxas, denominado Hermes-RB.
+Este mecanismo define a prioridade de cada fluxo dinamicamente, de acordo com a taxa requerida e taxa usada por o mesmo.
+A Seção 7.1 descreve o projeto da rede Hermes com escalonamento baseado em taxas (Hermes-RB).
+A validação funcional da rede Hermes-RB é apresentada na Seção 7.2.
+Redes de telecomunicação têm adotado políticas de escalonamento baseadas em taxas para controle de congestionamento.
+Exemplos de tais políticas são:
+Virtual Clock, Weighted Fair Queuing e o método proposto em.
+A política de escalonamento baseada em taxas proposta aqui assume as seguintes características de rede intra-chip:
+Chaveamento por pacote wormhole, roteamento determinístico, e canais físicos multiplexados em no mínimo dois canais virtuais.
+Fluxos Be são transmitidos usando somente um canal virtual, enquanto fluxos QoS podem usar qualquer canal virtual.
+Esta reserva de recursos para fluxos QoS é necessária para evitar que múltiplos fluxos Be impeçam que um fluxo QoS use o canal.
+A Figura 59 ilustra a interface entre os roteadores deste projeto.
+A interface entre os roteadores é semelhante à interface da Hermes-CS, diferenciando- se por os sinais credit e ack, os quais servem a todos os canais virtuais.
+Os seguintes sinais compõem a porta de saída:
+Clock_ tx:
+A política de escalonamento baseada em taxas proposta compreende duas etapas:
+Controle de admissão seguido por um escalonamento dinâmico.
+A etapa de admissão determina se um novo fluxo pode ser admitido por a rede sem colocar em risco as garantias de desempenho dadas a outros fluxos QoS.
+A etapa de admissão começa por o envio de um pacote de controle do roteador origem ao roteador destino, contendo a taxa requerida por o núcleo, conforme ilustrado na Figura 60.
+O fluxo QoS é admitido por a rede se e somente se todos os roteadores no caminho até o destino podem transmitir a taxa requerida.
+Quando o pacote de controle chega ao destino, um sinal de confirmação (ack) é propagado até o roteador origem.
+Este processo é similar ao estabelecimento de conexão no chaveamento por circuito, mas diferentemente do chaveamento por circuito não existe nenhuma reserva estática.
+Quando o fluxo QoS é admitido, um conexão virtual é estabelecida entre o roteador origem e destino, como em redes ATM.
+Esta conexão virtual corresponde a uma linha na tabela de fluxos (veja na Figura 62) de cada roteador no caminho da conexão.
+Cada linha da tabela de fluxos identifica um fluxo QoS usando os seguintes campos:
+Roteador origem, roteador destino, taxa requerida e taxa usada.
+A profundidade da tabela de fluxos determina quantos fluxos QoS simultâneos podem ser admitidos em cada roteador.
+Depois da transmissão completa, a conexão virtual é removida por o roteador origem através do envio de outro pacote de controle.
+Uma vez o caminho virtual estabelecido, o roteador origem pode começar a enviar pacotes de dados do fluxo QoS, conforme ilustrado na Figura 61.
+Quando os pacotes de dados chegam a uma porta de entrada de um roteador, eles são armazenados nos buffers de entrada, arbitrados e roteados para uma porta de saída (Figura 62).
+Pacotes roteados para a mesma porta de saída são servidos de acordo com a política de escalonamento proposta.
+Em a política de escalonamento implementada, fluxos Be são transmitidos somente quando nenhum fluxo QoS requer o canal físico.
+Quando dois ou mais fluxos QoS competem, o fluxo com maior prioridade é escalonado primeiro.
+Como ilustrado na Figura 62, a tabela de fluxos é lida por o escalonador (blocos nomeados E, na Figura 62) para encontrar a prioridade de cada fluxo QoS roteado para uma mesma porta de saída.
+A prioridade de um fluxo QoS é a diferença entre a taxa requerida e a taxa atualmente usada por o fluxo QoS.
+A prioridade do fluxo é atualizada periodicamente de acordo com a Equação 9, onde i é o instante de medição da taxa.
+Uma prioridade positiva significa que, no período de amostragem considerado, o fluxo está usando menos largura de banda do que a requerida.
+Uma prioridade negativa significa que, no período de amostragem considerado, o fluxo está violando a taxa admitida.
+A taxa requerida é fixada durante a etapa de controle de admissão.
+A taxa usada (TUi) é computada periodicamente de acordo com a Equação 10: Tai, Tu i $= Tu i 1+ TAi Em a Equação 10: Tai é a taxa atual usada durante o período atual;
+TUi é a média entre a taxa usada no período anterior e a taxa atual (Tai).
+A Figura 63 ilustra pacotes de um dado fluxo sendo transmitidos.
+Os tempos T0 a T4 designam quando as taxas são amostradas, assumindo, no exemplo, 10 unidades de tempo em cada intervalo.
+A tabela na Figura corresponde ao comportamento de uma linha na tabela de fluxos de T0 a T4.
+Em este exemplo, a 4ª linha da tabela contém a taxa requerida (25%) para este fluxo.
+Em o tempo T1, a taxa atual (5ª linha) é 20%, correspondendo à largura de banda usada por o fluxo no intervalo anterior.
+De acordo com a Equação 10 é possível obter a taxa usada (6ª linha da tabela).
+A 8ª linha da tabela contém a prioridade do fluxo, a qual é atualizada de acordo com a Equação 9.
+O intervalo entre os tempos de amostragem é um parâmetro importante do método.
+A 7ª linha contém a taxa real do fluxo (apresentada aqui somente com o objetivo de comparação, não está presente na tabela de fluxos).
+Se o intervalo escolhido é muito curto, a taxa usada computada pode não corresponder à taxa real, reduzindo a eficiência do método.
+Se o intervalo é muito longo, a taxa usada computada será correta, mas a prioridade do fluxo permanecerá fixa por um longo período, também prejudicando o método.
+Para minimizar o erro induzido por o período de amostragem, o método adota dois intervalos de amostragem.
+Em o exemplo previamente apresentado, considere uma segunda taxa atual (TA2) e um intervalo de amostragem 4 vezes maior do que o original.
+Em este exemplo, TA2 será igual a 100% em T4.
+Dividindo TA2 por 4, a taxa usada correta é obtida.
+Pode ser observado que aplicando TUC a Tu a cada n intervalos (4 neste exemplo), o erro é minimizado.
+Tai Conseqüentemente, na Equação 10, TUi recebe TUC quando i mod n é igual a zero, onde n corresponde ao resultado da divisão do valor do intervalo de amostragem longo por o valor do intervalo de amostragem curto.
+É importante mencionar que se somente a taxa usada é considerada no cálculo da prioridade, a política de escalonamento tende a balancear o uso do canal físico.
+Isto implica em desrespeitar o fato que fluxos QoS distintos podem requerer taxas distintas.
+A rede Hermes-RB foi descrita em VHDL e validada por simulação funcional.
+A Figura 64 mostra a simulação funcional do estabelecimento de uma conexão virtual entre os núcleos 00 e 20.
+O roteador 00 recebe um pacote por o canal virtual L1 da porta Local (índice 4).
+O bit mais significativo do primeiro flit está ativo, indicando pacote Be de controle.
+Conseqüentemente, o pacote contém os campos ilustrados na Figura 60: A parte baixa do primeiro flit indica o endereço do roteador destino, a parte alta do segundo flit indica o endereço do roteador origem, a parte baixa do segundo flit indica o comando e a parte baixa do terceiro flit indica a taxa requerida.
+O roteador 00 realiza o roteamento do pacote, verifica se a porta de saída selecionada (neste caso a porta East) possui a largura de banda requerida, insere a conexão na tabela de fluxos e então transmite o pacote por o canal virtual L1 da porta East.
+O roteador 10 recebe o pacote por o canal virtual L1 da porta West, realiza o roteamento, verifica se a porta de saída selecionada (neste caso a porta East) possui a largura de banda requerida, insere a conexão na tabela de fluxos e então transmite o pacote por o canal virtual L1 da porta East.
+O roteador 20 recebe o pacote por o canal virtual L1 da porta West, realiza o roteamento, verifica se a porta de saída selecionada (neste caso, a porta Local) possui a largura de banda requerida, insere a conexão na tabela de fluxos e então transmite o pacote por o canal virtual L1 da porta Local (índice 4).
+O núcleo destino recebe o pedido de estabelecimento de conexão e então ativa o sinal ack, informando que a conexão foi estabelecida com sucesso.
+O sinal ack é propagado até a origem, consumindo um ciclo de relógio em cada roteador no caminho da conexão.
+Quando o sinal ack chega ao núcleo origem, o núcleo pode começar a enviar os dados.
+A latência ideal em ciclos de relógio para estabelecer e remover uma conexão é dada por a Equação 12: Em a simulação apresentada na Figura 64, observa- se que o núcleo destino ativou o sinal ack um ciclo de relógio após o recebimento do pacote.
+No entanto, este tempo pode variar de acordo com a implementação da interface de rede que conecta o núcleo à rede.
+Conseqüentemente, o pacote contém os campos ilustrados na Figura 61: A parte baixa do primeiro flit indica o endereço do roteador destino, o segundo flit indica o número de flits do pacote, o terceiro flit indica o endereço do roteador origem e os flits seguintes correspondem ao corpo do pacote.
+Embora a simulação apresentada na Figura 65 ilustre o envio de apenas um pacote, um fluxo QoS normalmente é composto por vários pacotes.
+Não faz sentido estabelecer uma conexão para enviar apenas um pacote.
+Depois do envio do último pacote de um fluxo, o núcleo origem deve enviar um outro pacote Be de controle, removendo a conexão.
+O procedimento de envio do pacote Be de controle para remover a conexão é igual ao apresentado na Figura 64, à exceção de a parte baixa do segundo flit que agora contém o comando 02 (remoção da conexão).
+A latência ideal em ciclos de relógio para transferir um pacote de dados da origem para o destino é dada por a Equação 13.
+P é o tamanho do pacote em flits.
+A constante AR possui o valor 5 para pacotes Be e o valor 13 para pacotes QoS.
+Nota- se que a latência ideal para pacotes Be de dados é igual a das redes Hermes-VC e Hermes-FP.
+No entanto, a latência ideal para pacotes QoS aumenta significativamente.
+Primeiro, porque é necessário o estabelecimento e a remoção de uma conexão.
+Segundo, porque cada roteador no caminho da conexão consome 2,6 vezes mais tempo para arbitrar e rotear um pacote QoS do que para arbitrar e rotear um pacote Be de dados.
+A simulação apresentada na Figura 64 ilustra o estabelecimento bem sucedido de uma conexão.
+Entretanto, quando o roteador não possui a largura de banda requerida por a conexão, ele deve rejeitar- la.
+O procedimento de rejeição de uma conexão é apresentado na Figura 66.
+Os passos da simulação são descritos a seguir, onde a numeração tem correspondência na Figura 66.
+O roteador 00 recebe um pacote por o canal virtual L1 da porta Local (índice 4).
+O bit mais significativo do primeiro flit está ativo, indicando pacote Be de controle.
+Conseqüentemente, o pacote contém os campos ilustrados na Figura 60: A parte baixa do primeiro flit indica o endereço do roteador destino, a parte alta do segundo flit indica o endereço do roteador origem, a parte baixa do segundo flit indica o comando e a parte baixa do terceiro flit indica a taxa requerida.
+O roteador 00 realiza o roteamento do pacote, verifica se a porta de saída selecionada (neste caso a porta East) possui a largura de banda requerida, aloca a taxa requerida (busyRate(0) = 0 Aíndice 0).
+O roteador 10 recebe o pacote por o canal virtual L1 da porta West, realiza o roteamento e verifica se a porta de saída selecionada (neste caso, a porta East) possui a largura de banda requerida.
+Como a porta de saída East possui 96% da largura de banda ocupada $= 60, em hexadecimal), o roteador 10 deve negar o pedido de estabelecimento da conexão e não enviar o pacote ao próximo roteador.
+O roteador 10 rejeita o pedido de estabelecimento da conexão ativando o sinal nack.
+Este sinal é propagado até a origem, consumindo um ciclo de relógio em cada roteador no caminho da conexão.
+Quando o sinal nack chega ao núcleo origem, o núcleo deve enviar um pacote Be de controle para remover a conexão.
+Este pacote é necessário porque o sinal nack não carrega informações suficientes para remover a conexão.
+É difícil definir um modelo genérico para avaliar o desempenho de uma rede.
+O comportamento destas possui diferenças consideráveis de uma arquitetura para outra e de uma aplicação para outra.
+Por exemplo, existem aplicações que enviam mensagens longas, enquanto outras transmitem mensagens muito curtas.
+Segundo Duato e Yalamanchili, o desempenho da rede geralmente é mais afetado por as condições de tráfego do que por os parâmetros de projeto.
+Este Capítulo apresenta os experimentos que comparam, através da simulação VHDL funcional, as redes descritas nos Capítulos anteriores.
+Os parâmetros fixos de projeto de rede são:
+Seção 8.6 mostra os resultados da avaliação do mecanismo baseado em taxas (Hermes-RB).
+Os resultados de área dos roteadores destas redes, mapeados para ASIC e FPGA, são apresentados na Seção 8.7.
+A Tabela 4 apresenta os fluxos usados nos experimentos.
+O fluxo A é caracterizado como um serviço CBR (do inglês Constant Bit Rate), isto é, um fluxo transmitindo numa taxa fixa durante todo o tempo de vida.
+O fluxo B é caracterizado como um serviço VBR (do inglês Variable Bit Rate), isto é, um fluxo com taxa de bit variável.
+Este fluxo VBR é modelado usando distribuição Pareto com a mesma modelagem proposta em.
+Segundo, a distribuição Pareto é observável no fluxo em rajada entre módulos intra-chip nas aplicações de vídeo MPEG-2 e aplicações de rede.
+Os fluxos A e B possuem requisitos de QoS, como latência e jitter.
+Núcleos gerando fluxos A e B transmitem 200 pacotes.
+Porém, para que as fases de carga e descarga da rede não interfiram nos resultados do experimento, os primeiros e os últimos 50 pacotes de cada fluxo são desconsiderados na análise.
+O fluxo C é um fluxo Be, também modelado usando distribuição Pareto.
+Este fluxo é usado para perturbar os fluxos com requisitos de QoS (A e B), sendo considerado um fluxo de ruído.
+Por esta razão, resultados do fluxo C não são discutidos.
+Este documento apresenta os resultados somente para um número pequeno de pacotes, porém um comportamento semelhante foi observado em experimentos (não discutidos aqui) com um número maior de pacotes.
+Dois cenários de avaliação são definidos para estes fluxos.
+Em o primeiro, dois fluxos QoS originados em diferentes núcleos compartilham parte do caminho até os destinos.
+Em o segundo cenário, três fluxos QoS compartilham parte do caminho até os destinos.
+Os demais núcleos da rede transmitem fluxos C, perturbando os fluxos QoS.
+A Figura 67 apresenta a distribuição espacial dos núcleos origem e destino.
+A distribuição espacial do tráfego e os cenários foram escolhidos para ressaltar as limitações dos projetos de rede quando recursos são compartilhados entre fluxos QoS.
+Modelos CBR (por exemplo, vídeo não compactado) e VBR (por exemplo, MPEG) são artificiais, porém o comportamento destes modelos corresponde ao comportamento de aplicações reais.
+A Tabela 5 resume os experimentos usados para avaliar os projetos de rede.
+A coluna prioridade não tem significado para as redes Hermes-VC e Hermes-RB.
+Em a Hermes-CS, fluxos com prioridade 1 são fluxos GT e fluxos com prioridade 0 são fluxos Be.
+O número de canais virtuais define o número de fluxos competindo por recursos da rede no mesmo canal físico.
+Como todos os projetos de rede têm dois canais virtuais, existem três opções quando mais de um fluxo QoS deve ser transmitido:
+Todos os fluxos com prioridade baixa (todos os experimentos usando a rede Hermes-VC), alguns fluxos com prioridade alta (experimentos I, IV e V, usando todas redes, à exceção de a Hermes-VC), ou todos os fluxos com prioridade alta (experimentos II e III, usando todas redes, à exceção de a Hermes-VC).
+Esta Seção compara a rede Hermes sem canais virtuais (Hermes) e com canais virtuais (Hermes-VC).
+Os seguintes parâmetros de desempenho são avaliados:
+Latência, jitter, espalhamento da latência e vazão.
+A Figura 68 ilustra a latência média, o jitter e o espalhamento da latência para o experimento I. As redes Hermes e Hermes-VC oferecem apenas o serviço Be, onde a latência média e o jitter do pacote dependem das condições de tráfego durante a transmissão.
+De este modo, nenhuma das redes oferece garantias a nenhum fluxo.
+No entanto, é possível observar que o fluxo F2 tem latência média menor do que o fluxo F1.
+Isto ocorre porque F1 e F2 são fluxos CBR.
+Portanto, eles inserem pacotes na rede em intervalos fixos.
+Como o núcleo origem de F2 está mais próximo de a área disputada por os fluxos, ele sempre é servido primeiro.
+É possível observar também que o uso de canais virtuais reduz a latência média e o jitter dos fluxos.
+Esta redução está associada ao compartilhamento da largura de banda do canal físico entre os canais virtuais e a possibilidade de executar o algoritmo de arbitragem/ roteamento de um fluxo enquanto outro fluxo está sendo transmitido.
+Sem o uso de canais virtuais, quando um pacote encontra um canal físico ocupado, ele aguarda o canal físico ser liberado para somente depois realizar o algoritmo de arbitragem/ roteamento.
+Com o uso de canais virtuais, um pacote irá aguardar para realizar o algoritmo de arbitragem/ roteamento somente se todos os canais virtuais estiverem ocupados.
+Caso exista algum canal virtual livre, o algoritmo de arbitragem/ roteamento é executado e a largura de banda do canal físico passa a ser compartilhada entre os canais virtuais ocupados.
+Cabe lembrar que os recursos são compartilhados não somente por os fluxos F1 e F2, mas também por os fluxos tipo C. As redes Hermes e Hermes-VC não possuem diferenciação entre fluxos.
+Portanto, os experimentos I e II, onde a única diferença é a prioridade dos fluxos F1 e F2, são idênticos para estas redes.
+A Figura 69 ilustra a latência média, o jitter e o espalhamento da latência para o experimento III, onde F1 e F2 são fluxos VBR.
+Em este experimento, os pacotes são inseridos na rede com intervalos variáveis usando uma carga de 40% no período On.
+Comparando os resultados dos experimentos III e I, observa- se que as redes Hermes e Hermes-VC apresentam comportamentos diferentes.
+Em a rede Hermes, a latência média e o jitter de ambos os fluxos aumentam.
+Isto ocorre porque a latência desta rede tende a aumentar significativamente com a disputa por recursos, provocando congestionamentos.
+Por conseqüência, nos períodos Off, onde os fluxos não deveriam inserir pacotes, pacotes bloqueados estão sendo inseridos.
+Em oposição, na rede Hermes-VC, o benefício do compartilhamento de banda é mais visível com fluxos VBR.
+Em fluxos VBR, o momento de colisão dos pacotes é aleatório, e por conseqüência não existe um fluxo que seja sempre servido primeiro.
+Isto possui duas conseqüências:
+O jitter e o espalhamento da latência de ambos os fluxos aumenta e devido a a duração dos períodos Off, as latências médias tendem a ser semelhantes.
+As Figuras 69 e 70 mostram o comportamento do uso de canais virtuais quando fluxos competem por recursos da rede.
+No caso de fluxos CBR (experimento I), um dos fluxos tem latência menor, porque está mais perto de a área de disputa por recursos e sempre é servido primeiro.
+No caso de fluxos VBR (experimento III), o uso de canais virtuais reduz a latência de ambos os fluxos, porque, devido a a variação no intervalo de inserção de pacotes, não existe um fluxo que seja sempre servido primeiro.
+Entretanto, os valores de jitter são mais altos.
+A Figura 70 ilustra a latência média, o jitter e a vazão para o experimento IV.
+Aqui, três fluxos CBR competem por recursos.
+É possível observar que a latência média e o jitter dos fluxos têm o mesmo comportamento da Figura 68.
+A proximidade do fluxo em relação a a área de disputa por recurso determina quão grandes ou pequenos serão estes valores.
+Em o cenário II, F3 está mais próximo de a área de disputa por recursos, seguido por F2 e depois por F1.
+Portanto, F3 tem a menor latência média, seguido por F2 e depois por F1.
+A vazão de todos os fluxos apresenta grande variação, havendo pacotes com taxa bem superior à taxa de inserção.
+Isto ocorre devido a as situações de congestionamento, onde pacotes são transmitidos em rajada depois da liberação da condição de bloqueio.
+A Figura 71 apresenta os resultados do experimento V, onde três fluxos VBR competem por recursos.
+Comparando o experimento V ao experimento III, observa- se que a latência média e o jitter dos fluxos apresentam aumento significativo quando mais fluxos competem por os mesmos recursos.
+Observa- se também que a vazão de todos os fluxos apresenta variação maior para fluxos VBR do que para fluxos CBR (experimento IV).
+A avaliação do uso de canais virtuais demonstrou que a adição de canais virtuais melhora o desempenho da rede, devido a o compartilhamento de recursos, mas nenhuma garantia é oferecida aos fluxos.
+Se um fluxo QoS tem que ser transmitido sem competição com outros fluxos QoS, o mecanismo de chaveamento por circuito é eficiente para garantir QoS.
+A Figura 72 ilustra a quantidade de tempo necessário para o estabelecimento da conexão, transmissão dos dados e remoção da conexão, usando fluxos do experimento II, com F1 e F2 sendo fluxos GT, competindo por o mesmo canal virtual.
+A quantidade de tempo para estabelecer e remover uma conexão (pequena neste experimento) pode variar de acordo com o tráfego da rede, pois estas ações são controladas por pacotes Be.
+Ambos os fluxos estão transmitindo 10.000 flits, equivalente a 200 pacotes com 50 flits cada.
+Como a taxa dos fluxos é 20% da largura de banda disponível, o tempo total para transmitir todos os 10.000 flits é 50.000 ciclos de relógio.
+Como ilustrado na Figura 72, o fluxo F2 estabelece sua conexão primeiro.
+O fluxo F2 consome 148 ciclos de relógio para criar a conexão, mais 50.000 ciclos de relógio para transmitir dados, e 73 ciclos de relógio para remover a conexão.
+O fluxo F1 espera todos estes ciclos de relógio para começar a transmissão.
+Conseqüentemente, o tempo de transmissão total para ambos os fluxos é aproximadamente 100.000 ciclos de relógio.
+Se o chaveamento por pacote é usado, canais são compartilhados entre fluxos resultando num tempo menor para entregar todos os flits.
+Isto revela a principal desvantagem do chaveamento por circuito:
+Reserva de recursos estática.
+Esta desvantagem pode ser parcialmente minimizada usando multiplexação por divisão de tempo (TDM), alocando a largura de banda do canal físico em fatias de tempo de tamanho fixo.
+Entretanto, quando se usa TDM, um comportamento regular do tráfego é requerido (como fluxos CBR) para ajustar a taxa de transmissão dos dados às fatias de tempo reservadas.
+Por outro lado, o risco de desperdiçar largura de banda continua presente, juntamente com o risco de perder dados.
+Esta Seção compara as redes Hermes-VC e Hermes-FP.
+Os seguintes parâmetros de desempenho são avaliados:
+Latência, jitter, espalhamento da latência e vazão.
+A Figura 73 ilustra a latência média e o jitter para o experimento I. Como apresentado na Seção 8.2, a Hermes-VC não oferece garantias a nenhum fluxo, a latência média e o jitter do pacote dependem das condições de tráfego durante a transmissão.
+Em a Hermes-FP, o fluxo F1 com maior prioridade tem latência média próxima à latência ideal+ 50) e jitter perto de zero.
+Isto ocorre porque F1 tem prioridade maior e uso exclusivo do canal virtual L2.
+Conseqüentemente, sempre que F1 tem dados para transmitir, ele tem acesso ao canal físico.
+Por outro lado, F2 é sempre bloqueado enquanto F1 está entregando flits.
+F2 apresenta uma latência média de aproximadamente 50 ciclos de relógio maior do que a latência ideal e seu jitter é aproximadamente 40 ciclos de relógio, representando 80% do tamanho do pacote.
+Este experimento mostra que, mesmo quando existem fluxos perturbando, um mecanismo baseado em prioridades fixas é eficiente para atender aos requisitos de QoS, desde que não haja competição entre fluxos com a mesma prioridade.
+A Figura 74 ilustra a latência média, o jitter e o espalhamento da latência para o experimento II.
+Aqui, F1 e F2 têm a mesma prioridade.
+Logo, competem por o canal virtual L2.
+É possível observar que F2 tem latência média próxima à ideal, enquanto a latência de F1 é aproximadamente 50% maior do que a ideal.
+Isto ocorre porque F1 e F2 são fluxos CBR.
+Portanto, eles inserem pacotes na rede em intervalos fixos.
+Como o núcleo origem de F2 está mais próximo de a área disputada por os fluxos, ele sempre é servido primeiro.
+Por esta razão, F1 e F2 têm jitter perto de zero e espalhamento da latência pequeno.
+O pequeno espalhamento da latência pode ser constatado por a comparação entre os resultados apresentados na Figura 74 (Hermes-FP) e na Figura 68 (Hermes-VC).
+No entanto, quando F1 e F2 são fluxos VBR (experimento III) os resultados são bem diferentes, como mostrado na Figura 75.
+Em este experimento, os pacotes são inseridos na rede com intervalos variáveis usando uma carga de 40% no período On, o que representa uma carga média de 20%.
+Assim, não existe um fluxo que é sempre servido primeiro.
+Isto tem duas conseqüências:
+O jitter de ambos os fluxos aumenta, e devido a a duração dos períodos Off, ambas latências tendem à latência ideal.
+As Figuras 75 e 76 mostram o comportamento do mecanismo baseado em prioridades fixas quando fluxos com a mesma prioridade competem por recursos da rede.
+No caso de fluxos CBR (experimento II), um dos fluxos tem comportamento imprevisível, semelhante a um fluxo Be.
+No caso de fluxos VBR (experimento III), o mecanismo baseado em prioridades fixas garante latências perto de a ideal para os fluxos com prioridade maior.
+Entretanto, estes apresentam valores mais altos de jitter.
+Dependendo dos parâmetros que especificam QoS para os fluxos, o uso do mecanismo baseado em prioridades fixas pode ser limitado a situações específicas, onde a competição entre fluxos de igual prioridade é evitada ou é mínima.
+A Figura 76 ilustra a latência média, o jitter e a vazão para o experimento IV.
+Aqui, dois fluxos com prioridade alta competem por recursos com um terceiro fluxo com prioridade baixa.
+É possível observar que a latência média e o jitter dos fluxos prioritários têm comportamento similar ao da Figura 74.
+Estes fluxos têm 99% dos pacotes com vazão entre 15% e 20%, condizendo com suas taxas de inserção.
+O pequeno espalhamento da vazão para fluxos prioritários pode ser constatado por a comparação entre os resultados apresentados na Figura 76 (Hermes-FP) e na Figura 70 (Hermes-VC).
+Entretanto, o fluxo de prioridade baixa (F3) possui latência média alta+ 50) e jitter igualmente alto.
+A vazão dos pacotes de F3 apresenta grande variação, tendo pacotes com taxa superior à taxa de inserção.
+Isto ocorre porque pacotes são transmitidos em rajada depois da liberação da condição de bloqueio.
+Se F3 tem vazão como requisito de QoS, usar um mecanismo baseado em prioridades fixas é inadequado.
+A Figura 77 apresenta os resultados do experimento V, onde três fluxos VBR competem por recursos.
+Fluxos prioritários são transmitidos com latência próxima à ideal e jitter perto de zero.
+Estes fluxos têm 90% dos pacotes com vazão entre 35% e 45%, e 10% dos pacotes com vazão entre 0% e 5%.
+Isso ocorre porque fluxos VBR usam uma distribuição Pareto On-OFF.
+Conseqüentemente, o primeiro pacote de um período On possui vazão extremamente baixa, porque o tempo do período Off também é contabilizado.
+Aqui, o fluxo com prioridade baixa (F3) é penalizado, apresentando latência e jitter altos, e vazão irregular (espalhamento da vazão excessivo).
+Em esta Seção, a rede Hermes-DP é comparada à rede Hermes-FP.
+Os seguintes parâmetros de desempenho são avaliados:
+Latência, jitter e espalhamento da latência.
+A Figura 78 mostra os resultados obtidos no experimento I, onde um fluxo QoS é transmitido sem competição com outro fluxo QoS, mas competindo com fluxos Be.
+O desempenho da rede Hermes-DP é inferior à rede Hermes-FP.
+Duas razões podem explicar este resultado:
+A latência ideal para a rede Hermes-FP é 100 ciclos de relógio+ 50, onde 5 é o número de ciclos de relógio requerido por o algoritmo de arbitragem/ roteamento em cada roteador, 10 é o número de hops e 50 é o tamanho do pacote), enquanto para a rede Hermes-DP é 120 ciclos de relógio+ 50, devido a os dois ciclos de relógio extra requeridos por o algoritmo de arbitragem/ roteamento).
+Mesmo que a rede Hermes-DP privilegie os fluxos com prioridade maior, não existe reserva de canal virtual para pacotes prioritários.
+Conseqüentemente, se não existe pacote com prioridade maior sendo transmitido, fluxos Be podem ser transmitidos por todos os canais virtuais, bloqueando pacotes prioritários até que um canal virtual seja liberado.
+Este comportamento conduz a valores imprevisíveis de jitter.
+Em este experimento, o jitter médio de F2 (sem prioridade) é menor do que o de F1 (com prioridade).
+A segunda razão apresentada acima conduz a um importante espalhamento na latência de F1.
+Quando os roteadores no caminho do fluxo possuem algum canal virtual de saída livre, os pacotes são transmitidos com latência perto de a ideal.
+Por outro lado, quando estes roteadores possuem todos os canais virtuais de saída ocupados, ocorre um bloqueio que aumenta significativamente a latência dos pacotes.
+As Figuras 80 e 81 mostram os resultados obtidos quando fluxos com mesma prioridade competem por os os mesmos recursos (canais de saída).
+Como mencionado na Seção 6.3, a rede Hermes-DP pode transmitir pacotes com a mesma prioridade por canais virtuais diferentes.
+Portanto, não se privilegia um dos fluxos em detrimento de o outro, como na rede Hermes-FP.
+No entanto, para ambos os experimentos, o desempenho da rede Hermes-DP é inferior ao da rede Hermes-FP por a mesma razão:
+Ausência de reserva de recursos.
+A competição por a ocupação dos canais virtuais de saída ocorre entre todos os fluxos, não importando qual a prioridade do mesmo.
+Logo, os fluxos não são perturbados apenas por fluxos com mesma prioridade, mas por todo o tráfego da rede.
+Por esta razão, o tipo do fluxo (CBR ou VBR) não influência diretamente o desempenho do fluxo.
+Aumentar o número de canais virtuais do roteador pode, a princípio, melhorar o desempenho dos fluxos.
+No entanto, a área do roteador é penalizada.
+Cabe ressaltar ainda que mesmo aumentando o número de canais virtuais do roteador, um determinado pacote com prioridade pode ser bloqueado ao encontrar todos os canais virtuais da porta de saída ocupados, e conseqüentemente não ter seus requisitos de QoS atendidos.
+Embora o mecanismo baseado em prioridades dinâmicas tenha se mostrado ineficiente para garantir QoS, a avaliação deste mecanismo demonstrou a importância da reserva de recursos para que a rede ofereça QoS.
+Em esta Seção, a rede Hermes-RB é comparada à rede Hermes-FP.
+A Tabela 7 apresenta os valores de latência, jitter e vazão para o experimento II (dois fluxos CBR com mesma prioridade).
+Ambas as políticas de escalonamento garantem vazão perto de a taxa de inserção.
+Analisandose os resultados da rede Hermes-FP, o fluxo F2 tem latência média perto de a ideal, enquanto o fluxo F1 tem latência maior (a latência média é 77% maior do que a ideal).
+F1 e F2 são fluxos CBR, competindo por os mesmos recursos.
+Eles inserem pacotes na rede em intervalos fixos.
+Como o núcleo origem do fluxo F2 está mais próximo a a região de disputa, ele é sempre servido primeiro.
+Este experimento demonstra que o mecanismo baseado em prioridades fixas (Hermes-FP) é ineficiente para atender requisitos de QoS quando fluxos com mesma prioridade competem por os mesmos recursos.
+Em o escalonamento baseado em taxas (Hermes-RB), a prioridade é dinamicamente atualizada de acordo com a taxa usada, não em função de o tempo de chegada dos pacotes no roteador.
+Conseqüentemente, como ambos os fluxos tem a mesma taxa requerida, a largura de banda é igualmente dividida entre os fluxos, resultando em valores muito parecidos de latência para ambos os fluxos, próximo a os valores ideais.
+O valor de jitter é levemente aumentado quando comparado ao escalonamento baseado em prioridades, devido a a latência ideal maior do roteador Hermes-RB.
+Este resultado demonstra a eficiência do método.
+A Tabela 8 mostra os resultados para o experimento III, onde F1 e F2 são fluxos VBR.
+Em este experimento, pacotes são inseridos na rede em intervalos variáveis, usando uma carga de 40% no período On.
+O modelo de tráfego On-OFF aleatoriza os instantes de inserção de pacotes, o que insere jitter.
+Por esta razão, o jitter não é apresentado na Tabela 8.
+Em ambos os métodos de escalonamento, F1 tem latência média perto de a latência ideal.
+Em o escalonamento baseado em prioridade (Hermes-FP), F2 tem latência média 56% maior do que a latência ideal, e no escalonamento baseado em taxas (Hermes-RB) somente 33% maior.
+Apesar de o fato dos métodos terem comportamento semelhante, o mecanismo baseado em taxas é superior ao mecanismo baseado em prioridades, porque é capaz reduzir a diferença entre a latência média e a latência ideal.
+Desempenho Ideal (ck) Mínima (ck) Média (ck) Máxima (ck) Vazão Média(%) Hermes-FP Hermes-RB A Tabela 9 detalha a área do roteador mapeado para a biblioteca de células padrão CMOS 0, 35 m (TSMC).
+A área do roteador é semelhante para as redes Hermes-VC e Hermes-FP.
+A área do roteador Hermes-DP é superior a dos outros roteadores devido a a inclusão de um circuito mais complexo na lógica de arbitragem/ roteamento.
+O roteador Hermes-CS tem uma área menor, porque os buffers de entrada do canal virtual L1 são substituídos por simples registradores.
+Os resultados apontam para o fato que mecanismos baseados em prioridades fixas (Hermes-FP) e chaveamento por circuito (Hermes-CS) não aumentam a área, comparando à Hermes-VC.
+Tais mecanismos podem ser usados para forçar a rede a respeitar requisitos de QoS, não influenciando significativamente na área final.
+A área para todas as implementações é dominada por os buffers.
+É recomendado usar geradores de memória para otimizar a área final.
+Considerando núcleos reais, é esperado uma sobrecarga de área em torno de 10% por núcleo, devido a o roteador.
+A Tabela 10 apresenta a área do roteador, obtida com a ferramenta de síntese Synplify, objetivando dispositivos FPGA.
+Os resultados são equivalentes ao mapeamento ASIC, com uma penalidade pequena para a Hermes-DP, e uma área menor para a Hermes-CS.
+A área do roteador Hermes-RB não foi ainda avaliada, porque a descrição HDL não esta otimizada para síntese.
+É esperado um pequeno acréscimo na área, porque somente uma tabela pequena e poucos contadores foram adicionados ao roteador Hermes-VC.
+Este trabalho avaliou diferentes métodos para prover QoS a redes intra-chip.
+O mecanismo baseado em prioridades dinâmicas mostrou- se ineficiente para garantir QoS, devido a a ausência da alocação de recursos.
+Mecanismos baseados em prioridades fixas e chaveamento por circuito podem garantir QoS.
+Entretanto, ambos apresentam limitações, especialmente quando fluxos com requisitos de QoS competem por recursos da rede.
+Como apresentado no experimento I, se nenhum fluxo com mesma prioridade compete por recursos, o mecanismo baseado em prioridades fixas é eficiente.
+Quando fluxos com a mesma prioridade competem por recursos, o mecanismo baseado em prioridades fixas não provê garantias rígidas a nenhum dos fluxos.
+É possível observar um jitter mínimo quando fluxos CBR são usados, mas a conseqüência é a penalização da latência de um dos fluxos (como apresentado no experimento II).
+Quando fluxos VBR são usados, latências próximas à ideal aparecem, mas com incremento do jitter (experimento III).
+Uma alternativa para isto, aumentar o número de prioridades, implica em aumentar o número de canais virtuais, o que pode ser proibitivo em termos de área de silício.
+Quando se usa chaveamento por circuito, todos os requisitos de QoS são garantidos após o estabelecimento da conexão.
+No entanto, se algum outro fluxo QoS que compartilhe parte do caminho da conexão possuir prazo final para o estabelecimento da conexão, então este mecanismo não será capaz de garantir esse requisito.
+O estado da arte em redes intra-chip ainda não apresenta soluções eficientes para prover QoS às aplicações quando o tráfego da rede não é conhecido previamente.
+O mecanismo baseado em taxas proposto ajusta a prioridade do fluxo de acordo com a taxa requerida e a taxa atualmente usada por o fluxo.
+Bons resultados foram obtidos com fluxos CBR, com latências dos fluxos perto de os valores ideais.
+O mecanismo baseado em taxas supera o problema de fluxos com mesma prioridade competindo por recursos, porque aloca os recursos aos fluxos de acordo com a taxa requerida por eles.
+Com fluxos VBR, onde pacotes são injetados aleatoriamente dentro de a rede, o método proposto é também superior ao escalonamento baseado em prioridades fixas.
+Entretanto, neste caso, o escalonamento baseado em taxas não alcança a latência ideal quando fluxos QoS competem.
+Enumeram- se três trabalhos a serem desenvolvidos em curto prazo:
+Otimização da rede Hermes-RB, avaliação do desempenho das redes desenvolvidas com outros experimentos e prototipação das mesmas.
+Reduzir a latência para entregar pacotes QoS no roteador Hermes-RB é um dos primeiros trabalhos que devem ser desenvolvidos.
+A elevada latência para arbitrar e rotear um pacote QoS no roteador Hermes-RB prejudica a comparação da Hermes-RB com as demais redes.
+Atualmente, este roteador consome 2,6 vezes mais tempo para arbitrar e rotear um pacote QoS do que o roteador Hermes-FP.
+Outro trabalho que deve ser desenvolvido é a utilização de outros experimentos para avaliar o desempenho das redes, como por exemplo:
+Com mais de uma área de disputa por recursos;
+Com mais fluxos disputando os recursos;
+E utilizando fluxos de aplicações reais de MPSoCs.
+Deve- se também otimizar a rede Hermes-RB para síntese, e avaliar as redes desenvolvidas em plataformas de prototipação.
+O objetivo desta prototipação é duplo:
+Validar as descrições;
+Avaliar o desempenho da rede para um elevado números de pacotes, através de emulação de tráfego.
+Os mecanismos implementados nesta dissertação melhoram o desempenho da rede, no que se refere à latência, jitter e vazão.
+Entretanto, nenhuma garantia rígida é oferecida aos fluxos (à exceção de a Hermes-CS, que provê garantias rígidas a um pequeno número de fluxos).
+Logo, a médio prazo, deve- se desenvolver serviços em camadas superiores à camada de rede que permitam incluir a especificação dos requisitos do tráfego, e que seja possível a verificação se estes requisitos estão sendo atendidos.
+Exemplos destes serviços são:
+Estabelecimento do acordo de serviço, condicionamento de tráfego e controle de congestionamento.
+A longo prazo, os serviços de QoS devem ser integrados ao kernel de um sistema operacional.
+Realizando- se essa integração, aplicações podem negociar serviços com a rede, e realizar a transferência com garantias de serviço.

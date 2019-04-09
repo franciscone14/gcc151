@@ -1,0 +1,542 @@
+Impressoras digitais têm melhorado constantemente a sua velocidade nos últimos dez anos.
+Enquanto isso, cresceu a necessidade de personalização e customização de documentos.
+Como consequência disto, o processo de rasterização tornou- se uma etapa que demanda um grande poder computacional.
+As empresas especializadas na publicação digital já estão utilizando múltiplos RIPs (responsáveis por realizar a rasterização dos documentos) e estratégias de paralelização para acelerar o processo de rasterização que é realizado sobre cada página do documento.
+No entanto, estas estratégias não são otimizadas para garantir a melhor utilização dos recursos dos RIPs.
+Dependendo das características dos documentos, o processo de rasterização pode ser mais demorado, criando assim um gargalo indesejado.
+Em trabalhos anteriores, algumas estratégias foram introduzidas para aumentar o desempenho deste procedimento através do uso de técnicas de processamento paralelo e distribuído.
+Apesar de os bons resultados obtidos, detectou- se que algumas otimizações poderiam ser propostas com o intuito de melhorar o balanceamento de carga entre as unidades de rasterização.
+Em esse cenário, para maximizar a utilização dos recursos, novas estratégias foram propostas com o intuito de distribuir de maneira balanceada a carga de trabalho entre as unidades de rasterização, levando em conta novas características dos documentos, como transparência e reusabilidade de objetos.
+Os resultados obtidos confirmam que era possível melhorar o desempenho através da exploração dessas novas características.
+Palavras-chave: PDF;
+Rasterização; Balanceamento;
+Transparência; Reusabilidade.
+Com o surgimento das impressoras digitais com alta vazão (com o poder de imprimir grande quantidade de páginas em pouquíssimo tempo), procedimentos automatizados para a criação e transformação de documentos se tornaram necessários afim de suprir a nova demanda.
+Uma nova disciplina, Variable Data Printing (VDP), que provê diversas técnicas, padrões, conceitos e tecnologias foi introduzida, permitindo a personalização de documentos.
+Com isto, foram criadas linguagens para a descrição de documentos personalizados e processos para a impressão correta destes.
+Estas linguagens definem partes estáticas e dinâmicas para os documentos criados.
+Assim, um mesmo layout pode ser aplicado para diferentes instâncias de documentos.
+Exemplos desses tipos de documentos são os formatos PDF (Portable Document Format) e o PS (PostScript).
+Atualmente, a maioria das impressoras digitais não é capaz de interpretar as linguagens que apresentam flexibilidade (ou seja, que permitem a definição de áreas estáticas e dinâmicas de um documento).
+Assim, tornam- se necessários procedimentos adicionais que possibilitem a impressão dos documentos de forma correta.
+Dois destes procedimentos são a renderização e a rasterização de documentos.
+Estes processos têm como objetivo fornecer ao dispositivo de impressão o documento no formato necessário (formato bitmap por exemplo) para que a impressão seja realizada de maneira correta.
+Com a introdução da personalização de documentos, as empresas especializadas na publicação dos documentos personalizados, o que acaba provocando um alto custo computacional para o processamento.
+Motivação O formato PDF é amplamente utilizado no âmbito da impressão digital por apresentar diversas características vantajosas.
+Ele é obtido através do processo de renderização sobre as porções variáveis de um documento (descritas por uma linguagem de formatação) e logo após é feito o processo de rasterização possibilitando sua impressão.
+Porém, as etapas de renderização e rasterização são muito custosas e normalmente centralizadas numa única unidade de processamento, acabando por representar um gargalo no processo de impressão, no caso de a existência de milhares de instâncias de documentos a cada job.
+Como as PSPs possuem uma fila de jobs com diversos conjuntos de documentos a serem impressos, elas normalmente utilizam impressoras com um alto poder de processamento.
+Assim, todas as fases da preparação de um documento devem ser finalizadas num tempo limitado para não ocorrer a subutilização das impressoras disponíveis.
+Geralmente, as PSPs utilizam as impressoras em paralelo para poder atender um número maior de requisições de impressão de pré-processamento de um documento deve aumentar proporcionalmente para manter- las trabalhando.
+Algumas estratégias na etapa de renderização foram tratadas em trabalhos passados através da utilização de técnicas de alto desempenho para acelerar o processamento.
+Com relação a etapa de rasterização, algumas pesquisas começaram a ser desenvolvidas recentemente, com o objetivo de estabelecer mecanismos que permitam a reorganização da fila de impressão de jobs.
+Com estes mecanismos, foi possível aumentar a vazão de fase de pré-processamento.
+No entanto, alguns aspectos desse processo de reorganização ainda podem ser melhor explorados.
+Objetivos O objetivo deste trabalho trata- se do desenvolvimento de estratégias a partir de diferentes cenários, para obter um bom balanceamento de carga em ambientes de impressão distribuídos durante a fase de rasterização de documentos PDF.
+As estratégias propostas levam em consideração diferentes características presentes em documentos PDF como a transparência e a reusabilidade de imagens.
+Este trabalho também tem como objetivo desenvolver um escalonador chamado Roteador Adaptativo de Jobs (RAJ), o qual criará um arquivo XML (eXtensible Markup Language) contendo informações sobre o documento PDF que servirá de base para determinar quais das estratégias desenvolvidas será utilizada em cada documento.
+Para a validação das estratégias e do escalonador RAJ, um conjunto de documentos PDF com diferentes características foi criado.
+Estrutura do Trabalho Este volume está dividido em nove capítulos, sendo o primeiro de eles a presente introdução.
+O restante está organizado da seguinte forma:
+Este capítulo apresenta algumas técnicas envolvidas no processo de impressão, relatando os passos e fases existentes desde a criação de um documento personalizável até a sua impressão.
+Além disso, são apresentadas as estratégias base existentes em ambientes de rasterização tradicional, mostrando suas principais vantagens e desvantagens.
+A composição do formato PDF é abordada em seguida, mostrando algumas de suas principais características.
+O Processo de Impressão A personalização de documentos é uma nova tendência criada devido a a grande eficiência na impressão digital de documentos.
+Com isto, foram desenvolvidas linguagens para a descrição de documentos personalizados e processos para a impressão correta destes no formato de documentos PDF, por exemplo.
+Para personalizar documentos, estas linguagens definem partes estáticas e dinâmicas para os documentos criados.
+O designer de um projeto é o responsável por estabelecer um template de um documento contendo estas partes estáticas e dinâmicas.
+Este templante, então, será combinado com registros do banco de dados que contêm informações diferentes, as quais serão usadas para completar cada documento, gerando assim diferentes instâncias dos documentos personalizados.
+Atualmente, a maioria das impressoras digitais não são capazes de interpretar as linguagens que apresentam flexibilidade.
+Assim, tornam- se necessários procedimentos adicionais que possibilitem a impressão dos documentos corretamente.
+Dois destes procedimentos são as previamente citadas renderização e rasterização de documentos.
+Ambos apresentam um alto custo computacional e, se não otimizados, representam um gargalo no processo de impressão de documentos em impressoras de alta vazão.
+A etapa de renderização refere- se ao processo de interpretação de uma determinada linguagem de por exemplo.
+Através da aplicação desta etapa, tem- se um documento descrito por uma linguagem de alto nível de abstração (por exemplo, PDF), tornando possível sua visualização.
+Em a etapa de renderização, alguns trabalhos envolvendo processamento paralelo já foram realizados para otimizar o desempenho.
+Já na etapa de rasterização, trabalhos mais recentes vêm sendo realizados.
+O foco do presente estudo é esta etapa, que é descrita em maiores detalhes a seguir.
+A etapa de rasterização ou RIPping (Raster Image Processing), consiste na conversão do documento num formato conhecido por as impressoras, uma vez que elas não são capazes de interpretar as linguagens de alto nível como PS e PDF para descrição de documentos.
+Esta conversão é feita geralmente para o formato bitmap (matriz de pontos com suas correspondentes cores, que indicam corretamente ao dispositivo de impressão em questão como apresentar o conteúdo descrito no documento).
+Através do uso de técnicas relacionadas ao processamento paralelo e distribuído, algumas estratégias já foram aplicadas para aumentar o desempenho desta etapa.
+Entretanto, tais estratégias apresentam alguns problemas, como a impossibilidade de garantir um balanceamento de carga justo para quaisquer sequências de jobs contendos documentos personalizados, por exemplo.
+Estratégias de Rasterização Base Em um ambiente de rasterização tradicional, as estratégias existentes baseiam- se em sistemas paralelos e distribuídos para aumentar a vazão e o desempenho de tal fase.
+Assim, vários RIPs são aplicados em conjunto para rasterizar uma certa fila de jobs de forma paralela.
+Com isto, através da análise das estratégias é possível verificar as vantagens e desvantagens existentes.
+São identificadas três estratégias que são aplicadas para acelerar a rasterização dos jobs:
+Alocar um RIP por job (Figura 2.2):
+Cada RIP existente irá processar um job inteiro.
+Quando um RIP acabar de processar o job, ele requisitará mais trabalho para o escalonador.
+Assim, existem duas situações que podem acontecer:
+A distribuição da carga é injusta (tamanho dos jobs podem variar muito) ou vários RIPs ficam ociosos (quando o número de jobs for menor do que o número de RIPs disponíveis).
+Este tipo de cenário funciona bem para jobs pequenos, com alta reusabilidade pois como todas as imagens ficam no mesmo RIP seu tempo de processamento acaba diminuindo porque a imagem não precisa ser rasterizada novamente;
+Alocar todos RIPs para um único job (Figura 2.3):
+Todos os RIPS estarão disponíveis para um único job.
+Esta é a abordagem «força-bruta, em a qual cada RIP irá processar uma porção de um dado job (porção composta por no mínimo uma página).
+O escalonador é o responsável por definir as porções, passando apenas as páginas de cada fragmento para os RIPs, para então os RIPs realizarem as quebras dos jobs.
+Esta estratégia funciona bem com jobs que apresentam baixa reusabilidade (as imagens iguais ficarão em RIPS diferentes) e demandam alto poder computacional;
+Alocar um número fixo de RIPs por job (Figura 2.4):
+Esta configuração é baseada no fato de que os jobs padrões das PSPs necessitam de um determinado número de recursos para manterem as impressoras continuamente trabalhando.
+Uma desvantagem é o fato de que um conjunto de RIPs somente será alocado para um novo job assim que todos os RIPs estiverem livres, ou seja, no momento em que o job atual for processado por completo.
+Nenhuma das estratégias discutidas acima, garante o melhor balanceamento de carga entre os RIPs.
+Porém, a segunda e a terceira apresentam uma eficiência maior do que a primeira estratégia.
+Em a estratégia 1 supõe- se como exemplo, 3 RIPs e 3 jobs.
+O primeiro job é executado em 100s, o segundo (contendo 3 páginas) em 30s e o terceiro (contendo 5 páginas) em 50s.
+Com estes valores, nota- se que o segundo RIP ficará ocioso por um tempo muito grande (70s).
+Já nas estratégias 2 e 3 como os jobs são quebrados em grãos (páginas ou grupo de páginas) o balanceamento de carga entre os RIPs acaba sendo melhor.
+Supõe- se o mesmo exemplo citado acima para estas duas estratégias.
+Cada página será distribuída de forma que cada RIP fique com uma quantidade similar ao dos outros RIPs.
+Em um primeiro momento, as 10 páginas do primeiro job são distribuídas.
+Assim, o primeiro RIP ficaria com 4 páginas o segundo e o terceiro com 3.
+Os RIPs 1 e 2 ficariam ociosos por 10 segundos até que o primeiro job fosse rasterizado.
+Quando todas as páginas forem rasterizadas, o próximo job da fila começa a ser distribuído (job com 3 páginas).
+Com isto, o primeiro, o segundo e o terceiro RIP ficam com 1 página cada um.
+Após este job ser rasterizado, o último job da fila começa a ser processado (job com 5 páginas).
+Assim, o primeiro e o segundo RIP ficam com 2 páginas e o terceiro com 1 página.
+Portanto, nota- se que com estas duas estratégias os RIPs não ficam tão ociosos quanto na primeira estratégia.
+Informações Presentes em Documentos PDF O formato PDF é altamente difundido entre as PSPs para a descrição de documentos.
+Este formato é uma PDL (Page Description Language) utilizada para descrever gráficos de um documento e provê uma representação que independe de software, hardware ou sistema operacional para criar- lo.
+Algumas das características e vantagens fornecidas por o formato PDF são:
+Portabilidade: Documento PDF é portável para qualquer plataforma, pois é armazenado como um arquivo binário ao invés de ser representado em texto puro;
+Compressão: O documento PDF suporta padrões atuais de compressão como o JPEG (Joint Photografics Experts Group);
+Segurança: Um documento PDF pode ser criptografado e descriptografado por diversos meios;
+Gerenciamento de Fontes:
+É possível adicionar ao documento PDF, diversos tipos de fontes com diferentes formatos.
+Algumas destas vantagens já existiam no formato PS (em o qual o PDF é baseado), herdando não somente as características e vantagens citadas anteriormente, mas também outros atributos, como o fato de um documento ser formado por uma série de objetos, por exemplo.
+Estes objetos, são os responsáveis por a descrição da aparência das páginas.
+Eles são dispostos de maneira sequencial, mas não são necessariamente lidos ou interpretados desta maneira.
+Booleanos, Valores Numéricos, Nomes, Vetores, Dicionários de Dados, Stream Objetos e Objeto Nulo.
+Estes objetos podem ser utilizados no escopo do documento, auxiliando a descrição do conteúdo de forma mais flexível.
+Além disso, o formato PDF utiliza gráficos para representar o conteúdo de uma ou mais páginas.
+Os gráficos podem ser divididos em grupos específicos conforme sua funcionalidade no documento PDF, como, por exemplo, o grupo dos textos (tratado como grupo especial de gráficos por o PDF, por a sua grande utilização na criação de documentos).
+Os gráficos podem ser classificados em 5 tipos:
+Path Objects: Representam formas arbitrárias, trajetórias, regiões e paths;
+External Objects: Representam elementos que podem ser reusáveis.
+Três sub-tipos de xObjects são conhecidos:
+Images xObjects: Descrevem imagens bitmap que representam seu conteúdo através de uma matriz de pixels;
+Postscript xObject: Objetos que definem seu conteúdo através de PS commands.
+Estes objetos estão deixando de ser usados em PDFs;
+Groups (forms) xObjects:
+Grupo de objetos gráficos, usados para definir propriedades comuns dentro de um grupo.
+Inline Image Objects: Definem uma imagem diretamente dentro de o PDF (não pode ser reusável).
+Esses objetos contêm diversas limitações, sendo a mais relevante o tamanho da imagem;
+Shading Pattern Objects: Descrevem uma forma geométrica (que tem sua cor definida por uma função arbitrária);
+Text Objects: Descrevem as porções de texto do documento, incluindo o formato e suas características, tais como fonte, tamanho, espaçamento entre letras etc..
+Estes objetos possuem características importantes, como a transparência e a reusabilidade, que influenciam no balanceamento de carga dos RIPs.
+A transparência de imagens é a propriedade que permite que se visualize de forma sobreposta duas ou mais imagens que ocupam regiões iguais ou o fundo do documento através da imagem.
+Já a reusabilidade ocorre quando instâncias da mesma imagem são utilizadas mais de uma vez na mesma página ou em páginas diferentes.
+Trabalhos Relacionados Em trabalhos passados, algumas estratégias para elevar a vazão do processo de renderização foram apresentadas.
+Já para o processo de rasterização, foi desenvolvida uma ferramenta num documento PDF.
+Com o uso desta ferramenta, foi possível realizar a análise do perfil dos jobs, contendo informações sobre os objetos que os compõem.
+A análise realizada concentrou- se no formato PDF, por ser este um formato difundido na descrição de documentos personalizados.
+Para cada página do documento PDF, as seguintes informações são fornecidas:
+Área total da página, textos, área total das imagens com transparência e com ou sem reusabilidade, se contém escopo de image XObjects e se contém elementos com transparência.
+A partir de as informações de carga mais justo para cada RIP.
+Um dos maiores desafios da área de sistemas computacionais paralelos e distribuídos é o desenvolvimento de técnicas eficientes para a distribuição de processos de aplicações paralelas entre os elementos de processamento.
+Esta distribuição de processos é conhecida como escalonamento de processos (job scheduling) e tem como objetivo minimizar o tempo médio de resposta e/ ou melhorar a utilização de recursos.
+Para melhorar o desempenho de sistemas computacionais paralelos e distribuídos, algumas características devem ser levadas em consideração, como o hardware da rede de comunicação, o sistema operacional, a presença de aplicações com diferentes características e a escolha do melhor tamanho de tarefa (grão) a ser transmitido e/ ou processado.
+Esta última característica é uma das primeiras preocupações que se deve considerar, pois caso se defina um tamanho de grão ruim, o overhead existente para a transmissão pode não compensar o ganho de desempenho obtido através da divisão de trabalho.
+Assim, para que a escolha do grão seja boa deve- se basear nas características específicas de cada aplicação.
+Logo após a tarefa ser definida, deve- se estabelecer a melhor estratégia de distribuição destas tarefas entre os processos para que não ocorra uma sobrecarga ou subcarga.
+Se a escolha desta estratégia não for boa, a eficiência pode ficar comprometida.
+Em a Figura 3.1 esta situação pode ser notada.
+Em a distribuição sequencial, em a qual se associa as tarefas uma a uma para cada máquina, tem- se uma sobrecarga na máquina 3 de 35.
+Isto ocorre porque o processamento de toda a fila só acaba quando todas as máquinas já terminaram suas tarefas.
+Assim, o tempo de processamento é igual ao tempo em que a última máquina acabar de processar a tarefa.
+Já com uma distribuição balanceada esta situação de sobrecarga não irá acontecer, pois leva- se em consideração a carga da tarefa.
+Assim, o tempo de finalização da fila de tarefas será menor.
+A procura por a divisão balanceada de tarefas caracteriza o problema de escalonamento.
+Em foi introduzido uma notação para se agrupar os problemas de escalonamento com características parecidas, afim de analisar os aspectos que influenciam cada grupo.
+Esta notação possui três tipos de características diferentes em relação a o problema de escalonamento.
+A primeira característica refere- se ao ambiente de execução da estratégia de escalonamento (relacionado ao hardware).
+A segunda característica é em relação a as pecuiliaridades de cada tarefa e a restrições da estratégia de escalonamento.
+Por fim, a terceira estratégia é em relação a medida de desempenho (tempo para terminar uma tarefa) que se deseja otimizar com a aplicação da estratégia de escalonamento.
+Em as seções a seguir será apresentada uma classificação para os problemas de escalonamento e alguns algoritmos de escalonamento existentes.
+Classificação Pode-se classificar o escalonamento em duas situações distintas, dependendo da disponibilidade de informações sobre as tarefas:
+Determinístico e não determinístico.
+O escalonamento determinístico é aquele em que todas as características das tarefas e as relações entre cada uma de elas são conhecidas previamente à execução da aplicação.
+Dois tipos de algoritmos se destacam:
+Algoritmos ótimos e sub-ótimos.
+Algoritmos ótimos são os que se preocupam em encontrar a melhor solução para o problema de escalonamento.
+Entretanto, este tipo de algoritmo necessita de grande quantidade de informações.
+Além disso, sabe- se que em geral os problemas de escalonamento são Np-Completos.
+O caso ideal seria utilizar os algoritmos ótimos para todas as situações, já que se teria a utilização da melhor configuração.
+Porém, este tipo de algoritmo acaba gerando um alto custo em termos de desempenho.
+Já os algoritmos sub-ótimos buscam uma solução através de técnicas específicas (como a heurística) sem nenhuma garantia que seja a melhor solução.
+Porém, sabe- se que a solução encontrada é próxima da ótima.
+Apesar disso, este algoritmo obtém resposta em tempo polinomial, o que não seria possível com o algoritmo ótimo.
+Assim, com a utilização do algoritmo sub-ótimo consegue- se um número maior de resoluções de problemas do que os algoritmos ótimos.
+O escalonamento não determinístico é aquele em que não se tem todas as informações necessárias sobre as tarefas antes da execução do programa, provendo uma decisão durante a execução do programa.
+Com isto, acaba ocorrendo um overhead na própria aplicação.
+Assim, dois tipos de algoritmos se destacam:
+Algoritmos estáticos e dinâmicos.
+Algoritmos estáticos realizam uma análise (durante o tempo de execução do programa) sobre toda tarefa antes de distribuir- las, conseguindo assim a melhor maneira de realizar o escalonamento.
+Este algoritmo é mais vantajoso caso o processamento da análise for feito num período de tempo que seja compensado por o ganho de desempenho obtido através da estratégia de escalonamento estabelecida.
+Os algoritmos dinâmicos propõem a intercalação da análise com a distribuição das tarefas.
+Assim, a análise é realizada apenas de um conjunto de tarefas, que após são distribuídas para serem processadas, partindo para a anáise de outro conjunto.
+Com isto, a partir de determinado momento o processo de escalonamento passa a ser concorrente ao cálculo do custo computacional de cada tarefa.
+O Problema P m| Cmax Um dos problemas existentes na área de escalonamento é denominado P m| Cmax.
+Este problema diz respeito ao escalonamento de um conjunto de n tarefas em m máquinas iguais (reduzindo o tempo para completar a última tarefa) e é considerado como Np-difícil, impossibilitando o desenvolvimento de algoritmos ótimos para resolver este problema.
+Assim, diversos algoritmos através da heurística foram desenvolvidos para obter um resultado o mais próximo de o ótimo possível.
+Para avaliar estes algoritmos no contexto de problemas Np-dificeis, um método que trata da distância do resultado do algoritmo, considerando o seu pior caso, em relação a o ótimo é utilizado.
+Este método é conhecido como análise de competitividade.
+Entre os diversos algoritmos para resolver o problema P m| Cmax os mais difundidos são:
+List Scheduling (Ls), Largest Processing Time First (LPT) e Multifit.
+A seguir o funcionamento, vantagens e desvantagens são apresentadas.
+List Scheduling O algoritmo Ls tornou- se a base para o desenvolvimento de muitos algoritmos de escalonamento.
+A partir de ele também foi possível descobrir outros problemas na área escalonamento.
+O funcionamento deste algoritmo é da seguinte forma:
+Dada uma fila A de tarefas organizadas de qualquer forma, sempre deve- se transmitir a primeira tarefa da fila para uma máquina ociosa, isto é, assim que ela acabar de processar a tarefa atual.
+Considerando a análise de competitividade para m máquinas, o Ls é (2 -- m) competitive, isto é, sua competitividade piora à medida que mais máquinas são utilizadas.
+Assim, seu pior caso é quando a última tarefa da fila tem o maior tempo de processamento.
+Largest Processing Time First O algoritmo LPT foi construído com o objetivo de melhorar a competitividade do algoritmo Ls.
+Assim, focou- se na prevenção do pior caso do algoritmo Ls (última tarefa da fila tem o maior tempo de processamento).
+De esta maneira, o LPT introduz a ordenção das tarefas da fila de maior tempo de processamento para o menor tempo.
+Após esta ordenação é feito o algoritmo Ls normalmente.
+De esta maneira, ameniza- se o efeito de perda de desempenho provocada por o não balanceamento de cargas grandes entre os processos.
+Multifit Logo após o LPT ser desenvolvido, o primeiro algoritmo a ter um ganho relativamente bom foi o algoritmo Multifit.
+Este algoritmo é baseado en técnicas bin-- packing.
+Esta técnica trata do empacotamento de n tarefas, com uma carga qualquer e com um número finito de bins (pacotes), onde o número de bins utilizados deve ser o menor possível.
+Como o problema do bin-- packing é Np-completo diversas heurísticas foram desenvolvidas para resolver este problema.
+Para este algoritmo Multifit a heurística utilizada é o First-Fit Decreasing (FFD) a qual agrupa as tarefas em até m (número de máquinas) bins.
+A estratégia FFD funciona da seguinte maneira:
+Organiza- se as tarefas conforme seus tempos de processamento de forma decrescente numa sequencia;
+Cada tarefa da sequência é adicionada no bin de forma que a capacidade do bin não ultrapasse um limite pré-definido;
+Os passos 1 e 2 são executados até que todas as tarefas etsejam num bin.
+Em o Capítulo 2 (Seção 2.2), as três estratégias de rasterização base apresentadas (com o objetivo de acelerar a rasterização dos jobs) utilizam apenas o algoritmo Ls para realizar o escalonamento de tarefas.
+Este algoritmo foi um dos primeiros estabelecidos na área de escalonamento, não possuindo a melhor competitividade de entre os algoritmos existentes.
+Isto pode ocasionar uma má utilização dos recursos, prejudicando o desempenho que poderia ser obtido.
+Com o intuito de melhorar a situação existente, uma abordagem foi proposta em.
+Esta abordagem foi feita através do desenvolvimento de um escalonador, o qual aplica dois algoritmos de escalonamento que levam em conta o custo computacional das tarefas, na tentativa de obter um balanceamento de carga mais justo.
+Estes algoritmos são o LPT e o Multifit.
+A seguir, são apresentados os passos necessários para que esta abordagem fosse desenvolvida.
+Métricas Foram analisadas diversas métricas para estimar o custo computacional do processo de rasterização de um documento PDF.
+A partir de o conhecimento do funcionamento dos RIPs e das características principais dos jobs das PSPs, foi possível decidir quais objetos e características deveriam ser levados em consideração.
+Assim, os objetos gráficos (textos e imagens) em conjunto com as páginas foram utilizados para compor as métricas para avaliar o custo computacional de um documento PDF.
+Para validar estas métricas, foram realizados alguns experimentos.
+Através destes foi possível estabelecer uma maneira para calcular o custo computacional associado a cada uma das métricas avaliadas (textos, imagens e páginas).
+Para o cálculo do custo de páginas em branco, observou- se o incremento do fator de relevância, que aumenta quanto maior for o número de páginas ou as dimensões da página.
+Isto se refere ao número de operações de E/ S que deverá ser realizada.
+A partir de isto, foi definido o custo de uma página.
+Em o cálculo do custo dos textos, num primeiro momento foi considerado o impacto do aumento da quantidade de texto e do tamanho da fonte num documento PDF.
+Porém, com os testes realizados em, notou- se que isto não influência no custo da rasterização.
+Entretando, a presença de texto influência no tempo de rasterização comparado com uma página em branco.
+Outro fator analisado que influenciou no tempo de rasterização foi a presença de transparência de texto.
+Já para o cálculo do custo de imagens foram analisados dois aspectos:
+Sem reusabilidade e com reusabilidade de imagens.
+Em o caso sem reusabilidade de imagens, num primeiro momento foi considerado a área de ocupação na página.
+Porém, com os testes realizados em, notou- se que isto não influência no custo da rasterização.
+Entretanto, a resolução da imagem influência no tempo de rasterização, pois os RIPs terão que realizar mais processamento sobre a imagem.
+Já para o caso com reusabilidade de imagens, a resolução da imagem continua influenciando no tempo de rasterização.
+Porém, ao adicionar uma imagem reutilizada, o custo desta imagem é menor comparada ao custo de uma imagem não reutilizada.
+Pois os RIPs buscam na cache o resultado da rasterização da imagem reutilizada.
+Para analisar e fornecer todas as informações contidas num documento PDF (como, por exemplo, presença de imagens transparentes e imagens reusáveis) foi desenvolvida uma ferramenta dos jobs.
+A análise realizada concentrou- se no formato PDF por ser este um formato difundido na descrição de documentos personalizados.
+As informações fornecidas de um documento PDF são as páginas (área total), textos (presença em quantas páginas), imagens (área total ocupada com e sem reusabilidade e com transparência), escopo de image xObjects (quais páginas estão aplicadas) e transparência de páginas (quais contêm algumas estratégias para obter um balanceamento de carga mais justo para cada RIP.
+PDF Splitter Em foi desenvolvida uma ferramenta chamada PDF Splitter, que tem como objetivo quebrar o documento PDF em vários fragmentos.
+Assim, é gerado um novo documento PDF para cada fragmento especificado, com suas páginas correspondentes.
+Esta ferramenta apresenta um tipo de quebra feita por intervalos.
+Os fragmentos representam uma quebra do documento original a cada n páginas, onde n é o intervalo desejado.
+A seguir tem- se a Figura 4.2 apresentando o funcionamento geral da ferramenta.
+Escalonadores Para se obter um desempenho melhor em relação a o algoritmo Ls, foram aplicados dois algoritmos de escalonamento:
+LPT e o Multifit.
+Além destes, um algoritmo com base no LPT foi proposto com algumas mudanças para contornar um problema que poderia ocorrer no escalonamento de jobs.
+Este novo algoritmo foi chamado de LPT Otimizado.
+Estes três algoritmos foram aplicados na estratégia de rasterização base que apresenta menor número de desvantagem:
+Todos os RIPs por job.
+Para as estratégias de rasterização base, a eficiência ficou em torno de 82%, enquanto que o algoritmo LPT Otimizado obteve uma eficiência de 92%, o Multifit obteve 84% de eficiência e o LPT obteve 88%.
+Portanto, o LPT Otimizado foi o algoritmo que obteve melhor desempenho entre os outros.
+A explicação para este resultado é que este algoritmo consegue transmitir imediatamente as tarefas das filas para os RIPs ociosos, paralelamente à análise do perfil dos jobs:
+O algoritmo LPT Otimizado foi desenvolvido com o intuito de melhorar o algoritmo LPT.
+Assim, foi estabelecido que a aplicação da métrica sobre as tarefas é realizada de forma concorrente ao escalonamento das tarefas para os RIPs livres, para poder melhorar o tempo de resposta do escalonador.
+Quando o escalonador precisar aplicar a métrica sobre um determinado job, será lançada uma nova thread responsável por tal função.
+Anteriormente à criação desta thread, as tarefas deste job serão inseridas no final da fila, estando disponíveis para serem transmitidas.
+Assim que as threads vão terminando sua função, o custo computacional das tarefas correspondentes será atualizado, removendo- as da fila e inserido- as novamente de forma ordenada.
+Com esta estratégia, caso um RIP fique livre e não existam mais tarefas na fila (a não ser aquelas onde o custo computacional não tenha sido calculada), uma destas tarefas será enviada assim mesmo.
+Caso uma thread finalize sua computação e as suas tarefas já tenham sido enviadas, nenhuma ação será tomada.
+Este capítulo descreve o trabalho realizado com o objetivo de melhorar o balanceamento de carga entre os RIPs através do desenvolvimento de estratégias e de um Roteador Adaptativo de Jobs.
+Assim, primeiramente é descrita a metodologia deste trabalho, seguidos das estratégias desenvolvidas e do Roteador Adapdativo de Jobs.
+Metodologia As três estratégias base de rasterização de documentos não garantem um bom balanceamento de carga entre os RIPs por apresentar um algoritmo simples (algoritmo Ls) para o escalonamento das tarefas (Capítulo 2).
+Em o Capítulo 4 foram apresentados novos algoritmos de escalonamento para garantir um melhor balanceamento de carga entre os RIPs.
+Estes algoritmos conseguiram obter um melhor desempenho em comparação com as três estratégias base de rasterização de documentos.
+Porém, estes algoritmos ainda podem ser melhorados através da análise mais detalhada das caracaterísticas contidas nos documentos PDF.
+A divisão dos jobs é feita de maneira simplificada em.
+Desta forma não se está tendo o aproveitamento máximo que poderia ser obtido.
+Explorando as caracaterísticas das páginas dos documentos, uma divisão inteligente (que aproveitaria melhor as opções de otimização oferecidas por os RIPs) pode ser utilizada.
+Para atingir o objetivo deste trabalho, num primeiro momento foi realizada uma modificação (anteriormente, o custo computacional era calculado sobre o documento inteiro).
+Também foi necessário realizar a modificação na ferramenta PDF Splitter.
+Antes, a quebra do documento PDF era feita por intervalos como por exemplo, da página 1 a página 10 e da página 11 a página 20).
+Com a modificação desta ferramenta, a quebra dos jobs é feita de maneira inteligente na tentativa de otimizar o desempenho a partir de o tipo de característica contida no documento PDF.
+Cabe ressaltar que o grão mínimo de cada parte do job é uma página.
+Sendo assim, não poderá ocorrer a existência de um job com grão menor que um.
+Logo após, cinco estratégias para melhor dividir os jobs levando em consideração as características internas dos documentos PDF (transparência e reusabilidade) foram desenvolvidas.
+Para a realização dos testes das estratégias, foi criado um conjunto de 30 documentos PDFs com características diferentes, reproduzindo a realidade das PSPs.
+Para a validação destas cinco estratégias testes foram realizados.
+Por fim, foi desenvolvido o Roteador Adaptativo de Jobs.
+Para a realização dos testes, foi criado um conjunto de 75 documentos PDF.
+Para a validação do RAJ testes foram realizados.
+A seguir serão descritas as estratégias propostas.
+Estratégias Esta seção apresenta as cinco estratégias propostas neste trabalho com o intuito de obter um bom balanceamento de carga entre os RIPs.
+Em o próximo capítulo, são apresentados os modelos de documentos PDF utilizados e os resultados obtidos utilizando estas estratégias.
+A característica que mais influência no tempo de processamento de um job é a presença ou não de imagens transparentes.
+Enquanto um documento de 100 páginas contendo uma imagem &quot;X «sem transparência em cada página leva 21100 segundos para rasterizar, um documento de 100 páginas contendo a mesma imagem &quot;X «porém, transparente em cada página, leva 26400 segundos, por exemplo.
+A partir de isso, desenvolveu- se um algoritmo que leva em consideração essa característica.
+O algoritmo separa primeiramente as páginas transparentes, ordenando- as por o seu custo computacional (maior custo para o menor) num fila de páginas.
+Este custo computacional é obtido cada página.
+Após a ordenação destas páginas transparentes, as páginas restantes do job (páginas com imagens opacas e/ ou texto) também são ordenadas por o seu custo computacional para, então, serem inseridas na fila de páginas.
+Quando todas as páginas do job forem inseridas nesta fila de páginas, começa a ser feita a distribuição de acordo com a quantidade de RIPs (por exemplo, se houver 4 RIPs serão criados 4 fragmentos) de forma que os RIPs fiquem com uma carga similar de transparências.
+Esta distribuição é conhecida como &quot;zig-zag».
+A Figura 5.1 apresenta um exemplo dessa distribuição das páginas de maneira balanceada.
+Como nota- se, a fila com as páginas do documento PDF está ordenada de acordo com a estratégia (nesse caso, estratégia Transparência, onde o documento PDF contém 5 páginas, com imagens transparentes e 4 páginas com texto).
+Quando esta fila de páginas estiver pronta (todas as páginas do documento inseridas), começa a ser realizada a distribuição de maneira balanceada.
+Esta distribuição é feita da seguinte forma:
+Associam- se as páginas uma a uma para cada fragmento (onde o número de fragmentos é igual ao número de RIPs) de forma &quot;zig-zag», ou seja, a primeira página para o fragmento 1, a segunda para o fragmento 2, a terceira para o fragmento 3, a quarta também para o fragmento 3, a quinta para o fragmento 2, a sexta para o fragmento 1 e assim sucessivamente.
+Porém, a partir de o ponto onde todos os fragmentos receberam uma página e ao tentar receber uma página por a segunda vez, um teste começa a ser realizado.
+Este teste tem o objetivo de não deixar inserir mais páginas caso o custo atual do fragmento somado ao custo da página que será inserida for maior do que o custo que o fragmento deveria ter (custo total do documento PDF dividido por o número de fragmentos).
+De esta maneira, evita- se que o fragmento fique desbalanceado.
+Quando se tenta inserir uma tarefa num fragmento e o custo computacional atual do fragmento somado ao custo da página que será inserida for maior do que o custo computacional que deveria ter, esta tarefa passa para o próximo fragmento (obedecendo a ordem da distribuição) e realiza- se o mesmo teste.
+Isto se repete até que se tenha tentado inserir em todos os fragmentos.
+Caso não seja possível inserir em algum fragmento, a inserção é feita através de a «força-bruta, inserindo a página no fragmento que apresentar o menor custo computacional.
+Nota- se que após a distribuição ser realizada, o custo computacional total do fragmento ficou balanceada.
+A seguir tem- se um exemplo para um melhor entendimento da estratégia Transparência, que pode ser acompanhado com a Figura Seja um job com 10 páginas que deve ser distribuído entre 2 RIPS, onde as 4 primeiras páginas do job contêm imagens transparentes com custo computacional de, respectivamente, 7, 10, 8, 9 e as próximas 6 páginas deste job contêm apenas texto possuindo um custo computacional igual a 2 (páginas contendo apenas texto sempre possuem o mesmo custo).
+O algoritmo começa ordenando as páginas com imagens transparentes e inserindo- as na fila de páginas:
+Página 2, página 4, página 3 e página 1 (custo 7).
+Em seguida, as páginas restantes do job são ordenadas (nesse caso como as próximas páginas contêm apenas texto elas não precisam ser ordenadas, pois seu custo computacional são sempre iguais, independente do número de linhas que tiver) e também inseridas na fila de páginas.
+Após este processo, começa ser feita a distribuição destas páginas entre os fragmentos de acordo com a quantidade de RIPs.
+A distribuição final fica, então, 2 páginas contendo imagens transparentes e 3 páginas contendo texto para os fragmentos 1 e do job.
+Quando imagens com reusabilidade estão agrupadas, seu tempo de processamento diminui (a primeira página continua com o mesmo custo computacional, porém as páginas restantes tem seu custo computacional reduzido), pois os RIPs fazem cache destas imagens e, quando encontradas por a segunda vez no documento, não precisam ser rasterizadas novamente.
+Se as imagens estiverem em documentos ou em RIPs diferentes, serão processadas diversas vezes.
+Com isto, desenvolveu- se um algoritmo levando em consideração esta característica.
+O algoritmo proposto primeiramente une as imagens com reusabilidade, formando então um conjunto de imagens reusáveis.
+Isto é feito até que todos os conjuntos com imagens reusáveis estejam criados.
+Logo após, é feita uma ordenação por o custo computacional do conjunto (custo maior até o menor) e estes conjuntos são inseridos na fila de páginas.
+Caso o número de conjunto com imagens reusáveis seja menor do que o número de RIPs, cada conjunto é quebrado em dois (caso ainda seja menor o conjunto, é quebrado em dois novamente até que o número de conjunto seja maior do que o número de RIPs).
+Após acabar esta primeira etapa, ordena- se também as páginas restantes (páginas com imagens opacas e/ ou texto) do job para também inserir na fila de páginas.
+Por fim, é realizada a distribuição das páginas entre os fragmentos.
+A distribuição das páginas nesta estratégia segue a distribuição utilizada na estratégia Transparência (distribuição &quot;zig-zag «mostrada na Figura 5.3).
+A seguir, é apresentado um exemplo para um compreendimento da estratégia Reusabilidade, que pode ser acompanhado na Figura 5.3.
+Seja um job contendo 9 páginas que deve ser distribuído entre 2 RIPS, onde nas 3 primeiras páginas pares contêm a mesma imagem (imagem A), e o custo computacional da cada página seja igual a 10, nas primeiras 4 páginas ímpares também contêm imagens iguais (imagens B) com custo computacional de cada página igual a 7 e as 2 páginas restantes contêm apenas texto com custo computacional igual a 2.
+A distribuição seria:
+As 3 primeiras páginas pares formariam um conjunto.
+Este primeiro conjunto teria um custo computacional total de 26, pois como o custo da página é igual a 10 e quando se agrupam imagens com reusabilidade o custo computacional das páginas seguintes tem seu custo computacional reduzido, neste caso as 2 páginas ficariam com um custo computacional igual a 8 cada uma (hipoteticamente).
+As próximas 4 páginas ímpares formariam um segundo conjunto.
+Este segundo conjunto teria um custo computacional igual a 25, pois como o custo da página é igual a 7 e como descrito anteriormente, que quando se agrupam imagens com reusabilidade o custo computacional das páginas seguintes tem seu custo computacional reduzido, neste caso as 3 páginas ficariam com um custo computacional igual a 6 cada uma.
+Com os conjuntos criados, insere- se na fila de páginas os conjuntos ordenados por o seu custo computacional.
+Após isto, como as próximas 2 páginas restantes contêm apenas texto, elas não necessitam ser ordenadas pois seus custos computacional são iguais.
+Assim, elas também são inseridas na fila de páginas.
+Por fim, realiza- se a distribuição entre os fragmentos.
+Há uma grande variedade de tipos de documentos PDF (documentos com mais páginas, menos páginas, apresentando apenas uma característica, apresentando várias caractarísticas em conjunto).
+Para os documentos PDF que apresentam a característica de transparência em conjunto com a de reusabilidade, duas estratégias foram propostas.
+A primeira estratégia seria quando se tem mais imagens com transparência do que imagens com reusabilidade.
+A segunda estratégia seria quando o documento apresenta mais imagens com reusabilidade do que imagens com transparência.
+Esta seção aborda a primeira estratégia (Mais Transparência e Menos Reusabilidade) e na seção seguinte é descrita a segunda estratégia (Menos Transparência e Mais Reusabilidade).
+Para a estratégia de Mais Transparência e Menos Reusabilidade um algoritmo foi proposto.
+A seguir tem- se o algoritmo:
+Como as páginas mais relevantes num documento PDF são as que contêm imagens transparentes, estas, são ordenadas primeiramente por o seu custo computacional e logo após são inseridas na fila de páginas.
+Logo após, unem- se todos as páginas contendo reusabilidade formando conjuntos.
+Estes conjuntos são ordenados por o seu custo computacional para então serem inseridos na fila de páginas.
+Assim que a fila com as páginas do documento estiver pronta, inicia- se a distribuição para os fragmentos.
+Após inserir as páginas com imagens transparentes e ao tentar adicionar um conjunto num fragmento e seu custo computacional somando ao custo computacional atual do fragmento for maior do que o custo que o fragmento deveria ter (custo total do documento PDF dividido por o número de RIPs), este fragmento então é particionado em dois e é feito o teste novamente, até que o conjunto seja inserido ou no primeiro fragmento da tentativa de inserção ou no fragmento de menor custo computacional).
+A distribuição balanceada utilizada nesta estratégia também segue a distribuição balanceada descrita na Seção 5.2.1 (estratégia Transparência).
+A seguir, tem- se um exemplo para um entendimento melhor desta estratégia e que pode ser acompanhado na Figura 5.4.
+Seja um job contendo 10 páginas que deve ser distribuído entre 2 RIPS, onde nas páginas 1, 3, 5, 7 e 9 contêm imagens transparentes e nas páginas 2 e 4 contém a mesma imagem (imagem A) com custo computacional 5 e nas páginas 6, 8 e 10 possuem páginas com texto (custo computacional igual a 2).
+Primeiramente, as páginas com transparências são ordenadas por o seu custo computacional e são inseridas na fila de páginas.
+Logo em seguida, as páginas contendo imagens reusáveis são agrupadas num conjunto e ordenadas por o seu custo computacional.
+Este conjunto é inserido na fila de páginas.
+Após, as páginas com texto também são inseridas na fila de páginas.
+Quando todas as páginas forem inseridas na fila, a distribuição começa ser feita.
+Sempre antes de inserir um conjunto com reusabilidade nos fragmentos, realiza- se o teste para saber se o custo atual do fragmento somado ao custo computacional do conjunto é maior do que o custo que o fragmento deveria ter.
+Se caso for maior divide- se o conjunto em dois, senão, insere- se o conjunto.
+Menos Reusabilidade.
+Para a estratégia de Menos Transparência e Mais Reusabilidade foi proposto um algoritmo que está logo a seguir.
+Como o documento PDF contém mais páginas com imagens reusáveis do que com transparência, une- se todas as páginas com imagens reusáveis, formando conjuntos.
+Após a formação, é feita a ordenação através dos custos computacionais dos conjuntos, para então serem inseridos na fila de páginas.
+Logo em seguida, as páginas com imagens transparentes são ordenadas também por o seu custo computacional para então serem inseridas na fila de páginas.
+Por fim, ordena- se as páginas restantes e logo após insere- as na fila de páginas.
+Quando todas as páginas tiverem sido inseridas na fila, começa a ser realizada a distribuição entre os fragmentos.
+A distribuição de maneira balanceada utilizada nesta estratégia segue o mesmo modelo adotado nas outras estratégias, ou seja, a distribuição &quot;zig-zag «mostrada da Figura 5.1.
+A seguir, um exemplo é descrito para compreender melhor esta estratégia, que pode ser acompanhada na Figura Seja um job contendo 8 páginas que deve ser distribuído entre 2 RIPS, onde nas páginas 1, 3 e 5 contêm a mesma imagem (imagem A) com custo computacional 7, nas páginas 2, 4 e 6 contêm a mesma imagem (imagem B) com custo computacional 8 e nas páginas 7 (custo computacional 10 custo computacional 6) contêm imagens transparentes.
+Primeiramente, as páginas com imagens reusáveis são agrupadas em conjuntos.
+Estes conjuntos são ordenados por o seu custo computacional para logo em seguida serem inseridos na fila de páginas.
+Logo após, ordena- se as páginas transparentes e insere- as na fila de páginas.
+Por fim, a distribuição entre os fragmentos começa a ser realizada.
+Mais Reusabilidade.
+Os documentos PDFs poderão apresentar páginas sem imagens com transparência e páginas sem imagens com reusabilidade.
+Através deste cenário, foi proposto um algoritmo para satisfazer esta condição.
+Seja um job contendo 8 páginas que deve ser distribuído entre 2 RIPS, onde nas páginas 1, 3, 4 e 7 apresentam imagens diferentes e opacas e nas páginas 2, 5, 6 e 8 contêm apenas texto.
+Todas as páginas são ordenadas por o seu custo computacional.
+Após é feita a distribuição de todas as páginas entre os fragmentos.
+Reusabilidade. Roteador Adaptativo de Jobs -- RAJ O Roteador Adaptativo de Jobs, tem a capacidade de decidir a partir de as informações contidas num arquivo XML, qual das estratégias desenvolvidas será utilizada por um determinado job para gerar os fragmentos que serão rasterizados.
+A Figura 5.7, apresenta a visão geral do processo de rasterização.
+Em um primeiro momento, tem- se a fila com todos os jobs que passarão por o processo de arquivo de entrada um arquivo de configuração contendo quais informações do job serão obtidas.
+Esta ferramenta obtem todas as informações, ou as informações mais relevantes contidas nestes jobs.
+Adaptativo de Jobs analisa estes arquivos e, através de eles, consegue descobrir qual das estratégias deve ser utilizada num determinado job.
+A Figura 5.11 apresenta o funcionamento detalhado do módulo RAJ.
+A o receber o arquivo XML e o arquivo Custo, o bloco Analisador de Perfil dos Jobs, lê o arquivo XML para descobrir qual estratégia será utilizada em cima de um Job.
+Este analisador também lê o arquivo Custo para criar uma lista de informações com as páginas e seus respectivos custos.
+A o descobrir qual é a estratégia, o bloco Analisador envia a estratégia definida para o próximo bloco assim como a lista contendo as informações do job (lista de páginas).
+O bloco Executor de Estratégias, ao receber a saída do Analisador, começa analisando a lista de informações para então criar o vetor com os fragmentos (número de fragmento igual ao número de RIPs) de acordo com a estratégia recebida.
+Assim que os fragmentos forem criados (com as páginas no novo job) estes são enviados para a ferramenta PDF Splitter.
+Após a ferramenta particionar o job de maneira inteligente, os novos jobs são inseridos num fila de tarefas para então serem enviados para os RIPs disponíveis.
+Este capítulo apresenta o ambiente de teste utilizado para executar as cinco estratégias propostas.
+Também são apresentados os casos de testes criados com diferentes características representando casos da realidade das PSPs.
+Por fim, tem- se os resultados obtidos com o uso das estratégias desenvolvidas comparando- as com o algoritmo que obteve o melhor desempenho em.
+Este algoritmo foi o LPT Otimizado.
+Os resultados foram obtidos através de uma média de 20 execuções com o uso de um RIP open-, o ImageMagick converter.
+Em os testes, os documentos PDFs foram rasterizados utilizado- se 40 Dpi (Dots per Inch) de resolução.
+Ambiente de Teste Será descrito nesta seção o ambiente de hardware e de software utilizado para criar os jobs e executar as cinco estratégias desenvolvidas.
+Além disso, serão apresentados os jobs utilizados para realização dos testes.
+Para se aproximar da realidade das PSPs, o ambiente de hardware que foi utilizado para realização dos testes é um agregado de 6 blades Hp ProLiant BL20p (arquitetura multicomputador, podendo ser classificada como um COW -- Cluster Of Workstations), em a qual cada máquina contém dois processadores Single-Core Intel Xeon 3.6 GHz, com 2 GB de memória DDR2 SRAM, rodando sob um sistema operacional Linux.
+Além disso estas blades estão conectadas através de uma rede de alta velocidade Gigabit Ethernet.
+Para a criação do conjunto de jobs, utilizou- se a biblioteca Java iText na versão 2.0.7.
+Esta biblioteca é Open Source e está muito bem documentada facilitando seu uso.
+A partir de ela é possivel gerar documentos contendo textos, tabelas, imagens e apresenta diversos tipos de fontes.
+Para avaliar as cinco estratégias desenvolvidas, um conjunto de 30 jobs com características diferentes foi criado.
+Os jobs criados estão dividos em cinco grupos:
+PDFs com transparências, PDFs com reusabilidade, PDFs com mais transparência do que reusabilidade, PDFs com mais reusabilidade do que transparência e PDFs sem a presença de transparência e de reusabilidade.
+A Tabela 6.1 mostra as características presentes nos jobs como o número de documentos, número de total de páginas, o número total de imagens e o número total de páginas com textos.
+Pode- se notar que os documentos criados possuem uma grande diversidade de número de páginas, textos e imagens retratando a realidade das PSPs.
+De esta maneira, será possível avaliar o comportamento das estratégias.
+Análise dos Resultados das Estratégias Para a realização dos testes foi feita uma comparação com o algoritmo que obteve o melhor desempenho das estratégias desenvolvidas em.
+Este algoritmo foi o LPT Otimizado.
+A seguir são apresentados os resultados para as cinco estratégias propostas.
+Estabeleceu- se um conjunto de 3 jobs com diferentes características para validar a estratégia de transparência descrita no Capítulo 5.
+O conjunto de jobs selecionados foram:
+Transp 1, Transp 2 e Transp 3 citados anteriormente.
+Em esta estratégia foi considerado 3 RIPs por job.
+A Figura 6.1 mostra o gráfico referente a distribuição em 3 RIPs com tempo de processamento em segundos.
+Como pode- se notar, a estratégia de Transparência mostrou- se mais eficiente do que o LPT Otimizado.
+Enquanto o LPT Otimizado rasterizou os documentos PDF em 143 segundos, a estratégia de transparência levou apenas 84 segundos para realizar a rasterização.
+Com isto, o ganho foi de Para validar esta estratégia implementada com a característica de reusabilidade de imagens Reusab 5, Reusab 6, Reusab 7, Reusab 8, Reusab 9, Reusab 10, Reusab 11 e Reusab 12 descritos anteriormente) com diferentes características.
+Os jobs criados para a realização dos testes possuem grande variedade de quantidade de textos e imagens, retratando assim, a realidade da maioria das PSPs.
+Para a execução dos testes o número de RIPs utilizados foi de 3.
+O gráfico da Figura 6.2 é referente a o processamento (em segundos) dos documentos PDFs citados acima, para uma distribuição de 3 RIPs por job.
+Nota- se que com a distribuição de 3 RIPs a estratégia de reusabilidade se mostrou um pouco mais eficiente novamente do que o algoritmo LPT Otimizado.
+Enquanto o LPT Otimizado rasterizou os documentos PDF em 911 segundos, a estratégia de reusabilidade levou apenas 727 segundos para realizar a rasterização.
+Assim, o ganho foi de 20,2%.
+Um conjunto de 5 jobs com diferentes características foi utilizado para validar a estratégia Mais transparência e Menos reusabilidade descrita no Capítulo 5.
+Em esta estratégia foi considerado 3 RIPs por job.
+A figura 6.3 mostra o gráfico referente a distribuição em 3 RIPs.
+Nota- se que esta estratégia também foi mais eficiente do que o LPT Otimizado utilizando uma distribuição para 3 RIPs.
+Enquanto o LPT Otimizado rasterizou os documentos PDF em 246,8 segundos, a estratégia Mais Transparência e Menos Reusabilidade levou apenas 151,6 segundos para realizar a rasterização.
+Assim, o ganho foi de 38,57%.
+Um conjunto de 5 jobs com diferentes características foi utilizado para validar a estratégia Menos Transparência e Mais Reusabilidade descrita no Capítulo 5.
+Os jobs utilizados foram: (MenosTMaisR 1, MenosTMaisR 2, MenosTMaisR 3, MenosTMaisR 4 e MenosTMaisR 5.
+Em esta estratégia foi considerado 3 RIPs por job.
+A Figura 6.4 mostra o gráfico referente a distribuição em 3 RIPs.
+Com uma distribuição de 3 RIPS, nota- se que esta estratégia obteve um desempenho melhor do que o LPT Otimizado.
+Enquanto o LPT Otimizado rasterizou os documentos PDF em 267,8 segundos, a estratégia Menos Transparência e Mais Reusabilidade levou apenas 157 segundos para realizar a rasterização.
+Assim, o ganho foi de 41,37%.
+Um conjunto de 5 jobs com diferentes características foi utilizado para validar a estratégia Sem Transparência e Sem Reusabilidade descrita no Capítulo 5.
+Em esta estratégia foi considerado 3 RIPs por job.
+A Figura 6.5 mostra o gráfico referente a distribuição em 3 RIPs.
+Em esta estratégia também nota- se que com uma distribuição de 3 RIPs o desempenho em relação a o LPT Otimizado foi melhor.
+Enquanto o LPT Otimizado rasterizou os documentos PDF em 119,7 segundos, a estratégia Sem Transparência e Sem Reusabilidade levou apenas 106 segundos para realizar a rasterização.
+Assim, o ganho foi de 11,45%.
+Este capítulo aborda o ambiente de teste e os casos de testes utilizados para executar o Roteador Adaptativo de Jobs.
+Também, demonstra- se os resultados obtidos com o uso das cinco estratégias desenvolvidas comparando- as com o algoritmo que obteve o melhor desempenho em.
+Por fim, tem- se a análise do ganho médio.
+Os resultados foram obtidos através de uma média de 30 execuções com o uso de um RIP open-, o ImageMagick converter.
+Em os testes, os documentos PDFs foram rasterizados utilizado- se 40 Dpi (Dots per Inchs) de resolução.
+Cabe ressaltar que o conjunto de testes utilizado não é exaustivo, ou seja, não conseguiu abranger todos os tipos possíveis de documentos.
+Ambiente de Teste Será descrito nesta seção o ambiente de hardware e software utilizado para executar e implementar as estratégias e o Roteador Adaptativo de Jobs.
+Além disso, serão apresentados os jobs utilizados para realização dos testes.
+Para se aproximar da realidade das PSPs, o ambiente de hardware que foi utilizado para realização dos testes é um agregado computacional constituído por 32 máquinas interligadas por meio de uma rede de alta velocidade Gigabit Ethernet.
+Cada máquina é composta por dois processadores AMD Opteron 246 2.0 GHz, 8 GB de memória principal e 1 Tb de disco rígido.
+O sistema operacional destas máquinas é o Linux versão 2.6.24.
+Para implementar as cinco estratégias previamente descritas, utilizou- se a linguagem Java na versão 1.5 mesmo não sendo usual na área de alto processamento.
+Porém, esta linguagem vem oferecendo melhorias permitindo assim sua utilização (cresce o número de pesquisadores da área que utilizam esta liguagem para suas implementações).
+Além disso, esta linguagem oferece portabilidade, extensibilidade e alto nível de abstração, além de oferecer compatibilidade com a cojunto de jobs utilizou- se a bilbioteca Java iText na versão 2.0.7.
+Como a arquitetura descrita acima é de um multicomputador, a comunicação entre os processos é feita através da troca de mensagens.
+Assim, utilizou- se a biblioteca MPJ-Express.
+Esta biblioteca é uma implementação do padrão MPI (Message Passing Interface) com o uso da linguagem Java.
+Para a execução do RAJ utilizando as cinco estratégias desenvolvidas, seis diferentes configurações de fila foram criadas.
+As configurações destas filas foram direcionadas para tratar das cinco estratégias criadas.
+A seguir, tem- se a descrição de cada fila:
+Fila 1: Contém 15 documentos PDF com transparência, na ordem apresentada na Tabela 7.1 a;
+Fila 2: Contém 15 documentos PDF com reusabilidade, na ordem apresentada na Tabela 7.1 b;
+Fila 3: Contém 15 documentos PDF com mais transparência do que reusabilidade na ordem apresentados na Tabela 7.1 c;
+Fila 4: Contém 15 documentos PDF com mais reusabilidade do que transparência apresentados na Tabela 7.1 d;
+Fila 6: Contém 15 documentos PDF, divididos em 5 grupos com características diferentes, sendo eles (nesta ordem):
+SemTSemR 3 da Tabela 7.1 e);
+Análise dos Resultados do RAJ Esta seção apresenta os resultados obtidos com o uso do RAJ comparando- o com o LPT Otimizado.
+Em este sentido, 30 execuções foram realizadas sobre cada uma das filas descritas anteriormente.
+De estes resultados, foram retirados aqueles com maior e menor tempo para cada conjunto de testes, obtendo uma média dos outros 28 valores.
+Para cada execução das filas, 1 processo sempre será o escalonador, que tem como objetivo realizar a distribuição dos fragmentos.
+Com isto, para a existência de RIPs em paralelo o número de processos não deverá ser menor do que 3, ou seja, 1 escalonador e 2 RIPs.
+Para a execução dos testes variou- se o número de processos de 3 a 19.
+A seguir tem- se o desempenho de cada uma das estratégias.
+Esta seção apresenta uma análise comparativa dos dois algoritmos para as seis filas visando identificar flutuações do comportamento e tendências na sua escalabilidade.
+Fila somente com transparência A Figura 7.1, apresenta o gráfico com o desempenho do RAJ utilizando a estratégia Transparência comparada com o LPT Otimizado.
+Como pode- se verificar, o comportamento da curva do LPT Otimizado apresenta algumas flutuações nos tempos obtidos (com aumentos e diminuições nas medidas) gerando situações imprevisíveis.
+Para compreender melhor estas flutuações, deve- se analisar o funcionamento desta estratégia mais a fundo.
+Em este contexto, sabe- se que esta estratégia quebra os jobs em fragmentos de acordo com o número de RIPs.
+Porém, estes fragmentos não necessariamente têm seu custo calculado (conforme descrito na Seção 4.4), podendo acarretar um desbalanceamento das tarefas.
+Já a estratégia Transparência além de amenizar estas flutuações, obteve em média os melhores resultados.
+Esta estratégia obteve o melhor desempenho absoluto.
+A Tabela 7.2 contêm os valores de processamento de cada processo para as duas estratégias utilizadas.
+A Figura 7.3 apresenta o gráfico com o desempenho do RAJ utilizando a estratégia Mais Transparência e Menos Reusabilidade comparada com o LPT Otimizado.
+Como pode- se verificar, o comportamento da curva do LPT Otimizado também apresenta algumas flutuações nos tempos obtidos, assim como na comparação com a estratégia Transparência e na Reusabilidade.
+Já a estratégia Mais Transparência e Menos Reusabilidade mesmo perdendo para o LPT Otimizado nos processos 4 e 5, em média ela obteve os melhores resultados.
+Também foi possível notar como na comparação com a estratégia Transparência, que esta estratégia obteve o melhor desempenho absoluto.
+A Tabela 7.4 contêm os valores de processamento de cada processo para as duas estratégias utilizadas.
+A Figura 7.4 apresenta o gráfico com o desempenho do RAJ utilizando a estratégia Menos Transparência e Mais Reusabilidade comparada com o LPT Otimizado.
+Pode- se verificar que o comportamento da curva do LPT Otimizado também apresenta flutuações nos tempos obtidos.
+A estratégia Menos Transparência e Mais Reusabilidade mesmo perdendo em 4 ocasiões (processos 4, 5, 6 e 7) em média apresentou o melhor desempenho (13 ocasiões).
+Esta estratégia obteve o melhor ganho absoluto, com o tempo menor de 113,6 segundos.
+A Tabela 7.5 contêm os valores de processamento de cada processo para as duas estratégias utilizadas.
+A Figura 7.5 apresenta o gráfico com o desempenho do RAJ utilizando a estratégia Sem Transparência e Sem Reusabilidade comparada com o LPT Otimizado.
+Pode- se verificar que o comportamento da curva do LPT Otimizado novamente apresentou flutuações nos tempos obtidos.
+A estratégia Sem Transparência e Sem Reusabilidade perdeu em 2 ocasiões porém em média apresentou o melhor desempenho.
+Esta estratégia obteve também o melhor ganho absoluto, com o tempo menor de 107.2 segundos.
+A Tabela 7.6 contêm os valores de processamento de cada processo para as duas estratégias utilizadas.
+A Figura 7.6 apresenta o gráfico com o desempenho do RAJ comparada com o LPT Otimizado utilizando a sexta fila (abordando assim, todas as cinco estratégias).
+Pode- se verificar, que o comportamento da curva do LPT Otimizado apresentou novamente flutuações nos tempos obtidos.
+Já o comportamento do RAJ amenizou estas flutuações e também pode- se observar o melhor ganho absoluto, com o tempo menor de 131,6 segundos.
+A Tabela 7.7 contém os valores de processamento do RAJ e do LPT Otimizado.
+A Figura 7.7 apresenta os seis gráficos referentes ao percentual de diferenças entre as comparações do RAJ com o LPT Otimizado utilizando as seis filas descritas na Seção 7.1.2.
+Em a Figura Otimizado, com uma média das diferenças percentuais igual a 7.22%, assim como na estratégia Menos Transparência e Mais Reusabilidade (Figura 7.7 d), que obteve perda também em 4 processos (4, 5, 6 e 7), mas na maioria dos casos obteve um ganho melhor do que o LPT Otimizado com uma média das diferenças percentuais igual a 3.60%.
+Já as estratégias Mais Transparência e Menos Reusabilidade (Figura 7.7 c) e Sem Transparência e Sem Reusabilidade (Figura 7.7 e) obtiveram uma perda em apenas 2 processos.
+Quando utilizada a combinação de características de documentos (Figura 7.7 f), obteve- se uma perda em 5 processos, mas assim como nas estratégias anteriores no geral obteve- se um ganho melhor do que o LPT Otimizado com uma média das diferenças percentuais igual a 4.38%.
+Entretanto, como se pode notar, apenas a estratégia Reusabilidade apresentou uma perda de maneira geral na média das diferenças percentuais.
+Como dito anteriormente, esta perda pode estar ligada ao tamanho escolhido do grão da tarefa.
+A Tabela 7.8 contém a média das diferenças percentuais de cada estratégia.
+Observando a Figura 7.7, nota- se que em todos os gráficos há uma perda significativa na configuração com 4 processos (onde 3 são RIPs).
+Esta perda pode ser ocasionada por um comportamento anormal do LPT Optimizado.
+Com intuito de verificar a influência negativa dessa configuração no desempenho médio de cada estratégia, foram feitas médias ignorando- se os valores da mesma.
+A seguir tem- se a Tabela 7.9 com a média das diferenças percentuais de cada estratégia retirando a configuração com 4 processos.
+Nota- se que ao retirar a configuração com 4 processos, todas as médias das diferenças percentuais tornaram- se melhores, apresentando um ganho.
+Como exemplo, a estratégia Menos Transparência e Mais Reusabilidade que tinha um ganho de 3.60% passou a ter uma ganho de 6.64%.
+O trabalho realizado apresentou uma nova abordagem para a divisão dos jobs.
+Para tanto, cada página foi realizada.
+Com isto, estratégias para a divisão dos jobs levando em consideração a características transparência e reusabilidade foram desenvolvidas.
+Também foi necessária uma modificação na ferramenta PDF Splitter, fazendo com que a divisão seja feita em páginas específicas.
+Um mecanismo automático foi desenvolvido para avaliar os jobs e definir qual das estratégias é adequada.
+Este mecanismo é chamado de Roteador Adaptativo de Jobs (RAJ).
+Em este trabalho, cinco estratégias foram criadas, visando balancear a carga entre os RIPs.
+Cada uma de elas divide a carga em fragmentos, de acordo com a principal característica do documento PDF.
+As estratégias criadas foram as seguintes:
+Transparência: Divide a carga de trabalho (de forma balanceada) levando em conta as páginas com imagens transparentes para depois as páginas restantes do documento PDF (imagens opacas e/ ou textos);
+Reusabilidade: Divide a carga de trabalho (de forma balanceada) levando em conta os conjuntos com páginas reusáveis para depois balancear páginas restantes do documento PDF (imagens opacas e/ ou textos);
+Mais Transparência e Menos Reusabilidade:
+Divide a carga (de forma balanceada) de trabalho (de forma balanceada) levando em conta primeiramente as páginas com transparências.
+Após os conjuntos com páginas reusáveis para depois balancear páginas restantes do documento· Menos Transparência e Mais Reusabilidade:
+Divide a carga de trabalho (de forma balanceada) levando em conta primeiramente os conjuntos com páginas reusáveis.
+Após as páginas com imagens transparentes para depois balancear páginas restantes do documento PDF;
+Sem Transparência e Sem Reusabilidade:
+Divide a carga de trabalho (de forma balanceada) levando em conta as páginas com imagens opacas e/ ou texto.
+Os resultados da análise do Roteador Adaptativo de Jobs no geral apresentaram um bom desempenho, apesar de um conjunto de testes não exaustivo.
+Em os gráficos dos tempos de execução, puderam- se perceber flutuações nos tempos do LPT Otimizado, o que não ocorreu nos tempos de execução do RAJ.
+De as seis filas criadas, apenas a fila que utiliza apenas a estratégia Reusabilidade obteve mais perda do que as outras, apresentando tempos de execução na maioria das vezes maiores do que o LPT Otimizado.
+As demais estratégias apresentaram diminuição nos tempos de execução na maioria dos casos.
+Quando comparadas com o LPT Otimizado em nível de desempenho absoluto, entre as seis filas, cinco obtiveram o melhor desempenho absoluto.
+Além disso, os gráficos dos cenários criados (filas) mostraram que o RAJ apresenta uma tendência de redução do tempo de processamento quando mais processos forem adicionados, o que demonstra uma boa escalabilidade da implementação realizada, diferentemente do LPT Otimizado, que em boa parte dos casos não obteve ganho significativo de desempenho.
+Os resultados da implentação foram satisfatórios para os objetivos do trabalho.
+Alguns pontos ainda podem ser melhorados, como, por exemplo, a realização de mais testes com mais conjuntos de jobs e utilizando filas com configurações e cenários diferentes.
+Trabalhos Futuros Durante a realização deste trabalho, identificaram- se alguns pontos de interesse para a continuação e aperfeiçoamento da pesquisa desenvolvida.
+Tratam- se de aspectos para melhoria das estratégias desenvolvidas e do Roteador Adaptativo de jobs.
+Portabilidade para máquinas multiprocessadas, pois a tendência é que os agregados de máquinas possuam cada vez mais máquinas multiprocessadas;
+Analisar outras características presentes nos documentos PDF como:
+Shadding pattern, inline objects e path objects, para verificar o impacto destes elementos no tempo de rasterização;
+Aprimorar as estratégias desenvolvidas através da criação de novas métricas;
+Exploras novas estratégias aplicando diferentes características;
+Realizar um estudo para aprimorar o grão das tarefas para deixar o Roteador Adaptativo de Jobs otimizado.

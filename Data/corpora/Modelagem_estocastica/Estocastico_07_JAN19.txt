@@ -1,0 +1,608 @@
+A perda de pacotes é um fator determinante na qualidade de serviço de aplicativos multimídia em redes.
+
+Os efeitos negativos são ainda mais graves quando o processo de perda demonstra grande variabilidade.
+
+O uso de redundância pode mascarar essas perdas, entretanto, a qualidade e eficiência deste tipo de mecanismo depende do comportamento do processo de perda.
+
+Assim, uma boa previsão do processo de perda no futuro próximo pode auxiliar a melhorar o desempenho de mecanismos baseados em redundância.
+
+Neste artigo, avaliamos diferentes modelos preditivos, tais como modelos de Markov ocultos (HMM) e modelos auto-regressivos (AR), com relação à capacidade de previsão do processo de perda.
+
+Mais importante, avaliamos também o impacto que essa previsão tem na recuperação dos pacotes perdidos, em termos da taxa de recuperação e da quantidade de redundância utilizada.
+
+Nossos resultados indicam que a qualidade da recuperação está diretamente ligada à qualidade da previsão.
+
+Uma das principais causas para a degradação da qualidade de serviço oferecida pelas aplicações multimídia em redes é perda de pacotes, em particular, a variabilidade do processo de perdas.
+
+Para oferecer uma melhor qualidade de serviço, as aplicações implementam algum tipo de mecanismo para mascarar os efeitos da perda de pacotes.
+
+Um mecanismo freqüentemente adotado é o uso de redundância, que consiste em transmitir informação redundante de forma a recuperar pacotes que tenham sido descartados pela rede.
+
+Um dos problemas fundamentais deste tipo de mecanismo é decidir a quantidade de informação redundante que deve ser transmitida.
+
+Por um lado, a transmissão de uma maior quantidade de informação redundante oferece, geralmente, uma maior capacidade de recuperação no caso de perdas.
+
+Por outro lado, se não há perdas, a informação redundante passa a ser um desperdício dos recursos da rede, podendo ter efeitos negativos até mesmo para a aplicação que gera esta redundância.
+
+Idealmente, a quantidade de redundância transmitida pela aplicação deveria ser apenas o suficiente para recuperar as perdas que irão ocorrer.
+
+Se o aplicativo soubesse como a rede irá se comportar, então ele poderia se prevenir e utilizar exatamente a quantidade de redundância necessária para realizar a recuperação.
+
+Mas como saber como o processo de perdas irá se comportar? Uma possível estratégia é tentar prever o comportamento do processo de perdas dentro de um intervalo de tempo futuro.
+
+Desta forma, a aplicação poderia se adaptar de maneira pró-ativa, utilizando a redundância adequada para o que ainda vai acontecer.
+
+Ivlustra como um modelo de previsão de perdas de pacotes pode ser utilizado por uma aplicação para determinar a quantidade de redundância que deve ser utilizada.
+
+A partir das observações do processo de perdas real, o modelo gera previsões acerca das perdas que ocorrerão no futuro próximo.
+
+Essas previsões servem de entrada para um algoritmo, que irá selecionar o esquema de redundância que deve ser utilizado.
+
+Tal escolha terá um impacto direto sobre os pacotes que serão efetivamente recuperados.
+
+Espera-se que quanto melhor a previsão, mais apropriada será a escolha da quantidade de redundância.
+
+Desta forma, um bom modelo de previsão do processo de perdas pode garantir uma melhor qualidade de serviço ao usuário e ao mesmo tempo utilizar melhor os recursos da rede (reduzindo a quantidadev de redundância a ser transmitida).
+
+Na prática, aplicações multimídia tendem a utilizar mecanismos de redundância chamados de (Forward Error Correction) (FEC) e a implementar apenas alguns esquemas pré-estabelecidos.
+
+Diferentes esquemas de FEC podem possuir a mesma quantidade de redundância (ou não), mas cuja eficácia irá depender do processo de perdas.
+
+O problema passa a ser então, utilizar a previsão para escolher um dos esquemas de FEC oferecidos pela aplicação.
+
+Utilizando um modelo de previsão de perdas de pacotes para determinar a quantidade de redundância a ser transmitida.
+
+Neste trabalho, abordaremos exatamente o problema de previsão do processo de perda de pacotes e como esta previsão influencia na recuperação dos pacotes perdidos.
+
+Basearemos nossos estudos em modelos preditivos, como modelos de Markov ocultos (HMM) e modelos auto-regressivos (AR), e avaliaremos a qualidade do esquema de FEC escolhido em termos da capacidade de recuperação e da quantidade de redundância utilizada.
+
+Esta avaliação será feita utilizando traces de pacotes reais, obtidos na Internet, e traces sintéticos, gerados a partir de modelos de tráfego.
+
+Em particular, utilizaremos o algoritmo adaptativo para parametrizar o modelo de previsão proposto no trabalho.
+
+Esta parametrização do modelo preditivo é feita dinamicamente de acordo com as variações do processo de perda real ao longo do tempo.
+
+O modelo preditivo é então utilizado para prever as estatísticas de interesse do processo de perdas no futuro próximo, condicionado às observações das perdas passadas.
+
+Os autores utilizam um modelo de Markov oculto (HMM) hierárquico para descrever as características do processo de perdas.
+
+A exatidão deste modelo preditivo foi comparada com a de outros modelos de Markov ocultos em trabalhos passados.
+
+Neste artigo estendemos o trabalho anterior estabelecendo uma comparação entre este modelo de Markov oculto e outros modelos, como o modelo auto-regressivo, que é freqüentemente utilizado em análise preditiva.
+
+Além da análise de sensibilidade do modelo preditivo, e da comparação com modelos auto-regressivos, a mais importante contribuição deste trabalho é o estudo da influência da qualidade das previsões do processo de perdas no resultado da recuperação.
+
+Em suma, nosso objetivo é estender a avaliação do uso de um modelo preditivo para o do processo de perdas de pacotes de forma a avaliar mais detalhadamente a capacidade de previsão do algoritmo adaptativo utilizando os modelos de Markov ocultos, modelos auto-regressivos, e alguns preditores simples.
+
+Para isto, iremos considerar algumas medidas de desempenho.
+
+Verificar a eficácia do algoritmo de previsão em relação a seus parâmetros com os modelos e cenários aqui considerados.
+
+Comparar o desempenho do modelo HMM e dos modelos autoregressivos em relação à incerteza da previsão e à taxa de recuperação dos pacotes.
+
+Este trabalho está organizado nas seguintes seções.
+
+Na segunda seção, faremos uma revisão dos trabalhos relacionados.
+
+Na terceira seção, abordaremos resumidamente os principais conceitos teóricos.
+
+Na quarta seção, exibiremos os experimentos referentes ao mecanismo de previsão adaptativa.
+
+Na quinta seção, estudaremos a aplicação do mecanismo de previsão em uma simulação aplicação de voz sobre IP.
+
+Enfim, concluiremos este trabalho na sexta seção.
+
+A variabilidade espacial e temporal das características da rede, tais como a taxa de perda de pacotes e o tempo gasto nas filas dos roteadores intermediários, motivou a crescente aplicação de medições em protocolos adaptativos.
+
+No âmbito de controle de congestionamento, diversas propostas de protocolos de transporte realizam medições para ajustar a taxa de envio de dados.
+
+Em transmissão de dados multimídia, é freqüente a utilização de medições da taxa de perda para calibrar a quantidade de informação redundante enviada junto aos dados originais.
+
+Neste contexto de perdas de pacotes, o trabalho mostra que os eventos de perdas de pacotes apresentam correlação em largas escalas de tempo.
+
+Com isto, é de se esperar que esquemas de recuperação que façam uso de previsões futuras da taxa de perda futura condicionada ao estado recente apresentem bons resultados.
+
+Por exemplo, os autores propõem um algoritmo para prever as perdas futuras condicionado às observações modelando o processo de perdas por cadeia de Markov de Gilbert-Elliot simplificado.
+
+Entretanto, cadeias de Markov dificilmente representam autocorrelações de larga escala de tempo com baixa complexidade computacional para aplicações em tempo real.
+
+Os autores propõem um modelo de Markov oculto onde a série de observações {Xt} é um símbolo binário (M = 2) representando a perda do pacote individualmente.
+
+Com isto, o número de parâmetros do modelo é proporcional apenas ao número de estados N.
+
+Neste mesmo trabalho, os autores mostram que com poucos estados, em geral 4, o modelo é capaz de representar as autocorrelações significativas da série {Xt}, mantendo a complexidade baixa.
+
+Porém, devido à estrutura específica deste modelo, as suas previsões de estatísticas transientes convergem rapidamente para as respectivas estatísticas estacionárias.
+
+Cada observação do modelo de Markov oculto é o número agregado de perdas em um bloco de S pacotes, ou seja, o número de símbolos possivelmente emitidos é M = S + 1.
+
+Além disto, neste trabalho, o autor considera uma matriz de transição particular motivado por medições realizadas à época.
+
+Estudos com este modelo foram realizados.
+
+Temos um HMM onde cada observação é um vetor de S valores binários.
+
+É fácil notar que o número de possíveis símbolos emitidos é 2S.
+
+Para evitar uma explosão no espaço paramétrico do modelo, o autor considera que as S observações são geradas a partir de processo Gilbert-Elliot simplificado.
+
+Assim, o número de parâmetros por estado oculto cai de 2S para 3.
+
+A motivação deste modelo é que, em janelas de tempo pequenas do processo original, as características podem ser capturadas por um processo simples enquanto, em escalas de tempo maiores do processo original, as dinâmicas podem ser capturadas pelas transições dos estados ocultos.
+
+Mostra a evolução no tempo dos estados ocultos do modelo bem como a emissão de símbolos.
+
+Os nossos experimentos utilizarão este modelo por apresentar desempenho superior aos anteriores.
+
+Para analisarmos a estrutura contida no conjunto de medidas e realizar previsões utilizaremos a noção de processo estocásticos.
+
+Desta forma, ao observamos a seqüência de medidas, teremos uma realização de um processo {Xt} qualquer.
+
+Duas classes de processos estocásticos serão consideradas neste trabalho, os modelos de Markov ocultos e os modelos auto-regressivos.
+
+A seguir, descrevemos estes modelos e seus processos de estimação de parâmetros.
+
+Modelos Markovianos ocultos, ou simplesmente HMM (Hidden Markovian Models), têm sido utilizados extensivamente em análise de séries temporais, reconhecimento de padrões, processamento de sinais, etc.
+
+Modelo de Markov oculto considerado.
+
+Considere um processo estocástico Markoviano {Yt} em tempo discreto com N estados e o processo estocástico de observações {Xt} com M valores.
+
+Um modelo de Markov oculto é definido como uma extensão do processo {Yt} onde o valor observado xt é uma função probabilística do estado yt.
+
+Ou seja, os processos estocásticos {Xt} e {Yt} são dependentes entre si.
+
+Neste modelo resultante, {Yt} deixa de ser observado diretamente, daí o termo oculto.
+
+Todo HMM é definido pelos parâmetros N, M, vetor n×1 de distribuição do estado inicial, matriz de probabilidade de transição entre estados A = [aij ]N×N e matriz de distribuição probabilística das observaçôes B = [bij ]N×M.
+
+Sucintamente, denotamos o HMM pela tripla.
+
+Assim, para o conjunto de observações estimaremos de forma a obter a -melhor- parametrização possível.
+
+O conceito de melhor é dado pela maximização da função de verossimilhança.
+
+Dada a complexidade da função objetivo, não existe uma expressão analítica para este problema.
+
+A solução é obtida pelo método iterativo de Baum-Welch que não garante a convergência ao ótimo global.
+
+Todavia, a cada iteração a função objetivo é garantidamente incrementada, convergindo a um máximo local para qualquer solução inicial.
+
+Na prática, a parametrização inicial é escolhida de forma aleatória.
+
+Primeiramente, calculamos as variáveis auxiliares.
+
+Essas variáveis podem ser calculadas de forma eficiente usando as recursões forward-backward.
+
+Com esses valores pode-se avançar para o próximo passo, que é o cálculo do número esperado de visitas ao estado i no tempo t, °t, e o número esperado de transições de i para j.
+
+Com os novos parâmetros, a função de verossimilhança dado o modelo reestimado é calculada.
+
+Se o ganho relativo à iteração anterior for pequeno pode-se parar.
+
+Também é possível parar o algoritmo pelo número de iterações, principalmente se este algoritmo estiver sendo usado em um aplicativo de tempo real.
+
+Modelos auto-regressivos.
+
+Uma subclasse de processos lineares já bem utilizada em problemas de análise de séries temporais são os modelos auto-regressivos ou simplesmente AR.
+
+A definição formal de um modelo AR é Definição 31.
+
+Uma série temporal {Xt} é um modelo AR(p) se é estacionária e satisfaz a seguinte equação para todo t onde a série {Zt} é independente e identicamente distribuída N(0, ¾2).
+
+Seja a função de autocovariância de um processo estocástico Xt de lag h.
+
+Para um conjunto de observações, estimaremos A de forma que a função de autocovariância do modelo, ou seja, as suas características de segunda ordem, se aproximem à das observações.
+
+Para resolver este problema, apresentaremos o método de estimação de Yule-Walker.
+
+A idéia deste método é utilizar a autocovariância amostral para determinar os parâmetros.
+
+Desta forma, basta utilizar nas Equações de 4 para obter os coeficientes do modelo auto-regressivo resolvendo o sistema de equações lineares.
+
+Este conjunto de equações é freqüentemente chamado de estimadores de Yule-Walker.
+
+Neste trabalho, supomos que o estado da rede é observado indiretamente através dos eventos de perda na transmissão de cada pacote individualmente.
+
+Isto é, cada elemento do processo {Xt} assumirá valor 0 (1) caso o pacote transmitido no tempo t seja transmitido (perdido).
+
+Consideremos que, em uma janela com F observações, o estado da rede é caracterizado pela sua taxa de perda média RF t = 1 F PF1 f=0 Xt+f e pelo seu tamanho médio da rajada de perdas BF t = 1 n Pn1 i=0 Zi onde {Zt} é a série que representa o tamanho das n rajadas de perdas determinada por {Xt} que ocorrem no intervalo discreto {t, t + F1}.
+
+Nos restringimos a estas estatísticas do processo de perda porque as aplicaremos no mecanismo de recuperação de perdas de pacotes (FEC).
+
+Os autores propuseram um mecanismo de previsão adaptativa utilizando HMM.
+
+Neste trabalho, consideramos o uso do mecanismo também para modelos auto-regressivos.
+
+Note que, para ambos os modelos, a previsão é dita adaptativa porque, em intervalos de segundos, os parâmetros do modelo são reestimados de forma ótima, utilizando as últimas observações de {Xt}.
+
+Essa reestimação é fundamental, pois a seqüência de perdas, em geral, não é estacionária.
+
+Enquanto isso, a previsão para uma janela de tempo futuro de F segundos é feita em intervalos de Ã segundos, condicionada ao passado traduzido pelas últimas H observações de {Xt}.
+
+Ilustra como estes eventos ocorrem ao longo do tempo e os respectivos parâmetros.
+
+Com um único modelo HMM, em cada evento de previsão teremos uma estimativa da taxa de perda média e do tamanho médio da rajada de perdas futuras a partir da análise transiente do HMM condicionada às H últimas amostras.
+
+Para obter a previsão da taxa de perdas RFt, faremos uma análise transiente do modelo HMM com estado inicial condicionado aos eventos de perdas.
+
+Assim teremos um estimativa da distribuição probabilística de RFt.
+
+Isto é, para calcular a distribuição de RFt condicionada às últimas observações.
+
+O autor apresenta um algoritmo recursivo para calcular esta distribuição da segunda etapa utilizando apenas operações matriciais.
+
+Já usando modelos auto-regressivos, é necessário manter dois modelos em paralelo, um para descrever a taxa de perda ao longo do tempo e a outro para o tamanho médio da rajada de perdas.
+
+Denotando a série da taxa de perda e tamanho médio da rajada de perda por {Rt} e {Bt}.
+
+Neste, o histórico de previsão H é representado pela ordem de auto-regressão p.
+
+Neste conjunto de experimentos, avaliaremos a capacidade de previsão do mecanismo de previsão adaptativa em um conjunto de medições reais obtidas na Internet.
+
+Para avaliar o mecanismo de previsão adaptativo, utilizaremos um conjunto de medições de perdas de pacotes fim-a-fim.
+
+Estas medições foram obtidas com auxílio do módulo Traffic Generator da ferramenta Tangram-II.
+
+A cada intervalo de tempo de 20 milissegundos, um pacote com 324 bytes de dados é enviado pelo gerador de tráfego para um destino arbitrado, somando os cabeçalhos do par UDPIP (8+20 bytes) teremos uma taxa constante de 14080 kbps, desprezível se comparada com a capacidade dos canais envolvidos.
+
+No destinatário, são feitos os registros (trace) dos pacotes perdidos (1) e recebidos (0) compondo nosso processo de perdas {Xt}.
+
+A motivação era emular uma aplicação de voz sobre IP (VoIP) simplificada com codificação PCM na Internet.
+
+Dentre todo o conjunto de amostras, analisaremos três traces que apresentavam algumas características representativas na taxa de perda.
+
+Em geral, observamos variações periódicas na taxa de perda, variabilidade intensa e taxas de perdas constantes com altas variações de curto tempo.
+
+Os traces selecionados possuem autocorrelação significativa, justificando o uso de modelos.
+
+Para verificar a capacidade de previsão da taxa de perda, definiremos um conjunto de medidas quantitativas.
+
+Antes disto, notemos que o desempenho da aplicação aumenta com a sua capacidade de prever variações da taxa perda.
+
+Entretanto, se olharmos o caso onde a taxa de perda RFt é nula durante um longo período de tempo com elevações bruscas de curta duração (picos), um preditor seria muito bom de acordo com as medidas acima mas seria inútil para a aplicação.
+
+Evitaremos estas situações particionando o tempo de observação em instantes que apresentam ou não uma variabilidade arbitrada.
+
+A taxa de perda em instante de tempo t será dita variante ou invariante caso contrário.
+
+Considerando apenas a previsão e a taxa de perda real nos instantes variantes, definimos as seguintes medidas de desempenho.
+
+Taxa de perda com rajadas periódicas em uma medição entre UMd e UFRJ.
+
+Taxa de perda com alta variabilidade em uma medição entre UMass e UFRJ.
+
+Taxa de perda elevada em uma medição entre UFMG e UFRJ.
+
+Taxa de perda de três traces selecionados para uma janela de previsão F = 400 milissegundos.
+
+A primeira medida utilizada é o erro médio quadrático MSE.
+
+Como segunda medida de desempenho, temos a taxa de acerto relativa.
+
+Ela será muito útil por ter uma interpretação simples.
+
+Além disto, para determinadas aplicações pode ser tolerável uma incerteza relativamente pequena.
+
+Formalmente, seja a variável aleatória que indica o acerto relativo.
+
+A última medida de desempenho é a correlação cruzada (COR), medindo a correlação entre a série de previsões e a série de observações.
+
+Com ela, temos a noção se a variabilidade está associada com a variabilidade de RFt.
+
+Para podermos comparar os modelos HMM e AR, iremos utilizar os mesmos valores para intervalo de treinamento e intervalo de previsão.
+
+Tomemos ainda a janela de previsão igual ao intervalo de previsão.
+
+As transições entre os estados ocultos do HMM acontecem a cada observações.
+
+As amostras que servem de entrada para o modelo AR foram obtidas agrupando-se S observações.
+
+Note que ambos os modelos irão computar f0 = A/S previsões.
+
+Vamos denotar por Rt+i 1if0 a i-ésima previsão calculada no instante t.
+
+Além dos modelosHMMe AR, vamos utilizar os seguintes modelos de referência, replicador, a cada intervalo de previsão Ã, as últimas estatísticas são usadas como previsão para o próximo intervalo.
+
+Preditor Média, semelhante ao replicador, mas o intervalo de previsão é diferente.
+
+Vemos que AR tem desempenho equivalente ao HMM no mecanismo de previsão adaptativa.
+
+Isto se deve ao fato que o processo tem uma estrutura fortemente auto-regressiva, quando (não) ocorre uma perda, ela tende a (não) ocorrer novamente.
+
+Para o segundo trace analisado, o modelo HMM e o modelo AR têm um desempenho geral semelhante no segundo trace.
+
+Como neste caso existe uma estrutura auto-regressiva vista na periodicidade da taxa de perda, o modelo AR terá um desempenho geral comparável ao modelo HMM.
+
+Por fim, para os segmentos do último trace com variabilidade o HMM é notóriamente melhor do que o modelo auto-regressivo.
+
+Em resumo, em todos os casos considerados, os modelosHMMe AR foram muito melhores do que os preditores replicador e média em termos de erro médio quadrático, correlação cruzada e taxa de acerto.
+
+Além disto, o modelo HMM foi tão ou mais bem sucedido em acertar a taxa de perda durante os segmentos com certa variabilidade do que o modelo AR.
+
+Na próxima seção avaliaremos a influência da capacidade de previsão na qualidade da recuperação de pacotes pelo mecanismo de FEC.
+
+Nesta seção descreveremos brevemente o funcionamento do algoritmo de seleção de FEC desenvolvido.
+
+Em seguida, propomos uma modificação deste algoritmo que nos permitirá relacionar a capacidade de previsão de diferentes modelos com o desempenho da recuperação.
+
+Baseado na suposição de que as condições do canal a curto prazo são bem representadas por um modelo de Gilbert-Elliot simplificado, o algoritmo de seleção de FEC em determina um esquema de FEC dentre os disponíveis segundo a heurística C.
+
+Se a taxa de perda média prevista for menor que µ, não use redundância.
+
+Senão, utilize o esquema de FEC que mantém a taxa de perda média pósrecuperação abaixo de µ.
+
+Se houver mais de um esquema que satisfaça essa condição os critérios de desempate são, nesta ordem, menor overhead, menor atraso de reconstrução.
+
+Por outro lado, se não houver nenhum esquema, escolha aquele cuja taxa de perda média pós-recuperação é mais próxima de µ.
+
+Iremos restringir os esquemas disponíveis àqueles que tem janela de tamanho a fim de limitar o atraso de reconstrução.
+
+O overhead atribuído a cada um desses esquemas de FEC pode variar de 167% a 100%.
+
+No modelo HMM, cada estado oculto corresponde a um Gilbert.
+
+Durante a previsão, a distribuição de probabilidade de cada estado nos próximos instantes de tempo é determinada pela análise transiente da cadeia oculta.
+
+O algoritmo utiliza essa distribuição para selecionar o esquema de FEC a ser empregado da seguinte forma, sejam i e j os estados ocultos mais prováveis no instante t e um grau de garantia arbitrário.
+
+Utilize o FEC dado pela heurística C para o modelo de Gilbert embutido no estado i.
+
+Senão, combine o esquema de FEC dado pela heurística para o modelo de Gilbert do estado i com o esquema dado para o modelo de Gilbert do estado j.
+
+Note que a seleção de FEC do algoritmo é baseada no estado oculto mais provável e, em alguns casos, nos 2 estados mais prováveis.
+
+Isso significa desconsiderar grande parte dos estados e sua probabilidade transiente.
+
+Sendo a previsão da taxa de perda do HMM dada em função de todos os estados, seria impossível estabelecer uma relação entre a previsão e o resultado da utilização do algoritmo.
+
+Outros modelos para o processo de perdas não têm suas previsões dadas em função de modelos de Gilbert assim como o HMM.
+
+Por isso, também não poderíamos aplicar diretamente a heurística C para obter os resultados da recuperação dos outros modelos, caracterizando um óbice à comparação dos resultados do HMM.
+
+Para permitir o estudo da relação entre a previsão do HMM e o resultado da recuperação e também a comparação dos resultados da recuperação feita a partir da previsão de diferentes modelos, propomos uma modificação no algoritmo de seleção de FEC, procedure SelectFEC.
+
+Use o esquema de FEC dado pela heurística C para o modelo de Gilbert.
+
+Denotam as previsões da taxa média de perda e do tamanho médio da rajada de perda respectivamente, p denota a probabilidade de transição do estado 0 para o estado 1 em um modelo de Gilbert e q denota a probabilidade de transição de 1 para 0.
+
+Note que o Gilbert determinado por p e q possui taxa média de perda.
+
+Após a introdução do algoritmo modificado de seleção de FEC, precisamos mostrar que quanto menor o grau de incerteza da previsão, melhor o resultado após a recuperação, caso contrário não haveria sentido em se utilizar modelos para o processo de perdas.
+
+De fato, os resultados obtidos comprovaram a eficácia do algoritmo.
+
+Para mostrar que o algoritmo de seleção de FEC modificado pode proporcionar bons resultados, vamos supor a existência do seguinte preditor.
+
+Preditor Ótimo, a taxa de perda e o tamanho médio da rajada a cada S observações são conhecidos pelo preditor.
+
+É importante notar que usar o preditor ótimo para escolha de FEC não significa necessariamente escolher FEC de maneira ótima, ou seja, pode existir uma escolha de FEC que recupere mais pacotes com menor overhead para um dado intervalo de tempo.
+
+Isso pode acontecer porque o modelo de Gilbert determinado por Rt+i e Bt+i pode não caracterizar bem a distribuição das perdas naquele intervalo, ou ainda que o modelo caracterize bem a distribuição das perdas, a heurística do algoritmo é baseada no valor esperado de pacotes recuperados e não leva em consideração a variância.
+
+Por esse motivo, usaremos também como referência a Heurística Ótima, a escolha do FEC é feita de forma idêntica a heurística C, mas no lugar da previsão taxa de perda pós-recuperação é utilizado o valor real da taxa de perda após a reconstrução dos pacotes perdidos.
+
+Note que a Heurística Ótima não recebe um modelo de Gilbert como entrada.
+
+A taxa de perda em cada intervalo de tempo é calculada executando-se o mecanismo de recuperação uma vez para cada esquema de FEC disponível.
+
+A escolha do esquema FECt+i a ser usado é feita sem levar em consideração FECt+i1 e FECt+i+1.
+
+Na prática, a escolha de FECst+i1 e FECst+i+1 pode melhorar a recuperação em t+i, mas considerar essas escolhas aumentaria muito o custo computacional do experimento.
+
+Os parâmetros dos modelos foram especialmente arbitrados para este estudo de caso.
+
+Idealmente um preditor deveria ser capaz de antever o resultado da transmissão de cada pacote (sucesso ou falha), ou seja, deveríamos tomar S = 1 observação.
+
+No entanto, iremos adotar S = 25 por uma série de motivos.
+
+A cada intervalo Ã o par (taxa de perda média, tamanho médio da rajada) pode ser modificado Ã/S vezes.
+
+Conseqüentemente, o esquema de FEC selecionado pelo algoritmo também pode mudar Ã/S vezes.
+
+A troca muito freqüente de esquema de redundância se traduz em maior overhead devido às condições de contorno da implementação e maior custo computacional.
+
+Dado que Ã = f0 × S, f0 2 N¤, valores pequenos de S implicam menores intervalos de previsão.
+
+A cada previsão do HMM são necessárias as últimas H observações.
+
+Portanto, quanto menor o valor de S, maior é a periodicidade com que as observações precisam ser recebidas.
+
+Note que a quantidade de informação necessária à realização das previsões é independente de S.
+
+Ela é proporcional apenas à freqüência de transmissão dos dados.
+
+Durante a análise transiente do HMM, o vetor é multiplicado pela matriz de transição dos estados ocultos Ã/S 1 vezes.
+
+Fixando Ã, o aumento no valor de S reflete em menor número de multiplicações matriciais.
+
+Fixamos T = 4 minutos.
+
+O restante dos parâmetros dos modelos HMM e AR não foram fixados a priori.
+
+Nos experimentos, fizemos com que tais parâmetros variassem por um grande conjunto de valores e selecionamos para comparação aqueles com os melhores resultados de acordo com as métricas descritas a seguir.
+
+No primeiro caso, tais parâmetros são estrutura da cadeia, número de estados ocultos, intervalo de previsão (Ã 2 {50, 100}) e memória de previsão (H 2 {50, 500, 1000}).
+
+Já no caso do modelo auto-regressivo os parâmetros nãofixados são grau de regressão e intervalo de previsão (Ã 2 {50, 100}).
+
+As métricas utilizadas na avaliação serão a taxa de recuperação r e overhead o (dados pelas equações 8).
+
+Em uma aplicação de voz sobre IP, a recuperação de pacotes se reflete como ganho em termos de QoS.
+
+De maneira geral, quanto mais redundância adicionamos ao fluxo, maior é a chance de recuperarmos pacotes perdidos.
+
+Em contrapartida, do ponto de vista da rede, é importante minimizar o overhead no canal de transmissão.
+
+Por isso, esta é a outra métrica que iremos considerar, r = número de pacotes recuperados número de pacotes perdidos o = número vde pacotes adicionados ao fluxo número de pacotes do fluxo original (8) Devido ao problema em se atribuir pesos a r e o para obter uma avaliação unidimensional dos resultados, vamos nos restringir a compará-los segundo a Definição 51.
+
+Sejam oi e ri o overhead a taxa de recuperação do modelo i, respectivamente.
+
+O resultado RA = (oA, rA) de um modelo A é dito melhor que o resultado RB = (oB, rB) de um modelo B se uma das seguintes condições forem satisfeitas, rA > rB e oA < oB ou |rArPreditor Ótimo| < |rBrPreditor Ótimo| e |oA, oPreditor Ótimo| < |oB oPreditor Ótimo|.
+
+Os modelos foram implementados na ferramenta de transmissão de voz sobre IP conhecida por Vivavoz.
+
+No entanto, os resultados a seguir foram obtidos offline para reduzir o tempo de simulação.
+
+Arbitramos µ = 003 conforme sugerido pelo trabalho em que foi desenvolvido o algoritmo original.
+
+Note que este conjunto de valores é justo, visto que, para S = 25, tomar valores de p iguais a 2,20 e 40 equivale a considerar as últimas 50, 100 e 1000 observações, respectivamente.
+
+A seguir iremos avaliar o desempenho dos modelos anteriormente citados quanto à taxa de recuperação e ao overhead, para cada um dos traces descritos na seção de experimentos.
+
+As previsões serão usadas pelo algoritmo de seleção de FEC a partir de t = 4 minutos.
+
+Assim como na seção 4, iremos avaliar os traces somente no intervalo entre 4 e 8 minutos.
+
+Inicialmente iremos mostrar os resultados obtidos através da variação no espaço paramétrico do HMM.
+
+Serão omitidos os resultados para o modelo HMM e os resultados advindos das parametrizações do modelo AR por concisão.
+
+Em seguida, comparamos os melhores resultados de cada modelo.
+
+A interpretação deve ser feita levando em conta que cada resultado do HMM possui uma localização que indica a taxa de recuperação e o overhead, e uma coloração que indica a incerteza(MSE) a ele associado.
+
+Este trace possui uma baixa taxa de perda média ao longo do trecho avaliado (2,2%).
+
+Além disso, as variações na taxa de perda ocorrem de maneira periódica e esparsa.
+
+Nesse caso, a qualidade do resultado está intimamente ligada à qualidade da previsão.
+
+Podemos observar que os resultados com menor MSE são aqueles que estão mais próximos da Previsão e Heurística Ótimas.
+
+Note ainda que a dispersão dos resultados para este trace é pequena, indicando a robustez da recuperação quanto a variação dos parâmetros do modelo.
+
+São listados os valores encontrados de alguns experimentos de 2 dos traces, sendo destacados os mais relevantes.
+
+Durante a fase de treinamento a taxa de perda média é baixa e, por isso, o algoritmo não emprega nenhuma redundância quando suas entradas são alimentadas pelo Preditor Média.
+
+As perdas estão concentradas principalmente em 3 períodos ao longo do intervalo avaliado, assumindo (a taxa de perda) valores em torno de 12%.
+
+Podemos observar que o modelo que mais se aproxima dos resultados obtidos pela Heurística Ótima e da Previsão Ótima é do HMM.
+
+Pela natureza estável do processo de perdas, a qualidade da previsão das perdas e o resultado do Replicador são bons.
+
+Ainda assim, o HMM recupera mais pacotes com um pouco menos de overhead.
+
+A taxa média de perda no trecho avaliado deste trace é 95%.
+
+O processo de perdas se caracteriza por picos periódicos cuja amplitude varia de 12 a 68%.
+
+Os resultados obtidos usando o modelo HMM possuem um overhead consideravelmente maior do que aqueles dados pelo Preditor Ótimo e pela Heurística Ótima.
+
+A grande maioria dos resultados se situa na mesma faixa de recuperação que a Previsão Ótima, porém com uso mais intensivo de redundância.
+
+Novamente isso indica que, em geral, a recuperação não é afetada pela parametrização do modelo.
+
+Das 4 melhores previsões em termos de MSE, 2 estão localizadas numa área de muito overhead e pouca recuperação, ao passo que previsões com maior MSE obtêm melhores resultados.
+
+Isso é de fato contra-intuitivo, mas pode ser explicado pela situação hipotética.
+
+Resultados dos experimentos usando diversos modelos.
+
+A Previsão 1 dada pela reta horizontal representa uma previsão estacionária (Rt = 012) que, quando fornecida ao algoritmo de seleção de FEC implicará no uso de um mesmo esquema de redundância ao longo de todo o intervalo considerado.
+
+A redundância será adicionada ao fluxo mesmo nos trechos em que a taxa de perda cai, contribuindo para o overhead total sem trazer benefícios substanciais.
+
+Por outro lado, nos trechos em que a taxa de perda sobe, o algoritmo alimentado pela Previsão 1 pode não selecionar uma FEC tão robusta quanto a necessária para manter a taxa de perda a níveis aceitáveis.
+
+A Previsão 2, por possuir uma amplitude muito maior que a da taxa de perda real, tem um grau de incerteza elevado.
+
+No entanto, ela não irá fazer com que o algoritmo adicione redundância nos trechos em que a perda é baixa e, possivelmente, irá fazer com que empregue um esquema de redundância satisfatório aos requisitos da aplicação.
+
+Nesta situação, a previsão com maior incerteza é aquela que dá o melhor resultado.
+
+O fenômeno descrito está associado a escolhas de S grande.
+
+Devido aos motivos que apresentamos para escolha de S = 25, em vez de propormos a redução deste parâmetro, sugerimos o uso do algoritmo de seleção de FEC Original.
+
+Por se basear nos estados ocultos mais prováveis, a seleção feita daquela maneira exprime uma variabilidade maior na escolha do FEC.
+
+Mostramos, além dos métodos de referência, o melhor resultado da recuperação quando o algoritmo original é utilizado.
+
+Situação em que uma previsão com incerteza maior pode recuperar melhor.
+
+Os preditores média e replicador não geram bons resultados devido à grande variabilidade do processo de perdas.
+
+Se considerarmos o algoritmo de seleção de FEC original, o overhead cai de 92% para 32%.
+
+Em compensação, a recuperação diminui de 58% para 38%.
+
+É importante notar que o uso do algoritmo original nem sempre melhora o resultado.
+
+De fato, na maior parte dos casos, fixada a parametrização, melhores resultados eram obtidos quando suas previsões eram utilizadas pelo algoritmo modificado.
+
+Por concisão, omitimos os resultados dos experimentos que empregaram o algoritmo original.
+
+A diferença entre os resultados da Previsão Ótima e da Heurística Ótima mostra que com um pouco mais de overhead (1%) algumas vezes é possível obter ganhos substanciais (12%) na taxa de recuperação.
+
+Este trace possui alta taxa de perda (29%) no trecho avaliado.
+
+As perdas em geral são espaçadas, o que facilita a recuperação.
+
+Os resultados mostrados são bastante semelhantes e todos se encontram próximos ao da Previsão Ótima.
+
+Note que os eixos de variação estão bem reduzidos e que quanto melhor a previsão, mais próximo da Heurística Ótima o resultado se situa.
+
+Os resultados também são semelhantes.
+
+Para este trace, a relação entre overhead e recuperação é praticamente linear.
+
+A motivação deste experimento é simular um único gargalo multiplexado pela agregação de várias aplicações multimídias.
+
+A principal característica deste tipo de tráfego agregado é observada na auto-similaridade da sua intensidade.
+
+Os resultados foram obtidos usando um processo MMPP (Markovian Modulated Poisson Process) como tráfego de fundo.
+
+O processo MMPP é simplesmente um processo Poisson com intensidade t, sendo um processo markovianúmero Pela proposta temos uma cadeia de Markov específica que nos permite gerar tráfego pseudo auto-similar com baixo custo computacional.
+
+A variabilidade na intensidade do tráfego apresentada em escalas de tempo elevadas ocasiona perdas por congestionamento com uma correlação temporal maior, do que em outros modelos de tráfego como o Poisson por exemplo.
+
+Assim como o trace anterior, este possui alta taxa de perda média (26%) e as perdas também ocorrem em rajadas.
+
+A taxa de perda após a recuperação usando os diferentes modelos se situou próxima aos 16%.
+
+Os resultados estão localizados na região superior do gráfico, indicando o uso excessivo de redundância quando comparado com o overhead imposto pelo Preditor e Heurística Ótimos (entre 55% e 60%).
+
+Um mesmo esquema de redundância foi selecionado por 14 parametrizações diferentes e mantido ao longo de todo o intervalo observado.
+
+Esses resultados estão sobrepostos no ponto (041, 100) e representam um caso extremo de robustez em relação à escolha dos parâmetros.
+
+Observe também que os 2 resultados cujo MSE é maior estão à esquerda do gráfico, indicando que a taxa de recuperação foi menor.
+
+Como a taxa de perda é alta ao longo da fase de treinamento, os modelos HMM e AR apresentam dificuldades para prever corretamente períodos em que a taxa de perda é nula.
+
+Note que o HMM e o Preditor Média geram os mesmos resultados.
+
+O resultado do AR também está muito próximo dos destes.
+
+Se considerarmos o uso do algoritmo de seleção de FEC original o resultado do HMMse aproxima da Heurística Ótima consideravelmente.
+
+O overhead cai de 100% para 63% sem que a taxa de recuperação descreça muito (4% de queda).
+
+Isso acontece porque nesse caso a previsão dada pela taxa de perda estacionária do estado oculto mais provável captura melhor os trechos de taxa de perda nula.
+
+O Replicador nesse caso possui menor overhead porque representa corretamente os trechos em que a taxa de perda se mantém nula por um tempo t.
+
+Neste trabalho, avaliamos a capacidade de previsão da taxa de perda dos modelos HMM e AR quanto a métricas pré-definidas para traces representativos de um grande número cenários de perda.
+
+Poderíamos considerar vários outros modelos ou ainda diferentes estruturas de HMM para comparação, mas deixamos esse estudo para um futuro trabalho.
+
+Tomando-se o melhor resultado para cada modelo estudado, observou-se que o desempenho dos modelos em geral é semelhante, mas que em segmentos com maior variabilidade o HMM pode obter uma previsão superior a do AR.
+
+Para estudar a influência da previsão quando empregada na seleção de FEC, foi proposto um algoritmo baseado naquele proposto.
+
+Este algoritmo recebe como entrada as previsões da taxa de perda média e do tamanho médio da rajada para determinar qual esquema de redundância adotar.
+
+Mostramos que este algoritmo opera perto do resultado da Heurística Ótima quando alimentado pela Previsão Ótima.
+
+Além disso, para os processos de perdas considerados, o algoritmo satisfaz a condição desejável a um algoritmo de seleção de FEC alimentado por previsões, a qualidade da recuperação deve ser monotonicamente decrescente na incerteza da previsão.
+
+Combinando o uso do modelo HMM com o algoritmo proposto em, por exemplo, uma ferramenta de Voz sobre IP, são obtidos ganhos significativos em termos de recuperação, os quais refletem diretamente na qualidade do áudio recebido.
+
+A partir do algoritmo de seleção de FEC modificado, concluímos que não só a previsão, mas também os resultados da recuperação são robustos em relação à variação no espaço paramétrico do modelo HMM.
+
+Não foram encontrados, dentre os experimentos realizados, resultados superiores ao do Preditor Ótimo.
+
+Isso indica que, a princípio, seria possível fazer previsões mais precisas e obter resultados de recuperação ainda melhores.
+

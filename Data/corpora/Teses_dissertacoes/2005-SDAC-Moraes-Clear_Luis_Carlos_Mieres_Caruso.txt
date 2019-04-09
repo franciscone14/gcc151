@@ -1,0 +1,1365 @@
+Este trabalho aplica a arquitetura recentemente proposta de &quot;mar de processadores «ao problema bastante presente e cada vez mais exigente da segurança de redes.
+A disponibilidade de múltiplos processadores num único circuito integrado é ainda incomum, mas já é possível experimentar- la fazendo uso de componentes de lógica reconfigurável de grande capacidade.
+A área de segurança de redes foi escolhida devido a o elevado desempenho requerido em determinadas aplicações, como detecção de intrusão.
+A abordagem escolhida para a aplicação foi a concepção de um coprocessador de detecção de caracteres destinado a ser integrado a um sistema de detecção de intrusão em redes.
+De entre os vários sistemas de detecção de intrusão em redes foi escolhido o Snort por ser um sistema de fonte aberto e de ampla utilização prática.
+O coprocessador proposto consiste de um processador convencional de 32 bits para a função de interface com o sistema externo e um arranjo de várias CPUs, de pequeno porte, com a função de realizar comparações de caracteres em paralelo.
+Este trabalho explora o paralelismo em duas dimensões.
+A replicação das CPUs formando um cluster representa um paralelismo espacial, provendo ao sistema elevado desempenho.
+A comparação seqüencial em cada CPU representa um paralelismo temporal, permitindo agregar ao sistema um maior conjunto de caracteres a serem utilizados para comparação.
+Todo o coprocessador é construído dentro de um único componente de lógica configurável.
+A principal contribuição do presente trabalho é a definição e a validação funcional de um coprocessador para intrusão em redes, com as características de ser escalável em número de CPUs paralelas e flexível no conjunto e número de padrões de intrusão que podem ser detectados.
+Muitas propostas similares na literatura apresentam altíssimo desempenho, porém não são escaláveis e limitam o número de padrões distintos detectáveis.
+Palavras Chave: Mar de processadores, SoC (System-on-a-Chip), arquiteturas paralelas, detecção de intrusão, comparação de cadeias de caracteres.
+Este Capítulo apresenta a necessidade atual por sistemas de segurança para redes de computadores, os requisitos de desempenho destes sistemas e as alternativas de implementação possíveis por o uso de coprocessamento em hardware.
+O constante crescimento das redes e de sua utilização é acompanhado por um aumento das ameaças à segurança das redes, o que vem a exigir um volume cada vez maior de processamento em segurança de redes.
+O aumento do desempenho de CPUs e memórias irá proporcionar incrementos na capacidade de processamento disponível para aplicação em segurança.
+No entanto, existe um ponto onde a quantidade de dinheiro investida em novo hardware não resultará num aumento proporcional no desempenho dos sistemas.
+Há de ser considerado que a evolução tecnológica favorece também os &quot;intrusos», tanto mais quando lhes coloca à disposição ferramentas sofisticadas de ataque, disponíveis na Internet.
+Os ganhos requeridos na área de segurança de redes, como já demonstrou a evolução nas técnicas e algoritmos, devem vir do trabalho dos desenvolvedores de Intrusion Detection Systems (Ids).
+Este foi o caso da evolução do Snort, onde o desempenho aumentou várias vezes até a versão atual, devido a aplicação de algoritmos mais eficientes.
+A maioria dos sistemas de computação utilizados atualmente são sistemas monoprocessados onde existe um único fluxo de processamento seqüencial, o que os limita em desempenho.
+A alternativa a estes sistemas são máquinas paralelas.
+Entretanto, estas máquinas são bastante mais caras, devido a a especialização necessária tanto da eletrônica, quanto do software empregado.
+Sistemas operacionais com capacidade de processamento paralelo, linguagens de programação e algoritmos paralelos são específicos por aplicação e exigem práticas diferenciadas em sua produção, aplicação e manutenção.
+Uma solução para equacionar custo e desempenho é oferecida por o uso de coprocessadores onde unidades especializadas de processamento paralelo integram- se aos sistemas tradicionais com vantagem nos custos globais.
+A tecnologia de CIs de lógica reconfigurável, por exemplo FPGAs, permite liberdade na concepção e teste de arquiteturas inovadoras.
+Estes componentes baseados num arranjo bidimensional que repete uma mesma célula básica de lógica configurável possuem um paralelismo nativo.
+Além deste arranjo básico, outras estruturas mais complexas como blocos de memória ou mesmo processadores são integrados ao componente aumentando consideravelmente seu poder de computação.
+Componentes fabricados com esta tecnologia e com grande densidade de elementos construtivos, tornaram possível a evolução de arquiteturas em FPGAs até sistemas computacionais completos num único Ci, ou SoCs (System-on-a-Chip).
+Henkel aponta a arquitetura &quot;mar de processadores «como uma tendência para arquiteturas de alto desempenho.
+Em esta arquitetura, vários processadores são integrados num único componente, dividindo e especializando as tarefas confiadas ao sistema global.
+Algumas propostas baseadas neste conceito utilizam uma rede intra-chip para a comunicação entre os diversos processadores.
+O grau de acoplamento entre os processadores varia conforme a necessidade de comunicação entre as CPUs e o conjunto de processadores e poderá ser homogêneo ou heterogêneo, conforme a subdivisão de tarefas.
+A necessidade de garantir o funcionamento seguro de sistemas de computação tem exigido esforços crescentes no sentido de evitar o que se convencionou chamar de intrusão, ou seja, o uso não autorizado ou o mau uso de um sistema de computação.
+Isto levou à criação de sistemas de detecção de intrusão ou IDSs (Intrusion Detection Systems), sistemas computacionais especializados na proteção de outros sistemas.
+Como as redes são um meio essencial para o acesso aos componentes de um sistema de computação, a vigilância específica sobre o tráfego das redes pode resguardar a segurança de toda a instalação.
+Para este fim foram criados os NIDS, IDSs especializados na vigilância sobre o tráfego de redes, como é o caso do programa Snort, aplicação de fonte aberto amplamente utilizada em todo mundo com esta finalidade.
+Em uma análise para a versão 1.8.3 do Snort, quatro procedimentos foram identificados como críticos em relação a o tempo de processamento:
+Captura dos pacotes -- para a captura dos pacotes o Snort utiliza a biblioteca libpcap.
+Uma de suas limitações é não utilizar threads para obter ganhos de tempo de execução junto ao sistema operacional.
+Libpcaps multi-threadeds específicas por sistema operacional ou específicas por interface de rede poderiam representar acelerações para o Snort.
+Entretanto, esta otimização tornaria o Snort não portável.
+Limpeza das estruturas de dados -- Cada pacote que o Snort adquire é registrado e classificado em estruturas de dados.
+Isto significa que estas estruturas devem ser limpas para dar espaço a outros pacotes Comparação de pacotes -- Os desenvolvedores do Snort têm buscado programar diferentes algoritmos de comparação de padrões visando melhorar a velocidade do Snort em redes funcionando perto de o limite de tráfego e em altas velocidades.
+A implementação de um algoritmo diferente na versão 2.0 proporcionou um ganho de 200 a 500% em desempenho.
+Verificação de checksum -- Para ajudar na verificação da integridade dos pacotes o Snort verifica os checksums de todos os pacotes, sejam estes suspeitos ou não.
+O procedimento passível de proporcionar o maior aumento no desempenho, mantendo a portabilidade do Snort, é a comparação de conteúdos de pacotes.
+Conforme apresentado no Capítulo 3, diversos autores concordam com esta visão de que o componente do Snort sensível a aumento de desempenho, tanto em software como em hardware, é a máquina de detecção, também denominada comparador de padrões.
+O próprio programa Snort evoluiu significativamente em seus algoritmos.
+No entanto, as instalações profissionais do Snort exigem máquinas caras e sofisticadas, com o único fim de que uma aplicação isolada executando sobre o sistema operacional, possa receber suficientes recursos para examinar o tráfego de uma rede em tempo real.
+Este é o cenário adequado para a aplicação da capacidade de processamento paralelo do hardware e para o emprego de técnicas de solução em hardware utilizando múltiplas CPUs.
+Isto resume a motivação deste trabalho.
+O objetivo estratégico do presente trabalho é dominar técnicas de projeto de sistemas computacionais integrados num único Ci, SoCs, em dispositivos programáveis do tipo FPGA.
+Os objetivos específicos deste trabalho são:
+Implementar a máquina de detecção do Snort como estudo de caso de arquitetura mar de processadores;
+Integrar a máquina de detecção a uma CPU-mestre caracterizando um SoC;
+Avaliar desempenho do SoC frente a uma implementação puramente software.
+Este trabalho está organizado como segue.
+Em o Capítulo 2 é discutido o NIDS em software, SNORT.
+Em este Capítulo é apresentado o SNORT como modelo de um NIDS, explicado seu uso e organização interna.
+Aproveita- se a discussão sobre o SNORT para detalhar alguns processos gerais inerentes ao funcionamento de um NIDS.
+A o final do Capítulo é discutida a validação funcional do coprocessador.
+De este trabalho e indica trabalhos futuros.
+Este Capítulo apresenta o Snort, um NIDS em software utilizado como modelo para este trabalho.
+É feita uma breve apresentação de alguns conceitos de redes e do Snort e explicado o funcionamento deste.
+Caracterizada a detecção de padrões como a tarefa mais onerosa ao Snort, são apresentadas definições relativas ao processo de comparação, preparando o terreno para a implementação em hardware citada nos Capítulos seguintes.
+O protocolo IP tornou- se peça fundamental, sendo o responsável por a troca de informações sobre a rede de maior tráfego do mundo, a Internet.
+Sendo a Internet a rede de maior abrangência no mundo é também a mais sujeita a ataques, daí a importância do Snort como um NIDS.
+O Snort necessita analisar o tráfego da rede onde está instalado, descobrir os protocolos, o direcionamento e mesmo o conteúdo dos dados em trânsito, para isto deve- lhe ser inerente a capacidade de reconhecer vários dos protocolos em mais de um nível do modelo OSI1.
+Os dados em trânsito numa rede IP são movimentados em unidades de transporte, os chamados datagramas IP.
+Os datagramas são seqüências de bits organizadas em duas seções, um cabeçalho, que resume as características dos dados transportados, e um payload, que contém os dados propriamente ditos.
+O payload do datagrama, via de regra, é ocupado por dados organizados sob um protocolo de nível mais elevado e de função mais especializada para a transmissão de dados sendo realizada.
+Esta hierarquia de encapsulamentos é a base da organização dos dados transportados na Internet desde sua origem até seu destino.
+A Figura 1 mostra a função relativa de cada protocolo dentro de o conjunto de protocolos do Internet Protocol.
+O modelo de referência Open Systems Interconnection da International Standards Organization O protocolo IP executa as funções do nível de rede do modelo de referência, e encapsula um protocolo de transporte que pode ser o protocolo TCP ou o UDP.
+Estes por sua vez encapsulam os protocolos de aplicação, que para a Internet englobam os três níveis superiores do modelo OSI.
+A Figura 2 mostra a estrutura hierárquica mantida entre os diversos níveis do conjunto de protocolos IP e sua relação com um datagrama IP.
+Em o nível físico delimita todos os bits que participam do datagrama.
+Em cada um dos níveis superiores existe uma porção de bits utilizada como cabeçalho do protocolo deste nível e uma porção maior de bits constituindo o payload, o container dos bits do protocolo superior.
+O container de bits no alto da figura, são os dados reais trocados entre a fonte e o destino.
+A função dos cabeçalhos de protocolo é conter os parâmetros de controle destes protocolos O conteúdo e a organização do payload depende do protocolo que o suporta.
+A Figura 3 ilustra a estrutura do pacote IP.
+Snort é um NIDS capaz de realizar análise de tráfego em tempo real, seleção e registro de pacotes em redes IP.
+O Snort pode realizar análise de protocolo, busca ou comparação de conteúdo, e pode ser utilizado para detectar uma variedade de ataques e probes1.
+Por ser um sistema em software de fonte aberto, o Snort recebe contribuições de programadores e especialistas em segurança de todo o mundo.
+Desde 1998, quando foi lançado, tem recebido constante atualização de seus algoritmos, de sua estrutura interna e de sua capacidade de identificar novos tipos e variantes de intrusões.
+O Snort pode ser decomposto em quatro subsistemas:
+Sniffer, preprocessador, a máquina de detecção e o subsistema de saída.
+O Snort utiliza os recursos oferecidos por a biblioteca libcap que fornece monitoramento de pacotes (packet sniffing) em modo promíscuo.
+A biblioteca libpcap foi escrita como parte de um programa maior, chamado TCPDump, utilizado para decodificar, visualizar ou registrar pacotes numa rede IP.
+O Snort realiza detecção baseada em regras, sendo este um dos motivos que lhe proporcionam flexibilidade.
+As regras permitem configurar o sistema de detecção conforme requisitos de desempenho ou tipo de tráfego.
+O Snort oferece detecção de protocolos, de assinaturas e de anomalias em protocolos.
+Por meio de uma regra pode- se especificar a detecção de uma condição complexa e a partir de aí determinar uma reação.
+Por exemplo, por meio de uma regra podese instruir o Snort a gerar um alerta no caso de a detecção de um tráfego Telnet originado na rede pública.
+Em um caso mais complexo, pode ser consultado numa regra se houve uma requisição RPC por o serviço de status e, em caso afirmativo, se houve a chamada de um procedimento em especial e ainda avaliar os argumentos passados.
+O Snort inclui plug-ins em sua arquitetura como estratégia de flexibilidade.
+Um uso importante desta modularização é no tratamento que pode ser dado aos alertas resultantes da atividade do Snort como um NIDS. Como
+o número de alertas e registros pode- se tornar muito probes -- sondas, aqui refere- se a sondagens ou análises remotas.
+O Snort é oferecido junto de uma coleção universal de regras, que inclui regras desativadas como forma de documentação.
+O site de a «Snort.
+Org «mantém um banco de dados com informações sobre todas as regras já publicadas.
+A o ser instalado, o Snort conta com um diretório de regras onde são instaladas todas as regras conhecidas.
+Em este diretório as regras são agrupadas por afinidade, em arquivos cujo nome dá idéia de sua aplicação.
+A Figura 5 mostra uma árvore de diretórios de uma instalação do Snort, com detalhe no diretório de regras e parte de seu conteúdo.
+Um arquivo de configuração, usualmente chamado de «snort.
+Conf», especifica quais dos arquivos de regras devem ser utilizados quando o Snort operar como NIDS.
+Este arquivo também configura a modularização do Snort, ativando &quot;plug-ins «seletivamente.
+A Figura 6 mostra um trecho do conteúdo do arquivo das regras para tráfego SNMP, «snmp.
+Rules». Uma descrição do formato das regras será apresentada na Seção seguinte.
+Para ilustrar o formato básico das regras aceitas por o Snort apresenta- se a seguir uma regra que detecta um ataque FTP bastante conhecido numa máquina Linux.
+As regras do Snort são escritas em formato texto numa única linha, e constituem- se de duas sessões:
+O cabeçalho e as opções.
+Linhas extensas podem ser quebradas por o uso de caracteres de concatenação(&quot;\&quot;).
+O cabeçalho da regra alert tcpEXTERNAL_ NET any\&gt;HOME_ NET 21 As opções da regra flow:
+Te o_ server, established;
+Content:\&gt; O Snort possibilita aos usuários a utilização de variáveis para representar endereços ou faixas de endereços IP em uso nos conjuntos de regras.
+As definições das variáveis fazem parte de um arquivo de configuração do Snort de nome «snort.
+Conf». Endereços IP podem ser inseridos nas regras como endereços individuais ou como faixas de endereços utilizando o padrão CIDR (Classless Inter Domain Routing) (ver Seção 2.2.2).
+A referência às variáveis nas especificações de regras é feita colocando- se à frente do nome da variável o símbolo».
+Então, no caso de a regra anteriormente apresentada o valorEXTERNAL_ NET é uma referência à variável External_ NET como definida no arquivo snort.
+Conf. Exemplos de variáveis:
+Variável DNS_ SERVER para representar o endereço do servidor de DNS 10.
+1.1.2: Utilizando o exemplo de regra citado no início desta Seção, os campos do cabeçalho das regras são apresentados a seguir:
+TCP. Esta parte da sintaxe define o protocolo em uso;
+Em este caso, TCP.
+Este campo pode aceitar os valores:
+TCP, UDP, IP e ICMP.
+Para cada uma das cadeias de saída citadas no item anterior, o Snort cria 4 novas cadeias, uma para cada tipo de protocolo aceito.
+Existirá, por exemplo, uma árvore de regras TCP para cada uma das cadeias de formato de saída.
+External_ net.
+Esta parte da sintaxe é o endereço IP de origem.
+Any. Esta é a porta de origem selecionada como qualquer porta de origem.
+Os campos utilizados nas opções das regras, no exemplo apresentado são:
+Mensagem exibida por o alerta.
+Reference. Esta palavra chave permite incluir referências à informação de identificação de ataques provida por terceiros;
+Por exemplo, URLs para &quot;Bugtraq», &quot;McAfee», e os códigos de fabricantes ou identificação dos vendedores.
+Classtype: Attempted_ admin.
+Existe uma classificação dos ataques para permitir aos usuários entender rapidamente e priorizar cada ataque.
+Cada classificação tem uma prioridade, que permite ao usuário priorizar quais eventos ele busca por meio de um apenas um número:
+1 para Alto, 2 para Médio e 3 para Baixo.
+Sid: 344.
+Este é o identificador único para a regra do Snort.
+Todas as regras do Snort têm um número único de identificação.
+Informação sobre a regra pode ser verificada via www.
+Snort. Org/ snort-db.
+O SID é também utilizado por programas de relatórios para identificar as regras.
+Rev: 4 Esta seção das opções refere- se ao número de versão para a regra.
+Quando as regras do Snort são propostas por a comunidade &quot;open-source», as regras passam por um processo de revisão.
+Ao longo de o tempo, este processo permite às regras serem refinadas e a evitar falsos positivos.
+Por o padrão CIDR se pode indicar toda uma faixa de 2n endereços IP apenas adicionando&quot;/ dd ao final do endereço IP, onde o valor dd corresponde ao número de bits que permanecem fixos para esta faixa de endereços.
+Esta codificação é equivalente à obtida ao se representar uma faixa de endereços IP por um endereço inicial e uma máscara de subrede.
+A Tabela 1 mostra a equivalência entre as duas notações exemplificando o número de endereços de classe C atingidos e o número de hosts especificados por a faixa de endereços correspondente.
+A função de monitor de pacotes (sniffer), através da opção &quot;v «na linha de comando, permite que possa visualizar os pacotes coletados da rede na tela.
+Como registrador de pacotes (logger) a mesma coleta de pacotes é direcionada para um arquivo, para futura análise ou uso como padrões de tráfego, por meio de a reprodução destes pacotes na rede.
+A opção de linha de comando &quot;l «seguida do nome de um arquivo destino permitem ao Snort registrar neste arquivo o tráfego da rede.
+Como um NIDS, o nome do arquivo de configuração (snort.
+Conf), deve ser adicionada na linha de comando.
+Este arquivo contém a descrição de componentes opcionais que o Snort deverá ativar para esta função.
+Entre estes estão os conjuntos de regras de detecção e os preprocessadores que são responsáveis por a geração dos alertas esperados de um NIDS.
+Em aplicações comerciais o Snort pode ser encontrado instalado fazendo uso exclusivo do hardware de um servidor, associado a uma máquina firewall ou a um roteador.
+Quando não há restrições de investimento, aplica- se um NIDS para cada subrede, associa- se o Snort ao firewall e aos roteadores da rede.
+Em instalações mais simples, como a apresentada por a Figura 7, a rede interna é protegida por um firewall e um NIDS é colocado à frente deste, ou associado a este, antes da rede externa.
+Redes que ofereçam ao acesso externo uma das chamadas zonas desmilitarizadas (DMZ), acessam a rede externa por meio de um roteador com NIDS, conforme mostra a Figura 8.
+Um firewall conectado ao roteador, por o lado interno, distribui tráfego à DMZ e à rede interna por meio de respectivos NIDS adicionais.
+O número de regras do Snort é ampliado dia a dia, à medida que se verificam novos tipos conjunto das regras.
+O número de protocolos cobertos por o Snort poderá igualmente ser ampliado o que acarretará num aumento no número de regras.
+A a data desta redação, o Snort está em sua versão 2.11 e o conjunto de regras cobre 4 protocolos:
+IP, ICMP, TCP e UDP.
+A Tabela 2 ilustra o número de regras por protocolo para a versão 2.11 do Snort.
+Verifica- se que descobrir a incidência de uma das regras do conjunto de regras do Snort é uma tarefa exigente em termos de desempenho de máquina.
+Estratégias como a eliminação de regras que de alguma maneira não se aplicam ao tráfego da rede que se deseja proteger e a subdivisão do conjunto restante de regras em subconjuntos que mantenham características comuns mais simples de detectar são artifícios correntes do Snort.
+Por exemplo, detectar que um pacote pertence ao protocolo TCP é tarefa fácil e elimina todas as regras não-TCP.
+O subconjunto de regras TCP pode ser dividido em novos subconjuntos, como as regras:
+Mesmo restringindo- se o número de regras por subconjunto, são obtidos ainda números na ordem da centena.
+Isto significa que para cada byte do pacote, o Snort deve realizar centenas de comparações por byte.
+O conjunto disponível de regras do Snort não é destinado a ser integralmente utilizado.
+Cada instalação do Snort tem suas necessidades específicas e demanda um esforço de adequação da configuração às características de cada caso.
+Sob este ponto de vista o Snort não é uma solução fechada, exige a experiência de um profissional de segurança de redes para garantir sua boa aplicação.
+Isto é tanto mais verdade quanto maior e ou quanto mais visada a instalação a proteger.
+Os principais efeitos colaterais da ineficiente aplicação do Snort são as contagens elevadas dos falsos positivos e falsos negativos.
+Falsos positivos são alertas de ataque gerados indevidamente, ou seja, quando na realidade não exista a situação de ataque.
+O principal dano imposto por falsos positivos é a alocação de recursos do NIDS na detecção, alerta e registro de um ataque simulado.
+Outro dano é a geração de informação sem valor, que poderá vir a dificultar a detecção de alertas reais.
+Os falsos positivos são uma arma dos inimigos das redes.
+O conhecimento do funcionamento de um NIDS municia seus atacantes, que passam a mimetizar ataques em número elevado, com a finalidade de sobrecarregar e anular o sistema de defesa.
+Este tipo de ataque é chamado ataque DOS (do inglês, Denial of Service), onde o servidor cai por sobrecarga.
+Regras em excesso podem contribuir para o aumento dos falsos positivos.
+Caso existam, numa instalação Snort, regras que correspondam a ataques improváveis, então nesta instalação, contribuem apenas para aumentar a probabilidade de ataques simulados.
+Além de isto regras em excesso consomem indevidamente recursos do sistema.
+Em alguns casos extremos esta sobrecarga do NIDS, pode aumentar sua vulnerabilidade a ataques DOS.
+Falsos negativos são ataques não detectados.
+Falsos negativos podem resultar de um uso muito parcimonioso de regras.
+Em este caso, os ataques passam por que as regras que os detectariam simplesmente não foram ativadas.
+Falsos negativos podem advir também de sistemas subdimensionados ou sobrecarregados por excesso de regras ou por ataques.
+Falsos negativos não podem ocorrer.
+Um NIDS que não detecte um tipo de ataque, não protege de fato.
+Falsos positivos não devem ocorrer.
+Uma instalação de um NIDS deve ser aperfeiçoada para trabalhar com um nível baixo e controlado de falsos positivos.
+A possibilidade de falhas é parte das considerações num NIDS.
+No caso de o Snort, temse um sistema em software executando numa máquina genérica e na maioria das vezes um sistema com um único processador.
+Como todo o processamento necessariamente é seqüencial, muitas vezes o sistema não dispõe de todos os recursos exigidos para uma alta taxa de acertos na detecção de intrusões.
+Uma estatística de desempenho de um NIDS é a taxa de pacotes perdidos.
+Esta é a fração do tráfego que deixa de ser examinada por sub-dimensionamento dos recursos do equipamento ou ineficiência de configuração.
+Pequenos valores nestas taxas já indicam que a rede está sendo monitorada, mas não efetivamente protegida.
+São apresentados a seguir dados parciais do trabalho de Bastos acerca de a avaliação de desempenho do Snort sob ataque.
+Trabalho em o qual os autores comparam duas ferramentas de detecção de ataques em redes, o Snort e o Prelude.
+Faz- se uso aqui apenas os dados relativos ao Snort.
+Os autores executaram os testes numa montagem em laboratório exclusivamente para esta finalidade.
+Todas as máquinas utilizadas foram preparadas e configuradas para os objetivos do teste.
+Foram utilizados como parâmetros de teste:
+1) tipos de ataques, 2) ferramentas utilizadas, 3) quantidade de ataques por ferramenta e 4) nível de tráfego injetado na rede.
+Foram escolhido sete tipos de ataques, que foram executados sob três níveis de utilização da rede.
+Cada ataque foi repetido dez vezes e reportado como resultado a média aritmética dos dez valores obtidos.
+A Tabela 3 mostra os resultados obtidos com o Snort nos testes de reconhecimento de ataques nas situações propostas de diferentes taxas de utilização da rede.
+Em apenas três dos casos obteve- se 100% de detecção.
+Não será reportado aqui em detalhe, mas o desempenho da ferramenta Prelude não foi muito melhor, limitando- se por exemplo a detectar apenas 50% dos ataques FTP sob qualquer nível de utilização da rede.
+G: Em o de ataques gerados;
+D: Em o de ataques detectados;
+%: Detecção em porcentagem Um NIDS cumpre sua função examinando os pacotes que trafegam na rede onde está instalado.
+Buscando por características indicadoras de invasão, NIDS para redes IP devem, portanto, analisar características de pacotes IP.
+Os pacotes IP, conforme a seção 2.1, são formados por um cabeçalho, com dados de encaminhamento e descrição do pacote, e por o payload, os dados que se deseja transportar.
+Dois tipos de exames então se apresentam:
+Exame do cabeçalho e o exame do payload do pacote.
+O exame do cabeçalho é mais simples e direto pois cada campo que o constitui possui uma faixa de valores aceitáveis e estes campos podem ser testados por simples comparação de valores.
+O payload é uma seqüência de bytes quaisquer, não existem limitações pré-definidas por as quais buscar e examinar.
+O único tipo de análise possível é a busca por seqüências reconhecidas como indícios de intrusão, devido a sua associação com ataques em situações anteriores.
+Cada configuração de ataque terá a sua própria assinatura particular constituída por uma ou mais seqüências de bytes, de maneira que, para a prevenção contra vários tipos de ataques, uma coleção de várias assinaturas deverá ser examinada.
+Esta é a razão por a qual as regras do Snort contam com um ou mais campos de conteúdo.
+Estes campos devem ser comparados com o payload dos pacotes.
+O Snort, por exemplo, tem como estratégia examinar inicialmente alguns valores do cabeçalho do pacote antes de proceder em exames do payload, isto se deve principalmente ao custo computacional da operação de comparação de padrões de caracteres.
+As comparações com o cabeçalho são muito importantes no estabelecimento de estratégias para assegurar desempenho aos NIDS, mas é o segundo tipo de comparação que se propõe acelerar com este trabalho.
+De esta maneira, muito embora o processo de detecção de um NIDS envolva outros procedimentos, a ênfase aqui será aplicada à busca por seqüências padronizadas de caracteres, ou padrões, entre o payload dos pacotes.
+Devido a este foco na comparação de padrões, para o escopo deste trabalho algumas vezes estará- se- referindo à detecção apenas como a busca por a ocorrência de padrões específicos no payload dos pacotes e não à detecção mais geral de regras, como no caso de o Snort, que engloba outros procedimentos.
+O problema de comparação de conteúdos do payload intrínseco a um NIDS é um problema como no problema de &quot;exact matching», a solução consiste em encontrar todas as ocorrências de um padrão P, de comprimento n, num &quot;texto «T, de comprimento m, onde m\&gt; n..
+Em o problema de dos padrões Pi de um conjunto de padrões P. Em o tratamento teórico, tanto o texto quanto os padrões são cadeias de caracteres.
+Cadeias são listas ordenadas de caracteres.
+Como os caracteres estão ordenados, o i-ésimo caractere de uma cadeia C pode ser referido por meio de a notação C, sendo que C refere- se ao caractere mais à esquerda.
+A o comparar dois caracteres, diz- se que ocorreu um casamento (em inglês, match) se eles são iguais ou que eles descasam (em inglês, mismatching) se eles diferem.
+Para o escopo deste trabalho, o termo &quot;seqüência «é utilizado como sinônimo de cadeia, embora, num contexto teórico, estes possam assumir significados distintos.
+Em o contexto de NIDS, cada um dos pacotes circulando na rede é um texto T e os padrões Pi são cada um dos campos &quot;content «(ou os conteúdos) das regras do Snort selecionadas para detecção.
+A principal peculiaridade da aplicação NIDS é que não se conhece o texto T na íntegra, no momento da comparação.
+O texto é fornecido para análise caractere a caractere.
+Ainda para este contexto, a palavra &quot;caractere «refere- se a um de entre 256 símbolos possíveis de se representar com um byte.
+A comparação de cadeias admite uma abordagem &quot;trivial «ou &quot;ingênua», em que nenhum esforço é exercido no sentido de evitar comparações desnecessárias.
+A Figura 9 ilustra um exemplo de aplicação deste algoritmo.
+Inicialmente, T e P são alinhados por seus extremos à esquerda e seus caracteres são comparados a partir de a esquerda até que um descasamento ocorra ou que P chegue ao seu final, caso em que uma incidência de P em T fica evidente.
+Em ambos os casos P é deslocado em relação a T um caractere para a direita, e o processo de comparação reiniciado a partir de o início de P. Este processo é repetido até que o extremo direito de P ultrapasse o extremo direito de T. na Figura, o asterisco reporta um descasamento, enquanto os circunflexos representam os casamentos individuais entre caracteres de T e P. São realizadas comparações de todos os caracteres de T com todos os caracteres de P, resultando, se| T| $= m e| P| $= n, num tempo de execução O (mn).
+O estudo da complexidade destes algoritmos é importante para aplicações de alto desempenho onde o tempo de resposta é determinante.
+Algoritmos com tempos de execução O (mn) são proibitivos para NIDS em software.
+Para NIDS em software são buscados algoritmos com tempo de execução linear (tempo O (m+ n).
+São apresentados a seguir termos utilizados no tratamento que este trabalho dá à comparação de cadeias de caracteres por hardware.
+O processo de comparação de padrões utilizado por um NIDS caracteriza- se por a necessidade de comparar vários padrões com o payload do pacote, caractere a caractere.
+Esta comparação evolui no ritmo em que são disponibilizados novos caracteres do pacote.
+Então, algoritmos de comparação que realizem múltiplas comparações incrementais oferecem a vantagem de distribuir o custo das comparações ao longo de o tempo em que o texto comparado é disponibilizado.
+Tais comparações incrementais necessitam manter o estado da comparação para cada padrão comparado como base para decisão do algoritmo quando de a chegada do próximo caractere.
+A Figura 10 demonstra a necessidade da manutenção do estado da comparação.
+O texto T, na primeira linha da Figura, são os caracteres do pacote, disponibilizados um a um.
+Em a Figura, na linha do texto à esquerda da seta estão os caracteres recolhidos da rede, para os quais já ocorreu a comparação.
+À direita da seta um &quot;s «é o próximo caractere a ser comparado.
+Os diversos padrões são alinhados conforme a evolução de suas comparações individuais.
+Para cada padrão existe um ponto de comparação, a próxima posição deste padrão a ser comparada, o que na Figura foi marcado por um circunflexo.
+Estas comparações individuais de um padrão contra o conteúdo do pacote são referidas como comparações elementares.
+Existem padrões cuja conformação proporciona um segundo disparo de comparação enquanto uma seqüência anterior de coincidências ainda esteja sendo avaliada.
+Este é o caso de padrões que apresentem prefixos repetidos tais como:
+aaa, &quot;mamae», &quot;carcará», etc..
+A consideração deste tipo de ocorrência exige que o estado de cada comparação elementar possua mais de um ponto de comparação, ou que se amplie o conceito de comparação de um padrão.
+Admitindo que um mesmo padrão possa reiniciar as comparações a cada novo caractere do pacote, então se pode ter várias cópias do mesmo padrão, cada uma com seu ponto de comparação e assim evitar padrões com vários pontos de comparação.
+Este trabalho não lidará com coincidências múltiplas, o tratamento destas é sugerido como trabalho futuro.
+A principal restrição de um comparador para um NIDS é que todas as comparações requeridas por um pacote sejam efetuadas, ou seja, devem haver recursos de hardware e ou software para executar todas as comparações elementares exigidas por a maior das classes, no tempo médio em que cada um dos bytes de T fica disponível para comparação.
+Este tempo será aqui referido como &quot;tempo de byte «e seu valor vai depender do tráfego da rede para qual o NIDS se destina.
+Este Capítulo apresenta a contribuição recente de vários autores na área de aceleração por hardware de comparação de cadeias de caracteres.
+Este trabalho busca acelerar a tarefa de detecção de padrões necessária à execução do Snort por meio de comparadores implementados em FPGA.
+Segundo os autores, é possível processar pacotes com um tráfego de até 2,88 Gbps.
+Em esta implementação apenas a máquina de detecção é construída em hardware.
+O fluxo de pacotes é passado ao hardware em FPGA após receber os tratamentos dos preprocessadores num PC externo.
+Os pacotes são recebidos por o FPGA como palavras de 32 bits, já ordenadas na seqüência original do pacote.
+A máquina de detecção é composta por regras implementadas em hardware (regras-hw) dispostas em paralelo.
+Todas as regras-hw recebem a mesma cópia da palavra de 32 bits recebida por o FPGA.
+A Figura 11 ilustra um conjunto destes comparadores.
+Internamente, cada regra-hw possui duas unidades distintas, tal como as próprias regras do Snort, com suas seções de dados de cabeçalho e de payload.
+A unidade de cabeçalho é um bloco projetado para comparar os campos do cabeçalho do pacote.
+Se a unidade de cabeçalho identificar completamente os dados de cabeçalho a que referência, então será gerado um sinal de habilitação para que a unidade de payload, responsável por comparar o padrão buscado no conteúdo dos pacotes, seja ativada.
+Os blocos de regra-hw são implementados como comparadores com uma das entradas fixas e que corresponde aos padrões de bits, ou cadeia de caracteres, contido na própria definição da regra:
+Campos do cabeçalho e payload.
+Como as cadeias representativas do padrão buscado nos payloads dos pacotes têm tamanhos variados, os blocos que as implementam também os têm.
+Isto se traduz em tempos diferenciados para cada regra-hw completar uma comparação.
+Se qualquer das regras produzir uma identificação completa de um padrão, então é gerado um sinal que poderá ser utilizado para disparar qualquer das funções de alarme como corromper o pacote por a invalidação de seus checksums, registrar a ocorrência, ou outra ação desejável.
+Cuidados foram tomados neste projeto, como a implementação em pipeline, garantindo a minimização do atraso do caminho crítico e, portanto, favorecendo a velocidade do sistema.
+A implementação de comparadores para padrões fixos foi obtida por uso de portas E com inversão, o que evitou o uso de comparadores genéricos ou registradores, que se traduz por um ganho em área.
+No entanto, esta escolha também implica numa configuração &quot;hardwired «do conjunto de regras, que para ser ampliado necessita que toda uma tradução das regras em lógica seja refeita e todo o hardware seja sintetizado e recarregado numa parada do sistema.
+Em todo caso, os autores pensaram numa maneira de atualizar o processo de manter o conjunto de regras atualizado.
+Para isto criaram um método para traduzir o arquivo de regras do Snort em VHDL segundo templates que permitem a manutenção da estrutura em pipeline requerida para a eficiência do projeto.
+A Figura 12 apresenta a unidade de comparação de payload.
+Cada quadrado da unidade de comparação é um registrador de 8 bits.
+Os quadrados representados por linhas sólidas mostram seus estados iniciais, enquanto aqueles quadrados em linhas pontilhadas representam seu estado futuro.
+Os quadrados sombreados representam condições &quot;don´ t care «enquanto os outros contém caracteres ASCII.
+Os quadrados dentro de a unidade de comparação são comparadores de 8 bits.
+Quatro comparadores de 32 bits trabalham conjuntamente para comparar 4 bytes consecutivos de dados simultaneamente, formando um estágio de comparação.
+Cada estágio de comparação é ativado em seqüência num diferente período de clock.
+O resultado das comparações é passado para registradores de 1 bit que, na figura aparecem abaixo de cada comparador.
+A saída dos comparadores de um bit controla os comparadores de 1 bit dos estágios subseqüentes.
+O conteúdo dos registradores &quot;A», &quot;B «e &quot;C «representa o padrão &quot;PATTERNS «como houvesse sido capturado da rede, em fatias de 32 bits.
+A comparação com quatro alinhamentos diferentes do mesmo padrão compensa o fato da leitura em 32 bits favorecer apenas um tipo de alinhamento.
+Durante o ciclo 1, a cadeia &quot;PAT «é comparada contra 4 diferentes alinhamentos do padrão &quot;PATT».
+Ocorre a coincidência dos padrões na coluna 2, então o registrador de 1 bit desta coluna armazena o resultado e habilita o registrador de 1 bit da mesma coluna no estágio seguinte.
+Em o próximo ciclo de relógio, o conteúdo dos registradores é deslocado, do &quot;C «para o &quot;B «e do &quot;B «para o &quot;A».
+E a próxima rodada de comparações se inicia entre o registrador A e agora o estágio 2.
+Havendo, como houve no exemplo, nova coincidência com o padrão da coluna 2, o registrador de 1 bit desta coluna, neste estágio armazena o sucesso.
+Como os registradores de 1 bit deste estágio, e dos próximos, dependem da habilitação vinda dos registradores de 1 bit do estágio anterior, apenas o registrador da coluna 2 poderia registrar sucesso, pois apenas ele recebeu habilitação da etapa anterior.
+Em cada estágio apenas um registrador de 1 bit pode armazenar o valor 1, relativo ao sucesso da comparação, no primeiro estágio onde a comparação falhar para todos os alinhamentos será interrompida a cadeia de habilitação entre os registradores de 1 bit e a identificação com a regra terá falhado.
+Em o exemplo apresentado, todos os estágios da coluna 2 apresentam sucesso e por isso o sinal gerado por o registrador de 1 bit do último estágio ativa a porta Ou final que gera o sinal de reconhecimento do conteúdo da regra.
+Este sinal deverá ser utilizado para uma ação de saída.
+Os autores utilizaram um FPGA Altera da família EP20K para implementar o sistema e a ferramenta Quartus II, do mesmo fabricante para a geração do código VHDL.
+Sem o uso de nenhuma restrição de temporização na ferramenta de &quot;placement and routing «obtiveram uma velocidade de 90 MHz, o que lhes permitiu- lhes filtrar uma taxa de dados de 2,88 Gbps a despeito de o tamanho dos padrões das regras ou dos pacotes.
+Como o consumo de área em silício é proporcional ao tamanho das regras, ao escolher um Ci candidato a esta implementação, deve- se prever uma folga para futuros aumentos no número de regras.
+A lógica de controle consumiu, segundo os autores, aproximadamente 250 LE (elementos lógicos) e cada caractere das regras consome, em média, 10 LE.
+A versão do Snort utilizada por os autores, e segundo estes, propunha um conjunto de 105 regras, que à época deveria filtrar 95% dos ataques.
+Este conjunto correspondia a 1611 bytes e foi implementado com 17.000 elementos lógicos (Altera) num FPGA EP20K com 20.000 elementos lógicos.
+Deve- se observar que, por esta abordagem, cada regra-hw deve ter seu próprio hardware para a detecção de cabeçalho, e isto se repetirá por o número utilizado de regras.
+Os autores concluem, baseados em testes de desempenho, que o Snort em software, tal como se apresentava à época do trabalho, dificilmente conseguiria filtrar uma rede de 100 Mbps sob ataque.
+Com seu acelerador em hardware asseguram que poderiam obter 2.88 Gbps sob severas condições de ataque, pois o desempenho do seu filtro, como observam, analisa todos os pacotes independentemente de serem maliciosos ou não.
+Acrescentam que, por análise do caminho crítico proporcionado por a ferramenta, provavelmente poderiam alcançar sem alterar sua estratégia taxas de filtragem de até 6 Gbps.
+Para simplicidade do projeto os autores optaram por não implementar a insensibilidade à caixa alta ou baixa do texto.
+Fazem ressalva, igualmente, que tarefas como a dos preprocessadores de fragmentação é confiada ao software.
+Este trabalho foi avaliado por seus autores, com a implementação em hardware de um acelerador capaz de detectar 105 regras do Snort, num total de 1611 caracteres.
+Estes valores estão bastante abaixo de as 2250 existentes no Snort e dos 13.000 caracteres para comparação presentes nestas regras.
+Com relação a isto, é importante notar que os autores não apresentaram nenhuma previsão de como sua arquitetura reagiria a aumentos de escala.
+Como a área em silício é proporcional ao número de caracteres contidos nos campos de conteúdo das regras, a área necessária para conter um número de regras mais próximo de o número total das regras atuais do Snort nesta implementação deveria ser bastante maior e neste caso é importante saber como o desempenho seria afetado.
+Os autores não deixam claro de que maneira interagem com as porções de sua arquitetura que são implementadas em software tais como a desfragmentação.
+O mecanismo de detecção dos pacotes inclui a verificação dos endereços de IP e portas, no entanto o hardware que implementa estes comparadores não é citado.
+São necessários para identificar um cabeçalho 4 comparadores independentes, para 2 endereços IP (origem e destino) e 2 para de portas (origem e destino).
+Este não é um hardware inexpensivo, ainda mais se considerarmos que em geral os comparadores devem considerar faixas de endereços.
+Segundo os procedimentos de criação das regras do Snort estas faixas podem se compor de vários segmentos, o que pode se constituir num projeto de comparador nada trivial.
+A presença dos comparadores restringe bastante a ocorrência de falsos positivos, mas certamente eles ainda serão muito freqüentes entre o total dos alarmes, visto que a detecção dos endereços e de padrões no payload são apenas alguns dos caracterizadores de uma regra do Snort.
+Várias das opções que ajudam a caracterizar as regras não são consideradas e isto implica certamente na necessidade de um processamento auxiliar para rejeitar os falsos positivos.
+O artigo de Sourdis e Pnevmatikatos resume o progresso das pesquisas em técnicas de reconhecimento de padrões com o uso de FPGAs.
+Em este artigo os autores estabelecem como meta o suporte para comparação de padrões numa rede de 10 Gbps.
+Utilizando uma arquitetura semelhante a utilizada por Cho no trabalho anteriormente citado e FPGAs mais poderosos, relatam terem ultrapassado os 10 Gpbs para um determinado conjunto de regras.
+Para a implementação deste caso foi escolhido o ambiente de desenvolvimento ISE e componentes Xilinx.
+Os autores dividem seu sistema em três partes:
+Uma árvore de registradores, que limita o fan-out dos dados proveniente da rede para as diversas unidades de comparação, evitando degradação elétrica ou atrasos;
+Lógica de comparação, semelhante à de Cho;
+Um circuito de codificação que, no caso de o padrão de uma regra ser capturado, sinalize com o número da regra.
+Em esta implementação também foi implementada apenas a comparação de padrões.
+O FPGA torna- se um subsistema conectado a uma CPU hospedeira onde o Snort está sendo executado.
+Semelhantemente ao trabalho referido de Cho, é utilizada uma palavra de 32 bits para o canal de dados entre a CPU hospedeira e o FPGA e, por o mesmo motivo, a comparação é realizada, ao mesmo tempo, contra quatro cópias do padrão da regra deslocadas de um byte uma das outras.
+Os autores salientam a importância do uso intensivo de pipelines e em seu trabalho descrevem a adaptação de sua proposta à estrutura interna dos FPGAs Xilinx.
+Como diferencial de sua implementação os autores citam um estágio de codificação de alarme que permite repassar ao estágio posterior (pós-detecção), em geral software rodando na CPU hospedeira, qual regra foi ativada.
+Comparações efetivas entre as duas implementações ficam dificultadas por as diferenças nas formas de medir utilizadas por os diferentes ambientes de desenvolvimento utilizados e por o fato dos grupos terem escolhido conjuntos de regras diferentes.
+Entretanto, o paralelismo dos trabalhos e a semelhança de resultados indicam que esta é uma boa opção de arquitetura para aplicação de IDSs em redes de 1 Gbps ou mais.
+A atualização do conjunto de regras neste segundo caso segue igualmente o que já havia sido feito por o grupo de Cho.
+Os autores criaram programas para poderem extrair, dos arquivos de regras do Snort, os padrões de regras e aplicar- los em arquivos VHDL, automatizando o processo de atualização do conjunto de regras.
+A seguir está reproduzida a Tabela 4 que os autores compilaram a partir de sua experimentação e dos dados que conseguiram recolher das implementações de outros autores.
+Os autores procuraram medir seu sucesso em termos de desempenho e por o custo de área por caractere do padrão procurado.
+Foram utilizados três conjuntos de regras para as medições.
+Um conjunto pequeno, com 10 regras cada uma com 10 caracteres;
+Um conjunto médio com 47 regras e em média 10,4 caracteres por regra e um conjunto grande com 210 regras e 11,7 caracteres por regra Foram sintetizados todos estes conjuntos de regras para vários componentes Xilinx:
+Virtex 1000-6, VirtexE 1000-8, Virtex2 1000-5, Virtex 2600-8 e Virtex2 6000-5.
+A estrutura destes dispositivos sendo similar foi encontrado para todos eles custos de área muito semelhantes, com diferenças maiores apenas em termos de desempenho.
+Duas &quot;Logic Cells «formam um &quot;Slice», dois &quot;Slices «formam um CLB na arquitetura Xilinx.
+Uma expressão regular da forma (a| b)* a (a| b) k para k $= 8 e 28.
+Devido a o operador* a Er pode reconhecer mais de 9 ou 29 caracteres.
+Estes resultados não incluem o custo/ área da infraestrutura e dos &quot;wrappers «de protocolos.
+34 expressões regulares com 8 caracteres cada em média.
+A porção superior da tabela lista:
+O número de bits processados por ciclo (em &quot;largura da palavra&quot;), o dispositivo utilizado, a freqüência de processamento alcançada e a correspondente vazão (em Gbps).
+Também são listados a área total e a área requerida por cada caractere buscado (em células lógicas), a utilização dos dispositivos, bem como as dimensões do conjunto de regras (número de regras e tamanho médio dos padrões de busca).
+Para o conjunto pequeno de regras os autores obtiveram 6 Gbps nos dispositivos mais simples e 12 Gbps nos mais avançados.
+Em o conjunto médio de regras foi que os autores obtiveram a taxa de 11 Gbps que citam no abstract de seu artigo.
+Para o conjunto total de regras, o desempenho ficou em 8 Gbps, num dispositivo Virtex2.
+Os autores observam que como o projeto ocupa uma grande área, grande parte das perdas de desempenho se deve ao atraso em conexões, necessária para interligar circuitos distantes, tanto que a latência de roteamento chega a 70% do tempo de ciclo nesta implementação.
+Os autores propõem a utilização de comparadores em paralelo ou possivelmente a subdivisão do projeto em módulos que ocupem menores áreas como solução para a redução da latência de roteamento.
+Os cálculos de vazão consideram o hardware de comparação em condições ideais de operação, que seriam a oferta dos dados do pacote e a coleta dos resultados das comparações sem quaisquer interrupções.
+Em estas condições, os comparadores seriam capazes de comparar 32 bits do fluxo de dados (quatro caracteres) a cada ciclo do relógio.
+Uma implementação onde a freqüência do relógio atinja 252 MHz, obterá- se- 252 MHz vezes 32 bits, 8,064 Gbps efetivamente comparados.
+Entretanto a obtenção destas altas taxas de relógio é uma tarefa difícil, e com o aumento do número de padrões comparados torna- se ainda mais difícil.
+O trabalho de Sidhu e Prassanna explora a técnica de comparação de cadeias de símbolos por meio de autômatos finitos não-determinísticos (NFAs) implementados em FPGA.
+Os padrões de comparação são fixos e implementados em hardware em duas etapas.
+Primeiro as seqüências de símbolos são transformadas numa expressão regular (Er), utilizando os próprios símbolos e operadores ou meta-caracteres próprios de expressões regulares, tais como:
+Fechamento(*), alternativa(|) e parênteses.
+Em uma segunda etapa a Er é convertida num circuito lógico expresso como um &quot;netlist «passível de ser oferecida à uma ferramenta de síntese.
+Uma crítica aos trabalhos apresentados na Tabela 4 é o reduzido número de padrões tratados e o pequeno tamanho médio dos padrões (na ordem da dezena de caracteres).
+O trabalho de Lockwood trata de uma proposta de interface genérica para flexibilização de equipamentos de rede.
+Por meio de esta interface vários módulos podem ser adicionados a um equipamento de rede, tal como um roteador.
+Um dos módulos pode ser um detetor de padrões como o necessário para um NIDS.
+O detetor de padrões foi apresentado por o autor como exemplo, sem a intenção de propor uma solução de alto desempenho.
+Os autores visam realizar comparações de padrões em todos os pacotes em trânsito e à velocidade da rede, ou seja, dispensam qualquer tipo de filtragem a partir de dados do cabeçalho, simplesmente propondo- se a examinar todo e qualquer pacote contra todo o conjunto de regras.
+O dispositivo proposto em FPGA foi implementado numa placa de prototipação PCI para uso em slot de PC contendo um Ci Xilinx, Virtex XCV1000.
+O Snort em execução no PC foi modificado para passar os dados dos pacotes para detecção diretamente ao hardware prototipado através da interface PCI.
+A máquina de comparação de padrões foi adaptada para um fluxo de dados em bytes ao invés de palavras de 32 bits como optaram os outros autores.
+Em seu trabalho são utilizadas expressões regulares para descrever os padrões das regras do Snort e com isto proporcionar um método de converter regras em hardware, segundo a estratégia que os autores buscam em.
+Por o uso de expressões regulares fica facilitada a abordagem que busca poupar área em silício na implementação de regras que possuam padrões de caracteres semelhantes.
+Este grupo utilizou o ambiente JHDL, um sistema que utiliza Java para produzir VHDL, que não apenas permite a criação de descrições HDL, como permite também a criação de programas em Java que proporcionem a automação desejada desde a captura das regras do Snort até a produção do netlist do circuito final.
+O gerador de módulos, automaticamente, extraí os padrões das regras do Snort diretamente do banco de dados deste, gera uma expressão regular que combina todos os padrões extraídos, sintetiza um circuito que irá reconhecer a expressão regular gerada fabricantes de FPGAs.
+Os autores defendem o uso de JHDL como um ambiente integrado para a produção de descrições de hardware com capacidade de suportar abstrações de nível mais elevado.
+Em a síntese do circuito por o gerador de módulos, várias metodologias para minimização de área e otimização são empregadas:
+São utilizadas diretivas de mapeamento para reduzir o consumo de área por o operador mais utilizado nas Er que é a concatenação, é criada uma árvore de registradores para resolver os problemas de fan-out associados ao broadcasting do fluxo de caracteres do pacote, uma reorganização da Er para otimizar o desempenho das portas Ou, é feito o compartilhamento de subexpressões comuns para conservar área.
+De as medidas empregadas para redução de área, o compartilhamento de subexpressões chama a atenção devido a esta técnica poder ser utilizada para tornar paralela a análise de cadeias de caracteres semelhantes.
+Entretanto, foi verificado por os autores uma redução no número de flipflops nas cadeias combinadas resultantes das técnicas de compartilhamento de subexpressões, e isto teve reflexos negativos na velocidade do dispositivo.
+Para a comparação de resultados os autores utilizaram um comparador de cadeias de caracteres em software, o &quot;regex «Gnu.
+Foram utilizados três computadores:
+Um primeiro gera cadeias de caracteres com padrões de ataque das regras do Snort;
+O segundo toma os dados da rede e aplica a eles &quot;timestamps «imediatamente antes e depois dos enviar ou para o regex ou para o comparador em FPGA;
+O terceiro computador lê os timestamps e calcula a latência.
+Para casos de teste utilizando cadeias pequenas o desempenho de hardware e software foi aproximadamente o mesmo, no entanto, quando as cadeias crescem, o hardware chega a se tornar 600 vezes mais rápido, no melhor caso medido.
+Foi observado também, que a vazão do comparador em hardware não depende do tamanho das cadeias, enquanto que em software este indicador cai linearmente para cadeias de até 2500 caracteres, piorando para cadeias maiores.
+Os autores concluem que comparadores baseados em FPGA podem ser utilizados para aliviar a carga de trabalho de NIDS e tornar- los capazes de examinar uma taxa maior de pacotes na rede.
+Salientam o cuidado que os NIDS em software requerem ao escrever as regras de modo a evitar ao máximo as comparações de conteúdo e propõe implementações por hardware como meio de relaxar estas exigências.
+Como estabelecido por os autores, sua proposta se destina a examinar todos os pacotes na velocidade exigida por a rede.
+O trabalho deste grupo de autores é anterior aos apresentados e trata igualmente com o comparador de padrões do Snort, mas propõe aceleração exclusivamente em software.
+Em este trabalho os autores exploram o fato de que existem muitos padrões de conteúdo semelhante entre as regras do Snort e que nenhum mecanismo no software impede de que parte de um padrão que já tenha sido rejeitado volte a ser novamente comparado.
+O artigo cita as heurísticas do algoritmo de Boyer--Moore, que é utilizado por o Snort para acelerar as comparações e propõe variações deste algoritmo utilizando árvores de palavras de Aho-- Corassik para obter ganhos sobre a repetição de padrões.
+O algoritmo de Boyler--Moore utiliza heurísticas para reduzir o número de comparações necessárias para determinar se uma dada seqüência de texto contém ou não um padrão particular.
+O algoritmo tipicamente alinha o texto e o padrão buscado por seus caracteres mais a esquerda, mas realiza as comparações partindo do final (direita) do padrão para o início.
+A Figura 13 mostra, como exemplos, em &quot;a) «a regra do mau caractere (do inglês:
+&quot;bad character rule&quot;) e em &quot;b) «a regra do bom sufixo (do inglês:
+&quot;good suffix rule&quot;).
+A regra do mau caractere inicia uma nova comparação a partir de a posição mais à direita de um padrão (P) já alinhado com o texto (T) e exige um pré-procesamento do padrão.
+O padrão antes de ser comparado é utilizado para gerar uma tabela de R, a posição mais à direita em P onde ocorre x.
+R é definido como sendo 0 se x não ocorre em P. No caso de o novo alinhamento) ocorre outro descasamento, agora z difere de y.
+Para calcular o novo deslocamento é verificado o valor de R (y), com o que os padrões são realinhados de modo a coincidir os y em P e T).
+Com este novo alinhamento verifica- se a incidência de P em T. Toda vez que é detectada uma igualdade de caracteres, a comparação é deslocada para o caracter logo à esquerda.
+Se for atingido o final do padrão (esquerda), então houve uma detecção do padrão para aquele alinhamento.
+A primeira detecção é o suficiente para aplicações como o Snort.
+Caso os caracteres não sejam iguais, a busca para este alinhamento termina, o padrão é deslocado para a direita, e uma nova série de comparações se inicia para este novo alinhamento.
+A busca termina sem sucesso se não for mais possível realinhar o padrão à direita.
+Em a Figura 14 é apresentada a regra do bom sufixo.
+Em este caso, o padrão necessita ser préprocessado em função de repetições internas de seus possíveis sufixos.
+A regra do bom sufixo pressupõe que um sufixo de P foi verificado coincidir com uma sub-cadeia t de T, quando encontrado um descasamento exatamente ao comparar- se o caractere mais à esquerda de t..
+Em este caso, a regra do bom sufixo dita que se busque por uma nova cópia de t, chamada t', em P que não seja o próprio sufixo já encontrado e nem seja seguido à esquerda por o mesmo caractere que seguia t à esquerda, e estabelece as quantidades do deslocamento conforme tal padrão seja ou não encontrado.
+Em o exemplo da Figura 14, o descasamento ocorre na posição 8 de P e posição 10 de T, t $= ab e t'ocorre em P começando na posição 3.
+Então P é deslocado à direita por seis posições, resultando no alinhamento apresentado em.
+Note- se que à posição 6 de P o mesmo prefixo igualmente existe, mas ele é descartado por apresentar à sua esquerda o mesmo caractere' d'que causou o descasamento original.
+É fácil verificar que o novo alinhamento não produziu coincidência, nem um novo bom prefixo.
+O que os autores propuseram foi transformar o padrão de comparação numa árvore semelhante as de Aho-- Corassick.
+Por esta técnica, vários padrões que possuam prefixos iguais são alinhados à esquerda e então agregados formando uma árvore.
+O tronco da árvore fica à esquerda e é formado por um sub-padrão comum a todos os padrões iniciais.
+Em o primeiro caractere mais a esquerda, onde um ou mais padrões não mais combinarem, acontecem as primeiras ramificações da árvore, tantas quantos os diferentes caracteres encontrados.
+A partir de aí cada ramificação é construída como uma nova árvore.
+Os padrões serão agrupados relativamente a a ramificação a que pertençam e, para cada ramificação, agora uma nova sub-árvore, o processo avança, aplicando o mesmo algoritmo.
+Cada ramificação considerará apenas os padrões a ela relacionados.
+Um ramo se estenderá para a direita enquanto estes padrões combinem, ou uma nova discrepância apareça para dar formação a outros ramos.
+O algoritmo proposto por os autores explora heurísticas semelhantes àquela do &quot;bad character», adaptadas a nova configuração dos dados.
+E a vantagem é obtida da comparação paralela dos padrões, ou de se evitar repetir comparações já realizadas.
+Como resultado deste trabalho, os autores apresentam um ganho em tempo, por o uso do algoritmo proposto, onde as comparações se mostram de 1,02 a 3,32 mais rápidas que no Snort utilizando Boyer--Moore, sob as mesmas condições de execução.
+Os ganhos obtidos dependem do conjunto de regras utilizado, sendo que os ganhos mais expressivos se dão quando os sistemas são comparados, utilizando conjuntos maiores de regras.
+Como reflexo da importância dos resultados obtidos, na versão 2.0 do Snort, ocorreu a assimilação da sugestão do novo algoritmo de busca proposto por os autores.
+Estes autores propõe uma ferramenta de geração automática de arquiteturas destinadas a detecção de intrusão.
+A motivação destes autores é melhorar o desempenho geral do sistema produzido, pois sustentam que em trabalhos semelhantes a atenção tem sido focalizada no projeto das unidades de comparação, em detrimento de o desempenho geral da arquitetura.
+Segundo suas análises, em diversos exemplos, tais como em e em outros citados em, a arquitetura resultante tem problemas de escalabilidade, enfrentando problemas como acréscimo em área de Ci e nos atrasos de propagação à medida que o número de padrões aumenta.
+A principal estratégia de comparadores utilizados neste trabalho é reduzir os bytes dos padrões e do payload a representações unárias, um sinal para cada byte.
+No entanto, nem todos os possíveis bytes são representados, apenas os caracteres efetivamente constantes no conjunto de regras do Snort têm representação.
+Os autores verificam que apenas 100 bytes distintos são encontrados entre os padrões do Snort, além disso, por o uso de outros artifícios como a insensibilidade à caixa do texto, chegam a apenas 75 bytes, representados por 75 fios.
+Outra estratégia é particionar o problema de comparação com todos os padrões em diversas comparações com subconjuntos do total de padrões.
+Este processo é realizado segundo o algoritmo &quot;min-cut», fazendo com que os padrões sejam particionados, de modo que o número de caracteres repetidos dentro de as partições seja maximizado, e o número de caracteres repetidos entre partições seja minimizado.
+O sistema é então gerado, composto por &quot;n «pipelines, cada um com um mínimo de linhas de bits.
+A ferramenta proposta considera heurísticas que permitem a geração automática do HDL em menos de um minuto, rodando num PC Pentium III de 800 MHz com 256 MB de RAM.
+A ferramenta gera arquiteturas alternativas baseadas em estruturas de árvore, que permitem coletar entre os padrões prefixos comuns e representar tais padrões como combinações destes prefixos.
+A informação de detecção de um prefixo é compartilhada entre as diversas partições aliviando o volume de redundância.
+Esta estratégia, segundo os autores, é responsável por a eliminação de 1/2 a 1/3 da redundância, no entanto, provoca roteamentos entre as partições e um aumento no fanout, o que restringe o uso de freqüências mais altas.
+Os autores fizeram medições de área e freqüência, comparando valores entre exemplos de suas arquiteturas com e sem otimizações em árvore.
+Estes testes foram repetidos para cada arquitetura utilizando quatro subconjuntos, com 204, 361, 602 e 1000 padrões.
+Para cada subconjunto foi encontrado um número de partições ótimo, ficando entre 2 e 3 para o menor caso e por volta de 8 no caso maior.
+O particionamento em geral permitiu um ganho em freqüência máxima de operação, a custa, no entanto, de área em Ci.
+A alternativa em árvore permite os ganhos em velocidade a custos menores em área.
+A abordagem em árvore favoreceu como esperado a densidade dos circuitos, sendo que no subconjunto com 602 regras foi obtido um ganho de 50% em área.
+Os autores relatam haver obtido o melhor aproveitamento de área de Ci, quando comparam seu resultado com o obtido por outros autores, como os citados nesta seção.
+Entretanto, seu desempenho em termos de vazão fica em 2 Gbps.
+Este trabalho fundamenta- se na aplicação de filtros Bloom, que são geradores de funções hash.
+A idéia de aplicação de funções hash para realizar a comparação de padrões é uma iniciativa inovadora destes autores na área de NIDS.
+Por observarem que o conjunto de regras do Snort raramente apresenta padrões com extensão superior a 26 caracteres, a arquitetura proposta se atém a pesquisa destes padrões por meio de máquinas Bloom (nome dado por os autores, referindo- se a Burton Bloom autor do algoritmo).
+Cada máquina Bloom busca por padrões de determinada extensão, entre 2 e 26 bytes.
+As 25 máquinas resultantes são instanciadas em paralelo.
+Os padrões encaminhados a cada uma das máquinas são submetidos a um filtro Bloom para verificar a incidência de padrões previamente programados.
+A incidência é verificada por o cômputo de k funções hash sobre a amostra analisada.
+Um vetor de bits é preenchido com o resultado destas avaliações, um bit &quot;1 «para cada função hash detectada ou um &quot;0 «caso contrário.
+A o final deste estágio, os vetores com todos os bits em &quot;1», indicativos de um match de padrão, são encaminhados à um árbitro onde esperam por um acesso a uma SDRAM externa ao FPGA.
+Os filtros Bloom são implementados em quatro Block RAMs de 4096 bits, criando vetores com 16.384 bits o que reduz a taxa de geração de falsos positivos a f $= 0.0039, sendo que, falsos negativos não são gerados por os filtros.
+O uso da SDRAM é exatamente para eliminar possíveis falsos positivos.
+A SDRAM é acessada utilizando uma tabela hash à saída do árbitro.
+O conteúdo da SDRAM é comparado com o padrão sob análise e se houver perfeita coincidência então a detecção é reconhecida.
+Operando a 62,8 MHz, processando um byte por ciclo de relógio, foi reportado uma vazão de 502 Mbps, num Ci VirtexE 2000.
+Um sistema com múltiplas instâncias, que processe 32 bits por ciclo de relógio, poderia então chegar à taxas de 2 Gbps.
+Outra característica da implementação é permitir a programação dos padrões dinamicamente.
+Um novo padrão é programado em 30 ciclos enquanto a carga de 35.000 padrões leva apenas 17 ms..
+De o exame das diversas abordagens apresentadas, verifica- se que são aplicadas limitações ou simplificações ao problema da detecção de intrusão em rede.
+Estas limitações podem ser:
+Limitação no conjunto de regras -- nos trabalhos apresentados como os de e o conjunto de regras do Snort utilizado fica muito aquém de as 2124 regras existentes.
+Como qualquer destas soluções reagiria em termos de desempenho com um número maior de regras?
+Não apenas a área em silício poderá aumentar com o aumento do número de regras consideradas, o número de conexões internas à arquitetura poderá crescer de modo a causar perdas no desempenho tais como a redução da freqüência máxima de relógio.
+Limitação no tamanho dos padrões -- o tamanho dos padrões não é livre, fica limitado em torno de os 20 caracteres por regra.
+Esta restrição vai contra o resultado de outros trabalhos onde se concluiu que o tamanho dos padrões não afeta o desempenho.
+Limitação no conjunto de caracteres dos padrões -- a proposta de obtém um ganho em propor comparadores unários onde torna- se essencial a redução da amplitude do alfabeto considerado nos padrões comparados.
+Outra restrição observada na maioria das propostas é a implementação &quot;hardwired», ou seja, os padrões de comparação são fixos no silício.
+Isto implica em que o conjunto de regras não possa ser alterado, ainda que minimamente sem que toda a imagem do silício seja refeita e recarregada.
+O tempo gasto na operação é o menor de seus custos, já que uma nova síntese do total do projeto deverá ser realizada e mesmo com o uso de mecanismos de restrição oferecidos por a ferramenta de síntese, não há como prever ou evitar que uma alteração no conjunto de regras resulte em grandes mudanças em termos de &quot;placement&amp; routing», com prejuízo sobre o desempenho do sistema e obrigando a um novo ciclo de otimizações do projeto.
+Diante de a análise destas restrições que conjunto de características seriam desejáveis numa arquitetura aplicável a um coprocessador para um NIDS prático?
+Aceitar o número máximo de regras suportadas por o Snort -- o desempenho tanto em termos de consumo de área em silício, quanto em relação a o caminho crítico, não ser afetado por o aumento do número de regras, ao menos para as taxas de crescimento observadas com relação a o Snort.
+Não é esperada nenhuma explosão no número de regras do Snort, de maneira que uma arquitetura com boa escalabilidade associada à manutenção de leis de crescimento da densidade, como a lei de Moore, pode garantir uma solução prática quanto a este requisito.
+Aceitar padrões de comparação no tamanho requerido por as regras do Snort -- a arquitetura deverá ser pouco sensível ao tamanho dos padrões para efeito de desempenho em consumo de área e caminho crítico.
+Aceitar padrões de comparação sem restrições de alfabeto -- aceitar como unidade de comparação qualquer dos 256 valores de byte possíveis de captura num pacote.
+De esta maneira retira- se qualquer restrição à composição de futuros padrões de comparação quanto a o uso de códigos ou bytes específicos.
+Este trabalho apresenta um modelo de arquitetura paralela que permite a investigação do tráfego da rede no tempo em que ele ocorre.
+O desempenho da arquitetura não depende da extensão dos padrões comparados, mas apenas de seu número.
+Com relação a o número de padrões esta topologia é parametrizável, possibilitando o suporte para um número crescente de padrões a comparar.
+Por projeto, esta topologia é capaz de manter uma vazão acoplada à taxa de rede, ou seja, realizando uma nova comparação a cada novo ciclo do &quot;relógio da rede», portanto inviabilizando perdas que não se devam à subestimação do tráfego.
+Este Capítulo apresenta o projeto da unidade básica de comparação, denominada picoCPU, elemento fundamental para a concepção de um coprocessador para um NIDS com as características apontadas ao final do Capítulo anterior.
+O projeto da pico-CPU representa a primeira contribuição deste trabalho.
+A o final do Capítulo anterior foram examinadas as características desejáveis aos comparadores a serem utilizados na construção de dispositivos aceleradores para NIDS.
+Os comparadores que se deseja empregar neste trabalho devem ter seus padrões de comparação programáveis.
+Com esse intuito, buscou- se utilizar os blocos de memória presentes em FPGAs comerciais.
+Por o fato do dispositivo de comparação projetado lembrar, por suas características gerais, a estrutura e o funcionamento da unidade central de um processador simples, foram denominados pico-CPUs.
+Blocos de memórias de dupla porta (DPRAM-Dual Port RAM) estão presentes em FPGAs comerciais de diversos fabricantes.
+Para este trabalho optou- se por o fabricante Xilinx, por o fato deste fabricante oferecer CPUs PowerPC embarcadas, sendo estas importantes para a continuidade prevista para esta pesquisa.
+As memórias de dupla porta Xilinx, denominadas Block SelectRAMs, referidas neste contexto como DPRAMs, possuem 18 K bits de capacidade e reduzido tempo de acesso.
+De os 18 K bits de memória disponíveis, 2 K bits correspondem a bits de paridade.
+A largura das portas das DPRAMs Xilinx podem ser configuradas entre diversas combinações.
+Em o projeto das pico-CPUs foram escolhidas as larguras 8 bits, com 1 bit extra de paridade, para ao acesso aos padrões de comparação e 32 bits, com 4 bits extra de paridade, para a configuração e acesso a registros, como será explicado nas próximas Seções.
+A Figura 15 apresenta a interface externa de uma DPRAM inicializada com esta configuração.
+Os sinais SSRA e SSRB têm por função inicializar (reset) as portas correspondentes.
+Por não serem utilizados, são conectados no nível lógico 0.
+Os sinais CLKA e CLKB são fornecidos por um sinal comum de relógio.
+A porta` A'é utilizada apenas para leitura dos caracteres dos padrões, conectando- se assim o sinal WEA no nível lógico 0.
+A principal função das DPRAMs neste projeto é a de armazenar os padrões de comparação.
+O uso de DPRAM implica em:
+Os padrões podem ser alterados em tempo de execução.
+O fato dos padrões serem armazenados em RAM permite alterar- los, inclusive em tempo de execução.
+Cabe ao restante da implementação garantir o aproveitamento desta característica.
+Esta é uma vantagem em relação a as implementações hardwired.
+As regras podem ser ilimitadas em extensão.
+O único recurso de hardware consumido para armazenar os padrões das regras é a própria memória.
+Não é consumida a lógica programável para representar os padrões, o que exigiria tamanhos variáveis das estruturas de comparação e da complexidade de conexões, tornando o desempenho do sistema fortemente dependente da extensão dos padrões de comparação.
+Certamente a quantidade de RAM utilizada vai depender da extensão dos padrões, mas o projeto do sistema não muda e parâmetros como &quot;caminho crítico «e área de silício tornam- se previsíveis.
+O número de caracteres total das regras do Snort é aproximadamente 17000.
+Se fosse reservado apenas metade dos 2 KB disponíveis por DPRAM para o uso com padrões, seriam necessárias apenas 17 DPRAMs.
+Aceitar todos os caracteres das regras do Snort.
+A utilização de RAMs permite armazenar qualquer caractere.
+Certas implementações apresentadas no Capítulo de revisão bibliográfica apresentava restrições em relação a o tipo de caracteres que poderiam ser utilizados nas regras.
+O acesso aos padrões é seqüencial.
+Este fato representa uma desvantagem com relação a os projetos onde os padrões são fixados na lógica programável (hardwired), pois o acesso aos padrões é serializado, e o paralelismo advém do número de blocos de memória em paralelo.
+Entrada da Porta A:
+Saída da Porta A:
+Entrada da Porta B:
+Saída da Porta B:
+A arquitetura proposta introduz inovações para o projeto de um co-processador de aceleração para um NIDS, que representam ganhos em desempenho e flexibilidade na aplicação, mantendo o projeto simples e escalável.
+Utilizar memórias dupla porta para armazenar os padrões de comparação é o ponto de partida para a concepção dos dispositivos comparadores.
+Estes dispositivos comparadores, denominados de pico-CPUs, foram projetados como CPUs micro-programadas de propósito específico, executando programas muito simples.
+Estas pico-CPUs são conectadas em paralelo para obter a aceleração do trabalho de detecção de padrões atribuído a um NIDS.
+Denomina- se este conjunto de pico-CPUs de cluster de pico-CPUs, ou simplesmente cluster.
+Finalmente, conecta- se o cluster a uma CPU-mestre, responsável por realizar a interface com o NIDS.
+Este conjunto compõe um SoC especializado em detecção de padrões de ataque em redes de computadores.
+O projeto, o funcionamento e a avaliação funcional da pico-CPU são apresentados neste A função básica das pico-CPUs é a de verificar se num fluxo de dados contendo o tráfego de uma rede, ou de um segmento de uma rede, ocorrem determinados padrões de caracteres.
+Sendo estes padrões previamente programados em suas DPRAMs, as pico-CPUs permanecem comparando caracteres do fluxo de dados contra caracteres dos padrões em elas programados.
+O paralelismo do sistema tem duas dimensões.
+A replicação das pico-CPUs formando um cluster representa um paralelismo espacial.
+A comparação em cada pico-CPU representa um paralelismo temporal, comparando sequencialmente padrões, na forma de um pipeline.
+A Figura 16 ilustra este dois níveis de paralelismo, através de um cluster contendo 3 pico-CPUs.
+Cada pico-CPU examina o fluxo de entrada contra três padrões diferentes num mesmo tempo de byte.
+Em o total, três comparadores examinam 9 padrões num mesmo tempo de byte.
+A função da CPU-mestre é de realizar as tarefas menos intensivas, como a marcação do início dos pacotes, e a recepção dos alertas de detecção vindos do cluster.
+A CPU-mestre realiza a interface com o NIDS, passando a este os alertas de detecção podendo estabelecer com este uma interface de comandos.
+Um outro requisito importante, além de a capacidade de armazenar e acessar padrões de comparação, é a capacidade de comparar exigida de um NIDS.
+Esta capacidade pode ser dimensionada a partir de o número de padrões a comparar e do tempo em que as comparações devem ser efetuadas.
+Nem todas as regras necessitam ser examinadas para todos os pacotes.
+A maioria das regras visa especificamente pacotes com determinadas características.
+Para este trabalho introduziuse o conceito de classe de simultaneidade ao conjunto de padrões que podem ocorrer simultaneamente para um determinado pacote.
+A referência à &quot;classes «no texto deste trabalho tem este significado.
+A utilização do conceito de simultaneidade é explorado por o Snort como uma das estratégias para reduzir o número de regras a examinar a cada pacote.
+Mostrou- se (seção 2.3) que o Snort mantém as regras utilizadas para detecção classificadas numa lista onde um dos critérios de classificação é o protocolo das regras.
+Desta forma, conhecendo o protocolo do pacote em análise, o Snort somente irá buscar no payload de tal pacote os padrões pertinentes àquele protocolo.
+Como exemplo, pacotes TCP são pesquisados apenas com relação a regras TCP.
+No caso de as pico-CPUs este conceito é utilizado para orientar a distribuição dos padrões de comparação entre as pico-CPUs.
+A idéia central aqui é:
+A cada pacote analisado apenas uma classe de regras será pesquisada.
+Portanto, para melhor aproveitar os recursos de comparação do cluster, os padrões desta classe deverão estar distribuídos da maneira uniforme entre as diversas pico-CPUs.
+A Figura 17 ilustra este conceito de classes de simultaneidade.
+Em este exemplo existem 4 classes de padrões de comparação.
+A coluna mais à esquerda da Figura representa o conjunto total dos padrões de comparação, separados conforme o critério de classificação adotado, e as resultantes classes de I a IV.
+As demais colunas representam picoCPUs, cada uma com um subconjunto de padrões de cada uma das classes.
+A divisão em classes é referida neste texto como estratégia de classes.
+Um critério básico de divisão em classes é aquele de divisão por protocolos, como utilizado por o Snort.
+Outros critérios podem ser estabelecidos.
+Os critérios de classificação causarão a necessidade de detecção, em tempo de execução, da &quot;classe «associada ao pacote.
+Por exemplo, para a classificação por o protocolo das regras o cabeçalho dos pacotes deverá ser consultado em tempo de execução, para que o cluster de aceleração passe a apontar a classe de regras associada ao protocolo do pacote sob análise.
+A divisão em classes requer que exista um mecanismo para troca rápida da classe sob análise ao detectar- se o início de um novo pacote.
+Isto implica num mecanismo de detecção da classe associada ao pacote.
+As pico-CPUs estão equipadas com o mecanismo de troca rápida das classes, mas não têm capacidade de detectar o início de um novo pacote, nem a classe a ele associada.
+Estas informações são geradas por a CPU-mestre e repassadas às pico-CPUs via uma interface de comunicação.
+A estratégia de classes é um parâmetro de projeto que tem o benefício de poder reduzir a carga de comparações simultâneas ao custo, no entanto, da atribuição de novas tarefas à CPUmestre.
+As pico-CPUs ficam definidas como comparadores unitários com capacidade de comparar o fluxo de dados da rede contra vários padrões num mesmo tempo de byte, sendo que este conjunto de padrões é alterado conforme a classe associada ao pacote em análise.
+Por esta definição o hardware associado às pico-CPUs não necessita ser alterado no caso de a decisão por a alteração da estratégia de classes, apenas a configuração das DPRAMs deve ser refeita.
+Deverá igualmente ser alterada a programação da CPU-mestre com relação a sua capacidade de detectar a nova estratégia de classes.
+Outro parâmetro de simultaneidade é dado por a relação entre o tempo de byte e o tempo efetivo da realização de uma comparação.
+O tempo de byte de uma rede Ethernet de 100 Mbps é da ordem de 200 ns, enquanto os tempos de comparação são da ordem de 10 ns, possibilitando que 20 ou mais comparações possam ser realizadas em seqüência, por um único comparador, dentro de um mesmo tempo de byte.
+A seguir será apresentado um exemplo de como as pico-CPUs comparam o conteúdo do payload a vários padrões selecionados.
+O algoritmo utilizado no exemplo é o algoritmo trivial para comparação de um conjunto de padrões e é a base do mecanismo utilizado por as pico-CPUs em hardware.
+Outros algoritmos mais sofisticados podem produzir pico-CPUs mais poderosas, mas estão sujeitos a custos maiores na implementação.
+A avaliação de algumas destas propostas podem ser tema de trabalhos futuros.
+A Figura 18 apresenta um exemplo onde o segmento de texto &quot;AROMAT», contido no payload de um pacote, é comparado com três padrões:
+&quot;Roma», &quot;Romano «e &quot;Rei».
+Apenas o padrão &quot;Roma «está contido no texto &quot;AROMAT «e, desta forma, apenas este padrão é detectado.
+Cada uma das fases de comparação (de &quot;a «até &quot;f&quot;) ocorre num tempo de byte, e compreende no máximo três comparações.
+O resultado de cada comparação aparece na figura representada por um sinal de igualdade ($ ), quando há o casamento entre os valores comparados, por um sinal de diferente(! $ ),
+quando não ocorre este casamento, e por um sinal de soma(+) quando é detectada a incidência do padrão.
+A) O caractere &quot;A «do texto é comparado ao primeiro caractere de cada padrão, neste caso todas as comparações resultam em descasamentos.
+O ponto de comparação de cada padrão permanece na posição de seu primeiro caractere.
+B) Passa- se ao próximo caractere do texto que é testado contra os pontos de comparação de cada padrão.
+Em este tempo de byte todas as comparações resultam em casamentos.
+Em função de isto, cada uma das posições de comparação avança.
+Cada um destes casamentos é um disparo de comparação.
+C) Em este ponto, dois dos padrões produzem casamentos e seus pontos de comparação avançam mais uma posição.
+O padrão &quot;Rei «produz um descasamento e sua posição de comparação retorna ao seu primeiro caractere.
+A esta perda de pareamento com o texto é o que se chamou de desarme de comparação.
+D) Em este tempo de byte, os mesmos padrões disparados produzem novos casamentos, agora para os caracteres &quot;M».
+O terceiro padrão produz novo descasamento e permanece não disparado.
+E) Repete- se a situação dos quadros &quot;c «e &quot;d», entretanto o padrão &quot;Roma «chega a sua última posição o que vai configurar uma incidência deste padrão no texto ou pacote em análise.
+Uma sinalização deve ser gerada indicando este evento.
+F) O padrão recém encontrado retorna ao seu ponto de comparação inicial, e verifica- se que todas as comparações resultam em descasamentos.
+Esta situação causará o desarme de comparação no padrão &quot;Romano», de modo que no tempo de byte seguinte, não mostrado na Figura 18, todos os pontos de comparação estejam nas posições iniciais de seus padrões.
+A partir deste exemplo compreende- se como as comparações avançam sobre os padrões.
+Em cada estágio de comparação tem- se um estado definido por as posições em comparação em cada padrão e no próprio texto.
+A passagem de um estado para outro é determinada por o próximo caractere do texto a comparar.
+Nota- se que a consulta aos caracteres de cada padrão varia conforme o padrão.
+Enquanto em alguns padrões o ponto de comparação segue avançando, em outros ele estaciona (primeira posição) ou retrocede (volta à primeira posição).
+O estado de comparação obtido por a manutenção em memória de o ponto de comparação de cada padrão é essencial para o funcionamento deste algoritmo, e ele deve ser alterado a cada novo ciclo de comparações, ou seja, a cada tempo de byte.
+As DPRAMs contém o micro-código da pico-CPU.
+As expressões micro-código e microinstruções são utilizadas aqui com sentido amplo, tendo em vista de que as pico-CPUs são dispositivos muito simples.
+As micro-instruções têm largura de 36 bits, utilizando os 32 bits de dados e os 4 de paridade.
+Para efeitos de documentação, foi utilizado um modelo virtual de memória que une os bits de dados e de paridade numa palavra de 36 bits.
+Em este modelo é representada a DPRAM como um bloco de 512 palavras de 36 bits e neste modelo são descritas as micro-instruções.
+Três formatos de palavras são utilizados para descrever código e dados para a pico-CPU:
+Dois formatos de micro-instruções e um formato de representação de dados.
+A Figura 19 ilustra estes três formatos.
+O primeiro formato de micro-instrução é utilizado por os vetores de classe.
+As primeiras &quot;k «palavras da DPRAM contêm o endereço inicial dos padrões de cada uma das k classes com que a pico-CPU for configurada.
+Este é um ponto de flexibilidade da arquitetura, pois cada pico-CPU pode conter um número arbitrário de classes.
+Apenas 9 bits são utilizados nesta micro-instrução, uma vez que este é um número suficiente para endereçar a DPRAM.
+Em a Figura 19 pode- se verificar que os bits 27 a 19 estão associados a este campo.
+O segundo formato de micro-instrução é utilizado para armazenar o primeiro endereço de cada padrão, assim como informações de controle relacionadas a este padrão.
+Os descritores de padrões possuem quatro campos:
+O terceiro formato de palavra é utilizado para armazenamento dos caracteres dos padrões, sendo composto por 4 campos de 9 bits.
+Em tempo de execução do micro-programa a área de memória com este formato será acessada através da porta A, retornando apenas um dos campos, pois a porta A é acessada a 9 bits.
+O bit extra destes &quot;caracteres «é reservado para uso futuro.
+Resumidamente, armazena- se nas memórias tantas classes quantas forem necessárias, dado o uso do vetor de classes.
+Cada classe pode ter um número arbitrário de padrões, pois se armazena em seqüência os endereços iniciais de cada.
+Cada padrão pode ter um número arbitrário de caracteres, pois estes são armazenados em seqüência, a partir de o endereço inicial do padrão (na prática optou- se por limitar- lo a 256 caracteres).
+As DPRAMs quando configuradas apresentam três grandes áreas, distinguidas por o formato de organização de suas palavras e pelos modos de acesso.
+A Figura 20 mostra a distribuição dos dados numa DPRAM em três regiões, correspondendo a uma estratégia com k classes.
+A primeira região consta de k vetores de classes em seqüência.
+Esta região é acessada a 36 bits por a porta B durante o estado1 Sprot da pico-CPU.
+A segunda região é ocupada por os descritores de padrões.
+Se cada uma das k classes tiver em média p padrões, então esta região da memória será preenchida por k* palavras.
+Cada uma das k classes terá p+ 1 descritores, um para cada padrão mais uma palavra vazia, anotados em seqüência.
+A palavra vazia é um descritor com todos os campos contendo zeros, com a função de indicar à pico-CPU que o descritor presente no endereço anterior é o último desta classe.
+Esta região é acessada a 36 bits por a porta B durante a atividade da pico-CPU.
+Conhecido o número de classes e o número médio de padrões por classe, o número de palavras utilizadas nestas duas regiões iniciais da DPRAM é dado por:
+K* (p+ 2).
+A terceira área é a coleção de padrões.
+Esta região da DPRAM somente será utilizada para a busca de caracteres dos padrões e portanto seu acesso se dará exclusivamente por a porta A. Como os padrões são acessados indiretamente a partir de seus descritores, não há outra restrição de como os padrões devam ser armazenados além de a necessidade dos caracteres de cada padrão individual ocuparem endereços contíguos.
+Entretanto, por simplicidade, os conjuntos de padrões de cada classe serão armazenados segundo a seqüência estabelecida por a estratégia de classes, e dentro de cada conjunto de padrões de uma mesma classe os padrões estão ordenados na mesma seqüência que seus respectivos descritores.
+A Figura 21 apresenta a relação lógica entre os blocos armazenados na DPRAM.
+À direita da Figura há seqüências horizontais de bytes, representando cada uma um padrão de comparação (conteúdo da regra), sem considerações sobre o tamanho dos mesmos.
+A o centro da Figura vêem- se os descritores, apontando para o primeiro byte de cada padrão.
+Os descritores aparecem agrupados na mesma ordem que os padrões conforme estabelecido.
+À esquerda estão os vetores de classes apontando para o endereço do primeiro descritor que lhe é correspondente.
+A Figura 21 mostra também as duas organizações presentes no preenchimento das DPRAMs da pico-CPUs:
+A ordenação crescente de endereços é mostrada na Figura 21 por meio de as setas finas, começando por o topo da coluna esquerda e finalizando no pé da coluna direita.
+As setas em negrito indicam os passos do acesso aos padrões.
+A seta em elipse tracejada indica a ordem com que os descritores são acessados durante um tempo de byte.
+A Figura 22 apresenta a interface externa da pico-CPU.
+Os sinais são agrupados por função.
+Grupo 1: Configuração -- Permite o carregamento dos dados na DPRAM.
+Grupo 2: Sinais globais de reset e relógio.
+Grupo 3: Interface com a fonte dos bytes de payload e também de comandos, como é o caso do código de classe.
+O sinal gimme indica que o último byte do payload oferecido à CPU para comparação foi examinado, e que o dispositivo está pronto à espera do próximo byte.
+O sinal take indica que existe uma informação válida nos fios &quot;packet_ data «e &quot;is_ proto».
+Se &quot;is_ proto «for 1 trata- se de um código de classe e do início de um novo pacote, se for 0 o byte em &quot;packet_ data «é um dado do payload.
+Grupo 4.
+Reúne os sinais de alerta.
+Quando há uma comparação positiva o sinal matched é ativado, e o número da regra é colocado em match_ code.
+O sinal busy é gerado por a CPUmestre indicando se o último alerta já foi tratado ou não.
+Enquanto o sinal busy estiver ativo, a pico-CPU fica em estado de espera.
+A configuração das pico-CPUs corresponde à carga do conteúdo de sua DPRAM.
+Esta configuração será realizada por um processador externo utilizando os sinais:
+Por meio de esta interface a pico-CPU recebe os caracteres a comparar e comandos que alteram o modo de operação da pico-CPU.
+Estes dados são provenientes da CPU-mestre, a qual faz a comunicação entre a interface de rede e o cluster.
+Um dos principais comandos instrui a pico-CPU a mudar a classe de comparação, quando de o início de um novo pacote.
+Os sinais desta interface são:
+Esta interface permite que a pico-CPU comunique a um processador externo a ocorrência de um alerta durante o funcionamento.
+Estes alertas são as detecções de incidência de padrões dentro de o fluxo de dados dos pacotes da rede.
+Por esta via a pico-CPU comunica qual dos seus padrões foi detectado.
+Os sinais desta interface são:
+O bloco de controle da pico-CPU é a máquina de estados responsável por controlar seletores de dados e endereçamento dentro de o bloco de dados e gerar os sinais de saída gimme e matched da pico-CPU.
+Seu funcionamento é dependente de sinais externos à pico-CPU como:
+O funcionamento da pico-CPU pode ser simplificado utilizando- se uma analogia com um programa que compara um texto T, no caso os dados do pacote, com vários padrões Pi, utilizando o seguinte algoritmo trivial:
+Um laço externo é responsável por amostrar um a um os caracteres do pacote e, para cada caractere amostrado, um laço interno é percorrido buscando um caractere de cada padrão para comparação.
+Para cada padrão deve existir um mecanismo de memória que guarde o andamento da comparação.
+Se for encontrado um casamento o &quot;ponto de comparação «deve avançar para o próximo caractere não comparado.
+A Figura 23 ilustra a máquina de estados de controle das pico-CPUs.
+O estado Sask éo ponto inicial da operação de comparação de cada byte do pacote sob análise.
+A partir deste estado os laços de busca dos caracteres para comparação são iniciados.
+A operação das pico-CPUs pode ser dividida em seqüências de operação responsáveis por tarefas razoavelmente estanques.*
+Inicialização do sistema:
+Compreende os estados inicializar os registradores da pico-CPU.
+O estado das DPRAMs.
+Srst Sprime. Sprime O estado Srst é responsável por é o estado onde ocorre a configuração* Inicialização da classe de comparação:
+Representada por os estados Sask--Sprot.
+Aqui se encontra a atualização do laço externo da analogia citada.
+Em o estado Sask a pico-CPU espera por um novo caractere do pacote.
+Caso seja recebido um comando para a atualização da classe de comparação, então é ativado o estado Sprot, e novamente a pico-CPU entrará no estado Sask solicitando um novo caractere para comparação.*
+Preenchimento do pipeline:
+Formado por os estados Sask--Swait-Sprep--, esta é a seqüência utilizada para preencher o pipeline de acesso à DPRAM.
+Para o acesso a um byte de um padrão armazenado na DPRAM foi estabelecido um processo em dois passos, onde primeiro é obtido o endereço real do caractere desejado e depois é utilizado este endereço para o efetivo acesso ao caractere.
+Este processo é detalhado na Seção 4.7.1.*
+Laço de padrões descasados:
+Representado apenas por o estado Sahead, este é o ponto onde o laço mais interno é incrementado, e onde novos caracteres dos padrões são buscados.
+Em este estado, para um mesmo caractere do pacote, são feitas as diversas comparações com o cada um dos padrões da classe.
+O ponto de comparação de cada padrão é recuperado da DPRAM e comparado com o caractere atual do pacote.
+A pico-CPU permanece no estado Sahead se nenhuma das comparações com os padrões resultar positiva, fazendo acesso ao ponto de comparação de cada padrão a cada novo pulso do relógio.
+Isto significa que cada padrão de uma classe pode ser processado num ciclo de relógio, sempre que não houver casamento.*
+Avanço do ponto de comparação:
+Composta dos estados Sahead--Smatch-Sback--, esta seqüência é ativada quando ocorre um casamento.
+Em este caso, o ponto de comparação do padrão responsável por o casamento deve ser atualizado, isto é, deve ser passado ao próximo caractere do padrão.
+Esta atualização é obtida por o incremento do campo status dentro de o descritor deste padrão.
+Em o estado Smatch o descritor do padrão que produziu o match é lido da porta B, incrementado e rescrito.*
+Desarme de comparação:
+Esta seqüência de estados Sahead-Sclean-Sahead ocorre quando há um descasamento num padrão para o qual o campo status do descritor do padrão é diferente de zero.
+Em este caso o ponto de comparação retorna à posição inicial do padrão.
+Tal como no caso anterior o campo status do descritor deste padrão deve ser atualizado, desta vez recebendo o valor zero.
+Sahead--Sring-Senvoy--, caso o sinal match na interface externa deve ser gerado notificando a detecção do padrão.
+No entanto existe um protocolo controlando esta notificação.
+O sinal busy deve estar desativado para que a notificação seja liberada.
+O estado Sring é onde a FSM espera por o sinal busy $= 0, tão logo isto ocorra o estado é mudado para Senvoy, onde são gerados os sinais match e matchcode que informam da ocorrência e a identificação do padrão detectado.
+O sinal match permanece em nível alto por um ciclo de relógio, enquanto que o sinal matchcode é mantido até que a próxima detecção de padrão o altere.
+O sinal matchcode reproduz o valor contido no campo de identificação do descritor do padrão.
+Para realizar a comparação com um determinado padrão deve- se ter acesso ao ponto de comparação deste.
+Como o ponto de comparação dos diversos padrões varia durante a análise do conteúdo de um pacote, é necessário manter os endereços em registros, o que é obtido utilizando os descritores dos padrões.
+Então o acesso ao ponto de comparação de cada padrão necessita de um acesso por a porta B para obter o descritor do padrão, e portanto o endereço efetivo do ponto de comparação, e daí, um ciclo de relógio após, um acesso por a porta A para obter o caractere no ponto de comparação.
+Por o fato dos acessos se darem em portas diferentes e independentes, se pode realizar um acesso por ciclo em cada porta e obter uma comparação por ciclo de relógio.
+Este mecanismo, ilustrado na Figura 24, opera como um pipeline de 2 estágios onde uma operação é dividida em duas sub-operações independentes ocorrendo em paralelo no tempo e diminuindo o tempo total do processo.
+As sub-operações são no caso:
+O acesso aos descritores na porta B e a soma dos campos do descritor para o acesso aos caracteres na porta A. Um ciclo após o endereçamento da porta B estará disponível o valor do descritor lido.
+Somando- se o valor do campo status com o valor do campo iniadd (operação 2, na Figura 24), ambos presentes no conteúdo do descritor, é obtido o endereço efetivo do caractere no ponto de comparação no padrão, que é lido (operação 2) um ciclo após.
+A Figura 25 mostra o relacionamento do bloco de controle com o bloco de dados e destes com a interface externa da pico-CPU.
+Os principais sinais gerados por o do bloco de controle e que tem atuação direta sobre o funcionamento do bloco de dados são:·
+ctrl2 -- responsável por o endereçamento da porta B durante o estágio de seleção de uma nova classe no início de um novo pacote, estado Sprot.
+Sahead DPRAM no estado Sprime e quando é necessário atualizar o campo status do descritor dos padrões, o que ocorre quando há um casamento, estado Smatch ou quando ocorre o desarme de comparação, estado Sclean ou quando ocorre a incidência de um padrão, estado Sring.
+Os sinais gerados por o do bloco de dados realimentam o bloco de controle ou dão saída na interface externa.
+São eles:
+A Figura 26 ilustra a estrutura do bloco de dados, implementado ao redor de a DPRAM.
+Observar que o sinal mais importante é a saída da porta B, sdoB, representado segundo o modelo virtual de memória (ver Seção 4.5) que pode representar tanto um vetor de classe como um descritor de padrão.
+A soma de first_ rule e rulecount gera o sinal pprule que é o sinal utilizado para gerar saddrB enquanto o pipeline operar comparando padrões sem desviar- se para estados de match.
+São mantidas cópias de pprule com um e dois ciclos de relógio de atraso.
+Estes sinais são utilizados quando o encadeamento do pipeline é quebrado e necessita ser restabelecido.
+Em os casos de padrões com casamento, incidência ou desarme de comparação o campo status do descritor de padrão deve ser atualizado, sendo necessário recuperar o endereço da porta B, o qual já avançou 2 unidades devido a a operação do pipeline.
+Em estes casos, o sinal rulecount é congelado e nos estados Smatch, Sring e Sclean a cópia de dois ciclos de relógio anteriores é selecionada para SaddrB (2).
+Para recuperar o pipeline no estágio Sback, seguinte aos três citados, é utilizada a cópia de protoplusrule com um ciclo de relógio em atraso.
+A partir de aí os acessos passam a dar- se por o uso do próprio sinal pprule que volta a ser incrementado.
+O endereço da porta A é obtido somando- se dois campos da saída de dados da porta B:
+O de endereço inicial (iniadd) e o de estado de controle (status).
+Quando ocorre um casamento, isto é, há igualdade entre o byte de entrada (pakdat) e o padrão atual (sdoA), o sinal asymatch é ativado.
+Um controle é exercido sobre a porta A quando o acesso de caracteres do padrão não é desejado atuando sobre o sinal senA.
+Tal é o caso quando existe uma situação que interrompe a seqüência natural do pipeline, como um casamento, incidência ou desarme de comparação.
+Quando no estado Sprime, externa da pico-CPU.
+Já a única forma de escrita na DPRAM durante a operação das pico-CPUs é a atualização do campo de status dos descritores de padrões.
+Esta operação pode ocorrer por duas necessidades:
+Incrementar o campo de status no caso de um casamento, portanto no estado Smatch, ou limpar o campo de status no caso de desarme de comparação ou incidência de padrão, estados e Sring respectivamente.
+Estas opções de endereçamento são mantidas presentes nas entradas de um seletor controlado por os sinais prime, presente na fase de configuração, e zeracc presente nos estados Sclean e Sring.
+Sclean A porta' A'nunca é escrita, portanto não se utiliza nesta implementação o barramento de entrada de dados da porta A, assim como o sinal sweA nunca é ativado.
+O sinal senA, que habilita acessos a porta A, apenas é gerado durante o estado Sahead.
+Em esta Seção apresentam- se algumas telas resultantes de simulações com a pico-CPU.
+O objetivo aqui é salientar os principais modos de funcionamento da pico-CPU.
+Foram desenvolvidas ferramentas de apoio à simulação com o objetivo de realizar simulações com dados reais.
+Uma das ferramentas, que se denominou &quot;codifier», permite que se escolha de entre as regras do Snort aquelas apropriadas para uma determinada simulação e transforma os padrões destas regras selecionadas para um formato de arquivo próprio para a configuração das DPRAMs.
+Outra ferramenta, que se denominou &quot;feeder «recebe como entrada uma coleção de bytes de ataque em formato de relatório do tcpdump e os transforma em arquivo de dados hexadecimal representado em ASCII, que, quando lido por o testbench de simulação, servirá como fonte simulada dos bytes em trânsito na rede.
+A idéia desta implementação é detectar os conteúdos de regras do Snort no fluxo de dados dos pacotes da rede.
+Para isto estes conteúdos devem ser separados, rescritos num formato único, que é a representação de cada caractere por seu código binário ASCII, separados em classes e então carregados nas pico-CPUs.
+Algumas das regras do Snort não têm campos de conteúdo (content e uricontent) e portanto não têm interesse para o escopo deste trabalho.
+Algumas outras regras têm mais de um campo de conteúdo e também não se adequam exatamente às possibilidades atuais desta implementação.
+No entanto, para este último caso, é previsto que uma mesma regra com múltiplos campos de conteúdo seja representada por tantos padrões quantos campos de conteúdo.
+A detecção da regra de origem destes padrões dependerá da detecção de cada um dos padrões.
+Existem opções das regras que exigem relações entre os conteúdos, como distâncias entre os caracteres (medida em número de caracteres) e outras.
+As regras dependentes destas relações não serão detectadas por esta implementação.
+No entanto, utilizando recursos da pico-CPU ou da CPUmestre estas operações podem ser realizadas sobre detecções individuais resultando na detecção final da regra.
+Como recursos não explorados da pico-CPU estão os bits extra dos caracteres que podem representar vários comandos como, insensibilidade a caixa do texto, especificação de um caracter curinga tipo'?' (
+qualquer caractere), especificação de um certo número de bytes a serem desconsiderados entre outros.
+Escolhidas as regras do Snort com as quais se deseja trabalhar, o codifier examina os campos de conteúdo destas regras para gerar os padrões que serão destinados as pico-CPUs.
+O programa codifier deve ser preparado igualmente com a informação sobre a formação das classes, pois necessita produzir o arquivo de padrões já separado em classes.
+A Figura 27 apresenta um exemplo do código produzido por o programa codifier.
+Linhas com pontos na primeira coluna são comentários, assim como qualquer caractere a partir de a coluna programas em linguagem assembly.
+A primeira coluna endereça a porta B da DPRAM, a qual é a porta de configuração.
+A informação desta coluna tem sempre o mesmo formato independente do bloco que descreva e contém dois campos:·
+os dois primeiros dígitos, em formato decimal, indicam o número da pico-CPU que se está configurando;
+Os três formatos de palavras, citados em 4.5, aparecem na composição do código gerado por o codifier.
+Para todos os formatos há quatro campos de três caracteres hexadecimais.
+As linhas que possuem o caractere':'
+após a coluna de endereços seguem o formato de micro-instrução como apresentado na Figura 19, ou seja, cada uma de suas colunas representa um valor dos campos das micro-instruções.
+As linhas sem o':' são linhas de dados contendo cada uma a representação hexadecimal de quatro caracteres pertencentes a padrões.
+A ordem dos campos na listagem é, entretanto, diferente daquela citada na descrição dos formatos das micro-instruções, os campos das micro-instruções aparecem na listagem na ordem inversa, isto se deve ao tipo de &quot;endianness1 «das DPRAM O primeiro formato, o dos vetores de classe, aparecerá nas primeiras linhas do código de cada CPU, tantas linhas quantas forem as classes utilizadas.
+Este é o caso das linhas 01000 e 01001 da Figura 27.
+Em este bloco o único campo de valor utilizado é o segundo da esquerda para a direita, contendo o endereço na porta B do primeiro descritor de padrão para a endianness -- relação entre os endereços dos bytes mais e menos significativos de uma palavra na memória.
+O segundo formato são os blocos de descritores de padrão.
+Este é o caso, no exemplo mostrado, das linhas 01002 até 01006.
+A linha de endereço 01006 é uma linha vazia, que serve como marcador de final da lista de descritores de padrão.
+Nota- se que a ordem dos campos da esquerda para a direita é:
+Endereço inicial, tamanho, identificação e status.
+Esta é a ordem inversa que os campos ocupam na Figura 19.
+Seguindo o exemplo e tomando o primeiro descritor da classe 1, no endereço 01007 encontra- se a informação:»
+0x080 0x004 0x041 0x000».
+Que significa que existe um padrão desta classe no endereço 0x080 da porta A, composto por 0x004 caracteres e cujo identificador no caso de detecção será 0x041.
+Por facilidade de leitura, cada linha apresenta ao seu final um';'
+seguido por um número que é a tradução do endereço da linha em endereços da porta A. Assim a própria linha 01007 ocuparia quatro endereços na porta A, a partir de o endereço 0x01C, valor este que aparece como comentário ao fim da linha.
+A linha de endereço 0x080 por a porta A é a linha 01020 da listagem e lá encontra- se o padrão buscado:»
+0x0AB 0x045 0x0CD 0x023».
+Considerada a inversão de endianismo adotada para a listagem, o primeiro caractere de cada padrão aparece na coluna mais à esquerda, e segue- se a ordem da esquerda para a direita para os caracteres seguintes.
+O programa codifier tem uma opção de começar todos os padrões no alinhamento de endereços da porta B, ou seja, utilizando endereços da porta A que sejam múltiplos de quatro.
+Esta característica, quando não desperdice memória, facilita a legibilidade das listagens.
+Devido a o uso dos bits de paridade, há a necessidade de definir o processo de escrita destes na DPRAM.
+Para os formatos de leiaute de memória utilizados por micro-instruções utiliza- se 3 dos 4 bits de paridade para criar o campo de endereço inicial, com 11 bits de extensão.
+Utiliza- se o quarto bit de paridade para criar o campo de identificador do padrão, com 9 bits.
+Para os formatos de leiaute de memória utilizados para dados de padrões a distribuição é diferente, pois todas as colunas têm 9 bits de precisão.
+Os bits de paridade estão distribuídos igualmente entre elas.
+São três os &quot;modelos «com que os dados da porta B são tratados, conforme o contexto:
+Modelo do arquivo de entrada -- modelo com quatro colunas de dados de três nibbles cada, onde a precisão de cada campo varia com o tipo de linha que represente:
+Linha de vetor de classe, linha de descritor de padrões, linha de padrões.
+Este modelo é big-endian (endereço do byte MSB endereço do byte LSB).
+Modelo virtual de memória -- é o modelo definido para as micro-instruções, supõe uma palavra de memória de 36 bits dividida em quatro campos, conforme o tipo de micro-instrução, se vetor de classe, se descritor de padrão ou se caracteres de padrões.
+Não considera quais dos bits são bits de dados ou paridade.
+Este é o modelo usado na prática para referir- se aos conteúdos da memória.
+Este modelo é little-endian (endereço do byte LSB endereço do byte MSB).
+Modelo real de memória -- como os bits de informação se distribuem na porta B entre bits de dados e bits de paridade.
+Este modelo é evitado na prática em função de o formato virtual.
+A tradução de uma linha de arquivo de entrada para uma micro-instrução ou palavra de dados em modelo virtual de memória é apresentada na Figura 28, considerando- se a inversão por o endianismo.
+O modelo real é mostrado para dar conta da utilização dos bits de paridade.
+Em a Figura 29 formam selecionados alguns sinais para ilustrar o comportamento da picoCPU durante a configuração das DPRAMs.
+A Figura mostra os sinais que participam do estágio de configuração do dispositivo desde a inicialização deste.
+Vêem- se nas linhas superiores os sinais de reset (sinal rst) e relógio (sinal ck1).
+Em esta simulação se esta utilizando uma taxa de relógio de 50 MHz.
+O sinal EA indica o estado da máquina de controle.
+Em a primeira borda de descida do sinal de relógio após o reset a máquina passa para o estado Sprime, sendo este o estado da configuração da DPRAM.
+O sinal prime vem do meio externo à pico-CPU e é o sinal que estabelece a configuração.
+Outros sinais importantes são sweB (habilitação de escrita na porta B) sempre ativo durante a configuração, e o sinal ENB (habilitação geral da porta B) ativo durante todo o funcionamento da pico-CPU.
+O sinal saddrB mostra o endereçamento efetivo da DPRAM, enquanto o sinal sdiB é uma composição dos sinais DIB (entrada de dados da DPRAM) e DIPB (entrada de paridade de dados da expressa no modelo real de leiaute da memória.
+Este formato separa os bits de paridade dos bits de dados causando uma representação hexadecimal diferente da esperada.
+Em a Tabela 5 é apresentada a interpretação dos valores destes sinais para os primeiros 4 ciclos de escrita na DPRAM.
+A primeira coluna corresponde aos valores observados na simulação.
+A segunda coluna separa o nibble de conforme o processo demonstrado na Figura 28.
+Em este estágio a carga da DPRAMs completou- se e isto é marcado por a descida do sinal prime.
+Em resposta a isto o estado de controle muda de Sprime para Sask.
+Enquanto permanecer no estado Sask o sinal gimme será gerado solicitando à CPU-mestre um novo byte do payload do pacote.
+O testbench de simulação lê de um arquivo externo os bytes do pacote à medida que são solicitados.
+Esta é a fonte do sinal pakdat.
+A Figura 30 ilustra o comportamento da pico-CPU.
+O sinal take indica que existe um byte novo disponível em pakdat e isproto indica que este byte é um identificador de classe.
+Em a Figura estão marcados dois retângulos sobre as primeiras ativações do sinal take.
+O primeiro retângulo envolve também uma ativação do sinal isproto e uma seta, acima de ele, indica que este sinal promove a passagem de estado de Sask a Sprot.
+O segundo retângulo envolve apenas o sinal take e o estado final é Swait.
+Como o valor de pakdat é 01 este é também o código da classe para qual devem voltar- se as comparações.
+O sinal isproto onde saddrB assume o valor de pakdat e passa a endereçar o vetor da classe 01.
+A próxima subida do relógio acessa o vetor da classe que é mostrado na Figura 30 por os sinais iniadd (endereço inicial), status, ruleid (identificador) e size (tamanho).
+Em o estado Sprot é gerado o sinal ctrl2 que amostra o campo size recém obtido e o retém num latch interno.
+O conteúdo deste latch é o sinal firstrule, ou seja, o endereço do primeiro descritor de padrão para esta classe.
+O estado Sask segue imediatamente a Sprot, requerendo um caractere para comparação.
+Nota- se na figura que um novo caractere foi disponibilizado via pakdat e que o sinal take foi ativado.
+Desta vez não foi ativado o sinal isproto, o que indica que este é um caractere para comparação, então inicia- se a seqüência de preenchimento do pipeline por a passagem ao estado Swait.
+A partir de o estado Swait o endereçamento da porta B é fornecido por o sinal pprule (protoplusrule na Figura).
+Este sinal é o resultado da soma de dois outros sinais, firstrule e rulecount.
+Em este mesmo estado Swait é gerado o sinal ruzer que inicializa em zero o contador, sinal rulecount.
+De esta maneira durante este estado o primeiro descritor de padrão é endereçado.
+O estado Sprep segue imediatamente a Swait e neste estado o primeiro descritor é acessado.
+O valor 080 assumido por o sinal iniadd é o endereço do primeiro caractere deste padrão.
+Ao mesmo tempo em que obtém o primeiro descritor, o estado permite que o valor do campo iniadd acessado seja imediatamente copiado para saddrA e o conteúdo do endereço 080 da porta A seja Sprep solicitado.
+Durante o estado Sprep o sinal count é ativado.
+Este sinal permite o incremento do contador presente em rulecount, e a geração do sinal pprule passa a ser incrementada a cada ciclo de relógio, e assim é obtido o endereço efetivo dos descritores de padrões e aplicado à porta B A o estado Sprep segue o estado Sahead onde a porta A é habilitada e onde o primeiro caractere, do primeiro padrão da classe 01 é acessado.
+Assim o valor 0x007 passado a saddrB em Swait, gerou o valor de iniadd $= 0x080 em Sprep e que aí mesmo foi passado a saddrA, que por sua vez gerou o valor sdoA $= 0x0AB, e assim pela primeira vez foi utilizado o pipeline de acesso a DPRAM.
+O valor obtido é comparado ao sinal pakdat resultando num descasamento, este fato faz com que se sigam outros estados Sahead até que um casamento ocorra ou até que o pipeline acesse a palavra vazia por a porta B. Esta última opção é o que de fato ocorre no exemplo apontado, onde o endereço saddrB $= 0x00B produz na próxima leitura a palavra vazia e a conseqüente passagem ao estado Sask.
+Observa- se que antes de atingir a palavra vazia foram produzidos sequencialmente os endereços de 0x007 a 0x00A, com os quais foi possível ter acesso ao ponto de comparação de cada um dos padrões da classe 01.
+Estes valores aparecem em sdoA dois ciclos de relógio após a solicitação e no caso foram os valores:
+0x0AB, 0x045, 0x023 e 0x0AB.
+Estes valores podem ser verificados no código exemplo na Figura 27 nos endereços correspondentes da porta A.
+Um novo byte do pacote com valor 0x56 esta marcado na Figura com um círculo.
+O pipeline é inicializado nos estados Swait Sprep, resultando no primeiro acesso à porta A no estado Sahead.
+Como não ocorreu casamento, o pipeline possegue passando a acessar o próximo padrão e assim por diante até que todos os padrões sejam acessados.
+O último padrão, neste exemplo, tem como endereço 0x98, como se observa na linha do sinal iniadd.
+Em esta mesma linha o próximo valor de iniadd é 0x00 isto indica que não existem mais padrões e a FSM volta ao estado Sask onde solicita o próximo byte do pacote.
+Não ocorrem casamentos, portanto o sinal asymatch pemanece em nível lógico &quot;0».
+O sinal count incrementado a cada acesso é o responsável por o laço de busca de padrões.
+A cada incremento de count um padrão novo é buscado se houver.
+Os acessos se dão de forma semelhante ao anteriormente explicado.
+Em este caso, entretanto, durante o estado Sahead, no acesso ao primeiro padrão, o sinal sdoA produz o mesmo valor 0 xAB de pakdat e o sinal asymatch é ativado.
+Houve um casamento.
+A ocorrência do sinal asymatch durante Sahead e a ausência do sinal endrule determina que o próximo estágio seja Smatch.
+Em o estado comparação deste padrão seja atualizado.
+Smatch o pipeline é interrompido para que o ponto de A atualização do ponto de comparação é o incremento do campo status do descritor deste padrão.
+Para tanto deve- se acessar novamente este descritor para a escrita do novo valor de seu campo status.
+Ocorre que o pipeline já proporcionou dois incrementos ao endereço dos descritores de arquivo.
+O endereço do descritor desejado é 0x07 enquanto que saddrB já foi incrementado para 0x09.
+O endereço original deve ser recuperado.
+A primeira medida tomada é a quebra do pipeline, verifica- se isto por a desativação dos sinais senA e count (ver retângulo maior na Figura).
+Em seguida o sinal pprule_ 2, carregado em saddrB, recupera o valor desejado.
+Em o estado Smatch com o endereço corrigido o valor do campo status deste descritor de padrões é incrementado, o que equivale a avançar o ponto de comparação deste padrão.
+O estado Sback vai retornar o pipeline a sua condição anterior, recomeçando por o descritor do padrão posterior àquele onde houve o casamento.
+O endereço de saddrB é obtido de pprule_ 1 que é a cópia de pprule com um ciclo de relógio de atraso.
+Em a seqüência, os outros padrões desta classe são testados contra o mesmo valor 0 xAB de pakdat, onde não ocorrem casamentos.
+Esta é a situação onde um padrão teve recuado seu ponto de comparação de volta ao primeiro caractere, após ter sido avançado em situações anteriores.
+Em este exemplo o mesmo padrão cujo descritor ocupa o endereço 0x007 foi avançado até o terceiro caractere, campo status $= 0x003, ou seja, apresentou 3 casamentos em seqüência.
+A Figura 33 mostra a chegada de um novo caractere do pacote de valor 0x022.
+O acesso ao descritor do primeiro padrão no endereço 0x007 revela que o ponto de comparação esta no quarto caractere.
+No entanto, o acesso ao ponto de comparação produz o valor 0x023 e o sinal asymatch não é ativado.
+Esta situação implica num desarme de comparação onde o campo status do descritor do padrão deve ser retornado a zero.
+A mesma situação ocorrida quando há casamento se estabelece.
+A seqüência do pipeline é quebrada e o endereço do descritor é recuperado do sinal pprule_ 2.
+A diferença aqui é que ao invés de ser incrementado o campo status é levado a zero.
+Isto equivale a dizer que o ponto de comparação para este padrão retornou ao seu caractere inicial.
+Esta operação diferenciada é realizada por o estado Sclean.
+Segue a este o estado Sback que irá refazer o pipeline para as comparações com os padrões restantes desta classe.
+Quando, para um determinado padrão, o ponto de comparação está no seu último caractere e ocorre um casamento o padrão é reconhecido.
+A Figura 34 exemplifica esta situação apontando os principais sinais envolvidos nesta situação.
+O fato do ponto de comparação coincidir com o final do padrão é monitorado por o sinal Sahead os sinais asymatch e Em o estado Sring se o sinal busy estiver desativado a FSM passa para o estado Senvoy onde permanece por um ciclo de relógio apenas e durante esta permanência é ativado o sinal match, para avisar um dispositivo externo que um novo código de alarme será repassado por o sinal matchcode.
+A Figura ilustra exatamente esta situação.
+O padrão cujo descritor se encontra no endereço 0x007 tem sua incidência detectada no pacote e sinais são gerados para comunicar este fato para um sistema externo.
+A seqüência do pipeline é quebrada por um tempo maior que nos casos anteriormente demonstrados, podendo tornar- se bastante maior na dependência do sinal busy estar ou não ativo.
+O campo status do padrão incidente é levado a zero durante o estado Sring, e o pipeline é recuperado para que os outros padrões da classe sejam também comparados com o byte do pacote.
+Em este Capítulo apresenta- se a segunda contribuição deste trabalho, o cluster de CPUs aplicado à detecção de padrões.
+Um dos objetivos específicos deste trabalho é aplicar o modelo de mar de processadores, tendo como estudo de caso um NIDS.
+Para esta aplicação, as pico-CPUs tomam o lugar dos processadores.
+Segundo projetos atuais de CIs estão migrando de blocos lógicos personalizados e complexos para unidades de processamento de baixa complexidade.
+As pico-CPUs aqui têm esta característica:
+Fornecer uma unidade especializada à sua função, com a flexibilidade proporcionada por sua arquitetura programável.
+Apenas o sub-sistema de detecção do NIDS é implementado com alguns dispositivos periféricos para garantir o aporte dos dados do pacote e a sinalização das detecções das regras.
+Funções essenciais como as de aquisição, reordenação, e o pré-processamento dos bytes do pacote são confiadas a uma fonte externa.
+O sistema completo do co-processador implementado inclui uma CPU externa ao cluster, que será responsável por receber do meio externo o fluxo dos pacotes e repassar- lo aos comparadores, por identificar a classe de comparação do pacote e informar- la os comparadores, e por receber dos comparadores os alertas de detecção de padrões.
+A descrição do sistema completo é apresentada no Capítulo 6.
+O cluster Gioia é uma coleção de pico_ CPUs compartilhando suas interfaces comuns.
+A paralelização de várias pico_ CPUs é facilitada porque estas são dispositivos de funcionamento independente cujas interfaces são passíveis de conexão a barramento com poucas exigências de lógica de controle.
+O cluster que se propõe é parametrizável em relação a o número de CPUs, possibilitando desta forma um grau de desempenho ajustável.
+A interface de fonte dos pacotes é um barramento unidirecional sem necessidade de sinalização de endereçamento.
+A informação que circula neste barramento destina- se a todas pico_ CPUs a ele conectadas.
+A interface de configuração também é uma fonte comum de informação, um barramento unidirecional com dados e endereços.
+A seleção da informação pertinente a cada pico_ CPUs é realizada por uma lógica interna a estas.
+A união das interfaces de alerta exige alguma lógica de serialização, porque os alertas de cada pico_ CPU são distintos e cada um de eles necessita ser encaminhado à CPU_ mestre.
+Como máquinas paralelas, as pico_ CPUs reunidas em cluster não podem ser completamente independentes, devendo haver sincronização entre elas.
+A sincronização natural é aquela ditada por a cadência de entrada de novos bytes dos pacotes, o &quot;tempo de byte», como visto na Seção 2.3.2.
+Em média, a cada tempo de byte, um novo byte é apresentado ao cluster, e para cada novo byte são realizadas, por cada pico_ CPU, uma série de comparações.
+A CPU_ mestre, é responsável por fornecer ou garantir o fornecimento dos bytes do pacote pré-processados, ou seja, desfragmentados e em ordem.
+Além de isto, a CPU_ mestre deve a cada início de pacote suprimir a informação de cabeçalho, enviando como primeiro byte de cada novo payload de pacote, um byte informando a &quot;classe «deste pacote.
+Detectada a incidência de um padrão numa ou várias pico_ CPUs, esta informação deve ser coletada e repassada à CPU_ mestre.
+Um circuito especial cuida de recolher esta informação das pico_ CPUs e comunicas- la à CPU_ mestre sem perda A Figura 35 ilustra a interface externa do cluster de CPUs, onde os sinais de entrada e saída aparecem agrupados por função nos seguintes grupos:
+Grupo 1.
+Configuração -- Permite o carregamento dos dados nas DPRAMs de cada pico-CPU.
+Grupo 2.
+Sinais globais de reset e relógio.
+Grupo 3.
+Interface com a fonte dos bytes de payload e também de comandos, como é o caso do código de classe, correspondente ao grupo da fonte de dados.
+O sinal gimme é obtido por a operação &quot;E «sobre os sinais gimme individuais das pico-CPUs.
+Os outros sinais do grupo correspondem ao ponto de entrada dos sinais de mesmo nome das pico-CPUs.
+O grupo 4: Alerta -- comunica- se com a CPU-mestre solicitando interrupção para o tratamento de um padrão detectado.
+O sinal &quot;detected «indica o código binário da CPU onde se deu a detecção, além de o identificador deste padrão.
+A configuração do cluster é responsável por a carga do conteúdo em cada pico-CPU.
+Como todas as pico-CPUs compartilham o barramento de configuração, a configuração do cluster corresponde a uma seqüência de configurações individuais ordenadas no tempo.
+O controle desta configuração será realizado por a CPU-mestre, utilizando os sinais:
+Por meio de esta interface o cluster recebe os caracteres do fluxo de dados a comparar e comandos que alteram o modo de operação das pico-CPUs.
+Um dos principais comandos instrui as pico-CPUs a mudar a classe de comparação, quando de o início de um novo pacote.
+Os sinais desta interface são:
+Esta interface permite que o cluster comunique à CPU-mestre a ocorrência de um alerta durante o funcionamento.
+Estes alertas são as detecções de incidência de padrões dentro de o fluxo de dados dos pacotes da rede.
+Por esta via o cluster comunica qual dos seus padrões foi detectado.
+Os sinais desta interface são:
+Este sinal solicita à CPU-mestre que reconheça a condição de alerta.
+A CPU-mestre reconhece o alerta por a leitura do sinal detected e por a ativação do sinal int_ ack.
+&quot;código de alerta «é a informação de incidência de padrão com 16 bits.
+Os 7 bits mais significativos codificam a pico_ CPU responsável por a detecção, enquanto os outros 9 levam a informação de identificação do padrão em alerta naquela pico-CPU.
+O arranjo interno do cluster é regular, permitindo a modulação do número de pico-CPUs envolvidas.
+As pico-CPUs são integradas ao cluster em módulos, sendo cada módulo constituído de uma pico-CPU, um registrador com saída tristate, um flip-flop (FF) e uma porta &quot;E».
+Este módulo (ver Figura 36) é repetido tantas vezes quantas forem as CPUs necessárias para assumir a carga da rede.
+A função dos registradores dos módulos é reter temporariamente os códigos de alerta de suas pico-CPUs até que tenham sido lidos por a CPU-mestre.
+De esta maneira, as pico-CPUs são liberadas para continuar comparando.
+Além de os módulos, um bloco de controle composto de uma máquina de estados completa a estrutura interna do cluster.
+A arquitetura de coleta dos código de alerta é um tópico sensível no projeto do cluster, porque existe um gargalo natural estabelecido por a interface com a CPU-mestre.
+O roteamento entre os módulos e a CPU_ mestre pode comprometer a escalabilidade e desempenho do sistema.
+A otimização do projeto físico do cluster, entretanto, está fora de o escopo do presente trabalhos.
+Algumas melhorias, com a implementação de FIFOs à saída do sinal detected (ver Figura 36), em substituição ao registrador do sinal matchcode pode trazer ganhos de desempenho.
+Em a porção inferior da figura estão os sinais relacionados com a fonte dos bytes do pacote.
+Os sinais pakdat, take e isproto são entradas no cluster, copiadas para cada pico-CPU.
+Arranjos em árvore para redução de fanout é um trabalho futuro, que deve ser considerado para evitar problemas de tempo de propagação.
+O sinal gimme é a operação &quot;E «entre todos os sinais gimme das picoCPUs.
+Este procedimento força uma sincronização entre todas as CPUs antes do cluster solicitar um novo byte de pacote.
+É sugerido, como trabalho futuro, a implementação de uma FIFO na entrada destes sinais, estabelecendo uma interface elástica entre a fonte dos dados e o cluster.
+Esta terá a finalidade de absorver picos de aporte de dados da rede.
+Os sinais pakdat, take e isproto são sinais de entrada do cluster que formam o barramento conectado aos sinais homônimos nas pico-CPUs.
+Os sinais do grupo de alerta de cada pico-CPU interagem com o FF, o registrador de seu módulo e a FSM de controle do cluster.
+O sinal detected na interface do cluster é um sinal de saída de 16 bits, sendo que os 9 bits menos significativos formam um barramento tristate interno a que se conectam todos os módulos.
+Os 7 bits mais significativos são produzidos por a FSM, destinado á identificação da pico-CPU que encontra- se em alerta.
+A finalidade do barramento detected é estabelecer uma via de passagem dos códigos de alerta mantidos em qualquer dos registradores dos módulos para a CPU-mestre, sob controle da FSM.
+Os sinais int_ req e int_ ack são os sinais de interação entre a FSM e a CPU-mestre e que regulam o envio da cada código de alerta para esta última.
+Internamente aos módulos, cinco sinais são responsáveis por a interação entre a FSM e cada uma das pico-CPUs e por a geração dos códigos de alerta.
+São eles:
+A Figura 37 apresenta o diagrama de estados da máquina de estados (FSM Gioia).
+A função desta FSM é enviar os códigos alerta de cada uma das pico-CPUs para a CPU-mestre, por meio de um protocolo de interrupção com esta última.
+Como apenas um código de alerta pode ser informado de cada vez à CPU-mestre, uma busca seqüencial é implementada entre os módulos.
+Os sinais busy são verificados seqüencialmente, um a cada ciclo de relógio por a FSM, na forma de uma cadeia daisy-- chain.
+O protocolo utilizado é descrito a seguir:
+O sinal de reset global coloca a FSM no estado Srst onde um contador que controla a busca circular é inicializado.
+Em este estado os FFs de todos os módulos são também inicializados e têm suas saídas, os sinais busy, levados ao nível lógico zero.
+Toda vez que uma pico-CPU encontrar uma incidência de padrão, entrará no estado Sring (conforme a Sessão 4.7 ítem 7) onde consultará o valor do sinal busy.
+Caso busy for '0' a picoCPU produzirá o sinal match que irá gravar o valor presente em matchcode no registrador do módulo.
+Ao mesmo tempo o sinal match ligará o FF do módulo ativando o sinal busy.
+Caso busy for` 1' isto indica que existe um código de alerta da mesma pico-CPU esperando tratamento, e que a pico-CPU deve aguardar que busy seja desativado.
+Em um ciclo de relógio a FSM deixa o estado Srst e passa ao estado Sfetch, onde a busca circular por códigos de alerta é realizada.
+Seqüencialmente, cada um dos sinais busy dos módulos é consultado em busca de um sinal ativo.
+Após consultar o sinal busy da última pico-CPU, a busca volta à primeira.
+Caso não existam sinais busy ativados a varredura consulta um novo sinal busy a cada ciclo de relógio.
+Encontrado um busy ativado a FSM passa para o estado Swait.
+Em o estado Swait, a FSM gera o sinal de requisição (intreq) de interrupção à CPU-mestre e espera por a resposta desta por a ativação do sinal intack.
+Enquanto estiver no estado Swait a FSM emitirá por meio de o sinal selcoded o número do módulo onde ocorreu o alarme, este sinal conecta- se aos bits de 15 a 9 do barramento detected.
+O sinal sel será ativado habilitando a passagem do valor do registrador do módulo em alerta para os bits de 8 a 0 do barramento detected.
+A CPU-mestre tendo lido o valor presente em detected, responde com o sinal intack, liberando a FSM para passar ao estado Sclear.
+Em este estado os sinais intreq, selcoded e sel são desligados e é ativado o sinal clear, que tem por função desligar o FF do módulo atendido, desativando, assim, o sinal busy.
+Em o próximo ciclo de relógio a FSM Gioia passará ao estado desativado.
+Em mais um ciclo de relógio a FSM voltará ao estado alerta prosseguirá de onde parou.
+O tamanho do cluster é um parâmetro que pode ser ajustado conforme a capacidade do Ci escolhido para a implementação.
+Para a validação funcional utilizou- se quatro pico-CPUs, o que é um número suficiente para exemplificar o comportamento do cluster.
+Em a Seção 4.9.3 foi mostrado o formato dos arquivos utilizados para a configuração das pico-CPUs, com o foco numa única CPU.
+Este formato de arquivo é utilizado para a configuração de todas as pico-CPUs do cluster. Conforme
+pode- se verificar à Figura 38, a configuração de mais de uma CPU é realizada por a justaposição dos segmentos de configuração individuais.
+Para que efetivamente cada segmento configure uma pico-CPU distinta, os campos de endereço dos distintos segmentos devem ter seus dois primeiros dígitos únicos.
+Não existe nenhuma restrição de ordem na configuração.
+O arquivo de entrada deve ser lido por a CPU-mestre que a partir de os dados lidos irá gerar a sinalização de configuração do cluster.
+Por a atual implementação não existem verificações de erros no arquivo de entrada.
+Por exemplo, erros no endereçamento dos distintos segmentos podem levar uma pico-CPU a ser rescrita, e outras ficarem com suas DPRAM não inicializadas.
+A Figura 39 ilustra a etapa de configuração de um cluster formado por quatro pico-CPUs.
+Após o reset todas as pico-CPUs estão no estado Sprime, e o sinal prime ativo.
+Os sinais lock são sinais internos às pico-CPUs e que atuam como bloqueadores da escrita na DPRAM durante a etapa de configuração.
+Quando efetuar as configurações desejadas a CPU-mestre retira o sinal prime e todas as pico-CPUs mudam para o estado Sask.
+Os sinais lock marcam o período de configuração de cada uma das pico_ CPUs.
+Para esta validação funcional, quando apresentados grupos de um mesmo sinal de várias pico-CPUs numa mesma Figura, manter- se- a uma ordem fixa.
+O sinal na linha superior do grupo pertence à CPU de número de ordem mais baixo, o sinal da CPU de número de ordem seguinte lhe segue na linha logo abaixo, e assim repete- se para todos os sinais do mesmo grupo.
+A Figura 40 apresenta um trecho de simulação de um cluster operando com 4 pico-CPUs para demonstrar a característica de independência de operação entre as mesmas.
+A cada novo byte do pacote cada pico-CPU realiza a série de comparações conforme os padrões que lhe foram programados.
+A classe do pacote assim como o byte em análise a cada tempo de byte são os mesmos, mas o número de padrões da classe do pacote em análise varia conforme a configuração de cada pico-CPU.
+A Figura 40 apresenta 2 tempos de byte caracterizados por a ativação do sinal gimme e por a passagem por o estado Sask de cada uma das FSMs.
+Verifica- se os diferentes tempos que cada picoCPU permanece no estado Sask, e também que a passagem do estado Sask para Swait ocorre ao mesmo tempo para todas elas.
+Em esta transição todas as pico-CPUs estão sincronizadas.
+A sinalização interna a cada CPU é a mesma apresentada na Seção 0, que trata as picoCPUs isoladamente.
+O sinal EA de cada CPU exibido resume esta atividade interna.
+Em a Figura 40, a primeira CPUs possui apenas 1 padrão da classe em análise.
+A segunda, possui 2, a terceira 1 e a quarta 3.
+Os padrões das duas primeiras têm o valor 0 xEC em seus pontos de comparação, como se pode ver nas linhas correspondentes aos sinais sdoA e sdoA, o mesmo valor de pakdat.
+Então estes padrões tiveram casamentos neste tempo de byte.
+A terceira pico-CPU tem apenas um padrão para o qual não há casamento, então esta CPU libera- se antes das outras, ativa seu sinal gimme_ x e espera por o retorno do sinal take quando um novo tempo de byte se inicia.
+Mostrou- se na Seção anterior como a operação do cluster pode ser caracterizada por ciclos entre os disparos do sinal gimme.
+Entre um disparo e outro cada CPU do cluster executa uma das operações citadas em 4.7 itens de 3 a 7.
+No caso de os itens de 3 a 6 a seqüência de ciclos gimme acontece com atividade interna às CPUs, ou seja, caso todas as CPUs do cluster restrinjam- se a estas modalidades existirá independência entre as CPUs.
+A única exceção ocorre quando de a operação citada no item 7 da referida Seção.
+Em este caso um código de alarme deve ser comunicado à CPU-mestre e isto gera atividade externa às CPUs, envolvendo as outras estruturas dos módulos.
+A Figura 41 mostra a situação onde uma pico-CPU reconhece a incidência de um padrão.
+Em o caso a pico-CPU 2 ativa o sinal endrule, o que ocorre no estado Sring.
+Em a seqüência, como o sinal busy está desativado o estado desta CPU muda para Senvoy e é gerado o sinal match.
+Este sinal não é mostrado na Figura, mas seu efeito aparece na ativação do sinal busy.
+O sinal busy irá provocar a ativação do sinal intreq.
+O tempo entre a ativação de qualquer dos sinais busy e a subida de intreq é variável, pois depende de um laço interno à FSM de controle do cluster que testa a cada ciclo de relogio um dos sinais busy.
+Junto à subida do sinal busy, o sinal matchcode é atualizado assumindo o valor 0x0E.
+Este valor é armazenado em regmatch por o sinal match, mas aparece à saída do registrador do módulo_ 2 do cluster apenas quando a FSM do cluster ativa o sinal sel (não consta na Figura).
+A FSM do cluster permanece no estado Swait esperando que a CPU-mestre reconheça a interrupção.
+O sinal detected reporta o valor 0x040E em 16 bits para ser acessado por a CPU-mestre.
+Em os 7 bits mais significativos está o número da CPU em alerta, no caso a CPU 2, e nos restantes 9 bits o código do alerta, no caso, 0x0E.
+Em este exemplo, o atraso no atendimento da requisição de interrupção foi isolado do funcionamento normal das pico-CPUs, que prosseguiram suas operações sem desvios.
+A Figura 42 mostra um caso onde o cluster trava devido a dificuldade em comunicar todos os alertas gerados à CPU-mestre.
+A principal causa do travamento foi a detecção por a pico-CPU 3 do mesmo padrão duas vezes em seqüência.
+Outros fatores como, incidências de padrão nas outras pico-CPUs e tempos de atendimento da interrupção muito maiores que o tempo de byte, facilitam a ocorrência de travamentos.
+Em o exemplo, a CPU 3 entra no estado Sring e o sinal busy está ativado, isto impede a pico-CPU3 de comunicar o seu mais novo código de alerta.
+Esta situação se mantém enquanto a CPU-mestre não recolher o alerta anterior, retido no registrador do módulo_ 3.
+A Figura mostra a liberação de busy, junto da desativação do sinal endrule.
+Em este momento o registrador do módulo assume o valor do novo alerta liberando a pico-CPU e todo o cluster.
+Deve- se observar que quando ocorre um travamento do cluster a CPU que o causa fica em espera no estado Sring, as outras CPUs não param de imediato, mas continuam até atingirem o próximo estado Sask.
+O motivo da parada das outras CPUs é a retenção do sinal gimme e do novo valor de pakdat.
+A solução para evitar o travamento do cluster é aumentar a vazão dos alertas até a CPUmestre.
+Reservatórios para armazenamento temporário dos alertas podem ajudar, mas a CPU-mestre deve ter vazão para esvaziar- los.
+Uma rede (NoC) interna ao cluster seria bastante indicada, o uso de uma CPU-mestre separada para cuidar apenas de alertas igualmente.
+Além disso a transferência dos alertas do reservatório no cluster para a CPU-mestre poderia utilizar uma palavra mais larga e recorrer a rajadas.
+Em este Capítulo é apresentada uma versão simplificada de um coprocessador de detecção com a finalidade de validar a arquitetura proposta.
+A aplicação para qual se sugere esta arquitetura é um dispositivo coprocessador, ou seja, um dispositivo de alguma forma acoplado a um processador de um ou mais NIDS de uma instalação.
+A natureza configurável do dispositivo proposto adicionada ao fato do mesmo estar conectado à rede permite a implementação de instalações distribuídas onde, em vários pontos da rede, hospedeiros NIDS são equipados com coprocessadores de detecção que podem desta maneira dividir dinamicamente a carga de trabalho.
+O escopo desta proposta não considera o dispositivo final, que poderá ser único e concentrado num ponto da rede ou múltiplo e distribuído em vários pontos da rede.
+Mesmo a maneira de acoplar aos servidores da rede não está sendo considerada, entretanto, dadas as exigências de desempenho, um acoplamento ao barramento de um servidor é o mais adequado, como através de uma interface PCI.
+O coprocessador proposto é um SoC cuja estrutura interna mínima inclui um cluster de pico-CPUs, uma CPU-mestre e dispositivos de suporte como memórias ou controladores de memória e interfaces de comunicação.
+A versão inicial deste SoC contará com um processador baseado na arquitetura MIPS, denominado MR2 como CPU-mestre.
+É previsto, em trabalhos futuros, uma implementação destes coprocessadores utilizando processadores PowerPC presentes em dispositivos FPGA Xilinx das famílias Virtex-Pro ou Virtex4 como CPU-mestre.
+Uma etapa intermediária possível para a integração com os processadores PowerPC é a utilização do processador softcore MicroBlaze, propriedade intelectual da Xilinx, que utiliza o mesmo padrão de barramento CoreConnect.
+Em as Seções seguintes é apresentado um plano para integrar o cluster a um processador MR2 utilizando em parte uma ferramenta Xilinx para a criação de SoCs.
+Inicialmente são apresentados os passos para possibilitar a integração do cluster ao processador MicroBlaze como um periférico.
+Esta integração utiliza uma interface baseada em registradores, são definidos em número e função os registradores para esta aplicação e apresentados juntamente à sinalização que os conecta ao processador MicroBlaze de um lado e ao cluster do outro lado.
+A seguir os arquivos gerados para esta integração são adaptados para o uso de um processador MIPS MR2.
+São apresentadas algumas características sumárias do processador MR2 e das adaptações necessárias à validação funcional de um coprocessador utilizando este processador.
+Por fim é apresentada a validação funcional deste coprocessador.
+Tendo em vista a futura utilização do barramento CoreConnect para a integração do cluster a um dos processadores citados, decidiu- se realizar esta validação funcional de acordo com as necessidades de adaptação a este barramento.
+A Xilinx oferece a ferramenta EDK de integração de SoCs, para implementação de SoCs em seus componentes.
+Esta ferramenta facilita a criação de sistemas compostos por núcleos IP proprietários, como os processadores PowerPC e MicroBlaze, blocos de memória, e diversos periféricos.
+De maneira semelhante permite ao usuário adicionar ao sistema seus próprios núcleos.
+A integração de um núcleo personalizado a um sistema que utiliza os barramentos CoreConnect pode ser feita considerando tal núcleo como um periférico do sistema, onde a interface é realizada por meio de registradores mapeados no espaço de endereçamento do sistema.
+O padrão CoreConect inclui três barramentos:
+PLB -- Processor Local Bus -- É o barramento local do processador destinado as transações de mais alta prioridade e a interconectar os dispositivos de maior desempenho do sistema.
+OPB -- On-Chip Peripheral Bus -- Projetado para aliviar a utilização do PLB dando conectividade a periféricos cujas requisições de desempenho sejam menores.
+DCR -- Device Control Register -- barramento que permite à CPU acessar registradores de Apesar de ter- se escolhido para a presente validação do coprocessador usar uma CPU padrão MIPS, optou- se em realizar a integração do cluster como um periférico CoreConnect de modo a simplificar a migração ao uso de processadores MicroBlaze e PowerPC.
+A integração, para os fins da presente validação, contou com as seguintes etapas:
+Escolha do barramento a ser utilizado -- optou- se por o barramento OPB devido a a aplicação caracterizar- se como um periférico do processador e um nível de dificuldade menor do que a integração ao PLB.
+Execução da ferramenta &quot;Base System Builder «(&quot;BSB&quot;) de adaptação de periféricos ao processador Microblaze (Xilinx) ou PowerPC (IBM).
+Adaptação do código gerado por a ferramenta BBS para uso com a CPU MR2.
+Validação funcional do coprocessador utilizando a CPU MR2.
+De a aplicação da ferramenta BBS resultam dois arquivos VHDL, um wrapper do periférico e um outro arquivo chamado user_ logic.
+Vhd. Este último arquivo, que será referido no texto também como &quot;a lógica do usuário», contém a definição de registradores de 32 bits, de acordo com o número definido por o usuário durante a execução do BBS.
+Apenas este arquivo deve ser alterado por o usuário, para adição de código de interface entre os sinais de entrada e saída do periférico e os registradores.
+A Figura 43 apresenta a interface genérica para um periférico no barramento OBP criada por a ferramenta BBS.
+A ferramenta BBS parametriza um código HDL para realizar a interface entre que o usuário recebe é uma interface mais simples que o próprio barramento, denominada IPIC (IP InterConnect).
+A Figura 43 (a) ilustra a relação barramento, IPIF, IPIC e a lógica do usuário.
+Em interrupções, FIFOs, acesso em burst, entre outras capacidades.
+A IPIC é baseada em memória compartilhada.
+Em a implementação proposta seis registradores de 32 bits são utilizados, ocupando endereços contíguos no espaço de endereçamento do barramento, permitindo a troca de informação do barramento para o periférico e vice-versa.
+O arquivo «user-logic.
+Vhd «gerado por o BBS contém a instanciação dos registradores e a lógica utilizada por o barramento para ler e escrever dos mesmos.
+Este arquivo deve ser editado por o usuário que ali deve instanciar o periférico e adicionar lógica para realizar a integração entre os sinais de interface do periférico e os registradores.
+De os sinais introduzidos no arquivo user_ logic.
+Vhd, sete atuam efetivamente no intercâmbio de informação com os registradores, são eles:
+Bus2IP_ Clk ­ sinal de relógio para os periféricos do barramento, Bus2IP_ Reset ­ inicialização para os periféricos do barramento, Bus2IP_ Data ­ 32 bits de dados unidirecionais do processador para os periféricos, IP2Bus_ Data ­ 32 bits de dados unidirecionais dos periféricos para o processador, Bus2IP_ Address ­ 32 bits de endereçamento unidirecionais do processador para os periféricos, Bus2IP_ RdCE ­ sinal de chip-enable do processador para o periférico, gerado por a CPU para acessos de leitura na faixa de endereços do periférico, Bus2IP_ WrCE ­ sinal de chip-enable do processador para o periférico, gerado por a CPU para acessos de escrita na faixa de endereços do periférico.&amp;&amp;&amp;
+A ferramenta BBS adiciona ao user_ logic.
+Vhd processos para ler e escrever dos registradores que são ativados por as instruções de leitura e escrita do processador, respectivamente.
+Para completar a funcionalidade deste arquivo foi adicionado a ele uma instância do cluster Gioia e processos que efetuam as leituras e escritas originadas no cluster.
+A Figura 44 apresenta os principais componentes do módulo user_ logic.
+Vhd. Este módulo, após a integração ao barramento do processador, colocará os seis registradores utilizados no mapa de memória do processador e permitirá o acesso a eles por meio de as instruções de acesso à memória.
+O tipo de interface estabelecido não permite atualmente o acesso às interrupções do processador.
+A sinalização proveniente do cluster deve ser detectada por polling.
+Por este motivo sinais como gimme e int_ req, que são as principais requisições do periférico ao processador, devem ser representados no mesmo registrador para que possam ser lidos ao mesmo tempo.
+A Figura 45 mostra a utilização dos registradores para a efetivação da interface com o cluster.
+O número de bits necessários para o intercâmbio de informação é de 83.
+De estes, 54 bits são interface de pacotes (pakdat, gimme, take, is_ proto) e 18 são da interface de alerta (int_ req, int_ ack, detected).
+Poderiam ainda serem divididos como 65 sinais de entrada e 18 de saída.
+Apenas 3 registradores poderiam representar todos os bits necessários, mas um processo de filtragem por mascaramento de bits iria tornar- se necessário.
+Como o número de registros é pequeno decidiu- se por a divisão em seis registradores como mostra a Figura 45.
+Em esta divisão os escrever no mesmo registrador.
+Os dois primeiros registradores contém informação de entrada para o cluster, exclusiva da fase de configuração do mesmo.
+Como a fase de configuração é totalmente independente da fase de execução, na implementação atual, estes registradores poderiam ser reutilizados para conter informação de entrada para o cluster na fase de execução, mas isto geraria uma complicação desnecessária dado o pequeno número de registradores utilizado.
+A decisão por utilizar 4 registradores para os 35 bits restantes levou em consideração reduzir o número de operações em software necessárias para coletar e repassar informação do e para o cluster por parte de o MR2.
+Em a Figura 45 os campos não utilizados estão em cinza.
+Observe- se a indicação, abaixo de o nome do registrador, do sentido da informação, entrada ou saída, tomando como referência o cluster.
+A correta implementação dos processos que traduzem os sinais de interface do cluster de e para os registradores permitirá que alterações efetuadas por software nos registradores sejam refletidas na sinalização que vai ao cluster e também permitirá que alterações na sinalização que sai do cluster afete adequadamente os registradores, de modo que estas modificações sejam percebidas por a leitura periódica dos registradores.
+Os sinais de saída do cluster devem escrever nos registradores.
+A lógica a ser implementada deverá estabelecer prioridade entre alterações nos registradores vindas do processador e aquelas com origem no cluster.
+Os sinais de entrada do cluster requerem um cuidado extra.
+Em a interface entre o processador e o cluster nota- se a diferença entre os tempos de execução destes com relação a o relógio.
+O cluster é formado por pico-CPUs cujos tempos de execução são rápidos, pois trata- se basicamente de uma máquina de estados mudando de estado praticamente a cada ciclo de relógio.
+Já um processador, principalmente aqueles que não disponham de um pipeline de execução, consome na execução de apenas uma instrução vários ciclos de relógio.
+Sinais gerados por o cluster podem ser excessivamente rápidos para o processador e os sinais gerados por o processador, que depende da execução de várias instruções para serem gerados, podem ser demasiado lentos para o cluster.
+O fato de haverem registradores na interface entre os dois transfere o problema para a lógica de interface do processador com os registradores e dos registradores com o cluster.
+Vários sinais podem ser simplesmente traduzidos de bits nos registradores para sinais entrando no cluster, entretanto, alguns sinais de entrada para o cluster necessitaram ser modificados para tornarem- se mais rápidos.
+Para isto utilizou- se um processo que cria sinais com duração de um ciclo de relógio a partir de sua detecção nos campos dos registradores.
+Até este ponto esteve sendo criada uma interface para o processador MicroBlaze.
+A partir deste ponto a implementação dirigida a este processador é suspensa e é criada uma adaptadação para o processador MR2.
+Os motivos para esta alteração temporária de rumo são:
+O processador MR2 permite a validação funcional completa, com a visualização de toda a operação do sistema;
+Redução da complexidade do projeto;
+Exiguidade de tempo, que não permitiu concluir a implementação com o processador MicroBlaze.
+O processador MR2 implementa um subconjunto das instruções da arquitetura MIPS.
+O livro de Patterson e Hennessy utiliza este processador como ferramenta de ensino.
+As arquiteturas MRx são processadores de 32 bits do tipo load-store, ou seja, as operações lógicas e aritméticas são executadas exclusivamente entre registradores da arquitetura ou entre constantes imediatas e registradores.
+As operações de acesso à memória só executam ou uma leitura (load) ou uma escrita (store).
+O banco de registradores possui 32 registradores de uso geral, de 32 bits cada um, denominados 0 a 31.
+O registrador 0 não é realmente um registrador, mas a constante 0, disponível para uso em instruções que necessitem usar este valor.
+O endereçamento de memória é orientado a byte, ou seja, cada endereço corresponde a um identificador de posição onde residem apenas 8 bits.
+Uma palavra do processador ao ser armazenada por este ocupa 4 posições consecutivas de memória.
+Há um formato regular para as instruções.
+Todas possuem exatamente o mesmo tamanho, e ocupam 1 palavra em memória.
+A instrução contém o código da operação e o (s) operando (s), caso exista (m).
+Acesso a instruções são sempre alinhados numa fronteira de palavra inteira.
+Assim, todo endereço válido de instrução possui os dois últimos bits iguais a 0.
+A Figura 46 mostra o cluster integrado como um periférico do processador MR2.
+Em ela aparecem de maneira simplificada as relações entre processador, memórias de dados e instruções, cluster e as lógicas de barramento e de testbench utilizadas para esta validação.
+O testbench é o responsável por gerar os sinais de relógio e reset, mas também por ler de um arquivo os conteúdos destinados às memórias de dados e de instruções.
+Uma característica ressaltada nesta organização é que trata- se uma organização Harvard, ou seja, o processador deve usar interfaces distintas para as memórias de instruções e de dados.
+Os sinais providos por o processador MR2 para a troca de informações com as memórias são:
+O conjunto de instruções do processador MR2 é apresentado no Anexo I. As interfaces tanto de memória quanto do cluster como periférico são assíncronas, ou seja, não dependem de sinais de relógio.
+Cada uma das interfaces de acesso à memória, de dados e de instruções, define um mapa de memória.
+Cada posição deste mapa possui um endereço associado e armazena um valor.
+Em a arquitetura MR2, ambos os mapas (de instruções e de dados) possuem endereços de 32 bits.
+O espaço de endereçamento de instruções é composto por 230 posições, ou palavras, de 32 bits.
+O acesso a este espaço de endereçamento é restrito a acessos à palavra, ou seja, o equivalente a um acesso via um barramento com 32 bits cujos dois últimos são obrigatoriamente zeros.
+A memória de instruções armazena apenas instruções.
+Já o espaço de endereçamento de dados permite acesso a bytes individuais, porque todos os bits do barramento de endereço são alteráveis, ou seja, é composto por 232 bytes.
+Não existem sinais de controle para acesso à memória de instruções.
+Isto não é necessário, pois não há fluxo bidirecional de informação.
+A memória de instruções é vista por o MR2 como uma memória de leitura apenas, que fornece informações na sua saída (instruções) a partir de o estabelecimento do endereço de memória por o processador no barramento i_ address.
+O controle de acesso à memória de dados é feito por o processador através dos sinais:
+Ce -- indica se está em curso uma operação com a memória de dados, rw -- indica se esta operação é de escrita ou de leitura,.
+Em as operações de leitura o sinal bw é usado no bloco de dados para controlar a escrita de um byte ou de uma palavra proveniente da memória de dados num registrador interno (nas instruções Lw e LBU).
+Os elementos a serem integrados no SoC baseado no processador MR2, para validação funcional compreende os seguintes itens:
+Processador MR2 -- o processador referido na Seção 6.3;
+Memória de programa -- onde serão armazenadas as instruções dos programas utilizados nas simulações;
+Memória de dados -- armazenamento de dados utilizados por os programas das simulações;
+Lógica do usuário -- módulo contendo os registradores de comunicação e os processos de leitura e escrita destes para as interfaces com o MR2 e com o cluster.
+Lógica do barramento -- funcionalidades tais como conversão de barramentos unidirecionais em bidirecionais, seleção de endereços, reset e etc..
+De os elementos referidos acima apenas a lógica de barramento necessitou ser construída do início, a lógica do usuário é em essência o arquivo «user_ logic.
+Vhd «criado como referido na Seção A lógica de barramento aqui referida foi implementada no testbench que instancia e interconecta os demais elementos, sendo responsável por a geração dos sinais de relógio e reset para o sistema.
+Coube ao mesmo módulo realizar a carga das memórias do sistema com o programa e dados.
+Em a integração ao processador MR2 não existe um barramento padronizado com especificações complexas a serem atendidas.
+Entre o processador MR2 e seus periféricos apenas barramentos são definidos na linguagem VHDL.
+No entanto, conforme citado na Seção 6.2, existe uma compatibilidade a ser alcançada com o padrão CoreConnect e as ferramentas Xilinx além de um desejável reuso do código, por isso o arquivo de lógica de usuário foi mantido como interface e modificado o mínimo possível.
+Uma das adaptações necessárias ao arquivo de lógica do usuário, para interface com o processador MR2, foi a substituição dos sinais Bus2IP_ RdCE e Bus2IP_ WrCE não disponibilizados por o MR2.
+O processador MR2 oferece dois sinais para controle de acesso em seu barramento externo e que foram renomeados como:
+Bus2IP_ RW ­ sinal read/ write, dirigido do processador MR2 para o periférico, caracteriza os acessos ao barramento como sendo de leitura ou escrita, Bus2IP_ CE ­ sinal de chip-enable, dirigido do processador MR2 para o periférico, gerado por a CPU para acessos tanto de leitura como de escrita à faixa de endereços do periférico.
+Parte da lógica de seleção de dispositivos foi implementada como lógica de barramento, portanto junto ao arquivo de testbench, para caracterizar os acessos à memória de dados.
+Outra parte foi criada na lógica de usuário, para caracterizar os acessos aos registradores de interface.
+Em a Seção 6.2 já foi considerado o cuidado de traduzir as ativações geradas por a CPUmestre em campos de registradores referentes a sinais de entrada do cluster em pulsos rápidos.
+Agora deseja- se evitar que a própria CPU deva retornar os mesmos campos às suas condições de inatividade.
+Este procedimento é ilustrado na Figura 47.
+Em a Figura 47 a) o software deve setar e ressetar um dado valor num dado registrador.
+Em b) o software seta o valor e o hardware é responsável por ressetar- lo.
+A Figura 48 mostra estes diversos mecanismos atuando num diagrama de tempos: --
+a escrita no registrador 3 por meio de uma instrução de escrita na memória.
+São gerados no barramento os sinais de dados (Bus2IPData) e endereços (Bus2IP_ Address) correspondentes ao novo conteúdo e ao endereço do registrador (reg3) alterado.
+A transição de subida do relógio efetiva a alteração no registrador 3.
+Não há disponibilidade de um compilador &quot;C «para o processador MR2, mas existe um montador e simulador disponível, o Spim.
+O Spim é um software originalmente desenvolvido por James Laurus disponível para vários sistemas operacionais, capaz de simular programas escritos para os processadores MIPS R2000 e R3000.
+Este programa foi utilizado para gerar os arquivos binários necessários para a utilização do MR2.
+Versões modificadas dos programas codifier e feeder foram criadas para gerar tabelas para a carga das regras nas pico-CPUs e à simulação de fluxo de dados da rede.
+O codifier permite selecionar regras do Snort e utilizar seus campos de conteúdo como padrões de detecção a serem carregados na memória das pico-CPUs e o feeder permite utilizar uma coleta de bytes numa rede sob ataque como fonte de pacotes de dados para simulação.
+Para a validação funcional o microcódigo e os padrões das pico-CPUs são carregados por o MR2 a partir de uma tabela produzida por o codifier e anexada ao código assembly, de maneira semelhante a coleção de bytes que emula o fluxo de dados da rede é obtida através do feeder e anexada igualmente ao código assembly.
+O programa que é executado no processador MR2 permite inicializar o cluster, configurálo e enviar dados para detecção.
+Em esta última função, o processador MR2 fornece ao cluster os bytes do fluxo da rede, a indicação da classe do pacote em análise e atende as sinalizações de alerta vindas do cluster.
+O Anexo II apresenta a aplicação escrita para o processador MR2.
+A validação funcional destina- se a verificar as condições de operação do processador MIPS MR2 atuando como CPU-mestre junto a um cluster Gioia em cada uma das fases importantes de seu funcionamento:
+Carga das memórias de programa e dados -- o co-processador simulado conta com uma fase inicial onde o processador não está pronto para operar por não ter código e dados presentes em suas memórias.
+Em esta fase inicial a lógica de barramento proverá a transferência do código e dados de um arquivo de entrada para as respectivas memórias.
+Configuração do cluster ­ após concluída a carga do programa e dados do MR2 este é liberado do estado de reset e inicia a execução que tratará de carregar as memórias do cluster com suas micro-instruções e padrões de comparação.
+Emulação de detecção ­ o processador controla o sinal prime do cluster, que após a configuração é desativado e inicia- se a execução no nível do cluster.
+A partir deste ponto o cluster irá fazer requisições de bytes para comparação e, na eventualidade de incidência de padrão, irá requisitar que seja reconhecido por o MR2 o código de detecção ou de alerta produzido.
+A sinalização a ser emulada é aquela já validada funcionalmente no Capítulo 0.
+Esta emulação deve ser realizada por a utilização adequada das instruções do processador MR2 e por a observância à convenção adotada de associação entre sinais do cluster e bits ou campos dos registradores de intercâmbio especificada na Figura 45.
+Transações entre a CPU-mestre e o cluster podem ser verificadas em três níveis:
+Nível das instruções do MR2 ­ a geração da sinalização destinada ao cluster bem como a interpretação dos sinais vindos do cluster emprega instruções deste processador e podem ser verificadas na simulação.
+Nível dos registradores da lógica do usuário ­ toda a interação entre a CPU-mestre e o cluster deve passar por os registradores, esta atividade pode ser observada na simulação.
+Nível dos sinais do cluster ­ consoantemente, toda a atividade verificada nos dois níveis anteriores se faz presente nos sinais da interface do cluster, onde podem ser analisados em simulação.
+A análise destes três níveis de manifestação das transações entre CPU-mestre e cluster é utilizada para a otimização das trocas entre os dois.
+Em as Sessões a seguir serão apresentados instantâneos da operação do coprocessador.
+Onde for importante serão mostrados os estados dos vários níveis da execução, tais como o nível da execução no processador, no cluster e alterações ao nível das interfaces e registradores.
+A o iniciar a execução da simulação o testbench provê o sinal de reset que suspende a execução no processador MR2 e no cluster.
+Circuitos de inicialização no processador, no cluster e na lógica do usuário estabelecem valores de partida para alguns sinais.
+A Figura 49 mostra os valores de partida para sinais importantes de controle e para os registradores.
+Os sinais ck e rst nas primeiras duas linhas da Figura são o relógio e o reset gerados por o testbench.
+Este sinal de reset é utilizado para inicializar a lógica do usuário, quando então os registradores assumem seus valores iniciais.
+O valor do registrador 3 (Figura 45) é iniciado em 0x00000002 para que mantenha o reset do cluster assegurado até que o processador esteja apto a controlar o cluster por meio de os registradores.
+O valor do registrador 2 esta forçando um valor inicial 0 xFF para o sinal pakdat, mas este valor é arbitrário para uso como marcador apenas durante a simulação.
+O sinal prime que controla a configuração das memórias das pico-CPUs no cluster está desativado na partida.
+O sinal EA mostra o estado da FSM de controle da primeira das pico_ CPUs tomada como exemplo, mostrando que as picoCPUs estão suspensas em reset, estado Srst.
+O sinal rstCPU é utilizado para suspender o processador MR2 na partida, enquanto as memórias de programa e dados são carregadas.
+Os sinais go_ i e go_ d habilitam a carga das memórias de programa e dados respectivamente.
+Os sinais tb_ add e tb_ data são utilizados por o testbench para programar estas memórias utilizando suas respectivas portas.
+Verifica- se na Figura 49 o período em o qual o sinal rstCPU é ativado, durante o qual há grande atividade nos sinais tb_ add e tb_ data transferindo dados de um arquivo acessado externamente para, num primeiro momento, a memória de programa (note- se a atividade inicial do sinal go_ i) e em seguida para a memória de dados (idem com relação a atividade posterior do sinal go_ d).
+Em a prototipação em hardware este período será executado por uma interface externa, com a interface serial RS232.
+Em um produto, esta fase pode ser realizada com uma interface a uma memória Flash.
+A o sair do estado de reset o cluster necessita já ter recebido o sinal prime ativado para que a operação se inicie corretamente a partir de a configuração das pico_ CPUs.
+Em o momento da desativação do reset as pico_ CPUs passam do estado Srst para o estado Sprime, e durante a permanência neste estado as memórias das pico_ CPUs serão configuradas.
+A Figura 50 mostra apenas um ciclo de escrita, responsável por a escrita de uma palavra de 32 bits na memória de uma pico_ CPU.
+São mostrados os sinais EA e lock das duas primeiras CPUs.
+A linha vertical a 553 ms marca a mudança de estado deflagrada por a retirada do sinal de reset, esta mudança tem causa no registrador 3 que passa de 0x0000003 para 0x00000001.
+Os sinais lock são gerados por as próprias pico_ CPUs da comparação do endereço do dado escrito com o número ordinal de cada pico_ CPU.
+O lock da primeira pico-CPU é destivado as outras pico_ CPUs estão bloqueadas para a configuração.
+O lock da segunda pico_ CPU é mostrado na figura, desativado.
+A configuração é executada por a CPU_ mestre através da escrita nos registradores que será lentamente do que as pico_ CPUs, um sinal auxiliar de gatilho de escrita (config_ en) é também ativado por a CPU_ mestre, para garantir que um mesmo dado não seja escrito várias vezes.
+Este mecanismo foi detalhado na Seção 6.4.2.
+O sinal &quot;i «contém e as diversas instruções que devem ser executadas para que os registradores sejam escritos e os sinais da interface do cluster sejam gerados.
+Esta seqüência corresponde às linhas de código de 16) a 36) da listagem do Anexo II.,
+sendo que as linhas de 25) a 36) fazem parte do laço de configuração das DPRAMs nas pico-CPUs.
+Os dados de configuração das pico_ CPUs são seqüências de endereços e dados correspondentes as configurações individuais de cada uma de elas.
+Estas listas de informações estão contidas numa seção de dados do programa executado por a CPU_ mestre.
+Findo o processo de configuração, o sinal prime é retirado e todas as pico_ CPUs fazem conjuntamente a passagem do estado Sprime para o estado Sask.
+Esta é a situação registrada na Figura 51 onde são mostrados os sinais EA das duas primeiras pico_ CPUs.
+A CPU_ mestre detecta o sinal gimme e responde enviando um byte de dados e mais os bits take e is_ proto do registrador 2.
+A lógica do usuário converte esta informação nos sinais pakdat, take e is-proto da interface do cluster.
+As mudanças de estado notadas nos sinais EA das pico_ CPUs mostram a reação destas à sinalização externa.
+Em o primeiro pulso do sinal take, a classe do pacote é informada às pico_ CPUs, ativando o sinal is_ proto.
+Em este caso as pico_ CPUs reagem e voltam a solicitar agora um byte do payload do pacote.
+Após uma série de instruções entre as quais a CPU_ mestre detecta o sinal gimme, um novo byte é enviado ao cluster.
+Sendo este um byte do payload uma série de comparações acontece nas pico_ CPUs.
+Esta atividade é verificada nas mudanças rápidas mostradas nas linhas dos sinais EA da Figura 51.
+A Figura 51 evidência as diferentes velocidades da CPU_ mestre e do cluster.
+Isto é notado por o comportamento do sinal gimme, que permanece mais tempo ligado, solicitando dados, do que desligado, tratando de eles.
+Outra evidência é a permanência por muito tempo dos sinais EA no estado Sask onde as pico_ CPUs esperam por a CPU_ mestre.
+Em a Figura 52 são mostrados os sinais EA das 10 pico_ CPUs que formam o cluster nesta validação funcional.
+Os períodos úteis de operação do cluster são marcados por o sinal gimme baixo.
+Durante estes períodos a mudança de estados nas pico_ CPUs é rápida, isto se nota das rápidas variações nos sinais EA.
+Em os momentos em que as pico_ CPUs permanecem no estado Sahead várias comparações estão ocorrendo em seqüência.
+Em o estado Sahead o byte em pakdat está sendo comparado com os vários padrões desta classe disponíveis para cada pico_ CPU.
+A Figura 52 mostra que a adição de um buffer à entrada do cluster poderia eliminar a maior parte do tempo gasto no estado Sask, desde a CPU-mestre possa alimentar- lo mais rapidamente do que o cluster o possa esvaziar.
+A Figura 53 ilustra uma situação incomum onde vários alertas ocorrem quase simultaneamente.
+Em esta implementação a CPU-mestre fornece os dados dos pacotes e atende aos alertas dividindo o tempo entre as tarefas.
+O atendimento dos alertas é feito por &quot;polling», pois não há um sistema de interrupções.
+O sistema de atendimento dos alertas por interrupção pouco adiantaria, porque a CPU-mestre não chega a ficar ociosa.
+A CPU-mestre, neste caso, não espera por as solicitações (gimme ou intreq), mas é o cluster que espera por as respostas da CPU-mestre.
+A situação da Figura 53 foi forçada para avaliar o comportamento do coprocessador sob várias comunicações de alerta.
+A primeira condição de alerta aconteceu a 211,4 µs, quando gimme estava em nível baixo.
+O laço que verifica a existência de gimme é o mesmo que verifica a existência de intreq, e neste laço intreq tem prioridade sobre gimme.
+Por este motivo os alertas (intreq) acumulados nos registradores do cluster são atendidos antes do gimme, que aguarda cerca de 1,7 µs.
+Em a Figura 53 a linha do sinal detected indica a pico-CPU que gerou o alerta e o código correspondente ao padrão responsável por o alerta.
+Em a parte baixa da Figura pode- se verificar as alterações no conteúdo dos registradores que fazem a interface entre a CPU-mestre e o cluster.
+Em esta Figura, a atividade do cluster foi bastante prejudicada.
+Em primeiro lugar por o baixo desempenho da CPU-mestre e em segundo por a multiplexação das atividades de fornecimento de dados do pacote e atendimento de alertas.
+Mesmo no caso de operar com uma CPU-mestre bastante mais poderosa do que o processador MR2 ainda ocorrerá a competição entre dois processos distintos e principalmente independentes, que poderiam ser atendidos vantajosamente por a utilização de duas CPUs-mestre separadas.
+O próprio Snort separou o processo de geração de alertas da detecção.
+Em este trabalho a métrica da vazão foi preterida em relação a as características desejáveis estabelecidas ao final do Capítulo 3.
+Isto porque a análise do estado da arte indicou que o foco primário em vazão favoreceu projetos baseados em especificidades e limitações estabelecidos em sua origem, o que resultou em soluções de aplicações fixas e também limitadas.
+Aqui o objetivo foi atingir uma solução flexível e rápida o bastante que pudesse posteriormente ser otimizada sob outras métricas, como por exemplo a vazão.
+Em este caso, rápido o bastante é realizar uma nova comparação a cada &quot;ciclo do relógio da rede».
+Resultados de sínteses de um cluster Gioia com 40 pico-CPUs num componente Virtex XC2 V1000, sem nenhum esforço de otimização resultou num relógio de 81,71 MHz.
+O comparador das pico-CPUs compara bytes, representando uma séria limitação da vazão.
+No entanto um comparador que compare palavras de 32 bits deve ser formado, em realidade, por 4 comparadores para os 4 possíveis alinhamentos à byte ente os padrões e o fluxo de dados.
+Estes comparadores teriam que manter informações de estado de cada padrão comparado bastante mais complexos do que o campo status da atual pico-CPU.
+Com o objetivo de determinar a exigência em termos de área em silício, para uma implementação física do coprocessador, foram realizadas sínteses dos principais componentes e de subconjuntos destes, que permitem uma avaliação das necessidades de área em diversas configurações.
+Para as sínteses aqui referidas foi utilizado o programa LeonardoSpectrum da empresa Mentor Graphics.
+A síntese foi orientada para o componente XC2 V1000-F256 por sua disponibilidade em placas de prototipação nos laboratórios de pesquisa onde se desenvolve este trabalho.
+A Tabela 6 mostra a utilização dos principais recursos de um XC2 V1000 nos componentes de um coprocessador.
+O processador MR2 representa o maior custo em termos de lógica, enquanto a pico-CPU é a única consumidora de BlockRAMs.
+A Tabela 7 apresenta a utilização de recursos em clusters de diversos tamanhos e no coprocessador formado por um processador MR2 e um cluster de 38 pico-CPUs.
+Duas BlockRAMs foram reservadas para uso por a MR2 como memórias de dados e instruções.
+As verificações funcionais apresentadas no atual capítulo consideraram as memórias de dados e instruções como estruturas internas ao processador, sendo que a memória de instruções contém a configuração das pico-CPUs (BlockRAMs).
+Em uma implementação física, a configuração das pico-CPUs deverá residir externamente ao SoC do coprocessador, pois do contrário representaria redundância.
+A configuração das pico-CPUs poderá residir numa memória Flash junto ao Ci contendo o SoC, ou poderá ser capturada da rede.
+Em este Capítulo é apresentada uma recapitulação dos resultados obtidos, analisada a contribuição deste trabalho e indicados caminhos para trabalhos futuros.
+O estudo do estado da arte apontou diversas restrições nos sistemas de comparação utilizados para a detecção de intrusão em rede.
+De entre estas, destacam- se limitações relativas à extensão do conjunto de padrões detectáveis, tais como a limitação do número dos padrões, a limitação no tamanho dos padrões ou mesmo a limitação do alfabeto utilizado por os padrões.
+Também se observou a implementação fixa (&quot;hardwired&quot;), implicando em resíntese do projeto quando for necessário alterar o conjunto de padrões detectados.
+Dadas as restrições dos sistemas analisados, propôs- se uma arquitetura flexível e escalável, capaz de superar as limitações encontradas.
+O elemento de base desta arquitetura é denominado &quot;pico-CPU».
+A pico-CPUs utiliza um bloco de memória RAM de dupla porta (BlockRAM), nativo em Ci's de lógica reconfigurável, como uma memória de micro-programa e desta forma é obtido um comparador rápido e flexível.
+Mostrou- se que esta pico-CPU possui as seguintes vantagens:
+Possibilita a fácil e rápida alteração dos padrões de caracteres utilizados na detecção de intrusão.
+O tempo de reprogramação das RAMs é da ordem de micro-segundos, com a vantagem adicional de não requerer etapas adicionais de síntese.
+O hardware do comparador é fixo, não requerendo alterações quando os padrões são alterados.
+Não limita o número, a extensão ou o alfabeto dos padrões utilizados para a detecção de intrusão.
+Realiza comparações de um caractere provindo da rede com mais de um padrão de intrusão de maneira serial e rápida.
+A seqüência de comparações com vários padrões diferentes ocorre com o uso de um único ciclo de relógio para cada comparação enquanto as comparações produzirem descasamentos.
+Esta característica representa a capacidade de paralelismo temporal da arquitetura.
+Detecta e sinalizar a incidência de padrões de intrusão nos pacotes em trânsito por a rede.
+As pico-CPUs possuem mecanismos para manter o estado de comparação dos múltiplos padrões comparados e para indicar a um agente externo a detecção de um padrão e sua identificação.
+A união das picu-CPUs num cluster, na forma de uma arquitetura &quot;mar de processadores», agrega paralelismo espacial à arquitetura proposta.
+O cluster apresentou as seguintes características:
+Finalmente, o co-processador foi concluído com a inclusão de uma CPU para realizar a interface com o fluxo de dados e gerenciar os alertas.
+Este trabalho contribui com a área de segurança de redes, especificamente com relação a os sistemas de detecção de intrusão em rede, por a proposta de aceleração por hardware utilizando uma arquitetura escalável, flexível e sem restrições de extensão dos padrões detectados.
+Outra dimensão desta arquitetura é sua modularidade e hierarquia.
+O nível inferior desta hierarquia é ocupado por o projeto dos comparadores programáveis.
+Em este trabalho foi apresentada apenas uma versão de comparador, ou a pico-CPU.
+Muitas variações de comparadores programáveis são possíveis com variados desempenhos.
+A modularidade neste nível da hierarquia permite que, mantendo- se o quanto possível intacta a interface com os níveis superiores, o projeto como um todo possa ser alterado por a simples redefinição da pico-CPU, com pouco ou nenhum retrabalho nos outros níveis.
+O nível médio da hierarquia, ocupado por o cluster de comparação, apresenta flexibilidade semelhante.
+É natural neste nível a escolha do número de pico-CPUs compondo o cluster, mas existem outras modularidades por experimentar tal como a possibilidade de misturar diferentes tipos de pico-CPUs como sugerido no parágrafo anterior.
+As estruturas de encaminhamento de alerta implementadas no Capítulo 5 são muito simples, várias topologias podem ser experimentadas sem prejuízo dos outros níveis da hierarquia.
+O nível superior da hierarquia é o coprocessador.
+O coprocesador não necessita ser único pode estar distribuído em diversas unidades que dividem a carga da rede.
+O próprio projeto do coprocessador pode incluir variações na complexidade e mesmo no número de processadores utilizados.
+De maneira semelhante aos níveis anteriores, variações ao nível do coprocessador podem ser implementadas sem ou com poucas alterações nos outros níveis.
+De esta maneira este trabalho amplia sua contribuição porque propõe uma arquitetura flexível para futuras pesquisas tanto em segurança de rede como em outros campos onde se aplique a detecção de padrões, tais como a Bio-Informática.
+Conforme citado em Capítulos anteriores, é prevista a continuação desta pesquisa, em princípio utilizando a mesma motivação deste trabalho, a aceleração de NIDS por hardware.
+Uma nova motivação, com muito potencial é a aplicação deste trabalho e seus desenvolvimentos à BioInformática.
+Entre as atividades previstas para o futuro imediato e de médio prazo contam- se:
+Substituir o processador MR2 por o MicroBlaze na função de CPU-mestre no coprocessador;
+PowerPC; Versões de pico-CPUs que comparem padrões a 16 e a 32 bits;

@@ -1,0 +1,653 @@
+Os sistemas de vídeo sob demanda (VoD - Video on Demand) com interatividade têm recebido crescente atenção nos últimos anos.
+
+Idealmente, para implementar esses sistemas, o servidor deve alocar um canal de transmissão de dados exclusivo para cada cliente, permitindo a emulação de ações de interatividade de um aparelho comum de DVD (Digital Video Disc).
+
+Entretanto, como a banda do servidor é um recurso limitado, esta implementação é inviável quando muitos usuários simultâneos precisam ser atendidos.
+
+Para fins de análise, vemos o aumento da escalabilidade desses sistemas em duas direções, técnicas de compartilhamento de banda e estratégias (políticas) de gerência de buffer.
+
+Existe uma significativa diversidade de técnicas de compartilhamento de banda na literatura.
+
+Os trabalhos, por exemplo, têm uma implementação bem simples, baseada na localização do canal que transmite a informação (unidade, bloco, etc) mais próxima àquela de fato solicitada pelo cliente.
+
+As técnicas discutem a união de fluxos em andamento no sistema.
+
+A idéia é abrir um fluxo para atender a toda ação de intera tividade do cliente, e a união de fluxos é conseguida pela escuta concomitante de dois fluxos.
+
+A proposta utiliza uma taxa de transmissão duas vezes maior que a normal para permitir a união de fluxos.
+
+Os trabalhos são mais recentes e baseiam-se nos paradigmas de acesso seqüencial Patching e Hierarchical Stream Merging (HSM).
+
+Estas técnicas diferenciam-se entre si na condição de que a estrutura de união de fluxos tem um determinado número de níveis permitidos.
+
+Por exemplo, quando são permitidos três níveis, um dado cliente pode escutar um outro cliente que, por sua vez, escuta um outro cliente do sistema, constituindo assim uma árvore de altura três.
+
+Em relação às estratégias de gerência de buffer, as duas abordagens mais utilizadas na literatura são Simple Buffer (SB) e Complete Buffer (CB).
+
+A primeira tem por principal finalidade permitir a sincronização da escuta de dois fluxos simultâneos que transmitem o mesmo objeto.
+
+O tamanho do buffer local do cliente é determinado pelo tempo de escuta simultânea permitido para o cliente, e nunca precisa ser maior que a metade da duração total do objeto.
+
+O primeiro fluxo é utilizado para transmitir as informações (unidades de dados) que o cliente precisa visualizar instantaneamente.
+
+Já o segundo fluxo transmite unidades de dados que são visualizadas a partir de um instante futuro.
+
+As unidades de dados do segundo fluxo são armazenadas em buffer local.
+
+No instante em que a unidade de dados do primeiro fluxo alcançar a primeira unidade de dados armazenada em buffer (proveniente do segundo fluxo), o cliente deixa de escutar o primeiro fluxo e passa a ler diretamente de seu buffer.
+
+O primeiro fluxo pode então ser extinto, redundando em economia de banda do sistema.
+
+O segundo fluxo permanece ativo e tendo suas unidades de dados armazenadas em buffer local.
+
+Já a abordagem Complete Buffer (CB) fundamentase na idéia de que o comportamento interativo do cliente o faz naturalmente realizar acessos a unidades de dados anteriormente já visualizadas.
+
+Sendo isso verdade, a otimização de banda pode ser conseguida ao se permitir que as unidades de dados transmitidas pelo servidor sejam permanentemente armazenadas em buffer local durante uma mesma sessão, enquanto o cliente estiver visualizando o objeto em uma mesma sessão, os dados de seu buffer local não são removidos.
+
+Quando o cliente realiza uma requisição para uma dada unidade de dados do objeto, primeiramente é verificado se a unidade de dados solicitada já não está em buffer local.
+
+Se a resposta for afirmativa, o cliente é atendido localmente, sem abertura de um novo fluxo e sem a tentativa de realizar compartilhamento com qualquer outro fluxo.
+
+Nessa estratégia o tamanho do buffer local é igual ao tamanho do objeto.
+
+Este trabalho apresenta a nova técnica de compartilhamento de banda Merge Interativo (MI).
+
+Esta técnica é baseada no paradigma de HSM.
+
+Também temos a apresentação de duas novas estratégias de gerência de buffer, Unique Buffer (UB) e Precise Buffer (PB).
+
+A primeira fundamenta-se na idéia de empregar um único buffer compartilhado por todos os clientes de uma rede local que desejam assistir a um mesmo objeto, e a segunda é baseada na condição de se verificar a quantidade de informação já disponível em buffer local para então decidir sobre abertura e extinção de fluxos no sistema.
+
+Por meio de simulações, validamos as nossas propostas e realizamos análises comparativas detalhadas com outros trabalhos da literatura, utilizando diferentes métricas de performance.
+
+Dentre outras constatações, os resultados obtidos mostram principalmente que, em comparação com as abordagens mais convencionais, podemos obter otimizações no intervalo de 5% ¡ 98% em valores médio de banda, pico de banda e complexidade do sistema.
+
+O restante deste trabalho tem a seguinte organização.
+
+A Seção 2 revisa as mais recentes propostas de técnicas de compartilhamento de banda baseadas nos paradigmas de Patching e de HSM.
+
+A nova técnica Merge Interativo (MI) está na Seção 3.
+
+As novas estratégias de gerência de buffer UB e PB estão na Seção 4.
+
+A Seção 5 traz os mais importantes resultados de simulação então obtidos.
+
+Por último, as conclusões e as propostas para trabalhos futuros constituem a Seção 6.
+
+Considere um grupo de clientes recebendo fluxos de dados relativos a um objeto multimídia armazenado em um servidor através de uma rede de comunicação.
+
+O objeto é dividido em unidades de dados u de mesmo tamanho e de duração de uma unidade de tempo.
+
+A rede tem multicast implementado (camada IP ou camada de aplicação).
+
+Os clientes têm acesso não-seqüencial, podem realizar ações de interatividade.
+
+O cliente possui buffer local capaz de armazenar pelo menos metade do objeto requisitado e sua banda corresponde a duas vezes a taxa de exibição desse objeto.
+
+Por fim, os fluxos de dados transmitem (individualmente) na mesma taxa de exibição do objeto.
+
+Doravante, salvo informado diferentemente, assumimos estas suposições no restante deste texto.
+
+A seguir revisamos os algoritmos de operação de quatro das mais recentes técnicas de compartilhamento de banda que consideram o serviço imediato com interatividade, PI, PIE, PIC e CT.
+
+As três primeiras são baseadas no paradigma de Patching e a última no paradigma de HSM.
+
+Estas técnicas são utilizadas no estudo comparativo que realizamos mais adiante e esta decisão deu-se por serem técnicas recentes e assim conseguirem agregar simultaneamente dois aspectos essenciais, máxima eficiência e simplicidade.
+
+Na técnica Patching Interativo (PI) a chegada de uma requisição é o único evento que pode provocar uma união de fluxos no sistema.
+
+Seja uW a unidade de dados do objeto correspondente ao tamanho da janela ótimaW da técnica Patching original, (se W= 12 s e o objeto é dividido em unidades de 1 s cada, então uW = 12), e seja SW um fluxo multicast que transmite, no instante da chegada da requisição, uma unidade de dados anterior ou igual à uW.
+
+Para efeito de análise, assuma que uma requisição ocorre para uma dada unidade ur do objeto.
+
+A tomada de decisões neste algoritmo se dá em função de dois casos, ur = 1 e ur 6= 1, onde 1 representa a primeira (inicial) unidade do objeto.
+
+Caso 1, ur = 1, se SW existe e está transmitindo uma unidade de dados posterior à ur, então a requisição é atendida pelo mesmo e as unidades eventualmente perdidas (patch) são enviadas através de um fluxo unicast.
+
+Se SW não existe então um novo fluxo multicast é aberto para atender a requisição.
+
+Caso 2, ur 6= 1.
+
+Neste caso inicialmente é verificado se existe um fluxo multicast Sbefore, um fluxo transmitindo uma unidade de dados anterior à ur dentro de um limiar de tempo ±before.
+
+Se este fluxo existe, então a requisição é atendida pelo mesmo.
+
+Caso contrário, é verificado se existe um fluxo multicast Safter, um fluxo transmitindo uma unidade de dados posterior à ur e dentro de um limiar de tempo ±after.
+
+Se este fluxo existe então o servidor informa ao cliente para escutar Safter e abre um novo fluxo unicast para transmitir as unidades inicialmente perdidas (patch).
+
+Por outro lado, se Safter não existe, então um novo fluxo multicast Snew é aberto para servir a requisição por ur.
+
+Semelhante à técnica PI, a chegada de uma requisição também é o único evento que provoca a união de fluxos na técnica Patching Interativo Eficiente (PIE).
+
+A seguir descrevemos sua operação.
+
+Evento Único, requisição para unidade ur.
+
+Inicialmente busca-se um fluxo multicast Sbefore, um fluxo transmitindo uma unidade de dados igual ou anterior à ur, dentro de um limiar de tempo ±before.
+
+Ou seja, Sbefore pode estar transmitindo desde a unidade ur ¡ ±before até a unidade ur.
+
+Se Sbefore existe, então a requisição é atendida pelo mesmo.
+
+Se Sbefore não existe, é verificado se existe um fluxo multicast Safter, um fluxo transmitindo uma unidade de dados posterior à ur, dentro de um limiar de tempo ±after.
+
+Ou seja, Safter pode estar transmitindo desde a unidade ur + 1 até a unidade ur + ±after.
+
+Se Safter existe, o servidor diz ao cliente para escutá-lo e abre um fluxo unicast (um patch) para transmitir as unidades perdidas inicialmente.
+
+Se Safter não existe, um novo fluxo multicast Snew é aberto para servir a requisição por ur.
+
+É ainda verificado se existe um fluxo multicast Smerge, um fluxo transmitindo uma unidade de dados anterior à ur, dentro de um limiar de tempo ±merge.
+
+O fluxo Smerge não pode possuir patches associados a ele, pois um dos objetivos é manter a estrutura de união de fluxos em no máximo dois níveis.
+
+Se Smerge existe, então o fluxo Snew é o seu alvo e os clientes de Smerge devem escutar também o fluxo Snew para que, eventualmente, Smerge se una ao fluxo Snew.
+
+Caso Smerge não exista, então nada mais precisa ser feito.
+
+Note que o algoritmo de PIE é mais elaborado que o de PI por introduzir o conceito do fluxo Smerge, o que cria a expectativa de uma maior otimização de banda dado que é uma possibilidade a mais para a união de fluxos.
+
+A técnica Patching Interativo Completo (PIC) é mais elaborada que PI e PIE por possuir três eventos para união de fluxos, conforme explicamos a seguir.
+
+Evento 1, requisição para a unidade ur.
+
+Nesta situação o algoritmo procede de forma semelhante ao de PIE com a diferença básica de que, em vez de buscar por um único fluxo Smerge, busca-se por um conjunto de fluxos desse tipo.
+
+Evento 2, término de um fluxo Sj que é o fluxo alvo de um outro fluxo multicast Si.
+
+Em outras palavras, Sj termina antes de ser alcançado por Si.
+
+Os clientes de Si então tornam-se órfãos (não possuem mais fluxo a alcançar) e os conteúdos respectivamente armazenados em seus buffers, devido à escuta de Sj, são descartados.
+
+O servidor busca por um outro fluxo que transmite uma unidade de dados posterior àquela atual do fluxo Si e dentro do limiar de tempo ±merge.
+
+Seja Ssubs este fluxo.
+
+Se este fluxo existe, então ele torna-se o novo alvo de Si.
+
+Caso Ssubs também termine antes de ser alcançado por Si, o processo de busca por um outro fluxo Ssubs é repetido.
+
+Evento 3, término de todos os eventuais fluxos de patch associados a um fluxo Ssource.
+
+Nesta situação o servidor tenta localizar um fluxo Smerge que transmite uma unidade de dados posterior àquela do fluxo Ssource e dentro de um limiar de tempo ±merge.
+
+Se este fluxo existe, então ele torna-se alvo de Ssource.
+
+Ou seja, os clientes de Ssource passam a escutar também o fluxo Smerge de tal sorte que Ssource e Smerge possam ser unidos mais à frente.
+
+A técnica Closest Target (CT), por ser baseada no paradigma HSM, tem um mecanismo de tentativa de compartilhamento de dados bem exaustivo.
+
+São considerados os três eventos descritos a seguir para união de fluxos no sistema.
+
+Evento 1, requisição para a unidade ur.
+
+O servidor abre um novo fluxo multicast Snew para atender esta requisição.
+
+Simultaneamente, o servidor também tenta localizar um outro fluxo em andamento no sistema que esteja transmitindo uma unidade de dados posterior à ur, sem considerar qualquer limiar de tempo.
+
+Seja St este fluxo.
+
+Se St existe então o cliente de Snew também vai escutá-lo de tal sorte que Snew e St possam, eventualmente, ser unidos mais à frente.
+
+Evento 2, término de um fluxo Sj que é o fluxo alvo de um outro fluxo Si.
+
+Neste caso o tratamento é análogo ao descrito no EVENTO 2 de PIC, sendo que aqui não se utiliza limiar de tempo para busca do substituto de Sj.
+
+Evento 3, união do fluxo Si e seu alvo Sj.
+
+Seja Sm o fluxo resultante desta união.
+
+Os eventuais conteúdos dos buffers dos clientes de Sm, que originalmente eram clientes de Sj, são descartados e o servidor imediatamente busca no sistema por um fluxo que esteja transmitindo uma unidade de dados posterior àquela do fluxo Sm, sem considerar qualquer limiar de tempo.
+
+Seja St este fluxo.
+
+Se St existe então os clientes de Sm vão escutá-lo também de tal sorte que Sm e St possam ser unidos mais à frente.
+
+Note que na técnica CT sempre buscamos por um fluxo para ser simultaneamente escutado com aquele que está efetivamente servindo a requisição por ur.
+
+Além disso, há ainda o fato de não haver qualquer limiar de tempo restritivo para a busca por fluxos no sistema, aumentando as chances de localização de fluxos alvos.
+
+Os Eventos 1 e 3 desta técnica dão à árvore de união de fluxos a característica de ter uma altura ilimitada.
+
+Por exemplo, um fluxo S1, recém aberto para atender a requisição por ur, pode ter como alvo um outro fluxo S2 que, por sua vez, já pode ter como alvo um outro fluxo S3, constituindo assim uma estrutura de profundidade três.
+
+Aqui apresentamos a nova técnica Merge Interativo (MI).
+
+Assim como CT, esta nova técnica é baseada no paradigma de HSM e tem sua estrutura de união de fluxos com profundidade ilimitada (número de níveis ou altura ilimitada).
+
+Os três eventos descritos a seguir são considerados para a união de fluxos no sistema.
+
+Evento 1, requisição para unidade ur do objeto.
+
+Imediatamente abre-se um novo fluxo Snew para atender esta requisição.
+
+Simultaneamente, o servidor busca por um fluxo em andamento no sistema que esteja transmitindo uma unidade de dados posterior à ur.
+
+Seja St este fluxo.
+
+Se St existe, então o cliente de Snew também vai escutá-lo de tal sorte que Snew e St possam ser unidos mais à frente.
+
+Evento 2, término de um fluxo Sj que é o fluxo alvo de um outro fluxo Si.
+
+Nesta situação, Sj termina antes de ser alcançado por Si.
+
+Os clientes de Si ficam órfãos (não possuem mais fluxo a alcançar) e os conteúdos armazenados em seus buffers, devido à escuta de Sj, são descartados.
+
+O servidor busca um outro fluxo que transmite uma unidade de dados posterior àquela atual do fluxo Si.
+
+Seja Ssubs este fluxo.
+
+Se Ssubs existe, ele se torna alvo de Si.
+
+Caso Ssubs termine antes de ser alcançado por Si, a busca por um outro fluxo Ssubs é repetida.
+
+Evento 3, união do fluxo Si e seu alvo Sj.
+
+Seja Sm o fluxo resultante.
+
+O servidor imediatamente busca por um fluxo que esteja transmitindo uma unidade de dados posterior àquela do fluxo Sm.
+
+Seja St este fluxo.
+
+Se St existe, os clientes de Sm, que originalmente pertenciam ao fluxo Si, vão também escutá-lo para eventualmente se unir a ele.
+
+Já os clientes de Sm, que originalmente pertenciam ao fluxo Sj, não são afetados.
+
+Caso St não exista, nada precisa ser feito.
+
+A principal diferença entre a técnica MI e a técnica CT é que em MI não há a união de grupos de clientes pertencentes a fluxos distintos na ocorrência do Evento 3.
+
+A discussão a seguir justifica essa diferença para fins de se tentar obter uma maior otimização de uso da banda do sistema.
+
+Suponha que um fluxo Si se una com seu alvo Sj.
+
+Seja Sm o fluxo resultante desta união.
+
+Considere que Sj já tivesse um fluxo alvo Sk antes de ser alcançado por Si.
+
+Na técnica CT, conforme já explicado, um fluxo alvo para Sm é selecionado e toda informação (unidades de dados do objeto) recebida pelos clientes originalmente pertencentes à Sj (enquanto estavam escutando Sk antes da ocorrência da união) é simplesmente descartada.
+
+Para um acesso seqüencial, esta decisão de descarte não aumenta a banda do servidor (embora impacte na banda do cliente), pois esta mesma informação precisa ser retransmitida para atender os clientes originalmente pertencentes ao fluxo Si.
+
+Por outro lado, para um acesso não seqüencial, esta decisão pode aumentar a banda do servidor, pois a informação descartada não é mais necessariamente retransmitida conforme explicamos a seguir.
+
+Assuma que, logo após a união dos fluxos Si e Sj, resultando no fluxo Sm, todos os clientes originalmente pertencentes à Si decidam, por exemplo, realizar um salto para trás (ou para frente) do atual ponto em exibição do objeto.
+
+Se os clientes originalmente pertencentes à Sj descartarem a informação em buffer (recebida de Sk), como ocorre na técnica CT, esta mesma informação precisará ser retransmitida novamente, não por causa dos clientes originalmente pertencentes à Si, mas por causa dos clientes originalmente pertencentes à Sj.
+
+A decisão de descarte nesta situação é então indevida, pois os clientes de Sj já tinham esta informação em buffer antes da união.
+
+Para resolver isso, na técnica MI, conforme já explicamos, um fluxo alvo St é então selecionado e designado exclusivamente para os clientes de Sm que originalmente pertenciam à Si, e os clientes que originalmente pertenciam à Sj não são afetados, não fazem descarte de dados e continuam tendo Sk como fluxo alvo.
+
+Note que St pode ser um fluxo diferente de Sk, pois os clientes têm um acesso não-seqüencial e assim podem, portanto, abrir fluxos de dados em qualquer instante e em qualquer unidade de dados do objeto que está sendo visualizado.
+
+Assim, em MI temos a possibilidade de um mesmo fluxo com diferentes grupos de clientes associados, cada grupo com um fluxo alvo distinto.
+
+No entanto, é preciso dizer que existem duas situações específicas que podem favorecer a técnica CT em relação à técnica MI.
+
+A primeira situação relaciona-se ao fato de que o eventual novo fluxo alvo St, designado para os clientes de Si depois que Si se une à Sj, pode estar relativamente mais próximo ao fluxo Sj do que aquele originalmente designado para o próprio Sj.
+
+Por exemplo, admita que, antes da união de Si com Sj, o fluxo alvo de Sj, que é o fluxo Sk, esteja à distância de 20 unidades de dados.
+
+Admita que imediatamente antes da união de Si com Sj, um novo fluxo St é aberto no sistema e este está à distância de apenas 3 unidades de Sj.
+
+Considere que neste instante ocorre a união de Si com Sj, resultando no fluxo Sm.
+
+Considerando este cenário, analisemos a seguir o que ocorre nas técnicas MI e CT.
+
+Na técnica CT, todos os clientes de Sm (originalmente pertencentes à Si ou Sj) são beneficiados pelo fato da identificação do novo alvo indicar o fluxo mais próximo St.
+
+Na técnica MI, os clientes de Sm, originalmente pertencentes à Si, são beneficiados pela identificação do fluxo mais próximo St, entretanto, os clientes de Sm, originalmente pertencentes à Sj, permanecem tendo Sk como fluxo alvo.
+
+Nesta situação, CT pode apresentar uma melhor otimização de banda que MI, pois o fluxo alvo mais próximo atende indistintamente a todos os clientes de Sm.
+
+Note que uma maior proximidade do fluxo alvo leva a um menor número de fluxos no sistema, pois o fluxo que tenta alcançar o alvo pode ser extinto mais cedo.
+
+A segunda situação é descrita a seguir.
+
+Na técnica MI, se os clientes de Sj não possuem um fluxo alvo, estes clientes ainda permanecerão sem um fluxo alvo mesmo após a união de Si com Sj.
+
+Na técnica CT, isso não ocorre, pois o fluxo alvo é escolhido para todos os clientes de Sm, independentemente de originalmente pertencerem à Si ou à Sj.
+
+Contudo, este fato, não traz considerável vantagem para CT.
+
+A explicação é que, devido à operação intrínseca do paradigma de HSM (abertura e busca por fluxos de forma exaustiva) e ainda à condição de termos interatividade, a probabilidade de um cliente não ter um fluxo alvo associado é praticamente desprezível.
+
+A proposta Unique Buffer (UB) aproveita o efeito conjunto das requisições para um mesmo objeto devido aos vários clientes existentes no sistema e localizados em uma mesma rede local.
+
+O cliente deixa de ter um buffer local exclusivo, passando a existir apenas um buffer único compartilhado - localizado em um nó (rede) de acesso - para atendimento de todos os clientes que desejam assistir a um mesmo objeto.
+
+As solicitações de um cliente no instante t podem então se beneficiar de quaisquer solicitações ocorridas em instantes anteriores a t.
+
+Dessa forma, dois efeitos são percebidos, o cliente se beneficia de suas próprias requisições anteriores, assim como na proposta original de CB, e o cliente se beneficia de requisições anteriores e provenientes de outros clientes.
+
+O tamanho do buffer único é igual ao tamanho do objeto.
+
+Ilustra um sistema no qual um servidor armazena n objetos de interesse de um total de j clientes, localizados remotamente em uma mesma rede local.
+
+Este clientes estão conectados à Internet por meio de uma rede (nó) de acesso, que possui um conjunto de k buffers únicos e tem implementada a estratégia UB.
+
+A expectativa é um alto grau de otimização da banda B do servidor.
+
+Em geral, para fins de justificativa de projeto, temos que j ¸ n ¸ k.
+
+Os valores de n e j estão atrelados a situações reais.
+
+O valor de k pode ser definido como o número de objetos mais freqüentemente requisitados e estimado a partir da distribuição Zipf, que diz que a probabilidade de selecionar o objeto de categoria.
+
+Os k buffers são alocados dinamicamente segundo as requisições dos clientes.
+
+Quando todos os k buffers estiverem alocados, as requisições de outros objetos são atendidas por meio de um buffer convencional e local do cliente.
+
+Ilustra os segmentos de dados armazenados em um dos k buffers devido a escuta de três fluxos distintos, realizadas por três clientes que vêem o mesmo objeto simultaneamente.
+
+O fluxo S1 refere-se ao cliente C1, o fluxo S2 ao cliente C2, e o fluxo S3 deve-se ao cliente C3.
+
+As unidades armazenadas no buffer podem ser indistintamente utilizadas por qualquer um dos j clientes do sistema que queiram assistir ao mesmo objeto neste instante de tempo.
+
+O compartilhamento eficiente de um buffer único, por todos os clientes de uma rede local que desejam assistir a um mesmo objeto, exige o uso de métodos específicos de acesso ao buffer.
+
+Isto porque é provável termos mais de um cliente realizando acesso simultaneamente.
+
+Esta questão pode ser modelada como o Problema do Produtor/ Consumidor.
+
+A princípio, vemos duas abordagens para sua solução.
+
+A primeira é uma proposta denominada de Software Transactional Memory, a qual baseia-se em conceitos da área de bancos de dados para controle de acesso, criando noções de atomicidade, consistência e isolamento de transações.
+
+A segunda, mais comum, relaciona-se à utilização de conceitos como semáforos e/ou travas (locks) para o controle de acesso.
+
+Na estratégia UB, o armazenamento de unidades de dados no buffer único é dinâmico, ou seja, é determinado pelo acesso dos clientes às unidades do objeto que está sendo visualizado.
+
+Diferentemente de técnicas baseadas no emprego de proxies, na estratégia UB não há necessidade de cópias de partes ou de todo o objeto do servidor multimídia sem que o cliente tenha requisitado, também não há premissa de uso de quaisquer tipos de codificação em camadas (layer-encoded streaming) visando a melhor adaptação de qualidade dos fluxos.
+
+Uma análise competitiva mais detalhada com técnicas baseadas em proxies é considerada em trabalhos futuros.
+
+A principal motivação da estratégia PB está na tentativa de evitar que a fragmentação de informação no buffer local do cliente comprometa a otimização do sistema.
+
+A fragmentação se dá quando a informação armazenada apresenta-se em pequenos segmentos espaçados entre si, fazendo com que na maioria das vezes o cliente não seja atendido por apenas um único segmento e, assim, necessite entrar em um ciclo de leitura, ora a partir de buffer local, ora a partir de fluxos do sistema.
+
+Isso cria uma maior dificuldade para o compartilhamento de dados, pois os fluxos passam a ter uma menor duração.
+
+Evitando os malefícios da fragmentação, podemos ainda esperar que haja uma minimização da variabilidade dos requisitos de banda (traffic smoothing) e do overhead do servidor para o tratamento das mensagens entre clientes e servidor, que se traduz em menor complexidade do sistema e é avaliada nos experimentos adiante.
+
+Na proposta PB, a requisição somente é atendida na condição de que o tamanho da informação contígua em buffer (número de unidades consecutivas), a partir da unidade de dados requisitada, seja suficiente para evitar que o cliente entre no ciclo de leitura descrito no último parágrafo.
+
+Seja então ±B a variável que designa esse tamanho.
+
+Ilustra esta estratégia para um cliente que requisita a unidade ur1, sendo que ele já tem armazenado desde a unidade ur1 até a unidade ur2.
+
+Quando ur2 ¡ ur1 ¸ ±B, a informação é utilizada para servir o cliente.
+
+Por outro lado, quando ur2 ¡ ur1 < ±B, a informação é ignorada e o cliente deve escutar fluxos de dados do servidor.
+
+As principais métricas de performance aqui utilizadas são consumo médio da banda, valor de pico da banda, distribuição da banda, razões competitivas e trabalho médio.
+
+Consumo médio e valor de pico da banda são duas métricas bastante freqüentes em experimentos comparativos.
+
+Já a distribuição da banda torna-se importante pelo fato de considerarmos em nossos experimentos a interatividade dos clientes.
+
+Isto faz com que a banda possa variar significativamente ao longo do tempo.
+
+Conseqüentemente, o simples cômputo do valor médio ou do valor de pico não permitem uma análise mais detalhada das técnicas.
+
+As razões competitivas aqui utilizadas são assim definidas RMax = max(P[Banda>k]tec1 P[Banda>k]tec2) e RMin = min(P[Banda>k]tec1 P[Banda>k]tec2), para todo k inteiro desde que P[Banda > k] ¸ 10¡4 (por precisão da simulação), onde Banda é medida em número de canais simultâneos em uso no sistema, e tec1 refere-se à técnica em relação a qual queremos comparar a técnica tec2.
+
+Note que estas razões representam um meio eficiente de quantificar a diferença entre as respectivas distribuições de banda de duas técnicas tec1 e tec2 que desejamos comparar.
+
+O trabalho médio é utilizado para analisar a complexidade do sistema e é definido conforme mostrado a seguir.
+
+Ele é função do número médio de mensagens recebidas pelo servidor e das operações executadas para o tratamento das mesmas.
+
+A operação de maior custo é a busca por um fluxo multicast.
+
+Faz-se então a análise de pior caso e admite-se que a operação de busca seja executada em tempo O(n), onde n é o número de fluxos multicast em andamento no sistema.
+
+O servidor pode receber quatro tipos de mensagens, requisição para uma unidade de dados (DR), requisição para o término de uma união de fluxos (MR), requisição para o término de patch (PR), e requisição para fim de exibição (LR).
+
+Sintetiza as complexidades de tempo relativas às operações devido a cada tipo de mensagem, onde O(C) denota uma complexidade de tempo constante, apresenta as equações para calcular o trabalho médio.
+
+Os valores de n, E[DR], E[MR], E[PR], e E[LR] são obtidos a partir do modelo de simulação.
+
+Consideramos quatro cargas sintéticas.
+
+Cada uma refere-se a um cenário de avaliação distinto no qual um objeto multimídia está sendo transmitido.
+
+Estas cargas são obtidas por meio de um gerador proposto e referem-se aos servidores multimídia eTeach, MANIC e Universo Online UOL.
+
+Os dois primeiros servidores são de ensino a distância e o último é um servidor de conteúdo.
+
+O gerador de carga sintética utilizado tem como entrada um trace real de sessões para um dado objeto com uma certa taxa de requisições.
+
+Sua saída é um trace sintético com estatísticas semelhantes àquelas do trace original.
+
+Sucintamente, descrevemos sua idéia a seguir.
+
+O gerador inicialmente constrói um modelo de transição de estado, onde cada estado corresponde a um segmento de tamanho fixo do objeto.
+
+As probabilidades de início de uma sessão em cada segmento, assim como as probabilidades de transição entre os estados, são calculadas a partir do trace real.
+
+Um trace de sessões é então produzido assumindo o início de sessão sendo dado por um processo de Poisson, e o comportamento do cliente dentro de cada sessão é extraído a partir das características do cenário (trace) real.
+
+O cliente pode executar as seguintes ações de interatividade, Play, Stop, Pause/Resume, Jump Forwards e Jump Backwards.
+
+As principais estatísticas das cargas sintéticas.
+
+Para garantir um significativo espectro de análise, escolhemos cargas estatisticamente diferentes.
+
+Na Carga eTeach (Workload 1), o número de ações Jump Backwards é bem razoável, resultando em localidade de acesso, ocorre um grande número de retornos a unidades de dados anteriormente já visualizadas pelo cliente, o que deve favorecer às estratégias de gerência de buffer onde o cliente armazena todos os dados transmitidos pelo servidor.
+
+Outro aspecto interessante é que a maioria das unidades de dados são acessadas como primeira unidade do segmento.
+
+Seja X a variável aleatória que representa a primeira unidade acessada pelo cliente quando este faz um movimento, ou seja, quando requisita um novo segmento.
+
+Ter uma unidade i como a primeira unidade de um segmento significa que a variável aleatóriaX assume o valor i.
+
+Por último, a distribuição de acesso a unidades é aproximadamente uniforme.
+
+Em relação à Carga MANIC-1 (Workload 2), o nível de interatividade é relativamente baixo.
+
+Também a distribuição de acesso não é uniforme e apenas 24 unidades são acessadas como a primeira do segmento.
+
+Já na Carga MANIC-2 (Workload 3), poucas unidades são efetivamente acessadas como primeiras unidades do segmento.
+
+Existe ainda alguma uniformidade na distribuição de acesso.
+
+Finalmente, para a Carga UOL (Workload 4) há significativa localidade de acesso e a primeira unidade do objeto é bastante requisitada (popular).
+
+Os resultados de simulação são obtidos usando a ferramenta Tangram-II.
+
+Esta ferramenta constitui-se em um ambiente de modelagem e experimentação de sistemas computacionais/comunicações, desenvolvido na Universidade Federal do Rio de Janeiro (UFRJ), com participação de UCLA/USA, com propósitos de pesquisa e educação.
+
+Este ambiente combina uma interface de usuário sofisticada em um paradigma de orientação a objeto e novas técnicas de solução para análise de performance e disponibilidade.
+
+O usuário especifica um modelo em termos de objetos que interagem por meio de um mecanismo de troca de mensagens.
+
+Um vez que o modelo seja compilado, pode ser resolvido analiticamente, se for Markoviano ou pertencer a uma classe de modelos não Markovianos, ou resolvido via simulação.
+
+É possível obter soluções tanto para estado estacionário como para estado transiente.
+
+Para facilidade de entendimento organizamos a apresentação dos resultados em duas seções distintas.
+
+A Seção dedica-se aos resultados provenientes da análise competitiva entre as técnicas de compartilhamento de banda, Patching, PI, CT, PIE, PIC e MI.
+
+Dedica-se aos experimentos com as estratégias de gerência de buffer SB, CB, UB e PB.
+
+Salvo informado diferentemente, aqui consideramos ±after = ±merge, e fazemos ±before = 10 s.
+
+Estas suposições são respaldadas nos resultados obtidos.
+
+Devido a restrições de espaço, não ilustramos todos os experimentos realizados.
+
+Inicialmente analisamos as técnicas baseadas em Patching no intuito de obtermos aquela de melhor performance.
+
+Em seguida, de forma análoga, avaliamos as técnicas baseadas em HSM.
+
+Finalmente, temos uma análise competitiva considerando a mais eficiente técnica de cada paradigma.
+
+Também em nossas análises consideramos apenas os dois tipos mais comuns de gerência de buffer, Simple Buffer (SB) e Complete Buffer (CB).
+
+Em todas as cargas consideradas, PI, PIE e PIC apresentam melhor performance que a clássica técnica Patching.
+
+Este resultado já era esperado, pois Patching é um esquema para acesso seqüencial e, portanto, não é capaz de lidar eficientemente com a interatividade dos clientes.
+
+Esta superioridade em performance é quantificada por meio das razões competitivas computadas, RMin = 10 e RMax 2.
+
+As técnicas PIE e PIC têm performances semelhantes em todas as cargas e são ambas, de forma geral, mais eficientes que PI.
+
+Esta superioridade em performance é quantificada por meio das razões competitivas computadas RMin 2 e RMax 2.
+
+Também para ilustrar este fato apresentamos a distribuição (CCDF) da banda para PIE-SB, PIC-SB e PI-SB na Isto favorece enormemente PIE por ter uma implementação bem mais simples que PIC.
+
+Nestas avaliações usamos ±after = 50% da janela ótimaW de Patching, entretanto, enfatizamos que as observações então feitas são válidas independentemente do valor absoluto de ±after no intervalo de 0-100% de W ou L.
+
+Valores fora deste intervalo se mostram ineficientes.
+
+Ao compararmos MI e CT, notamos que, na maioria dos cenários, MI é mais eficiente que CT quando usamos a estratégia de gerência buffer CB e, de forma contrária, quando usamos a gerência SB, a técnica CT torna-se mais eficiente que MI.
+
+Este resultado está embasado na diferença de MI com relação à CT.
+
+Em linhas gerais, quando usamos CB, existe uma tendência de termos um menor número de fluxos ativos no sistema e daí uma menor probabilidade de selecionar novos fluxos alvos, em substituição a fluxos alvos originais, que de fato venham a prover economia de banda.
+
+Nas duas primeiras figuras temos a distribuição (CCDF) da banda quando usamos CB nas Cargas UOL e eTeach, respectivamente, onde vemos a vantagem de MI sobre CT.
+
+Na última figura temos o caso de emprego da gerência SB na Carga eTeach.
+
+A performance é justamente contrária, CT é mais eficiente que MI.
+
+Agora, desde que a implementação de CB é relativamente simples e vantajosa, devido à eventual economia de banda que pode ser atingida, decorre como conclusão natural que MI é uma melhor escolha para a maioria dos cenários examinados.
+
+Por fim, comparamos a técnica mais eficiente no paradigma de Patching com a mais eficiente no paradigma de HSM, técnicas PIE e MI, respectivamente.
+
+Em todas as cargas, MI tem melhor performance que PIE.
+
+Para efeito de justiça, nesta análise utilizamos os valores ideais (obtidos experimentalmente) do parâmetro ±after, explicitados nas próprias figuras em função do valor percentual da janela ótima W de Patching.
+
+A título de ilustração, trazem as reduções (%) em relação ao consumo médio de banda e aos valores de pico de banda, respectivamente, registrados por PIE e MI em relação à técnica Patching-SB.
+
+As reduções são de fato, como já esperado, bem expressivas, tanto para o consumo médio de banda (30% ¡ 68%), como para o valor de pico (18% ¡ 62%).
+
+A maior eficiência de MI sobre PIE é, contudo, acompanhada por uma maior complexidade de sistema, avaliada por meio da métrica trabalho médio realizado pelo servidor.
+
+Nos experimentos realizados, esta métrica chega a ser mais que uma ordem de grandeza maior para MI.
+
+Resultados semelhantes foram apresentados para a técnica CT em comparação com a técnica PIE.
+
+No entanto, se utilizarmos ±before, 13% (35%) de T, a técnica PIE-SB (PIE-CB) torna-se bastante competitiva com relação a MI-SB (MI-CB) em todas as cargas, exceto para UOL.
+
+Notamos ainda que, para tornar PIE mais eficiente que MI, o valor experimental obtido para ±before é sempre maior no caso de uso da gerência de buffer CB do que no caso da gerência SB.
+
+Isso é explicado pelo fato de que, quando usamos CB, existe uma tendência de termos um menor número de fluxos no sistema e, portanto, uma maior dificuldade para efetuar o compartilhamento de dados.
+
+Esta condição favorece à técnica MI por ter um mecanismo de busca mais exaustivo que PIE.
+
+Por fim, faz uma síntese gráfica comparativa entre MI-SB e PIE-SB considerando dois resultados, o trabalho médio em função do nível de interatividade (número médio de requisições por sessão) e o valor de ±before para o qual temos praticamente a mesma distribuição de banda em ambas as técnicas.
+
+Note que, conforme o nível de interatividade aumenta, o trabalho médio de MI também aumenta enquanto que a descontinuidade introduzida por ±before diminui.
+
+Comportamento semelhante é obtido também para o caso de gerência CB.
+
+Este resultado geral mostra portanto que, apesar de MI ser de fato a técnica de melhor performance, PIE pode ser vista como uma técnica competitiva para cargas em que o nível de interatividade é relativamente alto.
+
+Aqui consideramos as estratégias de gerência de buffer SB, CB, UB e PB empregadas em conjunto com as técnicas de compartilhamento de banda PIE e MI, por serem estas as mais eficientes, conforme observado nos experimentos anteriores.
+
+Especialmente em relação à técnica PIE, utilizamos valores ideais (obtidos experimentalmente) para seus respectivos parâmetros ± e já indicados na seção anterior.
+
+Para fins de facilidade de entendimento e organização, resolvemos realizar dois conjuntos distintos de experimentos, conforme apresentado a seguir.
+
+CONJUNTO 1, Análise Competitiva entre SB, CB, PB e UB Aqui assumimos ±B = L, onde L é o tamanho médio do segmento do objeto requisitado pelo cliente quando este faz uma requisição ao servidor.
+
+O valor de L pode ser estimado dinamicamente por medição durante a operação ou a partir de logs de clientes.
+
+Valor Médio e Valor de Pico.
+
+Resumem os resultados obtidos considerando estas métricas.
+
+A estratégia UB é notadamente a de melhor desempenho, pois reduz significativamente os requisitos de banda média e valor de pico de banda, comparativamente às outras estratégias.
+
+Os requisitos de banda média são inferiores a 1 canal para todas as cargas consideradas.
+
+As reduções chegam até 98% em relação à SB.
+
+A estratégia SB é a menos eficiente.
+
+Ainda notamos alguma equivalência nos resultados provenientes do uso de CB e PB.
+
+No que se refere aos valores médios de banda, a diferença entre CB e PB, mantém-se inferior a 1 canal, em relação aos valores de pico, a maior diferença entre CB e PB ocorre na Carga MANIC-2, onde registramos, com a técnica MI, uma diferença aproximada de oito canais em favor de PB.
+
+Já as reduções de CB e/ou PB em relação à SB chegam a até 43,0% (valor médio) e a apenas 10,9% (valor de pico), onde evidencia-se uma menor influência sobre esta última métrica.
+
+Conforme podemos observar, a estratégia UB é aqui também a mais eficiente.
+
+As reduções chegam a até duas ordens de grandeza em relação à SB.
+
+Considerando CB e PB, podemos observar que, apesar da proximidade dos valores em ordem de grandeza, a estratégia PB mostra-se geralmente mais eficiente que CB, pois apenas na Carga MANIC-1 não ocorre redução no valor desta métrica.
+
+Por exemplo, para MANIC-2 e técnica MI, o valor obtido por PB é aproximadamente três vezes menor que aquele de CB.
+
+As reduções de CB com relação à SB não são expressivas.
+
+Há inclusive casos desfavoráveis, onde observamos aumentos.
+
+Estes casos são aqueles em que possivelmente ocorre a fragmentação da informação em buffer.
+
+Por fim, as reduções de PB em relação à SB são um pouco mais atrativas.
+
+Por exemplo, para UOL e técnica MI, o valor relativo à PB é aproximadamente duas vezes menor que aquele registrado para SB.
+
+Os resultados desta métrica também confirmam que UB é a mais eficiente.
+
+A distribuição complementar (CCDF) para a estratégia UB aparece sempre bem destacada das demais.
+
+A probabilidade do números de canais usados pelo servidor ser maior do que 2 é menor do que 01 para a grande maioria das cargas, enquanto que, para as outras estratégias de gerência de buffer, esta probabilidade é maior que 07 na maioria dos cenários.
+
+Também, a partir das curvas da distribuição, observamos que SB é a estratégia menos eficiente.
+
+Para as estratégias CB e PB, os resultados aparecem divididos e não há significativa diferença entre elas.
+
+Por exemplo, para a técnica MI, observamos que na Carga eTeach, CB mostra-se mais eficiente, por outro lado, na Carga MANIC-2, PB é mais eficiente.
+
+Aqui variamos o valor de ±B em função de L e observamos as distribuições complementares da banda do servidor.
+
+Também consideramos o valor de ±B em função do tamanho do objeto inteiro T.
+
+O objetivo é então verificar a existência de um valor no intervalo que otimize a performance de PB e ainda estimar esse valor como função de L.
+
+Para efeito de maior clareza e organização da análise, assumimos então dois casos ±B ¸ L e ±B < L.
+
+No primeiro, não conseguimos verificar quaisquer otimizações.
+
+Isso revela que o tamanho médio do segmento L é possivelmente um valor upper bound para as cargas examinadas.
+
+No segundo caso e considerando a maioria das cargas, alguma otimização foi produzida.
+
+Inclusive, houve situações em que PB passou a ser mais eficiente que CB.
+
+O valor ideal de ±B ¸ L estabeleceu-se no intervalo de 25%-50% de L.
+
+Isso evidencia a importância da determinação do valor ideal de ±B para o emprego da técnica PB.
+
+Em síntese, considerando ambos conjuntos de experimentos, constatamos que a estratégia UB é a mais eficiente.
+
+As otimizações produzidas são bem expressivas, revelando um padrão de comportamento semelhante entre clientes independentes que assistem a um mesmo objeto, as estratégias CB e PB apresentam certa semelhança nos resultados obtidos, exceto para a métrica trabalho.
+
+Isto significa que PB tem uma menor complexidade de sistema que CB.
+
+A complexidade é estimada em função do número de mensagens trocadas entre clientes e servidor e das operações para tratamento das mesmas pelo servidor, a estratégia PB é possível de ser otimizada determinando-se um valor ideal para o parâmetro ±B, o qual na maioria das cargas utilizadas estabeleceu-se no intervalo de 25%-50% de L, a estratégia SB é a mais simples, mas também é, em geral, a de performance mais sofrível.
+
+Esta desvantagem tende a tornar-se inclusive mais acentuada em cenários com alto nível de interatividade por parte dos clientes, os valores de otimização que registramos enaltecem a importância do uso das estratégias de gerência de buffer.
+
+Neste trabalho apresentamos a nova técnica de compartilhamento de banda Merge Interativo (MI), cuja concepção baseia-se no paradigma de HSM.
+
+Também propomos duas novas estratégias de gerência de buffer para sistemas de VoD interativos, Unique Buffer (UB) e Precise Buffer (PB).
+
+Por meio de simulações, utilizando cargas sintéticas obtidas de servidores reais, validamos nossas propostas e realizamos análises competitivas com outras propostas da literatura.
+
+Os resultados finais, os quais englobaram diferentes métricas de comparação de performance, mostraram principalmente que a nova técnica MI é de fato a de maior eficiência, no entanto, o paradigma de Patching pode tornar-se bastante atrativo com a introdução de pequenas descontinuidades no serviço de atendimento de requisições, a estratégia de gerência de buffer UB é a mais eficiente, porém, pela maior simplicidade, as estratégias PB e CB também são consideradas competitivas.
+
+Em relação a outras propostas da literatura, alcançamos otimizações de 5%-98% em valores médio de banda, pico de banda e complexidade do sistema.
+
+Como trabalhos futuros, podemos citar análise detalhada do desempenho da estratégia UB quando comparada ao uso de um proxy.
+Avaliação das estratégias propostas usando outras cargas sintéticas, desenvolvimento de modelos analíticos para a análise de técnicas de compartilhamento de banda em ambientes com interatividade e, por fim, desenvolvimento de novas técnicas de compartilhamento de banda conjuntamente com estratégias de gerência de buffer obedecendo ao paradigma P2P (Peer-to-Peer), criando um ambiente de transmissão distribuído.
+

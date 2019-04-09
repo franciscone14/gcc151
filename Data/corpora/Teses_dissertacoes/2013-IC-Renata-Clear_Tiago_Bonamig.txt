@@ -1,0 +1,536 @@
+A o estudarmos sistemas de extração de informação, encontramos informação abundante abordando textos em língua inglesa, e essa informação se torna significantemente menor ao procurarmos tais abordagens para a língua portuguesa.
+Esse cenário se torna ainda mais díspar quando buscamos o processamento de um grande volume de informações, pois muitos dos métodos para extração de informação em língua portuguesa envolvem o uso de sistemas computacionalmente onerosos, como constituency parsers, o que faz com que sua velocidade impossibilite o processamento de um grande volume de documentos.
+O que buscamos com este trabalho é a apresentação de um modelo de extração de informação sobre um grande conjunto de informações ­ no caso, a World Wide Web ­ que aborda algumas particularidades da língua portuguesa e também apresenta muitas oportunidades de melhoria mediante a incorporação de abordagens identificadas ao longo de o desenvolvimento do modelo e sua prova de conceito.
+Não somente oportunidades baseadas no tratamento da língua portuguesa, mas também de abordagens praticadas por outros trabalhos estudados ao longo de a composição deste experimento.
+A proposta desta dissertação é um modelo de extração de informação baseado na identificação de padrões textuais que representam uma relação semântica entre duas entidades.
+Em posse desses padrões textuais e de uma das entidades que componham essa relação, extrai- se da World Wide Web a entidade complementar à relação.
+Também é abordado o emprego de aspectos temporais sobre os documentos para a avaliação da validade da resposta num determinado escopo temporal.
+Os resultados da prova de conceito são satisfatórios e também são apresentados inúmeros desafios não abordados, que representam oportunidades para melhoria deste modelo.
+Também são apresentadas possíveis aplicações para este, inclusive uma possível evolução para um modelo de Open Information Extraction para a língua portuguesa.
+Palavras-Chave: Padrões textuais;
+Extração de informação;
+Wrapper induction. Extração de informação baseada em padrões textuais Em este capítulo apresentamos a motivação para esta pesquisa, uma explanação sucinta do seu objeto de estudo, os seus objetivos e, por fim, a organização desta dissertação.
+Motivação e contexto O surgimento da World Wide Web, criada por Tim Berners-Lee em 1991, não só criou um novo meio a partir de o qual pudemos criar e disseminar informação como também, para determinados nichos, se tornou o principal meio para esses fins.
+De acordo com a International Telecommunication Union, o número de usuários de Internet no mundo chegou a 29,7% da população ao final de 2010, e com o advento do uso de Internet em telefones celulares, a expectativa é de que o número de usuários de Internet móvel chegue a três bilhões e meio até 2017.
+Considerando que, de maneira voluntária ou involuntária, todo usuário de Internet gera informação, seja de maneira mais básica, em formato de registros (logs) de acessos e operações, até a geração intencional de conteúdo, houve um crescimento expressivo do volume de conteúdo disponível na Internet.
+O mecanismo de procura Google, um dos líderes de mercado de indexação de conteúdos na Www, anunciou em julho de 2008 que havia ultrapassado a barreira de um trilhão de endereços da Www devidamente identificados.
+Fazendo uma pesquisa por uma stopword na língua inglesa como &quot;the», temos em seu retorno mais de 25 bilhões de documentos indexados.
+De acordo com a flexibilidade do modelo da Www possibilitou o seu crescimento, mas não foi tão generosa com a organização de dados.
+Dados estruturados publicados na Www corriqueiramente são apresentados em formatos não uniformes, como arquivos delimitados, tabelas em Html ou arquivos XML/ JSON, sem respeitar convenções de nomenclatura.
+Além de os dados estruturados não estarem em formato uniforme, existe um volume massivo de informação não estruturada que precisa ser devidamente processado para que seu conteúdo seja passível de representação em forma estruturada, possibilitando a sua subsequente utilização em aplicações que demandam dados que obedeçam a um formalismo.
+Em função de essa necessidade, foram iniciadas as discussões sobre o emprego de modelos de redes semânticas na Internet, trazendo à tona o conceito de web semântica.
+Considerando que iniciativas para geração de conteúdo contam com uma participação de usuários muito superior às iniciativas para extração e consolidação de informação estruturada, teremos uma defasagem crescente entre a geração de conteúdo e sua subsequente estruturação.
+Sabendo ainda que em certos idiomas, como o português, a disparidade entre o volume de colaboradores é ainda maior, podemos inferir que, sem o apoio de ferramentas que apoiem o processo de estruturação da informação, muito provavelmente teremos conjuntos de informação estruturada desatualizados, ou, ainda, com volume de informação pouco significativo para encorajar o seu uso.
+Existem inúmeras iniciativas correntes para a extração e consolidação de informação estruturada a partir de fontes não estruturadas ou parcialmente estruturadas.
+Muitos esforços para tal consolidação são feitos de maneira puramente manual.
+Podemos pegar como exemplo projetos como a DBPedia, que busca a extração de conteúdo estruturado a partir de uma grande fonte de conteúdo não estruturado, a Wikipedia.
+Outras iniciativas que buscam automatizar esse processo são pesquisas acerca de o conceito de Open Information Extraction, que buscam estruturar a informação fazendo uso do reconhecimento de relações entre entidades e o seu subsequente emprego para a extração de informação, fazendo a análise de textos contidos na Www.
+Porém é importante sinalizar que a maioria dos trabalhos acerca de Open Information Extraction são orientados à língua inglesa, ou então não são focados em nenhum idioma específico, fazendo com que particularidades de idiomas específicos, como a língua portuguesa, não sejam devidamente endereçados.
+Porém, é válido enfatizar que o intuito do modelo proposto não é ser um modelo de Open Information Extraction para a língua portuguesa, mas sim utilizar boas práticas desses modelos para a criação de extratores de informação mais direcionados.
+O que propomos nesta dissertação é um modelo para a extração de informação estruturada a partir de informação não estruturada em língua portuguesa.
+Poucos problemas diretamente relacionados à língua portuguesa serão endereçados num primeiro momento, porém, muitos destes serão expostos nesta dissertação, apresentando oportunidades de melhorias futuras.
+A extração de informação ocorrerá a partir de o reconhecimento de padrões textuais de ligação entre entidades, inicialmente extraídos mediante a análise de exemplos providos por o usuário.
+Considerando que o volume de informações na Www é bastante expressivo, as premissas para este modelo é que ele possa processar um número expressivo de documentos sem demandar recursos computacionais que inviabilizem a sua aplicação.
+Objeto de estudo Acreditamos que a rotina de extração de informações estruturadas a partir de conteúdos não estruturados, quando executada a partir um determinado modelo, pode conter uma série de atividades passíveis de replicação.
+Podemos tomar como exemplo a relação existente entre corporações e as pessoas que exercem cargos dentro de estas.
+É possível criarmos um modelo de representação de conhecimento que contenha tipos de entidades que representam empresas e pessoas, e estabelecermos uma relação entre as duas, a definição do cargo da pessoa dentro de essa empresa.
+Como iremos explicar a partir de o experimento conduzido, utilizando a linguagem natural podemos expressar que o CEO da Microsoft é Steve Ballmer e o CEO do Google é Larry Page.
+Então podemos dizer que a sequência de termos &quot;O CEO de A é B «muito provavelmente configura uma relação de exercício do cargo de CEO da pessoa B na empresa A. Estimamos que, se procurarmos quem é o CEO da empresa Activision fazendo pesquisa por documentos contendo &quot;O CEO da Activision é», muito provavelmente obteremos a informação que desejamos, que a pessoa Bobby Kotick exerce o cargo de CEO nessa empresa.
+Um dos grandes problemas na identificação de padrões textuais é que de maneira não intencional esta pode se tornar extremamente aderente a um determinado conjunto de exemplos, inclusive evidenciando padrões que o usuário pode desconhecer.
+Por exemplo, se para identificarmos CEOs de empresas citamos como exemplo somente CEOs de empresas de tecnologia, podemos criar um extrator muito orientado ao CEOs de empresas de tecnologia.
+Inclusive a alta frequência do emprego do termo CEO em vez de presidente-executivo, se trata de uma particularidade de empresas de tecnologia, e em muitos outros setores de mercado o emprego de presidente-executivo é tão frequente quanto.
+O exemplo recém-apresentado é uma simplificação de um problema complexo e também apresenta um grau de incerteza, pois a relação indicada acima também pode ter sido real num determinado momento e não ser mais presente.
+O caráter volátil de determinadas relações faz com que, inclusive, seja útil considerar o elemento temporal dos documentos, o que nem sempre é algo fácil de identificar em documentos digitais.
+Outro ponto, facilmente identificado em procedimentos manuais prévios ao desenvolvimento do software que busca reproduzir o modelo, é que o padrão identificado pode retornar resultados pouco apurados, pois ainda há a possibilidade de ser citado &quot;O CEO da Activision é Kotick», com referência a a pessoa somente por o sobrenome.
+Portanto, fica bastante claro ao longo de o documento que há o desafio da correferência, pois muitas vezes a referência a uma entidade do tipo pessoa pode ser feita por meio de o seu sobrenome ou seu apelido, assim como a referência a uma entidade do tipo empresa pode ser feita através do seu nome fantasia ou razão social.
+Também ficou claro a necessidade de formar novos padrões de extração aplicando flexões ou fazendo uso de relações semânticas entre os termos.
+Tomando o exemplo exposto anteriormente, há uma relação de sinonímia entre CEO e presidente-executivo, a partir de o padrão identificado para um termo poderíamos chegar ao outro.
+Em a flexão de gênero, por exemplo, poderíamos chegar à expressão presidente-executiva, se a intenção for identificar pessoas que estejam nessa posição independente do seu gênero.
+As locuções na língua portuguesa também são um desafio que endereçamos de maneira bastante superficial num primeiro momento.
+Um dos exemplos utilizados é a identificação de presidentes de países específicos, um caso que torna bastante claro como o emprego de identificação de locuções pode favorecer a identificação de padrões.
+Por exemplo, pode existir um padrão como &quot;o presidente do,», e caso queiramos descobrir o presidente do Paraguai, utilizaríamos o padrão no seguinte formato:
+&quot;o presidente do Paraguai,».
+Porém &quot;o Paraguai «se trata de uma locução adjetiva que apresenta um adjetivo equivalente, no caso, &quot;paraguaio».
+Então, o padrão &quot;o presidente paraguaio, «seria semanticamente equivalente ao primeiro padrão.
+Determinados problemas não foram endereçados em função de as premissas que o sistema obedecer:
+Ser um sistema capaz de lidar com um grande volume de documentos num curto espaço de tempo e ser escalável.
+Como uma das variáveis do sistema, a precisão, está diretamente vinculada ao volume de documentos processados, utilizar recursos computacionalmente onerosos, que aumentem significativamente o tempo de processamento por documento, são automaticamente descartados, e infelizmente a melhor solução para muitas tarefas de PLN são computacionalmente onerosas.
+Objetivo Propor um modelo de extração de informação estruturada a partir de informação não estruturada em língua portuguesa oriunda da Www.
+A configuração do extrator de informação ocorrerá a partir de o fornecimento de exemplos da relação que se deseja encontrar, e cada um desses exemplos é um par de entidades que apresenta a relação em questão configurada entre a primeira e a segunda entidade do par.
+Por meio de identificação de padrões textuais que ligam as entidades dos exemplos fornecidos, será configurado um extrator de informação e este será empregado para recuperar informações para outros pares de entidades que apresentem características similares, e em os quais somente uma das entidades é conhecida.
+Realizar aprofundamento da revisão bibliográfica buscando as seguintes informações:
+A. Conceitos básicos de processamento de linguagem natural e extração de informação para uso adequado de terminologia;
+Selecionar e preparar recursos;
+Definir método/ processo para identificação de padrões;
+Definir método/ processo para emprego dos padrões reconhecidos na extração de informação;
+Implementação dos métodos definidos:
+Execução e avaliação da implementação do modelo:
+A. Aplicar os métodos definidos sobre os conjuntos de exemplos de teste;
+Organização Esta dissertação se encontra organizada da seguinte forma:
+O capítulo 1 busca fazer a introdução do tema, apresentando motivações e objetivos;
+O capítulo 2 busca apresentar a fundamentação teórica empregada na construção deste modelo, assim como trabalhos relacionados;
+O capítulo 3 busca apresentar conceitualmente o modelo proposto em suas duas etapas:
+A primeira, de identificação de padrões, e a subsequente, de emprego desses padrões para a extração de informação;
+Em o capítulo 4 é então descrito como foi desenvolvido o software para indicar se os resultados da aplicação do modelo lhe conferem relevância;
+O capítulo 5 apresenta considerações finais acerca de a pesquisa assim como oportunidades de trabalhos futuros.
+Em este capítulo apresentaremos alguns conceitos que foram empregados ao longo de esta dissertação assim como outros trabalhos relacionados ao modelo proposto.
+Conceitos De acordo com Gruber, uma relação é uma tupla que descreve o relacionamento entre objetos contidos num objeto de discurso.
+Podemos tomar como exemplo a relação de hiponímia, que é uma relação em que uma palavra descreve uma parte de um todo descrito por outras palavras.
+Por exemplo, a palavra &quot;gato «tem uma relação de hiponímia com &quot;mamíferos», pois &quot;mamíferos «expressa um conjunto que compreende &quot;gato», porém, é muito mais abrangente do que isso.
+Então podemos dizer que a relação de hiponímia entre &quot;gato «e &quot;mamífero «é a mesma relação entre &quot;azul «e &quot;cor», pois a primeira palavra tem uma relação do tipo &quot;is- a «com a segunda.
+A o tentar definir a tarefa de question answering, faz uma analogia ao que ocorre ao fazermos uma pergunta a uma pessoa que desconhece a resposta, mas deseja responder- la.
+A pessoa para a qual a questão foi feita provavelmente buscará fontes de informação, adquirirá conhecimento e, em posse deste, buscará determinar a resposta adequada para a pergunta feita.
+A ideia é que sistemas de question answering reproduzam o mesmo processo, buscando fontes de informação, buscando recuperar conhecimento para então devolver- lo ao usuário que solicitou a resposta ao seu questionamento.
+E seguindo a analogia à situação de uma pessoa procurando uma resposta ao questionamento de outra, de acordo com os desafios da tarefa de question answering são profundamente ligados às formas de representação da memória e a sua organização, que são inatas aos seres humanos, fazendo com que seja inviável discutir uma maneira automatizada de se obter respostas sem que um modelo de representação de conhecimento seja abordado durante esse processo.
+Além de os problemas citados anteriormente, ainda há um problema inerente ao objetivo do questionamento, o que pode não estar aparente no questionamento.
+Caso questionem onde está localizada a prefeitura de uma cidade, imagina- se que a pessoa estaria desejando saber o endereço da prefeitura.
+Porém, existem respostas corretas que provavelmente seriam pouco úteis a quem fez a pergunta, como indicar que a prefeitura está localizada no planeta Terra.
+O que torna a resposta relevante é sua granularidade, que está informando a localização.
+O alinhamento do detalhamento e abordagem da questão é algo ainda mais complicado.
+Existem conferências que abordam a tarefa de question answering, como a Text Retrieval Con-ference (TREC), e para as avaliações da tarefa se buscou a convenção do que define uma resposta foi retirada.
+Porém, alguns estudos como, além de utilizarem as convenções estabelecidas por a TREC, também fazem o crivo das respostas por meio de o uso de avaliação manual para verificar a relevância da resposta.
+Questões podem ser classificadas de acordo com a sua complexidade e o seu tipo de resposta.
+Uma primeira tentativa de classificar respostas foi feita por Lehnert e foi gradativamente incrementada até se chegar à taxonomia proposta em.
+O modelo proposto nesta dissertação atende questões em seu tipo menos complexo, os de classe 1 de acordo com, questões que podem ser respondidas com uma informação simples, como um substantivo composto ou um número, e que provavelmente são passíveis de identificação através do emprego de padrões textuais sobre bases de conhecimento.
+Os algoritmos empregados para obter a resposta a partir de extração também podem ser utilizados para apoiar a construção automática de ontologias, para a formação de tesauros e também é possível fazer com que sistemas de question answering façam uso de informações contidas em ontologias e tesauros previamente construídos.
+Uma das abordagens propostas para responder a perguntas contidas nessa classe é a identificação de padrões e o seu emprego para criar algoritmos próprios para a extração das respostas, o que iremos abordar na seção subsequente.
+A Www disponibiliza uma série de informações úteis, porém, muitas vezes estas não são estruturadas ou não obedecem a um padrão em sua estrutura, pois o foco de muitos que constroem páginas na Www é fazer com que a página seja adequadamente formatada para o uso por pessoas, e não por máquinas.
+Por esse motivo, corriqueiramente são construídos sistemas para a busca e consolidação dessa informação numa forma estruturada, e esses sistemas são denominados wrappers.
+Os wrappers, de acordo com, são procedimentos que extraem tuplas de uma fonte de informação textual.
+Podemos exemplificar o funcionamento de um wrapper pegando como exemplo uma página na Www que apresenta uma tabela contendo uma listagem de países e suas respectivas capitais.
+Contido no código Html da página, está um bloco de código representando a tabela, e contido nessa tabela há uma estrutura que se repete, a estrutura que representa as linhas dentro de a tabela indicada.
+Observando o código Html na Figura 2.2, podemos observar esse padrão mais claramente, representado por o bloco de código apresentado na Figura 2.3.
+O que um wrapper faria é buscar extrair as informações a partir desse padrão identificado previamente, possibilitando seu armazenamento num formato estruturado.
+Para esses cenários, principalmente quando se conta não somente com padrões de mark-up, mas também padrões textuais, a identificação manual de padrões se torna mais complexa, fazendo com que seja cada vez mais necessário um bom conhecimento do domínio sobre o qual será executada a extração, para a adequação de expressões e terminologias a serem empregadas nos extratores.
+Porém, como afirma, a criação manual de tais procedimentos é tediosa e propensa a erros, e indica como alternativa a criação de sistemas que buscam identificar padrões para criar os procedimentos de extração de maneira automática ou assistida.
+Conforme apresentado em, a extração de informação em moldes tradicionais apresenta um grande foco em extrações com alto nível de precisão sobre corpora homogêneos, com os documentos contidos nestes apresentando estruturas bastante similares.
+Porém, tão logo surgisse uma nova necessidade de extração ou então uma mudança significativa sobre o corpus empregado, havia a necessidade de recriar as rotinas para a extração de informação.
+Esta recriação comumente envolve trabalhos que contemplam a criação de novas regras de extração, mudança de heurísticas no tratamento do conteúdo e até mesmo a etiquetagem de um novo conjunto de treinamento, caso aprendizagem por máquina esteja sendo empregada.
+O paradigma do Open Information Extraction é a extração de relações sem que exista um direcionamento prévio ou mesmo uma pré-definição do corpus a ser empregado.
+Esses conceitos fazem com que o paradigma se torne adequado à realidade da Www, um conjunto de informações perpetuamente crescente e mutável.
+Considerando esse cenário não é preciso somente ser flexível e poder se adequar a diferentes tipos de documento e domínio, mas também ter uma velocidade satisfatória para abranger o maior número de documentos possível, além de não depender de esforço humano para que seja possível adentrar novos domínios e conjuntos de documentos.
+A extração de informação em moldes tradicionais, como citado anteriormente, requer um esforço manual bastante expressivo e também depende de ferramenta de processamento da linguagem natural que podem ser muito onerosas, comprometendo a velocidade e a capacidade de um sistema de analisar um grande número de documentos.
+Ferramentas corriqueiramente utilizadas em extrações direcionadas, como dependency parsers e constituency parsers, por mais que tenham sofrido um incremento em sua velocidade nos últimos anos, ainda demandam recursos computacionais significativos, fazendo com que o seu emprego para o processamento de grandes corpora possa ser um fator impeditivo.
+Em um contexto de Open Information Extraction o amplo emprego de tais recursos pode ser ainda menos provável, dado que a dimensão de corpus que se busca abordar com tais técnicas é imensurável, e se faz necessária a maximização da escalabilidade para se poder processar esse volume de documentos.
+O principal desafio que a aplicação de Open Information Extraction busca resolver é o desconhecimento de todas as variações através de as quais relações são expressas, dada a heterogeneidade dos documentos.
+Por esse motivo muitas vezes sistemas de apoio que sejam fortemente baseado em treinamento não funcionam adequadamente nesse contexto.
+Um bom exemplo são os sistemas de reconhecimento de entidades nomeadas, que, por o simples fato de existirem classificações díspares de entidades entre diferentes sistemas, ficam impedidos de ser utilizados sobre entidades que não estejam compreendidas dentro de o conjunto endereçado por o sistema em questão.
+Mesmo que o modelo proposto nesta dissertação não seja de Open Information Extraction, este é compreende uma parcela do que muitos sistemas de Open Information Extraction empregam.
+Grande parte dos sistemas de Open Information Extraction tem três grandes fases:
+A primeira envolve a criação ou reconhecimento de exemplos sem que seja necessária a intervenção humana;
+Por fim, é importante apontar que grande parte dos sistemas de Open Information Extraction hoje é direcionada à língua inglesa, e a língua portuguesa apresenta um conjunto de particularidades e problemas de reconhecimento de padrões bastante distintos.
+Muitos desses desafios serão apresentados no capítulo 4.
+Trabalhos relacionados O método DIPRE, proposto por Sergey Brin em 1998, teve como propósito abordar a extração de entidades relacionadas sobre a Www fazendo uso de padrões.
+O cenário apresentando para teste foi o de extração de uma lista de livros e seus respectivos autores.
+A ideia é de que D representa um a relação alvo.
+Cada instância da relação, representada por a tupla t, pode ocorrer n vezes em D de relação, para que estejam contidos em D, precisam estar dentro de os documentos representados por strings, e é possível que a relação R seja representada por outras strings que servem como elemento representados por p..
+Uma vez que são compilados todos os padrões p num conjunto P, é preciso avaliar quais foram os p que ocorreram com maior frequência, ou seja, quais p foram identificados mais vezes para diferentes t..
+Esse ponto contempla a cobertura do padrão, ou seja, quão abrangente ou específico ele é dentro de D. A ideia é que este seja abrangente, porém, há o risco de ele ser abrangente demais, ou seja, estar presente como elemento de ligação para tuplas que não compartilhem a mesma relação.
+Então também é preciso avaliar a taxa de erro, para que se sejam escolhidos padrões com uma combinação ótima de abrangência e taxa de erro.
+Considerando o cenário exposto acima, é possível apresentar o princípio do DIPRE.
+Como a partir de padrões é possível extrair tuplas e a partir de as tuplas é possível extrair padrões, o objetivo do sistema é se retroalimentar para que este gradativamente reforce a avaliação de cobertura e taxa de erro dos padrões empregados.
+Portanto os passos empregados são os seguintes:
+Obtenção dos exemplos.
+Primeiramente é fornecido por o usuário um conjunto pequeno de tuplas que represente a relação R. Chamaremos esse conjunto de R.
+Para os testes de validação do DIPRE foi utilizada uma lista de cinco livros 4.1 e seus respectivos autores;
+Pesquisa de ocorrências.
+Tão logo se tenha R, são pesquisadas todas as ocorrências de cada tupla contida em R dentro de o conjunto de documentos D. Para cada constatação de presença dos dois elementos da tupla num documento específico, armazenam- se informações relevantes sobre o documento, como a sua URL e o texto que estiver ao redor de os dois elementos da tupla;
+Gerar padrões.
+De acordo com Brin, a identificação e geração de padrões é a parte mais intrincada do processo.
+É preciso lembrar que a extração de padrões proposta por o DIPRE não é aplicada sobre linguagem natural, então não há nenhum tratamento sobre ela, inclusive os exemplos citados no artigo dão maior foco sobre estruturas de hipertexto.
+De qualquer modo, a cobertura e taxa de erro são avaliados em tempo real.
+É interessante apontar que padrões com baixa cobertura não são necessariamente descartados, pois como o sistema se retroalimenta com outros exemplos e reinicia o ciclo caso tenha um número satisfatório de novas tuplas, a cobertura de um padrão pode ser modificada ao longo de a execução.
+Pesquisa por novas tuplas utilizando os padrões.
+Pesquisa- se novamente por um conjunto de tuplas utilizando os padrões e essas tuplas são incorporadas a R;
+Controle de iteraçã.
+Verifica- se se o tamanho de R é satisfatório ou atende os limiares propostos.
+Em caso negativo, volta- se ao segundo passo utilizando o novo R.
+Há uma série de controles que não são explicitados no artigo.
+Por exemplo, é apresentado o problema de que no passo 4 é possível que sejam geradas tuplas que não estejam de acordo com a relação R inicialmente proposta, e se estas forem utilizadas para retroalimentarem o processo de identificação de padrões, isso poderia resultar numa distorção da relação almejada por o sistema.
+O que Brin alega é que esse risco deve ser controlado a partir de o algoritmo de geração de padrões, porém sem explicitar como fazer- lo.
+Outro ponto é que há uma restrição na identificação do que pode ser considerado um título e um autor, os dois são determinados respectivamente por as expressões regulares abaixo:
+A escolha das expressões regulares acima, mesmo abrangentes, elimina a chance do sistema capturar determinados autores e determinados títulos.
+Ainda assim, são explicitadas as possíveis falhas e como padrões mais apurados poderiam ser empregados.
+É importante ressaltar que os padrões são diretamente relacionados a uma URL específica, ou seja, o algoritmo favorece a extração de tuplas e padrões sobre páginas que contenham listagens, o que faz com que tuplas que representam uma relação R para a qual não existam listagens em documentos contidos em D apresentem um resultado não tão favorável.
+Outro ponto é que no conjunto de tuplas fornecidas como exemplos iniciais (R), três dos cinco livros eram de ficção científica;
+Isso fez com que o conjunto inicial de padrões ­ associados às URLs ­ buscasse algumas páginas bastante específicas inclusive, na primeira iteração um dos três padrões encontrados 4.2 foi sobre uma URL contendo uma lista de livros ganhadores de um prêmio de literatura fantástica, o Hugo.
+Uma abordagem mais próxima do que está sendo proposto nesta dissertação para extração de padrões foi feita por Ravichandran e Hovy.
+Ao contrário de o DIPRE, a proposta consiste em identificar padrões textuais para efetuar a extração.
+O processo de aprendizagem precisa de um conjunto de exemplos para a aprendizagem e pode ser segmentado em dois algoritmos principais.
+O primeiro busca identificar os padrões e é dividido em oito passos, a serem descritos abaixo:
+Selecionar um exemplo do conjunto, sendo que todos devem reproduzir uma relação que responda a uma questão.
+O exemplo citado no artigo é descobrir o ano de nascimento.
+Então é possível pegar como um primeiro exemplo a palavra &quot;Mozart «como termo de pesquisa e &quot;1756 «como termo respectivo de resposta;
+Enviar os dois termos a um mecanismo de procura.
+Em o caso o mecanismo utilizado na época foi o Altavista 1;
+Fazer o download de 1000 documentos retornados por o mecanismo de procura;
+Quebrar o texto dos documentos em frases;
+Manter somente frases que contenham ambos os termos e remover variações de caracteres de espaçamento (tabulações, espaços, quebras de linha), remover Html e outros.
+Encontrar as substrings possíveis de cada frase e verificar quais estão presentes em mais frases;
+Filtrar somente as substrings que contenham o objeto de pergunta e a respectiva resposta; «(
+&quot;nome «e &quot;resposta», respectivamente).
+Esse passo então é repetido para todo o conjunto de exemplos e com isso se forma um conjunto de padrões identificados.
+Subsequentemente é calculada a precisão de cada padrão num segundo algoritmo, cujos passos estão descritos abaixo:
+Fazer uma consulta no mecanismo de procura usando somente o objeto de pergunta, seguindo o exemplo, &quot;Mozart&quot;;
+Fazer o download de 1000 documentos retornados por o mecanismo de procura;
+Quebrar o texto dos documentos em frases;
+Manter apenas frases que contenham o objeto de pesquisa;
+Verificar em cada uma das frases a presença de um dos padrões adquiridos no algoritmo anterior, examinando se o termo complementar contém a resposta correta ou não.
+Para cada padrão é contabilizado o número de vezes em que este foi encontrado associado ao termo de pesquisa, independente de ter a resposta correta (Com o), e também o número de vezes em que o termo foi encontrado associado ao termo de pesquisa, porém, com a resposta correta (Ca), São mantidos somente os padrões encontrados num número de exemplos acima de o limiar estabelecido no caso de o experimento, 5.
+Os dois algoritmos apresentam abordagens interessantes, porém, em caso de pouca uniformidade entre o conjunto de exemplos ou ainda a presença de um fator comum além de o que se deseja identificar faz com que determinadas escolhas, como eliminar exemplos a partir de um determinado limiar, seja bastante negativa.
+A validação dos padrões fazendo uso da Www também requer um esforço computacional muito alto para resultados pouco produtivos.
+Outro ponto é que pequenas diferenças nos padrões, principalmente por a adição de palavras irrelevantes ao contexto, podem gerar a percepção de padrões distintos, enquanto caracterizar- los como os mesmos pode causar um impacto sobre o índice de precisão final.
+Por fim, temos o último algoritmo proposto que envolve o uso dos padrões identificado para a extração.
+Este é composto por sete etapas, que apresentaremos abaixo:
+Primeiramente é determinado o tipo de questão, para que sejam recuperados os padrões referentes a este;
+O termo de pesquisa é identificado;
+É executada uma consulta sobre o corpus utilizando o documento em questão.
+O corpus, de acordo com o artigo, não precisaria ser necessariamente a Www.
+Esta seria utilizada obrigatoriamente somente no treinamento;
+Remover de cada documento encontrado variações de caracteres de espaçamento (tabulações, espaços, quebras de linha), Html e outros e dividir o texto em frases;
+Substituir o termo de pesquisa em cada frase que o contenha por a tag genérica equivalente;
+Identificar se o padrão existe na frase, fazendo uso de expressões regulares;
+Ordenar as respostas obtidas no passo anterior por o índice de precisão do padrão, remover respostas duplicadas e exibir as cinco com os melhores resultados.
+Em esse último passo, talvez por a possível restrição de se extrair as informações num corpus fechado, não se faz uso da informação da Www para a validação dos resultados obtidos, o que traria um acréscimo na acurácia das respostas.
+Ainda assim é um trabalho imensamente relevante e talvez ao qual a proposta desta dissertação mais se assemelhe, principalmente na extração de padrões, não tanto na classificação e emprego destes.
+O ponto de partida para constituição da visão de arquitetura do KnowItAll, é o fato de que mecanismos de procura haviam sido utilizados por sistemas de question answering para encontrarem respostas que satisfazem questões específicas, porém, havia um desejo de constituir grandes corpus de conhecimento fazendo destes mecanismos, e a maneira através de a qual estes mecanismos estavam sendo utilizados em sistemas de question answering não satisfariam este objetivo.
+O objetivo ­ como o de todo sistema de Open Information Extraction ­ de extrair relações de maneira autônoma, independente de domínio e escalável, precisa de uma arquitetura que apoie a recuperação e análise de um grande volume de documentos.
+A proposta do KnowItAll envolve fazer uso de estatísticas lidando com a Www como um grande corpus, fazendo uso de cálculos estatísticos para criar um índice de confiabilidade para cada fato extraído e, se tratando de um corpus muito expressivo, possibilitando criar um equilíbrio favorável forçadamente reduzindo o recall dos fatos e incrementando a precisão, pois um fato extraído dentro de determinado formato pode ser extraído novamente em outro formato posteriormente.
+O KnowItAll estabelece, como em outros trabalhos de Open Information Extraction, um comparativo com trabalhos de extração de informação sobre um corpus direcionado e de tamanho menos expressivo.
+Os problemas abordados são os mesmos, não pode haver a necessidade de se ter um seed previamente anotado por humanos, o processo de captura de documentos deve ser automatizado e, por fim, as ferramentas de apoio utilizadas não podem ser onerosas, visto que se está lidando com um grande volume de documentos, novamente dificultando o emprego de deep parsers.
+O propósito de lidar com um grande volume de documentos e a velocidade ser um fator tão determinante é por o desejo de trocar extrações complexas sobre documentos intrincados por extrações mais simples e que podem impulsionar resultados justamente por a redundância e dimensão da Www, o que faz com que a abordagem somente seja útil ao conseguir capturar e processar um grande número de documentos.
+O KnowItAll busca extrair fatos, conceitos e relacionamentos da Www.
+As suas fontes iniciais de informação para iniciar o processo de extração são uma ontologia, que é passível de expansão, e um conjunto de regras genéricas para a extração de relações.
+A sua arquitetura não está restrita a um domínio ou a um idioma em particular, e, conforme explicitado anteriormente, está orientada a ser escalável e rápida.
+O sistema é composto por diferentes módulos que se comunicam de forma assíncrona.
+Os módulos são os seguintes:
+O extrator instancia um conjunto de regras de extração genéricas para cada classe e relação a partir de um conjunto de templates genéricos, sem orientação a um domínio específico.
+O exemplo apresentado é de &quot;NP1 such», em que NPList2 é uma lista de sintagmas nominais da classe descrita por NP1.
+Em o exemplo fornecido por o artigo, se houver uma frase como &quot;We provide tours to cities such as Paris, Nice and Monte Carlo». (
+em português, &quot;Oferecemos excursões para cidades como Paris, Nice e Monte Carlo».),
+o KnowItAll conseguiria extrair Paris, Nice e Monte Carlo como instâncias de classe Cidade.
+Interface do mecanismo de procura.
+A interface do mecanismo de procura apresenta a capacidade de formular expressões de pesquisa de acordo com as suas regras de extração.
+Portanto, cada expressão de pesquisa está diretamente associada a uma regra.
+O exemplo citado para o extrator faria com que o sistema utilizasse a expressão de pesquisa &quot;cidades tais quais «para um mecanismo de procura, capturaria os seus resultados em paralelo e utilizaria o Extrator para capturar informação relevante de cada uma das páginas.
+A interface de mecanismo de procura faz uso de até doze mecanismos de procura, como Google, AltaVista, Fast ­ já descontinuado, após aquisição da Microsoft ­ e outros.
+Avaliador. Um dos pontos relevantes do sistema é a utilização de estatísticas providas por os mecanismos de procura para verificar se as informações extraídas por o Extrator estão corretas.
+Para tal avaliação, o sistema utiliza uma forma de PMI (Pointwise Mutual Information) entre frases e palavras que é estimada a partir de os resultados de número de páginas encontradas, de maneira similar ao algoritmo de PMI-IR proposto por Turney em.
+Se a relação entre for alta, configura- se uma evidência de que Liege seja de fato uma cidade.
+O avaliador calcula o PMI entre as instâncias e frases e posteriormente combinar as informações fazendo uso de um classificador baseado em redes Bayesianas.
+Banco de dados. Todos os resultados obtidos por o KnowItAll, desde informações a até mesmo os metadados empregados ao longo de o processo de extração, são armazenados num SGBD comercial.
+Essa decisão tem como propósito garantir a persistência dos dados e a escalabilidade de sistema, além de apresentar um desempenho adequado para consultas, inserções e atualizações do conjunto de dados.
+O conceito mais interessante para a seleção de padrões relevantes é justamente o uso do que eles se referem como discriminator phrases (&quot;frases discriminadoras», em português), que são padrões frasais que são utilizados no cálculo do PMI para confirmar a validade de uma expressão ou relação extraída.
+A frase &quot;city of «citada anteriormente representa uma discriminator phrase utilizada para verificar se esta é de fato pertencente à classe cidade.
+É importante apontar que, mesmo que o KnowItAll se proponha a ser um sistemas desvinculado de restrições e domínio e idioma, há uma orientação natural para que os padrões identificados sejam na língua inglesa, dada a predominância do idioma na Www, e também por a ausência de características que atrapalhariam a captura desses padrões, como flexões ­ extremamente presentes nos idiomas latinos ­ e aglutinações.
+No caso de alguns idiomas ergativos, em que o verbo pode ser flexionado de acordo com o objeto do verbo transitivo ou em outras situações de acordo com o agente da voz passiva, a fragmentação de padrões pode se tornar ainda maior.
+O KnowItAll, apesar de ser bastante próximo de o que é tido hoje como um sistema de Open Information Extraction, não o é por causa de um detalhe endereçado por seus sucessores.
+Para sua configuração inicial há um conjunto de seeds no formato de uma ontologia e das descrições da relação.
+Outros sistemas resolvem esse problema de diferentes formas, desde buscar fontes que contenham valores que possam ser utilizados como seeds até a criação de padrões que venham a extrair um conjunto inicial de seeds.
+O sistema TextRunner pode ser visto como uma continuação do KnowItAll, visto que a equipe dos dois sistemas compartilha três pesquisadores (Oren Etzioni, Stephen Soderland e Daniel S. Weld) e as abordagens obedecem a princípios similares.
+Conforme foi explicado na seção anterior, um dos fatores limitantes do KnowItAll é justamente a necessidade de seeds geradas por processo manual para que o sistema possa funcionar.
+Para que fique mais claro o funcionamento do TextRunner, apresentaremos uma descrição sucinta dos três módulos que compõem o sistema.
+Os módulos são os seguintes:
+Sistema de aprendizagem auto-supervisionado Esse módulo é o que busca suprir a ausência de um conjunto inicial de seeds.
+Ele contém um classificador bayesiano previamente treinado ­ nesse caso, com dados etiquetados manualmente, porém o classificador é imutável ­ que classifica as extrações iniciais como confiáveis ou não confiáveis.
+A partir de essa classificação, ele então treina um segundo classificador bayesiano a ser utilizado por o extrator.
+Os dois extratores, o que é previamente treinado e o treinado em tempo real, fazem uso de atributos bem distintos.
+Como o previamente treinado pode lidar com um conjunto restrito de informações etiquetadas manualmente, é possível utilizar informações de um deep parser no processo de classificação.
+Já para o classificador utilizado para apoiar o extrator, este deve ser rápido, então faz uso de atributos que podem ser adquiridos com maior facilidade, como anotações de part-of-speech, para fazer a sua classificação.
+Porém como há uma classificação inicial baseada em modelos linguísticos, o TextRunner é orientado para uso exclusivo sobre documentos escritos em inglês, mas se mantendo independente de um domínio de conhecimento específico.
+Extrator single-pass O extrator faz uma única varredura sobre o corpus, automaticamente etiquetando cada palavra com a sua part-of-speech.
+A partir de essas etiquetas, um shallow parser é empregado para identificar prováveis sintagmas nominais.
+As relações são identificadas como padrões textuais ligando dois ou mais sintagmas nominais e desses padrões são removidos complementos preposicionais e algumas palavras dentro de classes gramaticais específicas, como advérbios.
+Para cada sintagma nominal extraído o chunker também retorna a probabilidade de cada palavra contida no sintagma nominal de fato pertencer à entidade representada por ele, para que com esses valores seja possível descartar sintagmas com baixo nível de confiabilidade.
+Então as tuplas encontradas são classificadas e, caso sejam consideradas confiáveis, são armazenadas por o TextRunner.
+Avaliador baseado em redundância Como foi apresentado anteriormente, há uma remoção de determinadas palavras dentro de classes gramaticais específicas, como advérbios, e também são removidos complementos preposicionais, fazendo com que o TextRunner tenha armazenado uma lista de padrões associados aos padrões normalizados.
+Tal qual no KnowItAll, porém sem fazer uso de um mecanismo de procura, para uma tupla t $= (ei, ri, j, ej), a probabilidade desta ser correta é estimada a partir de a relação do seu PMI com o PMI de ei e ej.
+Vale apontar que tanto o KnowItAll quanto o TextRunner foram avaliados neste artigo sobre um conjunto fixo de nove milhões de documentos, o que é pouco representativo considerando números já apontados anteriormente em que o Google sinalizou ter indexado mais de 50 bilhões de documentos.
+Também foi feita uma comparação entre os dois sistemas, usando como seed para o KnowItAll uma série de relações previamente selecionadas.
+Há nessa seleção um risco inerente de tendência e o fato do KnowItAll ser um sistema orientado a utilizar mecanismos de procura ter de trabalhar com um corpus fechado faz com que a comparação estabelecida entre os dois sistemas pareça ter um número significativo de variáveis que podem influenciar o seu resultado.
+Ainda assim a validade dessa pesquisa é inequestionável, sendo uma evolução que aborda uma restrição bastante relevante, a necessidade de haver um conjunto inicial de seeds e usar um classificador bayesiano com mais informações linguísticas para uma classificação inicial.
+O TextRunner tem uma taxa de erro inferior ao KnowItAll, porém o KnowItAll extraiu nos seus experimentos um número de tuplas corretas superior ao TextRunner O WOE (acrônimo para Wikipedia--based Open Extractor) é outro sistema de Open Information Extraction proposto por dois membros da equipe de PLN da universidade de Washington, a mesma responsável por a criação do KnowItAll, TextRunner e de outros sistemas que serão apresentados nas próximas seções, como o ReVerb.
+A primeira diferença do WOE, que inclusive já está aparente no título, é na resolução do problema de obter um conjunto inicial para treinamento.
+O KnowItAll precisa de seeds geradas manualmente, o TextRunner contava com um classificador bayeasiano para extrair- las e validar- las e o WOE optou por fazer uso da Wikipedia, em particular as informações contidas em infoboxes2 dos verbetes da Wikipedia, para fazer o treinamento de um extrator de dados similar ao do TextRunner.
+A segunda diferença de maior expressão quando comparado ao TextRunner, que prioriza a velocidade para endereçar um maior volume de documentos, é que o WOE apresenta dois modos para o processamento de documentos.
+O primeiro, mais veloz, faz uso de etiquetagem mais simples provida por um part-of-speech tagger e a segunda, mais precisa, faz uso de um dependency parser para o incremento da precisão e recall dos resultados.
+A partir de agora a versão mais veloz será denominada WOEpos e a mais precisa WOEparse.
+Independente da versão empregada, a arquitetura do WOE é a mesma.
+Ela se baseia em três componentes principais, que são responsáveis por duas ou mais tarefas cadas.
+Abaixo apresentaremos os detalhes acerca de cada um dos componentes:
+Pré-processador O pré-processador tem como principal função efetuar o tratamento dos dados obtidos na Wikipedia para que eles possam ser utilizados ao longo de o processo.
+Basicamente existem três etapas para esse tratamento:
+Separação em frases, etiquetagem e a compilação de sinônimos.
+A primeira fase ocorre quando o markup utilizado por o sistema de publicação da Wikipedia, MediaWiki, é convertido para Html para ter seu conteúdo subsequentemente capturado e as frases contidas neste são fracionadas em frases, fazendo o uso da biblioteca OpenNLP.
+O segundo passo é onde começa a ocorrer a diferenciação entre o WOEpos e o WOEparse.
+Em o WOEpos é utilizado o OpenNLP como part-of-speech tagger e como chunker para a identificação dos sintagmas nominais, já para o WOEparse é utilizado o Stanford Parser 2 Uma infobox é uma pequena caixa, corriqueiramente localizada no canto superior direito dos verbetes que apresenta os atributos principais do assunto do verbete.
+Esses atributos estão apresentados em formato de tuplas.
+Por exemplo, para o verbete Brasil, são apresentadas informações como capital, língua oficial, população entre outros.
+Como dependency parser.
+O terceiro passo é a compilação de sinônimos, feita principalmente a partir de as páginas de redirecionamento, visto que um artigo específico pode ser acessado através da pesquisa de verbetes distintos, e a compilação desses sinônimos faz com que a tarefa do matcher se torne mais simples, como explicaremos a seguir.
+Matcher O matcher faz a construção de conjunto para treinamento comparando através de heurísticas um conjunto de atributos e seus respectivos valores, contidos nas infoboxes de um artigo, com as frases contidas no artigo, fazendo assim com que seja possível identificar se um trecho extraído é válido ou não.
+Para cada termo extraído que possa ser uma entidade, é executada uma heurística para avaliar se esta não se refere a uma entidade já armazenada previamente, abordando de maneira bastante objetiva e não tão precisa problemas de correferência, para os quais a construção de sinônimos feita por o pré-processador também se revela muito útil.
+Posteriormente o matcher tenta encontrar uma estrutura frasal que relacione a entidade de o qual o artigo trata com o seu atributo, através de heurísticas que descartam padrões improváveis baseado em sua frequência, posição e também em informações estruturais fornecidas por o dependency parser, caso o WOEparse esteja sendo utilizado.
+Módulo de aprendizagem (Learner) Em o módulo de aprendizagem então é executado o processo de aprendizagem para os dois tipos de extratores.
+Um utilizando as informações do dependency parser e outro utilizando informações de um part-of-speech tagger e um chunker.
+Em o primeiro, o processo de aprendizagem busca identificar o melhor caminho dentro de a árvore de saída do dependency parser entre os dois sintagmas nominais identificados que possam representar uma relação semântica, gradativamente é consolidado um repositório de padrões e, por fim, é executado um processo de aprendizagem para a classificação adequada dos padrões.
+Para o WOEpos, as informações geradas por as ferramentas de apoio, o part-of-speech tagger e o chunker, são utilizadas para uso sobre um algoritmo de treinamento baseado em Conditional Random Fields.
+A diferença na velocidade das duas versões é expressiva, em média o WOEparse leva 30x mais tempo do que o WOEpos para efetuar o processamento de uma frase, comprovando que caso o objetivo seja extrair um volume maior de relações num espaço de tempo menor, mesmo que exista impacto sobre precisão e recall, ainda assim o uso de um recurso computacional pesado como um dependency parser é pouco recomendado, porém é válida a estimativa de melhora sobre um mesmo corpus pois é possível que com a evolução do hardware esse esforço computacional não torne o seu uso impeditivo numa série de cenários.&amp;&amp;&amp;
+Porém, apesar de o incremento significativo do F-measure com o uso de um dependency parser, o fator mais importante é justamente o uso da Wikipedia para verificar se as extrações feitas são de fato válidas e usar essa informação para alimentar o classificador baseado em Conditional Random Fields empregado por o sistema.
+Inclusive foi feito um teste adicional usando o classificador baseado em CRF, porém, sem utilizar a informação extraída da Wikipedia e sim os próprios valores retornados por as heurísticas do TextRunner e o resultado obtido foi levemente inferior, levando a crer que a diferença no classificador ­ bayesiano vs.
+Baseado em CRF ­ não é tão significativa quanto a o uso da Wikipedia para a validação do conjunto de treinamento.
+Apesar de as contribuições acerca de o uso de um dependency parser serem bastante válidas, o uso de uma fonte externa de informação estruturada, já que estamos falando de extração sobre as infoboxes e não sobre o conteúdo não estruturado da Wikipedia, parece ter criado uma nova visão sobre como é possível utilizar fontes de dados estruturados previamente estabelecidas.
+E dada a natureza crescente, evolutiva e colaborativa da Wikipedia, que se assemelha à da própria Www, é reduzido o risco de informações capturadas estarem defasadas, abordando também o aspecto temporal da informação.
+O sistema ReVerb é mais um desenvolvido por a equipe de Open Information Extraction da Universidade de Washington.
+Os sistemas predecessores, principalmente o TextRunner e o WOE já apresentavam uma boa taxa de precisão, ainda assim era significativo o volume de extrações contendo padrões incorretos ou então padrões que, mesmo corretos, eram pouco informativos.
+A percepção é que muitas das extrações incorretas são causadas por módulos de aprendizagem que selecionam palavras que deveriam estar contidas no padrão, porém, em caso de equívoco na seleção, os padrões apresentados podem se tornar incompreensíveis e inúteis, como é possível ver na Tabela Os padrões incorretos não causam um impacto tão profundo sobre a precisão das informações extraídas, porém caso estes fossem corretamente extraídos, a cobertura seria ampliada possibilitando a extração de um maior volume de informações com um esforço similar.&amp;&amp;&amp;
+A mesma situação ocorre com a extração de padrões pouco informativos, ou seja, padrões em os quais a relação é reduzida a uma estrutura frasal com pouquíssimas palavras, comumente verbos, que quando estão desprovidos de contexto não conseguem configurar uma relação específica, como é possível ver na Tabela 4.5.
+Um dos principais motivos para a identificação de padrões pouco informativos são as light verb constructions (LVC).
+Uma LVC pode ser descrita como uma construção combinando três elementos, um light verb, ou seja, um verbo que sozinho carrega pouco significado semântico, um substantivo abstrato e um modificador frasal que limita ou qualifica o significado de uma outra palavra ou grupo de palavras.
+No caso de os exemplos listados na Tabela 4.5, podemos utilizar o exemplo de &quot;is a city in», em que as partes componentes são, respectivamente &quot;is», &quot;a city «e &quot;in».
+O ReVerb buscou endereçar esse problema permitindo que, através de um novo algoritmo de seleção, substantivos possam ser incluídos no padrão frasal de relação, para que no caso de a frase cidade, mas também que através do padrão &quot;is a city in», seja possível indicar que Sydney está na Austrália.
+O filtro sintático faz uso de uma expressão regular baseada nas classes gramaticais extraídas por o part-of-speech tagger.
+Essa expressão regular pode ser vista na Figura 2.4.
+Isso possibilita a construção de estruturas que previamente não eram capturadas, como has atomic weight of «(em português, &quot;tem o peso atômico de&quot;), pois a expressão regular considera a possibilidade de ter um verbo sucedido por um ou mais substantivos e finalizado com uma preposição, o que permite a identificação de padrões mais robustos.
+E como num exemplo citado na Tabela 4.5, a expressão ao verbo &quot;made», que possui pouca carga semântica.
+O filtro léxico resolve um problema causado por o filtro sintático.
+Dada a abrangência da expressão regular da Figura 2.4, é possível que o filtro sintático acabe por capturar padrões frasais que sejam tão específicos que mesmo numa escala bastante grande de documentos, como todos os contidos na Www, estes venham a ser responsáveis por um número inexpressivo de extrações.
+Abaixo, apresentamos o exemplo de frase citado por o artigo:
+Conference. De acordo com o filtro sintático, o padrão abaixo seria extraído:
+Is offering only modest greenhouse gas reduction targets at O padrão extraído é extremamente específico e a probabilidade deste ser empregado para extrair qualquer outra relação diferente da relação expressada por a frase é muito pequena.
+Por esse motivo o filtro léxico busca identificar o nível de especificidade dos padrões verificando a abrangência, ou seja, o número de pares que o padrão pode identificar, a partir de um processo de normalização dos padrões, a partir de a remoção de verbos auxiliares, adjetivos e advérbios, e a subsequente verificação dos volumes extraídos.
+Baseada em experiências executadas, a equipe do ReVerb optou por descartar quaisquer padrões que estejam associados a menos de 20 tuplas distintas.
+O incremento em precisão resultante do emprego desses filtros é bastante significativo, sendo a principal contribuição desse sistema.
+Porém torna- se gradativamente mais claro que, para obter melhores resultados, é preciso criar algoritmos direcionados ao idioma que se busca abordar, o que torna um pouco mais complexo o processo de fazer extrações similares na língua portuguesa, tanto por a precisão de ferramentas de apoio ao processamento deste idioma quanto por sua velocidade.
+O mais recente sistema de Open Information Extraction vindo da Universidade de Washington é o OLLIE (Open Language Learning for Information Extraction).
+A ideia atrás de o OLLIE é endereçar duas fraquezas identificadas em seus predecessores ReVerb e WOE.
+A primeira fraqueza é ditada por o fato de que as relações extraídas por essas ferramentas são obrigatoriamente mediadas por um verbo, descartando padrões textuais sem verbos que possam evidenciar relações.
+A segunda fraqueza desses sistemas é causada por a extração descontextualizada de informação, possibilitando a extração de tuplas cuja informação não é necessariamente verdadeira.
+O OLLIE almeja extrair padrões textuais que sejam mediados por substantivos, adjetivos e outras classes gramaticais sem necessariamente conter verbos, além de contar com um passo adicional de análise de contexto, atribuindo informação contextual durante o processo de extração e utilizando- a como instrumento de validação.
+Outro ponto é a possibilidade de extrair relações que apresentem uma expressão que define uma condição que deve ser atendida para que a relação seja verdadeira.
+Uma das abordagens utilizadas por o OLLIE é utilizar rotinas originadas em sistemas de Semantic Role Labeling (SRL), que busca identificar os termos que relacionam um verbo numa frase a um contexto semântico, ou seja, papéis como agente, paciente, instrumento entre outros.
+Além de identificar esses papéis, o artigo indica que sistemas SRL são capazes de identificar os termos que são alvo de uma relação mediada por substantivo a partir de um treinamento fazendo uso de anotações específicas do projeto NomBank.
+O emprego de SRL possibilita a identificação de padrões frasais que configurem relações que não seriam identificados com algoritmos previamente produzidos.
+O emprego de SRL do OLLIE possibilita a identificação de uma série de padrões que os outros sistemas antes não conseguiam abordar.
+As restrições do WOE, por exemplo, impediam que padrões simples como &quot;is the CEO of «(em português, &quot;é o CEO de&quot;) fossem abordadas e o ReVerb não A análise de contexto tem como objetivo avaliar a confiabilidade de uma extração que esteja dentro de contextos em que informações adicionais agregadas ao padrão possam inverter o sentido do padrão.
+O exemplo citado por o artigo, que precede a conclusão das eleições presidenciais nos wins five states «(&quot;Romney será eleito presidente se ganhar em cinco estados», em português).
+Uma extração observando o padrão entre &quot;Romney «e &quot;president», poderia reconhecer a relação (Romney;
+ClausalModifier. Outra característica de uma informação extraída que a análise de contexto busca apontar é a origem da informação, caso esta esteja explícita na frase.
+O exemplo citado por o artigo é a primeiros astrônomos acreditavam que a Terra é o centro do universo&quot;).
+De essa frase é possível como um todo e registra a atribuição dessa definição a &quot;early astronomers».
+Isso faz com que um padrão que anteriormente conteria uma informação inválida passe a ter validade dada a referência de origem.
+Essa definição é identificada na tupla com o atributo AttributedTo.
+Extraction atualmente.
+O Espresso é um sistema de extração de informação que faz uso de padrões genéricos para extrair relações semânticas, fazendo uso de informações na Www para filtrar instâncias incorretas e também propõe uma medida de confiabilidade de padrões e instâncias extraídas.
+Novamente o enfoque do Espresso é maximizar precisão e recall, ter um mínimo de supervisão humana, poder ser utilizado sobre corpora de grandes dimensões e se aplicável a diferentes tipos de relações, e não somente relações exploradas com maior frequência, como as de identidade e hiponímia.
+A abordagem do Espresso difere de outras, pois, ao invés de fazer um tratamento de maior complexidade para avaliar quais são os padrões mais adequados para extração, utiliza padrões extremamente genéricos para fazer- lo e busca validar posteriormente os seus resultados.
+A base dessa classificação reside na ideia de que dado um conjunto de padrões genéricos, instâncias corretas extraídas a partir deste também serão representadas por padrões mais específicos e de maior precisão num corpus de tamanho expressivo como a Www.
+O sistema tem três etapas básicas que são executadas em múltiplas iterações.
+Iremos apresentálas abaixo:
+Indução de padrões Em a etapa de indução de padrões, um conjunto de padrões P é obtido através da avaliação da frequência com a qual os padrões se conectam às seeds num corpus.
+Essa avaliação ocorre capturando frases que contenham as duas palavras contida nos pares da seed e substituindo termos específicos dentro de o padrão por chaves genéricas denominadas T R. De acordo com o exemplo fornecido no artigo temos o exemplo:»
+Because Hf is a weak acid and x is a y &quot;E com a substituição dos termos específicos do padrão por chaves genéricas, passamos a ter o padrão genérico abaixo:»
+Because TR is a TR and x is a y «Isso faz com que o padrão se torne muito menos preciso, porém posteriormente há um processo de filtragem de dados que busca aumentar a precisão das extrações.
+Ranking/ Seleção de padrões Em essa etapa é feita a seleção de padrões baseado numa fórmula de classificação.
+Anteriormente o artigo alega que em trabalhos como é sugerida a criação de um limiar de frequência para a seleção dos padrões, porém foi constatado ao longo de o trabalho que alguns padrões de baixa frequência obtinham resultados ótimos quando aplicados ao processo de extração.
+Foi criado então um índice de confiabilidade, baseado num cálculo de PMI ­ também utilizado no KnowItAll ­ entre o padrão e as instâncias que foram encontradas através deste numa amostragem inicial.
+A partir de o índice de confiabilidade então são selecionados os padrões mais relevantes da iteração, e o mais confiável é adicionando à lista de padrões mais relevantes.
+Esse processo se repete a cada iteração.
+Extração de instâncias Após a definição dos padrões mais relevantes para extração, o Espresso faz a extração de um conjunto de instâncias utilizando esses padrões e posteriormente faz um cálculo de confiabilidade das instâncias, novamente baseado em PMI, e seleciona as 200 instâncias mais confiáveis.
+Caso o número seja inferior a 200 instâncias, o sistema procede com um passo de expansão baseada em consulta à Www e outro de expansão sintática.
+A primeira consiste em utilizar o padrão para extração substituindo uma das entidades do padrão e verificando se esta busca novos resultados para a entidade complementar.
+A segunda tenta criar instâncias que possam estar contidas em instâncias previamente recuperadas.
+O exemplo citado é a relação penal part-of relatório do FBI&quot;), que é expandida para &quot;new record part-of FBI report «e &quot;record part-of FBI report».
+A aplicação de padrões extremamente genéricos e o uso de iterações para extrair e validar novos padrões e em concomitância extrair e validar informações de maneira interligada através do cálculo de PMI utilizando variáveis ligadas a ambos, são os pontos que se destacaram durante o estudo desse artigo.
+Um dos pontos colocados ao final do artigo é que um dos caminhos a serem futuramente explorados seria a investigação do uso do WordNet para a aprendizagem automática de padrões genéricos ou restrições na seleção de padrões, porém uma continuação direta do sistema nunca foi criada.
+O Prospera é um sistema de extração de informação baseado em relações que, mesmo sem atender uma premissa de sistemas de Open Information Extraction, visto que ele é direcionado a relações previamente estabelecidas, faz contribuições muito valiosas para o processo de extração de informações sobre corpora de grande volume.
+Um dos pontos poucos abordados nos trabalhos apresentados anteriormente é como é possível tornar o sistema escalável, para fazer uso de um maior volume de computadores distribuindo o esforço computacional para um conjunto de estações.
+O Prospera aborda muito bem esse ponto;
+Mesmo que não seja possível replicar o experimento a partir de o que é apresentado, as informações de arquitetura são suficientemente completas para que estas possam ser aproveitadas em outros projetos de extração de informação.
+Mesmo que não tenha sido a principal intenção dos autores, a introdução dessas informações é de grande valia para o emprego de paralelismo distribuído em pesquisas do gênero.
+O principal problema que o Prospera busca endereçar é melhorar o emprego de fontes de informação em linguagem natural para qualificar os extratores e seus respectivos resultados.
+É notado que o custo computacional para o emprego dessas informações costuma ser alto, porém, inevitável se o objetivo é ampliar a precisão das extrações.
+Ainda assim, existem informações complementares que podem apoiar esse processo, como verificar que numa determinada relação, a primeira e a segunda entidade precisam pertencer a tipos específicos para que a relação seja verdadeira.
+Primeiramente é introduzido o emprego de n-gram-itemset patterns.
+A ideia exposta por o artigo é que alguns métodos empregam somente a avaliação de substrings de ligação entre duas entidades para extrair padrões textuais, enquanto outras abordagens fazem uso de recursos como dependency parsers para qualificar essa extração.
+Enquanto a primeira pode gerar um número maior de ruídos, a última pode ser computacionalmente onerosa.
+O n-gram-itemset basicamente é o entendimento de que padrões devem ser armazenados da seguinte maneira:
+Componentes com pouco impacto sobre o sentido da frase devem ser reduzidos à sua classificação morfológica e então armazenados.
+O exemplo citado foi o padrão &quot;scored Preposição Adjetivo «goal», em que padrões podem ser capturados independente da preposição ou adjetivo utilizados na frase.
+Ou seja, é possível ter estruturas mais ricas com uso somente de um part-of-speech tagger.
+Outro ponto interessante é o emprego da confiabilidade de extração a partir de o cálculo de relevância baseado em exemplos que possam eliminar a ambiguidade de um conjunto.
+O exemplo citado é a relação configurada entre times ou seleções que ganharam um campeonato.
+A relação entre a Alemanha e a Copa do Mundo, o Brasil e a Copa do Mundo é muito maior do que somente a vitória dos dois times na Copa.
+Eles também foram classificados para a Copa do Mundo, perderam finais da Copa do Mundo, ou seja, a partir de um padrão de relação não percebido no conjunto de exemplos pode existir uma tendência que venha a prejudicar a extração de padrões.
+A proposta é criar um conjunto de exemplos que tenham outras relações com a entidade utilizada para o questionamento, no caso a Copa do Mundo, mas que não tenham a relação almejada.
+Temos por exemplo a seleção da Holanda, que já perdeu uma final, já foi classificada para a Copa do Mundo, mas jamais foi campeã desta Copa.
+Isso faz com que padrões que indicam a classificação do time para a Copa ou a perda da final da Copa para outros times constem como padrões com peso negativo, qualificando a extração de padrões com pouco esforço.
+A identificação de um conjunto de exemplos que venham a reduzir a confiabilidade de um padrão é feita de maneira manual, mas se trata de uma abordagem relevante e que qualifica bastante os resultados, possivelmente sendo passível de aplicação em abordagens de respostas em determinados escopos temporais.
+Em este capítulo apresentaremos em maior detalhe o modelo de extração de informação proposto, apresentando as etapas principais e os passos que são executados em cada uma destas.
+Descrição geral Conforme apontado anteriormente, este modelo tem como propósito identificar padrões textuais que configurem uma relação específica entre duas entidades para que, caso seja fornecida somente uma entidade e a relação desejada, seja possível extrair ­ fazendo uso desses padrões textuais ­ a entidade complementar a essa relação.
+O modelo proposto nesta dissertação é dividido em quatro etapas, que serão apresentadas nas seções a seguir:
+Extração de padrões textuais, classificação e filtragem de padrões, extração de entidades complementares, classificação e seleção de entidades extraídas.
+Extração de padrões textuais Para que a extração dos padrões textuais possa ser executada, é necessário fornecer ao sistema um conjunto inicial de exemplos ­ pares de entidades ­ que tenham uma relação semântica comum entre eles.
+O principal objetivo do modelo é identificar quais são os principais padrões textuais que representam essa relação comum a todos os exemplos.
+Obviamente existem riscos inerentes à escolha do conjunto inicial de exemplos, pois existem situações em as quais existe mais de uma relação do que a desejada.
+Um bom exemplo, citado anteriormente e oriundo do artigo sobre o sistema Prospera, é o da relação das seleções do Brasil e da Alemanha com a Copa do Mundo.
+Uma pessoa pode fornecer tais exemplos como exemplos de times campeões da Copa do Mundo, porém foram times que também foram classificados para a Copa do Mundo e perderam finais da Copa do Mundo.
+Também podemos tomar como exemplo a seleção de um conjunto de exemplos que represente a relação entre conjunto musicais e seus respectivos vocalistas.
+Caso o conjunto contenha somente vocalistas do sexo masculino, pode ser que os padrões extraídos sejam mais restritivos do que o desejado.
+Isso é particularmente mais evidente na língua portuguesa, onde alguns termos que podem ser utilizados para denominar o vocalista de um conjunto musical, como &quot;cantor», são passíveis de flexão de gênero, o que não ocorre na língua inglesa.
+Dado esse conjunto inicial de exemplos, o sistema procede para compor uma expressão de pesquisa a ser utilizada sobre uma API de um mecanismo de procura para cada um dos exemplos.
+O propósito da expressão de pesquisa é buscar documentos que contenham ambas as entidades contidas no exemplo, independente do seu posicionamento.
+As principais Apis de mecanismos de procura comerciais disponíveis atualmente possuem filtro por idioma, portanto se acresce à expressão ou solicitação à API essa restrição.
+Então cada uma dessas expressões é enviada através da API ao mecanismo de procura e são capturadas até n URLs para cada par de exemplos.
+Tão logo é finalizada a captura para um par de exemplos, o sistema percorre cada uma das URLs da lista e faz os seguintes procedimentos:
+Extrair o conteúdo da página na Www fazendo uso de um web scraper;
+Remover tags Html com um Html parser, mantendo somente o conteúdo textual da página;
+Executar um part-of-speech tagger sobre o texto resultante;
+Remover adjetivos e advérbios de afirmação contidos num dicionário estabelecido previamente;
+Verificar trechos no texto em que a primeira e a segunda entidade do exemplo estão a uma distância de n caracteres que esteja dentro de um intervalo previamente estabelecido;
+Extrair o trecho inicial compreendendo as duas entidades, substituir- las com tags genéricas, como &quot;e «e armazenar esse padrão numa estrutura que possa ser consultada posteriormente;
+Armazenar todas as combinações possíveis do trecho capturado no passo anterior combinado com as palavras que o antecedem e o sucedem, até o limite máximo de n palavras sucedendo e antecedendo o padrão.
+O objetivo principal para o uso do part-of-speech tagger é a identificação de palavras pertencentes a uma determinada classe gramatical que pode ser passível de remoção para que se crie um conjunto de padrões mais robusto.
+Podemos exemplificar através das frases &quot;Steve Ballmer, CEO de a tradicional Microsoft «e &quot;Larry Page, CEO da inovadora Google».
+Se considerarmos os adjetivos como parte componente dos padrões, poderíamos considerar que estes se tratam de dois padrões diferentes, porém com a remoção dos adjetivos, temos um padrão comum como», CEO de a», o que afeta diretamente a contabilização da frequência e ocorrência e frequência em exemplos distintos, que por sua vez afetam a contabilização do score do padrão, conforme explicaremos posteriormente.
+O passo seguinte, que é compor novos padrões através da concatenação de palavras que antecedem e sucedem o padrão extraído inicialmente é para garantir que construções como &quot;O CEO de a, «sejam devidamente capturadas.
+Pois como inicialmente são capturados somente os padrões textuais entre os dois elementos, o padrão inicial seria», que possui pouca carga semântica.
+A partir de a expansão, um dos padrões armazenados é &quot;O CEO de a,».
+T otaldEx 1 Scorepadrão $= T otaloc.
+TEx Onde:
+T otaloc:
+Número total de ocorrências do padrão ao longo de o treinamento;
+T otaldEx:
+Número distinto de exemplos para os quais o padrão foi encontrado;
+Isso claramente faz com que padrões originalmente capturados, e que portanto contam com um menor número de palavras, estejam sempre contidos em padrões com um maior número de palavras oriundos dessa expansão.
+Para que esta duplicidade de ocorrências não tenha impacto sobre o score final é empregado uma heurística para a eliminação de padrões cuja diferença para outros padrões registrados seja desprezível.
+Classificação e filtragem de padrões O volume de padrões textuais capturados é bastante elevado e existem relações entre os padrões capturados em primeiras instância e aqueles oriundos do processo de expansão para concatenação de palavras antecessoras e sucessoras, que precisam ser consideradas na etapa de filtragem e classificação antes que estas possam ser empregadas num processo de extração de entidades complementares.
+A primeira rotina a ser executada sobre os padrões previamente capturados é a contabilização do número de exemplos para os quais cada um dos padrões foi encontrado.
+Posteriormente são descartados os padrões cujo número de caracteres total seja inferior a um limiar previamente estabelecido e, por fim, são removidos todos os padrões que estejam contidos em outros desde que estes apareçam no mesmo número de exemplos.
+Para a classificação dos padrões é então empregada uma fórmula para o cálculo de um score que busca atribuir um valor à relevância do padrão.
+Mesmo que a ocorrência do padrão seja um fator relevante para o cálculo, é importante notar que para que o padrão seja abrangente ele precisa ser identificado a partir de múltiplos exemplos, caso contrário pode se identificar como relevante um padrão textual extremamente frequente, porém aderente às particularidades de um único exemplo.
+Portanto foi composta uma fórmula tendo em base essa percepção, com ajustes baseados em experimentos prévios.
+A fórmula está apresentada na figura 3.1.
+A partir de o cálculo do score para todos os padrões é feita uma ordenação decrescente, do padrão com score mais alto até o padrão com score mais baixo e são mantidos apenas n padrões com o score mais alto para o passo subsequente, em o qual esses padrões serão empregados para o processo de extração.
+Extração de entidades complementares Uma vez que os padrões que serão utilizados para a extração de entidades complementares foram selecionados na etapa anterior, é executado o procedimento de extração.
+O procedimento de extração consiste em quatro passos menores:
+A composição da expressão de pesquisa, o envio da expressão de pesquisa ao mecanismo de procura, a captura e limpeza dos documentos retornados por sua API e, por fim, a extração das entidades complementares.
+Para cada um dos padrões selecionados na etapa anterior é composta uma expressão de pesquisa.
+Essa composição ocorre a partir de a substituição da tag de entidade por a entidade previamente fornecida e a tag correspondente à entidade que se deseja extrair passa a funcionar como uma divisão entre duas partes da expressão de pesquisa, uma que antecede e outra que sucede a entidade que se deseja extrair ou, caso o mecanismo de procura tenha suporte para tal, um wildcard.
+Uma vez que a expressão está devidamente composta, ela é enviada para o mecanismo de procura, em o qual é retornado um determinado número de URLs de páginas da Www, com um limiar máximo de documentos a serem retornados previamente definido.
+Em posse dessa lista de URLs, o sistema procede para fazer a sua extração com um web scraper e, subsequentemente, faz o tratamento para remoção de tags Html e outros elementos indesejáveis.
+Com os documentos devidamente processados e armazenados em memória, o sistema então procede para a extração da entidade complementar fazendo uso de uma expressão regular para a extração.
+A expressão regular busca fazer a extração de nomes próprios, aceitando conectivos de múltiplos idiomas em letras minúsculas.
+Caso seja encontrado algo que atenda a expressão regular, a possível entidade complementar é armazenada em memória.
+Classificação e seleção de entidades extraídas O procedimento de extração de possíveis entidades complementares corriqueiramente retorna mais de uma entidade, e para isso é preciso selecionar qual dessas entidades o sistema tomará como resposta.
+Para isso, propõe- se o cálculo de um score para as possíveis respostas, baseado principalmente na frequência de ocorrência dos padrões com as possíveis respostas na Www.
+Para o cálculo de score de respostas é preciso obter uma última variável através do seguinte procedimento:
+Primeiramente são recuperados da memória os padrões que foram utilizados para a extração das possíveis entidades complementares.
+Para cada um desses padrões as tags genéricas representando as entidades são substituídas por a entidade pré-definida no processo de extração e a possível entidade complementar.
+A partir de essa substituição é composta uma expressão de pesquisa e enviada ao mecanismo de procura.
+Então é totalizado o número de documentos retornados para cada um dos padrões empregados.
+Em posse dessas variáveis é calculado o score para cada uma das entidades extraídas, a partir de o emprego da fórmula apresentada na figura 3.2.
+Então é feita uma ordenação decrescente por o valor Scoreresposta $= (log Somap) Somadocumentos Onde:
+Somap: A soma do Scorepadrão para cada resposta extraída;
+Somadocumentos: A soma do número de documentos encontrados para cada um dos padrões utilizados no processo de extração.
+Caso o mecanismo de procura permita também é possível definir escopos temporais para o cálculo do score das respostas.
+O impacto do emprego destes veremos na seção seguinte, em a qual será apresentada a prova de conceito.
+Alguns aspectos da relação do modelo proposto com os trabalhos apresentados no Capítulo 2 podem ser visto nas Tabelas 3.1 e 3.2.
+A primeira compara o modelo proposto com os trabalhos citados apresentando o seu tipo (se são sistemas de Open Information Extraction ou sistemas de extração de informação tradicionais), o idioma para o qual o sistema busca extrair informação, se ele processa a informação de maneira distribuída e como são obtidos os seeds para que ele possa iniciar a extração de padrões.
+A segunda tabela aborda quais foram as principais ferramentas de apoio e técnicas utilizadas:
+Part-of-speech, expressões regulares, constituency parsers, dependency parsers, classificadores e PMI.
+O que está proposto nessa dissertação é um modelo incipiente, como é possível verificar comparando o número de oportunidades de melhoria apontadas na Capítulo 5 ao número de recursos e heurísticas que foram propostos e testados, porém, já consegue estabelecer que a extração de informação baseada em padrões textuais é uma abordagem factível para a composição de sistemas mais robustos de question answering, information extraction e open information extraction em língua portuguesa, utilizando recursos que não são computacionalmente intensos como part-of-speech taggers, contando com heurísticas simples para o tratamento de texto e refinamento de padrões e também contando com fontes externas de informação para a validação das informações extraídas ao invés de utilizar dispositivos de classificação mais onerosos.&amp;&amp;&amp;
+Estas características tornam o modelo bastante enxuto, possibilitando a captura e análise de um grande volume de documentos com recursos computacionais baixos, porém escaláveis, por o emprego de paralelismo, para hardwares mais potentes e maior volume de banda.
+Outra contibuição do modelo é verificar que o emprego de determinadas ferramentas de apoio, como o uso de Apis de mecanismos de procura para a validação de resultados, mantém sua validade na língua portuguesa e, por fim, que o emprego de filtros temporais sobre estas permite que a captura de informações seja orientada a um determinado espaço de tempo.
+A o acrescer a variável tempo ao processo de extração de informação em língua portuguesa, começamos a lidar com problemas como a volatilidade da informação e ampliamos a possibilidade de lidar com informações que não sejam perenes.
+Sistema POS tagger Expressões regulares TextRunner Sim Deep, para o trei-Não namento de extrator Sim Não WOE pos Sim Sim Não Não Não Sim Não WOE parse ReVerb Sim Não Não Para detecção de pontuação, em-Shallow prego de letras maiúsculas Não Não Sim, para restringir padrões base-Shallow ado na sequência de POS Não Não Sim, para a geração de extratores Não Não Sim Sim Sim Naive bayes (primeira versão) e CRF (segunda versão), para classificar validade de relações CRF, para classificar válidade de relações Não Baseado em regressão logística para avaliar confiabilidade de padrões Baseado em regressão logística para avaliar confiabilidade de padrões Não Não Espresso Prospera Modelo proposto Em este capítulo apresentaremos maiores detalhes sobre a prova de conceito, como os contextos empregados para validação, os softwares utilizados e, por fim, os resultados desta.&amp;&amp;&amp;
+Contexto para testes Para que fosse possível verificar se há contribuição na proposição deste modelo, foi desenvolvida uma prova de conceito baseada em duas relações distintas:
+A relação entre empresas e seus respectivos CEOs e a relação entre países sul-americanos e seus respectivos presidentes.
+Para cada um dos dois cenários foram fornecidos dez exemplos.
+Os exemplos foram selecionados tomando como base, respectivamente, um relatório escrito por uma empresa especializada na avaliação de marcas, listando as empresas com as marcas mais populares de 2011 e os dez países sul-americanos com a maior renda per capita, de acordo com estimativas retiradas do The World Factbook, compilado por a CIA.
+Software Com o propósito de facilitar os testes sobre o modelo, foi desenvolvido um software para automatizar as tarefas executadas e também para possibilitar a execução em múltiplas threads para rotinas mais onerosas, como captura de documentos na Www e extração de padrões, fazendo uso da arquitetura de processadores com múltiplos núcleos, corriqueiramente encontradas em computadores pessoais e servidores.
+O software foi desenvolvido na linguagem C&amp; e com o framework Microsoft.
+Net 4.0.
+Em um computador com sistema operacional Windows 7, processador com 2.4 GHz de clock, 4 Gb de RAM e uma conexão ADSL de 10 MBit, o processo de treinamento, extração e validação cruzada para todos os exemplos citados pode ser executado em menos de 40 minutos, e esse tempo pode ser ainda reduzido caso outras operações ­ ainda não endereçadas ­ sejam executadas em concomitância e não sequencialmente.
+Como foi mencionado anteriormente, o modelo propõe o uso de um mecanismo de procura, um web scraper, um Html parser e um part-of-speech tagger.
+A Google Custom Search API foi a API de mecanismo de procura escolhida para o recurso de contagem de documentos durante o processo de validação e a Bing API foi a utilização para a recuperação de documentos na extração de padrões e entidades complementares, para as funções de web scraping e parsing de Html foi escolhida a biblioteca HTMLAgilityPack e, por fim, foi escolhido o part-of-speech tagger Lx-Center por sua velocidade.
+O objetivo desta prova de conceito não é prover um cálculo exato de precisão e recall, mas conseguir comprovar que com as ferramentas disponíveis já é possível obter resultados relevantes com o emprego do modelo.
+Por esse motivo escolhemos uma abordagem bastante direta para a avaliação dos resultados.
+O software foi adaptado para testar o modelo utilizando a validação cruzada leave-one- out para os dois conjuntos de exemplos.
+Ou seja, para cada exemplo escolhido para ser testado no modelo, os outros nove exemplos restantes serão empregados para a etapa de treinamento.
+Após a identificação adequada dos padrões, a extração da entidade complementar é feita utilizando os padrões em questão e a entidade do exemplo escolhido.
+Como o software retorna uma lista de respostas e seus respectivos scores, mas de acordo com o modelo somente a com o maior score é considerada a selecionada, consideramos como correta qualquer resposta que, mediante inspeção manual, tenha um termo que seja correspondente à entidade desejada ­ ou seja, para presidente do Uruguai, José Mujica ou José Pepe Mujica são consideradas respostas válidas.
+Ainda assim apresentaremos outros resultados que não tenham o maior score para apresentar alguns desafios e problemas identificados.
+Um software representando uma simplificação do modelo proposto foi utilizado como baseline neste experimento.
+Ele foi desenvolvido a partir de o processo descrito em propostas prévias a esta dissertação e tem as seguintes particularidades:
+São somente capturados padrões que estejam entre as duas entidades, sem que haja o processo de expansão de padrões através da inclusão de palavras que antecedam ou sucedam este padrão;
+Não foram feitas remoções de adjetivos e advérbios com o apoio das informações retornadas por o part-of-speech tagger;
+Não é aplicado o cálculo de score final, que toma como base as informações retornadas por a API do mecanismo de procura Google.
+Os resultados do baseline serão apresentados para efeitos comparativos na próxima seção.
+Resultados Para o primeiro conjunto de exemplos, de companhias e seus respectivos CEOs, 80% das entidades complementares extraídas estavam corretas, como é possível ver na tabela 4.5.
+Para o segundo conjunto de exemplos, de países sul-americanos e seus respectivos presidentes (ver Tabela 4.2), 100% das entidades complementares extraídas estavam corretas, como é possível ver na tabela 4.6.
+Os resultados das execuções do algoritmo baseline foram, respectivamente, de 20% e 70%, como é possível visualizar nas tabelas 4.3 e 4.4.
+Os parâmetros utilizados para a execução dos sistemas foram os seguintes:
+Número de documentos a ser extraído por exemplo para a formação de padrões:
+250 documentos.
+Número de documentos a ser extraído por padrão para a extração de entidades:
+150 documentos.
+Número mínimo de caracteres que devem estar contidos na relação ­ descontando os caracteres das entidades ­ para que esta seja considerada válida:
+5 caracteres.
+Número máximo de caracteres que devem estar contidos na relação ­ descontando os caracteres das entidades ­ para que esta seja considerada válida:
+90 caracteres.
+Número mínimo de caracteres que devem estar contidos na relação ­ descontando os caracteres das entidades ­ para que esta seja considerada válida no baseline:
+ParÂmetro inexistente no baseline.
+Experimento com escopo temporal Um pequeno teste foi conduzido para verificar se os resultados seriam afetados se fosse fixado um escopo de data para a busca de documentos que serve como variável para o cálculo do score das respostas.
+O escopo temporal foi modificado para documentos publicados no primeiro semestre de 2010, ao contrário de o proposto por o modelo, pesquisar por documentos dos últimos seis meses.
+Esse teste foi somente aplicado para o Brasil e Paraguai ambos os países tinham diferentes presidentes nesse período, e os resultados positivos mostram que esse deslocamento tem impacto direto sobre os resultados, o que sugere que o modelo possa ser utilizado para extrair entidades de maneira sensível a um escopo temporal.
+Esses resultados podem ser vistos na Tabela 4.7.
+Análise de erros Um dos principais erros percebidos durante a extração é referente a o contexto do texto e ao emprego dos termos que configuram as relações.
+Em a relação entre CEO e empresa isso fica bastante claro ao considerarmos os exemplos da IBM.
+Rodrigo Kede assumiu a presidência da IBM no Brasil, e com frequência empresas contando com CEOs e presidentes regionais.
+Outro ponto foi uma falha identificada no sistema de validação que faz uso da API do mecanismo de procura.
+A o procurarmos por resultados como &quot;presidente da Microsoft, Bill Gates», são encontrados documentos contendo &quot;ex-presidente da Microsoft, Bill Gates», ou seja, o prefixo &quot;ex- «não é considerado como uma parte componente de &quot;presidente «e afeta diretamente os resultados de pesquisa.
+Outra característica que deve ser abordada está atrelada ao emprego de artigos, que em português ­ isoladamente ou combinados com conectivos ­ são passíveis de flexão de gênero.
+Considerando que o cargo de CEO muitas vezes também é descrito como presidente de uma companhia, há a possibilidade de flexão de gênero no artigo com &quot;o presidente «ou &quot;a presidente», este problema também ocorre para descrever o cargo de chefe de estado de um república presidencialista.
+Unindo isso com a possível de flexão do artigo para o país ou para a empresa de o qual a pessoa é presidente, se criam quatro combinações possíveis de artigos.
+Então com o padrão &quot;novo presidente da, «­ que pode ser encontrado na tabela A. 4 no Apêndice A ­ conseguiríamos extrair as entidades da frase &quot;novo presidente da Venezuela, Hugo Chávez «mas não seria possível extrair de &quot;nova presidente do Brasil, Dilma Rousseff».
+O emprego dos mecanismos de procura tem como propósito eliminar a necessidade de ter um corpus pré-estabelecido, porém muitas vezes a falta de acurácia acerca de certos metadados, como a data de publicação do documento, faz com que a precisão deste algoritmo seja afetada.
+E existem eventos que pode afetar a precisão da extração.
+Como a validação busca recuperar documentos dos últimos seis meses, caso algum incidente altere a contagem deste padrão, ela pode afetar o resultado final.
+Já Thomas Watson, fundador da IBM, está constantemente presente na lista das três primeiras opções de resposta extraídas por o sistema, porém foi um evento causado por investigações das conexões da IBM com o regime nazista.
+Gradativamente o impacto dessa notícia foi reduzido e o nome também foi tendo o seu score gradativamente reduzido, ainda que conste nos últimos testes entre os principais resultados reconhecidos por a ferramenta.
+Em este capítulo vamos apresentar as contribuições desta dissertação, e possíveis evoluções sobre o objetivo de pesquisa, que pode resultar em trabalhos futuros.
+Contribuições Consideramos como a principal contribuição desta dissertação a proposição de um modelo de extração de informação baseado em padrões textuais que pode ser aplicado sobre a World Wide Web, que endereça alguns problemas particulares à lingua portuguesa e testa abordagens previamente utilizadas somente sobre a língua inglesa sobre a língua portuguesa.
+Além disso também é proposto dentro de o modelo o emprego de Apis de mecanismos de procura para validar as extrações deste modelo, inclusive possibilitando validar os resultados dentro de um escopo temporal.
+A motivação para este trabalho é o baixo volume de pesquisas para a extração sobre um grande volume de documentos particularmente orientado à língua portuguesa.
+Ainda que este trabalho ofereça muitas oportunidades de evolução, dada a pluralidade de desafios não abordados, o seu resultado é suficientemente positivo para sugerir que as práticas descritas são dignas de maior investigação em trabalhos futuros.
+Apresentamos a aplicação deste modelo sobre dois cenários específicos, a identificação de padrões que configurem relações entre empresas e seus respectivos CEOs e também a relação de países latinoamericanos e seus respectivos presidentes.
+Com o uso de dez exemplos para cada cenário, fizemos uma validação cruzada para cada um dos dez pares fornecidos como exemplo, fazendo uso dos nove exemplos excedentes para o treinamento e testando a extração sobre o exemplo selecionado fornecendo a empresa e esperando como resposta o seu respectivo CEO e, no segundo cenário, fornecendo o país e esperando como resposta o respectivo presidente.
+Com isso obtivemos 80% e 100% de extrações corretas para os respectivos cenários de CEOs e presidentes.
+É importante colocar que é possível empregar o modelo proposto em diferentes cenários, como apoiar a construção de ontologias, a formação de tesauros e, por fim, um contexto amplamente explorado ao longo deste trabalho e para o qual apontamos a evolução deste, que é um sistema de Open Information Extraction orientado à língua portuguesa.
+Trabalhos futuros A o observar as diferentes abordagens apresentadas na Seção 2.2, foi possível identificar uma pluralidade de abordagens que podem ser testadas sobre o contexto de extração de informação baseada em padrões textuais.
+Algumas destas apresentamos abaixo:
+Utilização de um framework ou modelo para permitir o processo paralelo e distribuído das tarefas de identificação de padrões e extração de informação;
+Fazer uso de classificadores (SVM, CRF, classificadores bayesianos, etc) no processo de classificação de padrões.
+As classificações podem ser orientadas à abrangência ou à precisão das extrações;
+Fazer uso de outras ferramentas de PLN para a língua portuguesa, desde as mais rápidas como Np--chunkers até constituency e dependency parsers;
+Fazer uso de bases previamente estruturadas, como o DBPedia e os dados contidos nas infoboxes da Wikipedia, para a validação de padrões e extrações;
+Extrair um conjunto inicial de exemplos a partir de informação estruturada ou parcialmente estruturada(:
+DBPedia, Wikipedia) para que não seja preciso intervenção humana na criação de um conjunto inicial de exemplos;
+Utilizar Pointwise Mutual Information no cálculo de confiabilidade dos padrões;
+Estudar a extração sobre estruturas frasais que denotam conjuntos (&quot;bairros como Menino Deus, Cidade Baixa e Centro&quot;);
+Automatizar captura de exemplos ­ seja por padrões genéricos, uso de base estruturada ou outros métodos ­ para a criação de um modelo de Open Information Extraction para língua portuguesa;
+Verificar a possibilidade de classificar as entidades componentes de uma relação expressada por um padrão textual a uma determinada classe, para garantir que extrações só sejam possíveis a partir de a constatação do pertencimento das entidades às respectivas classes;
+Fazer uso de um conjunto de exemplos que tenham relações em comum com o conjunto de exemplos primeiramente fornecido para a extração dos padrões textuais, porém sem que estes tenham a relação que se deseja extrair em comum, para verificar se o uso de exemplos com peso negativo pode qualificar a extração de padrões;
+Fazer uma avaliação de confiabilidade do padrão baseado na contagem de vezes em que o padrão está presente, mesmo como a resposta inadequada, com o número de vezes em que o padrão está presente ligado à resposta correta;
+Empregar informações oriundas de Semantic Role Labelling para a classificação e seleção dos padrões textuais.
+Outras oportunidades de melhoria e trabalhos futuros foram percebidas ao longo de o experimento e a maioria de elas faz menção a problemas que provavelmente terão soluções bastante orientadas à língua portuguesa:
+Estudar a equivalência de locuções verbais, adverbiais, preposicionais, adjetivas e conjuntivas entre si e aos respectivos verbos, advérbios, preposições, adjetivos e conjunções para inferir novos padrões a partir de a substituição destes termos por equivalentes;
+Resolver anáforas nominais e preposicionais;
+Resolver correferência fazendo uso de múltiplos documentos (identificar que Virginia M. Rometty e Ginni Rometty se tratam da mesma pessoa);
+Verificar se existem inferências de padrão que podem não estar sendo agrupadas por diferenças de gênero dos substantivos e adjetivos;
+Utilizar os padrões textuais extraídos para a composição de tesauros;
+Utilizar os padrões textuais extraídos para enriquecimento de ontologias;
+Buscar outras maneiras de atribuir informação temporal, seja ao documento ou à relação em questão.
+Como é possível observar através dos itens propostos nas listas acima, há uma pluralidade de melhorias possíveis para o modelo, assim como diferentes aplicações para este.
+O que buscaremos abordar futuramente é a extração automatizada de um conjunto inicial de exemplos, para que o sistema possa extrair relações sem que seja necessária a intervenção humana em nenhuma etapa do processo.

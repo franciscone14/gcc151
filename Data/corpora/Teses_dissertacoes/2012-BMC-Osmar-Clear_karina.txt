@@ -1,0 +1,967 @@
+Um dos principais desafios da Bioinformática Estrutural é entender como a informação decodificada numa sequência linear de aminoácidos, ou estrutura primária de uma proteína, possibilita a formação de sua estrutura tridimensional.
+Muitos algoritmos buscam propor soluções para o problema complexo da classe Np-completo.
+De entre eles, está o método CReF (Central Residue Fragment--based method) que realiza a predição da estrutura 3D aproximada de proteínas ou polipeptídios.
+O método usa técnicas de mineração de dados para agrupar dados de estruturas, apresentando boa predição de estruturas secundárias, bom desempenho em máquina de baixo custo, mas enfrenta problemas na predição das regiões de voltas e alças e na usabilidade.
+Valorizando as características diferenciadas do método e buscando sua evolução, este trabalho propôs- se a realizar melhorias no CReF.
+Após uma etapa inicial de entendimento e adaptações para tornar a ferramenta executável na situação atual dos bancos de dados e ferramentas de apoio, foram identificadas duas categorias de melhorias.
+As melhorias técnicas tiveram por objetivo automatizar a ferramenta, adaptar- la ao ambiente e ao usuário enfatizando usabilidade.
+Para melhorias no método realizaramse testes com variação na quantidade de grupos identificados na etapa de mineração de dados com o algoritmo Expectation Maximization (Em) no Weka.
+Os testes indicaram que as melhores conformações iniciais eram obtidas com quatro e seis grupos, assim, optou- se por permitir ao usuário a escolha dos grupos a considerar.
+Um novo mapeamento do mapa de Ramachandran indicou ajustes que foram corrigidos e decidiu- se descartar grupos identificados nas regiões não permitidas na análise do resultado da mineração de dados.
+A nova versão do CReF, gerada por a implementação dessas melhorias, também padronizou o método de predição de estrutura secundária, passando a utilizar o método Porter.
+Como consequência, as regras para escolha do grupo resultante da mineração a representar cada aminoácido foram adaptadas e ampliadas para atender novas situações.
+A nova versão manteve o desempenho de predição e execução iniciais do CReF, entretanto, manteve o problema das voltas e alças.
+Este problema de otimização das regiões de voltas e alças foi endereçado por meio de o desenho e aplicação de um protocolo de refinamento, baseado em simulações por o método da dinâmica molecular, o qual apresentou um resultado expressivo para a proteína alvo de código PDB 1ZDD.
+Palavras-chave: Bioinformática, predição de estrutura 3D de proteínas, mineração de dados, refinamento de estruturas proteicas, simulação por dinâmica molecular, predição de estrutura 2D.
+A Bioinformática é uma ciência interdisciplinar, em a qual todos estão engajados em desvendar o mistério da vida:
+O genoma.
+Com este objetivo os projetos Genoma, de entre outros, têm gerado um volume impressionante de dados biológicos nos últimos tempos.
+Esses dados, armazenados em bancos de dados, foram organizados de forma a permitir aos pesquisadores a realização de buscas e submissão de dados.
+Ferramentas e recursos foram desenvolvidos para diversas tarefas de análise desses dados.
+Vencida a etapa de desenvolvimento e de melhoria dessas ferramentas, o que permitiu uma maior confiabilidade e disponibilidade das informações, apresenta- se agora uma nova etapa:
+A construção do conhecimento.
+Isso compreende interpretar e atribuir significado aos dados, gerando conhecimento.
+Essa nova fase tem sido chamada de &quot;Era Pós-genômica «e seu fruto é o proteoma que mapeia uma determinada função a uma proteína.
+Essa informação torna- se um instrumento poderoso para identificação de mecanismos celulares e a descoberta de novos fármacos mais eficientes e específicos (Desenvolvimento Racional de Fármacos) (Mandal, 2009).
+Um dos principais repositórios e fonte dessas informações é o Protein Data Bank (PDB), o mais volumoso banco de dados com informações de proteínas.
+Em o processo de descoberta das funções de cada proteína, a identificação de sua estrutura tridimensional (3 D) tem papel de destaque.
+A estrutura terciária é obtida de forma mais eficaz por meio de experimentos, mas estes são caros, de difícil execução e possuem limitações técnicas.
+Alternativamente a esta abordagem, é possível prever a conformação de uma proteína comparando- a com outra proteína homóloga de estrutura 3D conhecida (Prosdocimi, 2002).
+A modelagem por homologia, &quot;baseada no conhecimento», é um dos recursos mais eficientes para esta tarefa.
+Ainda assim, a modelagem de proteínas é uma técnica heurística.
+Mesmo atendendo a todas as restrições, não há garantias de que seja a estrutura correta.
+A relação entre estrutura e função da proteína é complexa.
+Proteínas com estruturas semelhantes podem estar associadas a funções diferentes e viceversa.
+Este é mais um dos &quot;mistérios «instigantes que a Bioinformática dispõe- se a decifrar:
+Como a informação codificada numa sequência de aminoácidos ajuda a predizer qual a estrutura 3D de uma proteína?
+Muitos estudos buscam responder a esta pergunta, por exemplo:
+Dong, 2009;
+Kundrotasa, 2008;
+Lai, 2004;
+Rajgaria, 2010.
+De entre estes estudos também está o de Dorn e Norberto de Souza.
+Dorn e Norberto de Souza propuseram um novo método para predição aproximada de estrutura tridimensional de proteínas, o CReF (Central Residue Fragment--based method).
+Os resultados promissores que ele apresentou serviram como incentivo para a manutenção e a evolução do método CReF.
+Em esse sentido este trabalho implementou melhorias no método CReF buscando manter suas principais características e para aprimorar sua execução por meio de a sua automatização e de um processo de refinamento.
+Para atender a este objetivo o trabalho começa com a revisão de alguns conceitos importantes, como a Bioinformática Estrutural no capítulo 2 e, no capítulo 3, as proteínas e sua organização estrutural.
+O capítulo 4 traz uma revisão sobre o método CReF indicando o seu propósito e apresentando as nove etapas que o compõe.
+As melhorias técnicas e as aplicadas à metodologia que deram origem a uma nova versão da ferramenta são descritas no capítulo 5.
+Este capítulo também trata sobre o problema da otimização das regiões de voltas e alças em proteínas.
+Os experimentos realizados com a nova versão do CReF são apresentados no capítulo 6.
+Além disso, o capítulo apresenta o conjunto de proteínas teste considerado, o seu critério de escolha e os materiais e métodos utilizados no desenvolvimento desta dissertação.
+O desempenho da ferramenta é analisado e uma discussão sobre o refinamento das conformações iniciais geradas por a nova versão tem início também neste capítulo.
+Por último, no capítulo 7, são apresentadas as considerações finais e as principais contribuições desta dissertação, assim como, são indicados trabalhos que podem ser realizados futuramente com base neste estudo.
+A Biologia deu grandes passos apoiada por outras áreas, uma de elas foi a Química.
+Essa conjunção deu origem à Bioquímica.
+A necessidade de explicar os fenômenos em nível atômico deu origem à Biofísica, e dessa mesma forma e unindo diferentes áreas surgiu a Bioinformática com especial contribuição da Ciência da Computação.
+O trabalho colaborativo entre as diferentes áreas traz benefícios para ambas as ciências.
+Cohen em 2004, dizia que o trabalho com biólogos inspiraria os cientistas da computação a fazerem descobertas que melhorariam também a Ciência da Computação.
+Analisando o cenário atual pode- se dizer que ele estava certo.
+A Computação tem apoiado fortemente a Biologia e tornou- se um recurso essencial para a manutenção de diversos recursos, como acesso via web e programas para análises e processamentos, e também para a solução e a compreensão dos desafios.
+Áreas interdisciplinares como esta exigem esforços e disposição dos envolvidos para compreender o ponto de vista do colega de outra área, para que assim seja possível construir uma teoria ou uma solução para um problema.
+As habilidades essenciais a cada área precisam ser consideradas e adaptadas para se atingir o objetivo principal.
+O crescimento e a abrangência dos projetos biológicos em todo o mundo criaram necessidades de análise e armazenamento de grandes volumes de dados e a disponibilização dessas informações para acesso público.
+Em a era pós-genômica, a proteômica juntamente com o entendimento estrutural e funcional das proteínas tem sido o foco dos estudos.
+Esses estudos permitiram a separação, identificação e caracterização das proteínas e o próximo desafio da bioinformática é a predição da sua estrutura tridimensional.
+O aumento do volume de informações sobre estruturas tridimensional (3 D) obtidas por meio de experimentos estimulou a criação de uma sub-disciplina na Bioinformática:
+A Bioinformática Estrutural.
+Bioinformática Estrutural é a conceituação da biologia em termos de moléculas, no sentido físico-químico, e a aplicação de técnicas de informática (derivadas de disciplinas como:
+Biologia Molecular Estrutural.
+Seu principal foco é em representação, armazenamento, recuperação, análise e visualização da informação estrutural das proteínas.
+Sabe- se que a função de uma proteína é, em grande parte, determinada por a sua estrutura 3D e não por sua sequência de aminoácidos apenas.
+A estrutura de uma proteína é peça de um interessante quebra-cabeça chamado proteoma.
+Quando uma proteína se dobra os resíduos importantes orientam- se em posições corretas para formar as regiões funcionais.
+A maioria dessas regiões funcionais serve de ligação a outras moléculas.
+Proteínas pertencentes a uma mesma família e, mesmo não apresentando grande similaridade entre suas sequências, conservam a mesma estrutura 3D.
+Muito mais importante do que o percentual de identidade entre duas sequências é a identidade de resíduos-chave, os quais são os principais responsáveis por a função da proteína.
+Por isso, a análise pura da sequência não pode ser levada em consideração a fim de evitar conclusões erradas sobre a função.
+Em esse sentido faz- se importante conhecer a estrutura tridimensional de uma proteína para determinar a sua função.
+Esse cenário apresenta outro desafio que é como predizer corretamente estruturas 3D para novas proteínas obtidas a partir de projetos genoma, por exemplo.
+Para isso é necessário compreender bem como se organizam as proteínas.
+Resumo do capítulo Em este capítulo foi apresentada a conceituação de Bioinformática Estrutural e o seu contexto nesta dissertação.
+Este conceito e aqueles envolvidos com proteínas e sua estruturação, a serem apresentados no capítulo seguinte, compõem o embasamento teórico deste trabalho.
+As proteínas são polímeros longos compostos por a combinação de aminoácidos e que apresentam um esqueleto repetitivo uniforme com uma cadeia específica para cada um dos 20 aminoácidos existentes.
+Mesmo sendo moléculas grandes, apenas uma pequena porção da estrutura das proteínas funciona de maneira precisa (o sítio ativo).
+O restante da estrutura tem o papel de criar e manter relações espaciais entre os resíduos do sítio ativo.
+A sequência de aminoácidos forma uma cadeia polipeptídica por meio de um processo de condensação e entre os aminoácidos ocorrem ligações peptídicas.
+Em ambiente nativo uma cadeia polipeptídica adota uma estrutura tridimensional (3 D) única ou conformação nativa.
+Essa conformação determina a função da proteína na célula, de entre elas estão:
+Proteínas estruturais, proteínas que catalisam reações químicas (enzimas), proteínas de transporte e de armazenamento (hemoglobina), proteínas reguladoras (hormônios), proteínas que controlam a transcrição gênica, proteínas envolvidas em reconhecimento (anticorpos), etc..
+O conhecimento da estrutura 3D implica no conhecimento da sua função e com este conhecimento é possível influenciar a ação da proteína no organismo por meio de fármacos ou drogas.
+A maioria das cerca de 77.400 estruturas 3D conhecidas atualmente foi determinada por cristalografia por difração de raios X ou por ressonância magnética nuclear.
+A partir de essas estruturas foi construído o conhecimento sobre as funções individuais e dos princípios gerais de estrutura e enovelamento de proteínas.
+O enovelamento é o processo que faz com que a proteína atinja sua conformação no estado nativo.
+Os principais fatores desse processo são a sequência de aminoácidos e o seu ambiente.
+Em essa seção pretende-se apresentar os principais conceitos relacionados a proteínas e sua organização estrutural.
+Aminoácidos As proteínas são formadas por unidades menores:
+Os aminoácidos.
+Quimicamente um aminoácido compõe- se de um átomo de carbono central denominado C que possui quatro ligantes:
+A cadeia lateral caracteriza as propriedades físico-químicas de cada um dos 20 diferentes aminoácidos.
+Por convenção internacional, os aminoácidos são identificados por abreviações de três letras (derivadas dos nomes em inglês) ou por um código de uma letra.
+A tabela a seguir apresentará as abreviaturas, a estrutura química e os ângulos da cadeia lateral de cada aminoácido:
+Segundo Lehninger, a natureza química dos grupos R (cadeia lateral) ainda classifica os aminoácidos em quatro grupos:
+Apolares: A cadeia lateral desses aminoácidos não tem a capacidade de receber ou doar prótons, de participar de ligações iônicas ou de formar pontes de hidrogênio.
+Contudo apresenta uma propriedade oleosa que favorece as interações hidrofóbicas e contribuem na estabilização da estrutura e, por ser estritamente hidrofóbica e apolar, não se dissolve na água.
+Em as proteínas, as cadeias laterais apolares tendem a agrupar- se no seu interior.
+Isso é explicado por o fenômeno da hidrofobicidade que faz com que esse grupo preencha o interior da proteína compondo sua forma tridimensional.
+Apesar de ser apolar, a glicina não contribui para a existência de interações hidrofóbicas.
+No caso de a prolina, seu grupo amino secundário apresenta uma conformação rígida o que reduz sua flexibilidade estrutural.
+Polares: Abrange aminoácidos não carregados, mas polares cujo tipo de cadeia lateral permite participar na formação de pontes de hidrogênio.
+Aminoácidos deste tipo são mais solúveis em água do que os não-polares, pois possuem grupos funcionais que formam ligações de hidrogênio com a água.
+Polares Básicos: As cadeias laterais básicas são aceptoras de prótons.
+As cadeias laterais da lisina e da arginina em pH fisiológico apresentam- se ionizadas positivamente.
+Já a histidina é fracamente básica e seu aminoácido livre não tem carga em pH fisiológico.
+Em contrapartida a isso, quando a histidina é incorporada a uma proteína sua cadeia lateral pode apresentar carga positiva ou neutra dependendo do ambiente iônico proporcionado por a cadeia polipeptídica.
+Polares Ácidos: São doadores de prótons e apresentam- se ionizados negativamente em pH neutro.
+A compreensão das propriedades físico-químicas dos aminoácidos é importante, pois estas propriedades contribuem para que a proteína encontre estabilidade em seu estado nativo.
+Ligação peptídica e ângulos de torção Uma sequência linear de aminoácidos ligados contém a informação necessária para indicar a forma tridimensional de uma proteína.
+Essa ligação gera um polímero ou cadeia polipeptídica que é formado quando as proteínas se ligam de forma sequencial e covalente.
+Essa ligação, chamada de ligação peptídica, ocorre entre o átomo de carbono (C) de um aminoácido e o átomo de nitrogênio (N) de outro aminoácido (Voet e Voet, 2006).
+As ligações peptídicas não são rompidas facilmente, é necessária uma exposição prolongada a um ácido ou a uma base forte em elevadas temperaturas para que essas ligações sejam hidrolisadas de forma não-enzimática.
+Essa reação gera como co-produto água, formando- se a partir de o ­OH da carboxila de um aminoácido e de um átomo H do grupo ­NH2 do outro aminoácido.
+A Figura 2 a seguir representa este processo:
+Muitos aminoácidos associados por ligações peptídicas compõem uma cadeia não ramificada chamada de polipeptídeo, onde cada aminoácido é denominado de resíduo.
+Ao longo de uma cadeia apresenta- se um padrão que não se altera formado por o conjunto ­N­C­C, chamado de cadeia principal da proteína.
+A direção dessa cadeia é dada a partir de o grupamento amino (N­terminal) até o grupamento carboxila terminal (C­terminal) (Voet e Voet, 2006).
+Essa convenção é usada para numerar os resíduos de uma sequência.
+Essa convenção facilita a análise de diversas características da sequência proteica.
+Os grupos peptídicos, com poucas exceções, assumem uma configuração tal que os átomos C sucessivos ficam em lados opostos da ligação peptídica que os une.
+Essa e outras observações indicam que o esqueleto de uma proteína compõe- se de uma sequência de grupos peptídicos planares rígidos e ligados.
+Assim, o enovelamento da proteína ou o enovelamento do esqueleto polipeptídico depende dos ângulos de torção que essa cadeia pode assumir.
+A rotação somente é permitida nas ligações simples de todos os resíduos:
+N­C e C­C (exceto prolina).
+O enovelamento de uma proteína é dado por os ângulos (phi) e (psi) dessas ligações e por o ângulo (ômega) de rotação em torno de a ligação peptídica.
+Os valores dos ângulos e podem variar de 180º a 180º. O ângulo diedro representa a rigidez e a planaridade de uma ligação peptídica e indica a rotação em torno de a ligação entre o C da carboxila e o N da amina.
+Este ângulo não é livre para rotar, em virtude de isso seus ângulos de torção variam próximos a 0º (cis) e a 180º (trans).
+Isso ocasiona uma restrição importante no número de conformações que uma proteína pode adotar.
+Os maiores responsáveis por a torção da cadeia principal é o dupleto (e).
+Devido a a maior liberdade de torção desses ângulos, pequenas mudanças podem resultar em alterações significantes na conformação.
+Uma conformação totalmente estendida é obtida quando esses ângulos são fixados em 180º.
+Os ângulos, e (tripleto) da cadeia principal representam de forma única a conformação de uma proteína.
+A cadeia lateral também apresenta ângulos de torção que interferem na conformação da cadeia principal e auxiliam na estabilidade da molécula.
+A análise estatística do padrão conformacional dos ângulos de cadeias laterais com estruturas determinadas experimentalmente produziu bibliotecas de rotâmeros que indicam a conformação preferencial das cadeias laterais.
+As bibliotecas podem ser dependentes ou não da estrutura primária.
+Em as bibliotecas independentes, os ângulos (qui) são classificados sem considerar a estrutura regular (hélice ou folha) onde o aminoácido aparece e nas bibliotecas dependentes isso é considerado.
+A biblioteca de rotâmeros Dunbrack é a mais utilizada.
+Essas bibliotecas são importantes na otimização de modelagens para indicar uma atribuição correta de ângulos de torção às cadeias laterais.
+Uma atribuição incorreta pode ocasionar choques estereoquímicos entre átomos da cadeia principal e da cadeia lateral e, consequentemente, a proteína assumirá uma conformação indevida.
+A demonstração gráfica dos valores proibidos e permitidos para esses ângulos de torção é apresentada no Mapa de Ramachandran.
+Tabela 2 ­ Número de ângulos presentes em cada aminoácido.
+A conformação de uma proteína pode ser descrita, quantitativamente, em termos de os ângulos internos de rotação em torno de as ligações entre os átomos da cadeia principal (Figura 3).
+As conformações estericamente proibidas são aquelas onde qualquer distância interatômica entre átomos não-ligados é menor que a distância de van der Waals correspondente.
+Essas informações foram descritas pela primeira vez por V_ Sasisekharan, C_ Ramakrishnan e G_ N_ Ramachandran no que é hoje conhecido como mapa de Ramachandran.
+O mapa apresenta a variação possível dos ângulos (phi) e (psi), de 180º a 180º. O (conformação trans) e, ocasionalmente (frequentemente, antes de um resíduo de prolina) $= 0º (conformação cis) (Lesk, 2001).
+As regiões do mapa que identificam as conformações permitidas dependem do raio de van der Waals escolhido para calcular- las.
+Em termos de enovelamento, as regiões do mapa representam padrões de torção da cadeia polipeptídica para elementos da estrutura secundária como folhas e hélices.
+A figura anterior foi produzida por o programa PROCHECK, para definir regiões permitidas e proibidas ele usa a estrutura cristalográfica de 118 proteínas resolvidas numa resolução melhor que 2,00 Å.
+As regiões não permitidas podem ser ocupadas por a glicina, já que sua cadeia lateral tem apenas um átomo de hidrogênio e isso permite maior flexibilidade para os ângulos phi e psi.
+As regiões do mapa de Ramachandran também estão associadas a conformações de resíduos, isso é especificado por a nomenclatura de A. Hierarquia estrutural das proteínas A alta complexidade da estrutura proteica foi melhor compreendida a partir de a análise em quatro níveis hierárquicos:
+Estrutura primária, estrutura secundária, estrutura terciária e estrutura quaternária.
+Essa análise mostrou que certos elementos repetem- se numa ampla variedade de proteínas, isso sugere a existência de regras que determinam como as proteínas se organizam.
+Esses elementos são combinados das formas mais simples até as mais complexas em domínios e, por isso, é importante compreender do que consistem estas estruturas.
+Estrutura primária:
+É a própria sequência linear de aminoácidos ligados através de ligações peptídicas.
+Estrutura secundária:
+São os padrões regulares nas estruturas das proteínas.
+Essa regularidade na conformação espacial mantém- se por as ligações de hidrogênio entre os hidrogênios dos grupos amino e os oxigênios dos grupos carboxílicos de outros aminoácidos.
+Hélices e folhas são as conformações mais comuns.
+Além de estas, há estruturas aleatórias com a função de conectar as estruturas secundárias regulares, como a volta e a alça (Voet e Voet, A hélice apresenta uma estrutura helicoidal, que consiste de um esqueleto polipeptídico em espiral no centro e com as cadeias laterais dos aminoácidos estendendo- se para fora de o eixo central para evitar a interferência estérica entre si.
+A figura a seguir apresenta este esqueleto:
+Em a Figura 6 anterior também se observam as pontes de hidrogênio entre os átomos de oxigênio e de hidrogênio que estabilizam a formação de uma hélice.
+As pontes de hidrogênio estendem- se na espiral e são ligações individualmente fracas, mas em conjunto tem a função de estabilização.
+Em torno de 3,6 aminoácidos compõem uma volta completa de uma hélice, portanto, os resíduos separados por outros três ou quatro resíduos na sequência primária ficam espacialmente próximos quando dobrados na hélice.
+As ligações de hidrogênio podem acontecer entre o resíduo i e o resíduo i+ 4, analisando este padrão de ligação verifica- se que são envolvidos 13 átomos da cadeia principal.
+Essa característica fixa da hélice deu origem a uma notação alternativa para sua representação:
+Hélice 3,613.
+Esta notação indica que na hélice há 3,6 resíduos por volta e 13 átomos entre as ligações de hidrogênio.
+Existem ainda outras duas hélices possíveis, mas menos comuns que a hélice.
+A hélice 310 que tem três voltas e 10 átomos da cadeia principal entre as ligações de hidrogênio que envolve a carbonila do resíduo i com o nitrogênio do resíduo i+ 3.
+E a hélice Pi, com a notação 4,416, que tem 4,4 resíduos por volta e 16 átomos entre as ligações de hidrogênio que envolve o resíduo i e o resíduo i+ 5.
+CPK para os átomos e a hélice foi desenhada passando por os átomos da cadeia principal.
+Figura gerada com o software PyMOL 1.2r1.
+A estrutura de uma hélice pode ser comparada a uma mola em equilíbrio (hélice do centro na Figura 7), onde não são aplicadas forças.
+A o se comprimir uma hélice, há um encolhimento da mola, o que resulta numa hélice Pi (hélice à esquerda).
+Já o estiramento dessa mola, gera uma hélice 310 (hélice à direita) (Lesk, 2001).
+Essas estruturas também apresentam diferenças nos ângulos de torção:
+Propriedades diferentes influenciam diferentes sequências de aminoácidos a formar hélices.
+Os resíduos de aminoácidos mais propícios a formar hélices são:
+Alanina, glutamina, metionina, lisina e leucina.
+Enquanto isso, os resíduos prolina, isoleucina, glicina e serina dificilmente são encontrados em hélices.
+O número total de aminoácidos numa hélice varia entre 5 e 40 resíduos, as hélices com 10 resíduos são as mais frequentes.
+Diferentemente da estrutura helicoidal das hélices, as folhas compõem- se de duas ou mais cadeias peptídicas (fitas) ou segmentos de cadeias polipeptídicas que se apresentam em zigue- zague e arranjadas lado a lado assemelhando- se a uma série de fitas.
+A folha também pode ser chamada de &quot;folha pregueada «devido a sua aparência.
+Em uma folha todos os componentes da ligação peptídica envolvem- se em pontes de hidrogênio.
+Suas cadeias adjacentes podem ser paralelas ou antiparalelas e, nesses casos, os padrões das ligações de hidrogênio são diferentes.
+Em as proteínas globulares, as folhas podem ser constituídas de duas a 15 fitas, sendo encontradas em média seis fitas.
+As cadeias das folhas, tipicamente, apresentam até 15 resíduos de extensão e uma média de seis resíduos na cadeia.
+Observou- se que folhas paralelas com menos de cinco resíduos são raras, isso indica que as folhas antiparalelas são mais estáveis que as folhas paralelas.
+Esse fato deve justificar- se por as ligações de hidrogênio que, quando comparadas à folha antiparalela, se mostram distorcidas na folha paralela.
+As folhas mistas (paralela-antiparalela) são comuns, mas apenas 20% das fitas possuem ligação paralela de um lado e antiparalela do outro (Voet e Voet, 2006).
+Quando não se encontra estruturas homólogas à sequência molde, podem ser utilizados métodos empíricos para predizer estruturas secundárias.
+Certas sequências de aminoácidos limitam as conformações disponíveis para uma cadeia.
+Por exemplo, um resíduo Para o não pode se ajustar no interior de uma hélice ou de uma folha comum, porque seus anéis pirolidínicos preencheriam um espaço ocupado por um segmento adjacente da cadeia e a falta do grupo N­H que contribui na ligação de hidrogênio compromete estabilidade da hélice.
+Peter Chou e Gerald Fasman propuseram um método empírico de predição de estrutura que é bastante utilizado por ser de fácil execução.
+Esse método se baseia em algumas informações como a frequência (f) em a qual um dado resíduo aparece numa hélice num dado conjunto de estruturas:
+Onde n é o número de resíduos de um dado tipo que aparece em hélices e n é o número total de resíduos deste tipo no conjunto de proteínas consideradas.
+A probabilidade de um dado resíduo aparecer numa hélice é definida por:
+Onde é o valor médio de f para todos os 20 aminoácidos.
+Um valor P\&gt; 1 indica que um resíduo ocorre em hélice em frequência maior do que em outras regiões da proteína.
+De forma semelhante é definida a probabilidade de um resíduo ocorrer em folhas (P) (Voet e Voet, 2006).
+Com base em 29 estruturas determinadas por raios x foi obtida a probabilidade de cada resíduo aparecer em hélices ou em folhas.
+Conforme essa probabilidade, cada resíduo recebe uma classificação (apresentada na Tabela 4) para estrutura secundária:
+Altamente formadora (H), formadora (h), pouco formadora (I), indiferentemente formadora (i), não-formadora (b), ou altamente não-formadora (B) (Voet e Voet, 2006).
+Com base nesses dados, Chou e Fasman desenvolveram o método Chou-Fasman para predizer estruturas secundárias através de regras empíricas:
+Um grupo de quatro resíduos formadores de hélice (H ou h, com I valendo meio h) num conjunto de seis resíduos contíguos formará uma hélice.
+O segmento de hélice se propaga em ambas as direções da cadeia até que P 1,00 para um segmento tetrapeptídico.
+Um grupo de três resíduos formadores de folhas (H ou h) num segmento de cinco resíduos contíguos formará uma folha.
+A folha também se propaga em ambas as direções até que o P 1,00 para um segmento tetrapeptídico.
+Para regiões que formem tanto como, a região de sobreposição é prevista como helicoidal se P\&gt; P;
+De o contrário, supõe- se a ocorrência de folha.
+Essas regras predizem segmentos de hélice e folhas em proteínas com uma confiabilidade média de 50% e, em casos mais favoráveis, de 80%.
+Além de hélices e folhas, há as estruturas irregulares como as voltas e as alças, que são ditas espirais desorganizadas e conectam sucessivas estruturas secundárias regulares (hélice ou folha) (Voet e Voet, 2006).
+Uma proteína globular contém, aproximadamente, dois terços de resíduos em hélices e folhas e um terço em estruturas irregulares.
+Voltas e alças tendem a ser mais flexíveis do que hélices e folhas nas mudanças conformacionais. Em o mapa de Ramachandran, as conformações em estruturas irregulares podem ocupar qualquer região, inclusive regiões de hélices e folhas.
+Em virtude de isso, é difícil predizer estas estruturas por meio de métodos computacionais.
+As voltas acontecem onde o polipeptídeo muda de direção, isto é, acontecem após uma estrutura secundária regular.
+A maioria das voltas constitui- se de quatro resíduos sucessivos e que se organizam de diferentes formas.
+O primeiro a identificar as voltas foi Venkatachalam que as classificou em três tipos:
+I, II e III.
+Quando ocorre uma conformação em imagem-espelho destes tipos obtêm- se os tipos I, II e III.
+O tipo I é o mais frequente e o tipo III é uma volta de hélice 310.
+Já I e II são mais raros, mas o tipo I parece ser a preferida em grampos (estrutura supersecundária que indica a união de folhas) (Creighton, 1993).
+A conformação dos resíduos apresentados anteriormente segue a nomenclatura conforme A. V. Efimov.
+Em os mapas de Ramachandran apresentados a seguir é possível realizar uma comparação entre a &quot;trajetória «das voltas dos tipos I e II:
+Exemplos de proteínas obtidos de.
+As alças, que também podem ser reversas, estão presentes na maioria das proteínas com mais de 60 resíduos e aparecem uma ou mais vezes numa quantidade de resíduos entre seis e 16 apresentando distâncias menores de 10,00 Å.
+Como elementos globulares compactos, pois suas cavidades internas são preenchidas por suas cadeias laterais, as alças, quase sempre, se localizam na superfície.
+Além disso, elas desempenham importante papel no reconhecimento biológico.
+A combinação de elementos de estrutura secundária (hélices e folhas) pode gerar estruturas supersecundárias (motivos).
+Esse tipo de combinação costuma aparecer no interior da proteína e são conectadas por alças na superfície.
+O motivo é formado por uma sequência de:
+Uma fita, uma hélice e outra fita.
+Já o grampo é formado por duas hélices antiparalelas e sucessivas posicionadas uma contra a outra com os eixos inclinados para permitir a interação entre as cadeias laterais.
+Outra estrutura comum é o grampo (Hairpin) que é formado por uma folha antiparalela composta de segmentos sucessivos de uma cadeia por voltas reversas firmes formando um pequeno trecho de folha.
+Em a chave grega, que recebe este nome por o fato do desenho do motivo lembrar o desenho ornamental da Grécia antiga, um grampo dobra sobre si para formar uma folha antiparalela com quatro fitas.
+Estrutura Terciária: É a representação da distribuição no espaço 3D dos arranjos de estruturas secundárias de uma proteína.
+Essa estrutura também chamada de estrutura funcional ou estrutura nativa da proteína deve sua conformação a:
+Interações covalentes, ligações de hidrogênio, interações hidrofóbicas, interações hidrofílicas, interações eletrostáticas e forças de van der Walls.
+A estrutura 3D assumida por uma proteína está diretamente relacionada à sua topologia (ou enovelamento).
+O tipo de sucessão de estruturas secundárias conectadas e a forma que se dispõem no espaço 3D é o que determina uma topologia.
+Com base nesta combinação de topologia e estrutura 3D é possível analisar a função da proteína no organismo.
+PDB: 1 CRN) composta por duas hélices e duas estruturas de fitas, sendo uma de elas antiparalela e que estão conectadas por uma estrutura irregular do tipo volta.
+A interação das cadeias laterais dos aminoácidos determina a forma como a cadeia polipeptídica enovela- se, já que elas são atraídas ou repelidas conforme suas propriedades químicas.
+Por exemplo, cadeias laterais carregadas positiva ou negativamente atraem- se, já as cadeias com cargas semelhantes repelem- se.
+Além disso, interações do tipo hidrofóbicas e pontes de hidrogênio e dissulfeto influenciam o processo de dobramento.
+Em esse processo uma série de possibilidades é testada até que seja encontrado um estado em o qual as atrações sobressaíam às repulsões, o que resulta numa proteína dobrada corretamente e com baixo estado energético Dentro de a estrutura terciária é possível observar unidades funcionais fundamentais, os domínios.
+Cadeias com mais de 200 aminoácidos normalmente apresentam dois ou mais domínios.
+Um domínio é composto por a combinação de elementos supersecundários (motivos).
+O dobramento de um domínio é independente do dobramento de outro domínio e, consequentemente, apresenta características de proteínas pequenas e compactas que não possuem dependência estrutural de outros domínios.
+Entretanto, nem sempre a estrutura de um domínio é óbvia, podem ocorrer contatos extensos entre os domínios o que dificulta a identificação e fazem com que a proteína pareça ser uma única entidade globular.
+Analisando em mais detalhe os domínios nota- se uma composição de camadas com elementos da estrutura secundária.
+Isso se explica por o fato de que são necessárias, ao menos, duas camadas dessas para proteger o núcleo hidrofóbico de um domínio em ambiente aquoso.
+Frequentemente, os domínios possuem funções específicas como a ligação para pequenas moléculas.
+Em as proteínas multidomínios, os sítios de ligação ocorrem nas fendas entre os domínios, isto significa dizer que as pequenas moléculas se ligam a dois domínios.
+Essa configuração é justificada por a necessidade de uma interação flexível entre a proteína e a pequena molécula, e dessa forma é possível obter uma conexão maleável entre os domínios.
+Ainda é possível que grupos de motivos se combinem sobrepondo- se ou não, para formar a estrutura 3D de um domínio, isso é denominado como padrão de enovelamento.
+A o analisar o conjunto de proteínas de estruturas conhecidas verifica- se que, diferentemente do que se pensava, o número de padrões de enovelamento é pequeno.
+De os 1.000 padrões diferentes de enovelamento que são previstos na natureza, 600 de eles já foram observados.
+Estrutura quaternária:
+Refere- se ao arranjo de várias estruturas terciárias e mantido por as mesmas forças que mantém as estruturas hierarquicamente inferiores.
+As subunidades que compõem esta estrutura podem funcionar de forma independente uma da outra ou de forma cooperativa, como no caso de a hemoglobina, onde a ligação do oxigênio a uma subunidade aumenta a afinidade das outras subunidades ao oxigênio.
+Esse tipo de estrutura é comum, pois a construção com subunidades fornece a vantagem de reparação mais simples de erros por a substituição de subunidades, além de servir de base para a regulação de suas atividades.
+Classificação Estrutural de Proteínas As proteínas são agrupadas e classificadas conforme seus padrões de enovelamento.
+Entre proteínas com padrões similares de enovelamento, há famílias com compartilhamento de características em estruturas, sequências e funções.
+Com base nas estruturas secundárias e terciárias presentes nas proteínas, determinaram- se classes mais genéricas de estruturas:
+Classe: Estrutura secundária somente com hélices ou na sua maioria.
+Classe: Estrutura secundária somente com folha ou na sua maioria.
+Classe+: Hélices e folhas separadas e em partes diferentes da molécula, onde estrutura supersecundária ­­ esteja ausente.
+Classe/:
+Hélices e folhas apresentadas a partir de unidades ­­.
+A figura a seguir apresenta três exemplos de proteínas desta classe, mas que possuem topologias diferentes:
+Classe/ linear:
+Uma linha passando por os centros das folhas é aproximadamente linear.
+Um exemplo desta classe é a tioredoxina que está representada na Figura 19B acima.
+Classe Barril/:
+Uma linha passando por os centros das folhas é aproximadamente circular.
+Com base na classificação de estruturas de proteínas construíram- se bancos de dados derivados do PDB que fornecem uma série de recursos interessantes para busca de informações estruturais.
+Os principais bancos de dados são:
+CATH (Class , Architeture , Topology , Homologous superfamily: Usa uma hierarquia semelhante ao SCOP.
+Uma família sequencial compreende proteínas com estruturas muito similares, sequência e função biológica.
+As proteínas com clara relação evolucionária (conforme informação da identidade sequencial e da estrutura 3 D) compõem a superfamília homóloga.
+Os conjuntos de superfamílias que compartilham arranjo espacial e conectividade de hélices ou fitas formam uma topologia.
+Já as proteínas com arranjos similares de hélices e fitas, mas com conectividade entre esses elementos de estrutura secundária diferentes geram uma arquitetura.
+O último nível desta hierarquia é a classe com divisão semelhante ao SCOP:, -- (
+/ e+ do SCOP) e domínios de pouca estrutura secundária.
+Bancos de dados de estruturas de proteínas Os bancos de dados desempenham papel essencial nos estudos das estruturas de proteínas, pois é a fonte básica de informações para a predição, análise e o estudo das estruturas.
+O mais conhecido e volumoso banco de dados de estruturas 3D atualmente é o Protein Data Bank (PDB) cujo propósito é armazenar e distribuir estruturas proteicas de forma organizada.
+O crescimento dessa base de dados é impressionante.
+É possível notar esse crescimento por a análise dos dados dos últimos 20 anos apresentado na Figura 21.
+Em 1991 o PDB continha apenas 695 estruturas, em 2001 já eram 16.430 estruturas apresentando um crescimento de 2.364% em relação a 1991, e em 2011 já são 77.394 estruturas o que é um crescimento de 471% em relação a 1991.
+Esse crescimento exponencial do volume total de dados está representado em vermelho na Figura 21.
+Em essa figura também é possível analisar a evolução da quantidade de estruturas identificadas por ano (em azul).
+Em 1991 foram submetidas 187 novas estruturas, em 2001 houve um crescimento de 1.514% e esse número foi de 2.831, e em 2011 (até o mês de novembro) foram número de 1991.
+Entre 1991 e 2007 o número de estruturas submetidas por ano esteve em pleno crescimento estimulado por a variedade de grupos de pesquisas trabalhando na descoberta de estruturas 3D por meio de métodos experimentais e apoiados, em alguns casos, por os métodos de predição.
+O fato do número de estruturas disponíveis aumentar a cada ano e o PDB fornecer diversos recursos para consulta e recuperação de estruturas auxiliou o trabalho dos grupos de pesquisas na predição por modelagem por homologia e na realização de outros estudos.
+Em os últimos anos há uma tendência de estabilização da quantidade de submissões, em parte isso explica- se por a complexidade das proteínas a terem suas estruturas descobertas.
+O PDB é gerenciado por o Research Collaboratory for Structural Bioinformatics (RCSB), uma organização distribuída com base nos Estados Unidos.
+Sua homepage disponibiliza conexões para diferentes materiais:
+Expositivo e tutorial, arquivos de dados, boletim de notícias sobre o banco de dados, recursos para depósito de novas proteínas e software para a análise de estruturas (Lesk, Cada proteína armazenada no PDB possui um código identificador de quatro caracteres.
+O primeiro caractere desse código é um número de um a nove, sem significado mnemônico.
+Em vários casos, uma mesma proteína apresenta mais de uma entrada.
+Isso ocorre em virtude de as diversidades ocorridas na determinação da proteína, seja por o método cristalografia ou NMR, apresentando diferentes estados de ligação, usando diferentes formas cristalinas ou utilizando diferentes qualidades de cristal.
+Em um arquivo de dados para uma dada proteína são disponibilizadas várias das informações armazenadas no PDB, tais como:
+Identificador da proteína;
+Espécie a que pertence à proteína;
+Quem determinou a estrutura e referências das publicações relacionadas;
+Detalhes experimentais incluindo a qualidade geral do resultado, resolução e estatísticas estereoquímicas;
+Sequência de aminoácidos;
+Complementarmente aos dados disponibilizados no arquivo de dados, outras informações estão disponíveis para consulta através da homepage do PDB.
+Através de conexão com o PubMed, é possível ter acesso à publicação onde a proteína foi descrita, também estão disponíveis figuras da estrutura da proteína.
+De acordo com a classificação, listas de estruturas relacionadas são apresentadas, da mesma forma, as análises estereoquímicas, como ângulos de torção, podem ser consultadas, além de outras informações.
+Além de o PDB existem outros bancos de dados que compartilham o mesmo propósito, são eles:
+TrEMBL (contém traduções dos genes encontrados em sequências de DNA do EMBL ­ European Molecular Biology Laboratory que é um banco de dados de ácidos nucleicos localizado no European Bioinformatics Institute na Europa) (Velankar, 2005) e PDBj ­ Protein Data Recentemente estas instituições juntaram- se com o PDB para formar o Worldwide Protein Data Bank (wwPDB) (Berman, 2006) que é uma iniciativa para produzir um arquivo unificado de dados.
+A variabilidade e o volume das informações sobre estruturas de proteínas contribuem diretamente no desenvolvimento e aprimoramento dos métodos de predição seja por homologia ou ab initio.
+Resumo do capítulo Em este capítulo foram apresentados conceitos importantes sobre proteínas e sua organização estrutural que compõem o embasamento teórico deste trabalho.
+Em mais detalhes foi tratado sobre aminoácidos e sua divisão em grupos, formação da ligação peptídica e ângulos de torção, mapa de Ramachandran com os padrões de torção da cadeia polipeptídica, organização das proteínas em hierarquia e a classificação estrutural das proteínas e, finalizando, com informações sobre bancos de dados de estruturas de proteínas.
+Existem diferentes formas de se predizer a estrutura tridimensional de uma proteína partindo- se apenas da sua sequência de aminoácidos, também denominada de estrutura primária.
+A mais simples de elas é a modelagem comparativa por homologia.
+Em ela a sequência de uma proteína (sequência alvo) é alinhada com outras sequências de proteínas ortólogas com estruturas 3D conhecidas e armazenadas no PDB (estrutura molde e suas sequências).
+São ortólogas aquelas proteínas que são homólogas em espécies diferentes e que se originaram de um ancestral comum durante a especiação.
+Se a sequência alvo for bastante similar à sequência molde, isto é, caso as sequências sejam homólogas, utiliza- se essa estrutura conhecida para modelar a estrutura da sequência alvo.
+Já os métodos de reconhecimento de padrões de enovelamento baseiam- se em potenciais estatísticos obtidos por a análise de enovelamento de proteínas com estrutura 3D conhecidas.
+Para uma dada sequência de aminoácidos é construída uma biblioteca de padrões de enovelamento.
+Se os fragmentos da proteína alvo se ajustarem a estas formas de enovelamento, pode- se alinhavar a sequência alvo ao padrão de enovelamento mais adequado.
+Com as informações de uma proteína de estrutura conhecida é possível construir modelos que são ordenados conforme um escore que determinará o melhor modelo a ser utilizado.
+A predição ab initio ou de novo (Simons, 1999;
+Srinivasan e Rose, 1995) permite predizer novas formas de enovelamento, pois não se baseia somente em proteínas de estrutura conhecida.
+Como principais métodos deste tipo de predição têm- se:
+Rosetta (Rohl, 2004;
+Simons, 1999), I-TASSER (Wu e Zhang, 2007;
+Zhang, 2008), LINUS (Srinivasan e Rose, 1995;
+Srinivasan e Rose, 2002;
+Srinivasan, 2004) e FragFold (Jones, 2001).
+Uma revisão abrangente dos métodos atuais pode ser obtida dos anais do CASP9 que será publicado em 2011.
+As principais limitações dessa metodologia são a complexidade e o tamanho do espaço conformacional acessível a proteínas.
+Mesmo que seja considerada uma pequena proteína, por exemplo, com menos de 100 aminoácidos, o problema da predição torna- se intratável computacionalmente, pois é impossível reproduzir o grande número de estados conformacionais acessíveis que esta proteína pode assumir (Paradoxo de Levinthal) (apud Karplus, 1997).
+A fim de reduzir este espaço conformacional são utilizados fragmentos da sequência alvo com estrutura 3D conhecida e estes são combinados de forma a se obter a proteína completa com a estrutura 3D de menor energia potencial a qual representaria o estado nativo da proteína.
+Este tipo de predição tem sido o mais explorado ultimamente.
+Em esse sentido, Dorn &amp; Norberto de Souza propuseram um novo algoritmo para predizer a estrutura 3D aproximada de uma proteína ou polipeptídio.
+O CReF (Central Residue Fragment--based method) tem o potencial de predizer novas formas de enovelamento, pois não está limitado somente à informação de proteínas molde (Dorn e Norberto de Souza, 2008;
+Dorn e Norberto de Souza, 2010).
+Para isso faz uso de técnicas de mineração de dados para agrupar dados de estruturas determinadas experimentalmente, representação de intervalos de variação angular para representar uma conformação e de manipulação das informações estruturais.
+Esse método compreende princípios dos métodos de predição de novo para predizer novas formas de enovelamento e da modelagem comparativa por homologia para garantir alta acurácia nas predições.
+O primeiro passo para se definir um método de predição de estrutura 3D de proteínas é determinar a forma de representação da cadeia polipeptídica sendo uma das mais comuns a representação por meio de coordenadas cartesianas ou coordenadas internas, como os ângulos de torção da cadeia principal.
+O CReF optou por a representação da cadeia polipeptídica através dos ângulos de torção da cadeia principal e da cadeia lateral (ver seção 3.2).
+Uma vantagem importante desta representação é a redução significativa do número de variáveis para manipulação quando comparada à representação por coordenadas cartesianas.
+Isso permite uma maior eficiência computacional no tratamento das variáveis.
+Em este método a conformação C de uma proteína é representada por meio de um vetor na formado por um tripleto de ângulos de torção (phi), (psi) e (ômega).
+O conjunto desses tripletos consecutivos representa as rotações internas da cadeia principal da proteína.
+Para representar a cadeia principal de uma proteína, CReF considera somente o dupleto de ângulos de torção, sendo os ângulos mantidos com valor de 180º.
+Este último valor mantém o plano peptídico numa conformação cis, a mais comum em proteínas.
+A escolha do dupleto justifica- se por a liberdade de torção desses ângulos conforme explicado na seção O método CReF consiste de nove etapas conforme apresenta a figura a seguir:
+Cada fragmento, por sua vez, é caracterizado por o dupleto, ou ângulos de torção e, de seu resíduo central.
+Etapa 2: Busca por proteínas molde Para cada fragmento si obtido na etapa anterior procura- se por fragmentos molde na base de dados do PDB.
+Essa busca é realizada com a versão web do programa BLASTp que permite a identificação de fragmentos homólogos (moldes) ao fragmento submetido si (alvo).
+Somente são considerados os moldes com mesmo tamanho l do alvo (fragmento si) e que não possuam relação evolucionária com a sequência alvo K (Dorn, A execução do BLASTp usa a matriz de substituição BLOSUM62 (Henikoff e Henikoff, 1993).
+A busca ao PDB foi automatizada por a modificação da biblioteca BioPython (Chapman e Chang, 2000) que permitiu a conexão com o PDB e a análise automática de arquivos XML (Extensible Markup Language) resultante das consultas (Dorn, 2008).
+O resultado desta etapa é uma lista de códigos PDB de moldes para cada um dos fragmentos alvo si de tamanho l. Para esses fragmentos alvo são recuperados seus arquivos PDB e armazenados localmente.
+Etapa 3: Cálculo dos ângulos de torção dos dupletos Para cada um dos arquivos PDB obtidos para cada fragmento si (etapa 2) são calculados os ângulos de torção do aminoácido central do fragmento molde.
+Estes dupletos são calculados com o programa Torsions (Grupo do Dr. Andrew C. R. Martim) e representados por a tupla ti $ (,).
+Etapa 4: Agrupamento de dupletos O conjunto de tuplas de um fragmento é submetido a um processo de agrupamento que busca identificar as regiões onde as tuplas molde concentram- se no mapa de Ramachandran (ver seção 3.3).
+Esse agrupamento baseia- se no método probabilístico Em (Expectation Maximization) que analisa as diferentes distribuições de probabilidades para cada grupo, buscando identificar o conjunto de grupos mais favoráveis numa coleção de dados.
+O algoritmo Em não-supervisionado começa agrupando os dupletos com base no algoritmo k--médias que minimiza uma função de erro quadrático (Fórmula 3) onde existem f grupos de todos os dupletos, gerando uma solução inicial:
+O valor médio dos n dupletos de um grupo (Fórmula 4) Em seguida, na fase Expectation, as probabilidades de cada grupo são calculadas para cada dupleto tj.
+A maximização (Maximization) das distribuições é realizada a partir de os parâmetros de distribuição calculados a partir de as probabilidades determinadas anteriormente Por influência das quatro regiões favoráveis do mapa de Ramachandran (Ramachandran e Sasisekharan, 1968) a fase de agrupamento busca encontrar quatro grupos (f $= 4).
+Tendo sido identificados os grupos de um conjunto para cada ângulo(,) num grupo de calcula- se a média e desvio padrão estimado Em o fim desta etapa obtém- se para cada fragmento descrito por 4-upla um conjunto de quatro grupos em k, m representa a média do ângulo referenciado e, o desvio padrão do ângulo referenciado.
+Esse processo de mineração de dados foi automatizado com o uso do pacote Weka.
+A média e o desvio padrão estimado obtidos para cada grupo são utilizados para obter os intervalos de variação angular.
+Etapa 5: Representação dos ângulos de torção na forma de intervalos A representação das torções dos ângulos diedro na forma de intervalos de variação reduz drasticamente o espaço de busca conformacional.
+Estes intervalos são constituídos por o valor médio m (ki,) e por o valor do desvio padrão (ki,) calculados a partir de os dupletos(,) de um grupo ki.
+O intervalo de um ângulo diedro é representado por $ [ o ângulo ou, é o limite inferior e], onde representa o intervalo para é o limite superior do intervalo de ângulo de torção.
+São construídos intervalos para e para cada grupo ki de si.
+Com isso, cada fragmento passa a ser representado por grupos de intervalos de variação para e para, onde para e, são, respectivamente, limite inferior e superior para e f representa o número de grupos k.
+Etapa 6: Classificação dos grupos em regiões ocupadas no mapa de Ramachandran Cada representação na forma de intervalo de variação angular dos grupos ki de si são rotulados nesta etapa.
+O rótulo é criado a partir de os pontos médios m (ki,) e m (ki,) de um grupo ki e tem a função de relacionar o grupo à região do mapa de Ramachandran que ele ocupa.
+Esta classificação baseia- se nos trabalhos de Thornton e seus colaboradores (Morris, 1992;
+Laskowski, 1993).
+Por simplificação, essas regiões favoráveis foram reduzidas para oito e foram identificadas por:
+A, B, L, a, b, l, p e c..
+As regiões~ a,~ b,~ l,~ p e o restante da área não favorável do mapa passam a ser representadas, por c que é chamada de região de volta.
+Os rótulos gerados seguem o padrão:
+Ki: Rot, onde rot é a identificação da região.
+Desta forma, cada fragmento si passa a ser ordenados de acordo com o número de elementos tj molde de cada grupo, começando por o grupo ki com maior número de elementos.
+Em esta etapa é realizada a predição da estrutura secundária da sequência alvo K, por meio de a determinação da região do mapa de Ramachandran que os ângulos de torção (phi e psi) de cada aminoácido possivelmente estarão ocupando.
+O CReF utilizou um consenso obtido entre três métodos de predição.
+A tabela a seguir apresenta um exemplo deste consenso usando os métodos DSC, PHD e PREDATOR (Frishman e Frishman, 1996) para a cadeia A da proteína A estabilizada por ponte de sulfeto (código PDB:
+A informação da predição da estrutura secundária obtida nesta etapa é utilizada na escolha dos intervalos de variação angular para construção da conformação inicial da proteína alvo na etapa seguinte.
+Etapa 8: Construção da conformação inicial A construção da conformação inicial baseia- se na informação dos grupos ki de cada fragmento si.
+Para isso é necessário escolher um grupo de si para representar o i-ésimo aminoácido de uma sequência K.
+Essa escolha é guiada por a predição da estrutura secundária e deve respeitar duas regras:
+Regra 1: O (s) grupo (s) ki deve ter rot igual ao rótulo identificado para o i-ésimo aminoácido no consenso da predição da estrutura secundária, além de ser o grupo mais significativo com o rótulo buscado.
+Regra 2: Se na predição da estrutura secundária for predito um estado conformacional de estrutura regular (h ou e) para o i-ésimo resíduo e não existir um grupo ki com rótulo rot igual ao identificado para este resíduo procede- se calculando o valor médio entre os ângulos presentes nos resíduos i ­ 1 e i+ 1 e o i-ésimo resíduo.
+O valor obtido é substituído na sequência alvo K no iésimo resíduo.
+O processo de construção da conformação inicial representada como intervalos é apresentado no esquema a seguir:
+Etapa 9: Otimização das regiões de volta As regiões de volta possuem grande influência na determinação da forma de enovelamento das proteínas.
+Além disso, as estruturas irregulares (voltas e alças) são os tipos de estruturas secundárias mais difíceis de serem previstas, pois elas podem aparecer em qualquer área do mapa de Ramachandran.
+Em virtude de isso, o método optou por otimizar, por a redução do intervalo da conformação inicial, somente as regiões de volta identificadas na predição da estrutura secundária.
+Essa otimização acontece conforme o fluxograma da Figura 27.
+Resumo do capítulo Este capítulo apresentou o método CReF de predição de estrutura 3D aproximada de proteínas desenvolvido por Dorn &amp; Norberto de Souza.
+As nove etapas do CReF (fragmentação, busca por proteínas molde, cálculo dos ângulos de torção, agrupamento de dupletos, representação na forma de intervalos, classificação dos grupos no mapa de Ramachandran, predição da estrutura secundária, construção da conformação inicial e otimização das regiões de volta) foram descritas de forma objetiva juntamente com os experimentos realizados e os resultados obtidos por a versão original do CReF.
+Os bons resultados alcançados foram o embasamento para o trabalho desenvolvido.
+Os resultados promissores apresentados por o CReF em sua versão inicial fizeram com que ele se tornasse alvo de novos estudos com o objetivo de aprimorar- lo.
+A análise dos seus resultados iniciais permitiu identificar seus principais pontos positivos:
+Predição satisfatória de estruturas secundárias.
+Compatibilidade com os resultados de outros métodos (em valores de RMSD) para proteínas com até 200 resíduos.
+Rapidez na execução em plataforma de baixo custo.
+Em contrapartida também foram identificados alguns pontos negativos, sendo o principal de eles a má formação das estruturas irregulares (voltas e alças) e, consequentemente, má organização das estruturas secundárias no espaço 3D.
+Buscando aprimorar o CReF e mantendo seus principais diferenciais, gerou- se uma nova versão do método cuja ênfase foi na usabilidade.
+O conceito de usabilidade surgiu na ciência da computação dentro de a engenharia de software como consequência da preocupação em fornecer aos usuários ferramentas fáceis de serem usadas.
+Atualmente esse conceito foi ampliado para diversas áreas, pois se um produto ou ferramenta é fácil de usar, o usuário tem maior produtividade, aprende mais rápido, memoriza operações e comete menos erros.
+Acreditando nestes preceitos, buscou- se tornar o CReF uma ferramenta de uso simples e que permite uma interação mais clara e objetiva com o usuário.
+A primeira etapa deste trabalho foi simular os resultados iniciais obtidos.
+Em virtude de a falta de um histórico mais detalhado, especialmente sobre as proteínas molde consideradas, não foi possível realizar esta simulação.
+Após as adaptações necessárias, algumas proteínas foram submetidas, o que permitiu um entendimento mais profundo da ferramenta.
+O maior entendimento do método possibilitou a identificação de melhorias que poderiam refletir na usabilidade e no resultado da conformação inicial.
+Esse capítulo apresentará o conjunto de melhorias que foram implementadas.
+Melhorias implementadas no CReF As melhorias implementadas na nova versão do CReF foram divididas em duas categorias:
+Para que o CReF pudesse ser executado após o trabalho de Dorn, algumas adaptações foram necessárias.
+A etapa de busca por proteínas molde precisou ser readequada aos novos parâmetros do BLASTp.
+Para isso passou a ser usada a biblioteca NCBIWWW na execução da consulta.
+O ajuste de alguns parâmetros passados ao BLASTp permitiu que as consultas voltassem a ser realizadas com sucesso.
+De entre estas alterações está o uso Foram realizados testes através da busca Web com a BLOSUM62, mas a busca só retornava resultados quando o indicador &quot;Short queries «estava marcado.
+A marcação deste indicador autoriza o BLASTp a ajustar, automaticamente, os parâmetros de busca para sequências pequenas, mas como esta opção não está disponível na biblioteca utilizada, foram necessários os ajustes nos parâmetros e a mudança na matriz de substituição.
+Em a versão original do CReF, a Etapa 1 de fragmentação da sequência era realizada de forma manual.
+Para automatizar esta etapa foi criada uma função de fragmentação.
+Em a etapa de construção da conformação inicial houve problemas com a função teLeap do pacote AMBER 9.
+Para resolver o problema e manter a compatibilidade do processo passou- se a usar a função tleap.
+Após a realização destas alterações e algumas outras (como:
+Adaptação do tamanho de variáveis, atribuição de índice a variáveis para evitar problemas na concatenação de dados, troca da posição referenciada em vetor, etc.) foi possível criar uma nova versão estável que serviu de base para as análises e realização das demais melhorias.
+A execução do CReF baseia- se na leitura de arquivos e na geração de outros que servem de entrada para etapas posteriores.
+Para esta forma de execução é importante saber rapidamente quais são as entradas e as saídas de cada função para facilitar a execução a partir de uma dada etapa.
+Em este sentido desenvolveu- se uma documentação que indicava a ordem de execução das funções e, para cada uma, apresentavam- se algumas informações como:
+Arquivos lidos, arquivos resultantes da sua execução, software necessário, as alterações realizadas e indicava a etapa do CReF à qual a função estava relacionada.
+A versão inicial do CReF apresentava uma grande dificuldade de usabilidade, o que tornava onerosa e trabalhosa a realização repetitiva de novas execuções.
+Devido a inúmeras referências diretas dentro de o código aos diretórios onde se localizavam os arquivos com as informações, não era possível adotar uma estrutura diferenciada de diretórios e, desta forma, a preparação do ambiente para testes com outras proteínas alvo precisava ser feita manualmente.
+Essa preparação do ambiente teve uma melhora inicial através da criação de um script responsável por a realização de uma cópia da última execução e preparação para uma nova execução.
+O novo script, assim como os demais scripts do método, precisava ser invocado manualmente por o usuário da ferramenta.
+Essa condição manual de execução dos scripts tornava o uso da ferramenta CReF complexo.
+A forma como o CReF foi implementado atribuiu ao usuário toda a responsabilidade por o funcionamento do método, isto é, sob a responsabilidade do usuário estavam:
+Criação dos arquivos iniciais, garantia da criação dos diretórios necessários, execução dos scripts na ordem correta, etc..
+Desta forma, qualquer falha do usuário poderia causar erro ou causar alguma distorção nos resultados obtidos.
+Com o objetivo de facilitar o uso da ferramenta CReF e buscando retirar do usuário essa responsabilidade, decidiu- se implementar a automatização de todas as tarefas possíveis do método.
+Como pode ser visto no fluxograma da Figura 28, a versão inicial do CReF era composta de uma série de tarefas manuais.
+Algumas tarefas eram realizadas com o auxílio de scripts (como:
+BLASTp, cálculo dos ângulos de torção, data mining, etc.), mas sua execução dependia do usuário da ferramenta.
+A tarefa de refinamento foi considerada como uma caixa neste esquema, pois se trata de outro processo constituído de algumas etapas e para a nova versão do CReF optou- se por a utilização de estratégias diferentes.
+Devido a esta opção, o processo de refinamento na versão inicial não foi analisado e simulado por este trabalho.
+Em a nova versão, a maioria das tarefas foi automatizada e a dependência do usuário foi reduzida ao máximo, como demonstra o fluxograma a seguir:
+Com as melhorias implementadas, o método é executado por dois scripts principais.
+O primeiro script, que é o ponto de início da execução do processo, é responsável por as tarefas de inicialização e parametrização da proteína alvo que correspondem à etapa de pré-execução do método.
+Invocado automaticamente por o primeiro, o segundo script é responsável por as demais tarefas que correspondem às etapas do método CReF (descritas no capítulo 4).
+Com este modelo o usuário terá facilidade, quando de a ocorrência de algum erro ou problema em alguma etapa, re-executar o método a partir de a etapa em a qual tenha ocorrido problema até à etapa final.
+Isso será possível através do segundo script, durante a execução será indicada cada etapa do método em execução.
+Desta forma, a indicação do erro e da etapa em que ocorreu o problema estará clara.
+Através da invocação do segundo script com a indicação do número da etapa a partir de a qual deverá iniciar a execução, o usuário poderá realizar re-execuções parciais.
+Esse tipo de execução será possível a partir de a tarefa de submissão à predição 2D conforme indicação do fluxograma acima.
+Para um melhor entendimento do modelo de implementação da nova versão do CReF, cada uma das tarefas do fluxograma da Figura 29 é descrita a seguir:
+Inicialização: Realiza a criação da estrutura de diretórios conforme indicação dos parâmetros da biblioteca do CReF.
+Diferentemente da versão inicial, o usuário passará a ter a possibilidade de indicar uma estrutura de diretórios diferente da indicada por a configuração inicial.
+A principal melhoria é a possibilidade de indicar um caminho diferente da instalação do CReF para o armazenamento das execuções.
+Parametrização da proteína alvo:
+Cria os arquivos iniciais necessários para a execução do método.
+A partir de a informação do código PDB e da sequência da proteína alvo a ser predita, serão gerados automaticamente os arquivos iniciais.
+Continuará sendo necessário (ou melhor, obrigatório) o usuário do método informar o arquivo com a listagem de proteínas molde que deverão ser desconsideradas por o método em virtude de a relação evolucionária que possuam com a proteína alvo.
+Submissão à predição 2 D:
+Submete a proteína alvo ao método de predição de estrutura 2D que é uma tarefa antecipada da etapa 7 -- Predição da estrutura secundária.
+A nova versão do CReF passou a utilizar métodos que enviam o resultado da predição por e-mail, o que demanda algum tempo para submissão e envio, por isso essa tarefa foi antecipada.
+Quando a proteína alvo possuir mais de 20 aminoácidos, a submissão à predição 2D ocorrerá de forma automática, caso contrário, será preciso a intervenção do usuário para submeter à predição.
+Isso é necessário, pois o método usado para a predição de pequenas proteínas não permite submissão automática e, nesse caso, o usuário deverá submeter a proteína alvo manualmente.
+Fragmentação: Realiza a etapa 1 de fragmentação da sequência alvo.
+BLASTp: Submete cada um dos fragmentos ao BLASTp para obter a listagem de proteínas molde que é uma das atividades da etapa 2 ­ Busca por proteínas molde.
+Busca das proteínas molde:
+Cria uma listagem de proteínas molde sem repetição e excluindo as proteínas indicadas por o usuário que possuem relação evolucionária com a proteína alvo.
+Para concluir a etapa 2, faz o download dos PDBs das proteínas molde identificadas.
+Cálculo dos ângulos de torção:
+Calcula os ângulos phi e psi das proteínas molde, o que corresponde à primeira parte da etapa 3 ­ Cálculo dos ângulos de torção dos dupletos.
+Cálculo da variação dos ângulos de torção:
+Calcula para o aminoácido central dos fragmentos a variação dos ângulos obtidos de cada proteína molde associada ao fragmento.
+Essa tarefa complementa a etapa 3 do método CReF.
+Data mining:
+Essa tarefa é composta por outras atividades.
+A primeira de elas é a criação de arquivos com as informações da variação dos ângulos para submissão à ferramenta de mineração de dados Weka.
+Posteriormente, a ferramenta é executada e os dados resultantes do processo de mineração são processados, concluindo a etapa 4 do CReF:
+O agrupamento de dupletos.
+Fazendo uso do resultado da mineração de dados, constrói- se uma representação dos ângulos de torção na forma de intervalos por aminoácido da sequência alvo (etapa 5 do método).
+Os grupos candidatos a representar cada aminoácido da sequência alvo são classificados conforme a região que ocupam no mapa de Ramachandran (etapa 6).
+Aplicação da predição 2 D:
+A predição da estrutura secundária da proteína alvo é utilizada para selecionar o melhor agrupamento para representar cada aminoácido da sequência alvo.
+Para que essa tarefa seja realizada é necessário que o usuário coloque o resultado da predição 2 D, recebida por e-mail (o e-mail é enviado para o endereço que consta na biblioteca do CReF), num arquivo num local determinado.
+Desta forma, o processo poderá considerar de forma automática essa informação e finalizar a execução do método.
+Caso o arquivo não esteja disponível conforme o esperado, o método retornará um erro indicando isso e o usuário poderá realizar nova execução a partir deste ponto posteriormente.
+Essa tarefa corresponde à etapa 7 ­ Predição da estrutura secundária.
+Geração da estrutura inicial:
+Constrói a estrutura inicial da predição da estrutura terciária da proteína alvo, o que corresponde a etapa 8 ­ Construção da conformação inicial.
+Proveniência: Essa tarefa permite o armazenamento das execuções do método, após a conclusão de todas as etapas do CReF.
+Cada execução é identificada por a data e horário de término e por o código PDB da proteína alvo.
+Em a versão inicial, o usuário que desejasse criar proveniência deveria fazer- lo conforme seus critérios e de forma manual.
+Visualização da estrutura inicial:
+Abre uma ferramenta para a visualização e manipulação 2D da estrutura inicial gerada por o CReF sem refinamento.
+Esta tarefa também era realizada manualmente por o usuário.
+O objetivo desta tarefa é permitir que, ao final da execução, o usuário já possa visualizar a estrutura inicial e fazer as manipulações que julgar interessante.
+Isso não impede que o usuário possa fazer uso de outras ferramentas para esta manipulação.
+Em o fluxograma da nova versão do CReF, a tarefa de otimização da estrutura inicial deixa de aparecer em virtude de a opção por uma nova estratégia.
+Por isso, essa etapa será descrita em outra seção.
+As melhorias técnicas implementadas permitiram ao CReF tornar- se uma ferramenta automatizada e parametrizável, melhorando substancialmente a sua usabilidade.
+A automatização não é completa devido a a dependência da relação de proteínas moldes a excluir e da predição de estrutura secundária.
+Através da biblioteca CReF o usuário poderá parametrizar algumas informações tornando- se mais adaptável às necessidades do usuário.
+Os resultados preliminares obtidos com a primeira versão estabilizada foram a base das análises iniciais que evoluíram através de comparações entre resultados e indicaram modificações a serem aplicadas ao método.
+As alterações foram realizadas em diferentes etapas do processo e são apresentadas nesta seção.
+Para construir a estrutura predita o CReF usa a técnica de mineração de dados das proteínas molde identificadas para cada sequência alvo.
+De entre os algoritmos de mineração de dados, o Expectation Maximization (Em) é o mais adequado a ser aplicado neste contexto.
+A questão então surgida era relativa à quantidade de grupos (quatro grupos na versão inicial).
+A fim de esclarecer essa questão foram realizados testes com uma quantidade variada de grupos (de dois a sete grupos) para algumas proteínas do conjunto de teste inicial.
+Os testes indicaram que, para a maioria das proteínas teste, as conformações obtidas por as execuções que consideraram seis grupos apresentaram um valor de RMSD menor ao da conformação resultante de quatro grupos.
+As conformações obtidas por as demais proteínas teste podem ser consultadas no Apêndice A. Como isso não foi um consenso e para alguns casos a diferença de RMSD entre as conformações foi pequena, optou- se por oferecer a possibilidade de execução do processo com quatro ou seis grupos na mineração de dados.
+Em a reestruturação técnica do método, essa opção ficou representada por um parâmetro disponível na biblioteca CReF.
+Em a etapa 6 do CReF, os agrupamentos obtidos são rotulados conforme a região que ocupam no mapa de Ramachandran.
+Com base nos intervalos para os ângulos phi e psi que determinam cada agrupamento, uma função indica a região que corresponde ao intervalo no mapa de Ramachandran.
+A análise desta função apontou que os rótulos atribuídos não correspondiam aos descritos na dissertação que apresentava a versão original do CReF.
+Isso ocasionava dúvidas na aplicação das regras para construção da conformação inicial com base na predição de estrutura secundária obtida.
+O modelo utilizado por o PROCHECK embasou a realização de um novo mapeamento dos intervalos de ângulos que determinam as regiões do mapa de Ramachandran.
+Além de os ajustes para garantir o mapeamento correto das regiões, os rótulos também foram alterados para que ficassem de acordo com a descrição do método:
+De &quot;h «para &quot;A», de &quot;e «para &quot;B», de &quot;t «para &quot;L», de &quot;P «para p e de tl para &quot;l».
+A análise dos resultados parciais revelou que alguns resíduos da estrutura inicial estavam indevidamente localizados em regiões não permitidas.
+Para corrigir isso e na busca de melhorias na estrutura inicial, acrescentou- se à função o mapeamento da região não permitida do mapa de Ramachandran.
+Os agrupamentos com ângulos localizados nesta região passaram a ser rotulados com, X e foram desconsiderados por as regras de aplicação do consenso da predição da estrutura secundária.
+A versão original do CReF usava diferentes métodos para predizer a estrutura secundária conforme a proteína alvo submetida, DSC, PHD, PREDATOR e SCRATCH).
+Para a nova versão definiu- se padronizar o método de predição a aplicar para todas as submissões.
+Em esse sentido, métodos de predição já usados e outros métodos de predição de estrutura secundária disponíveis foram avaliados.
+Como o objetivo do CReF é predizer estrutura 3D com base em proteínas com origem diferente da proteína alvo, métodos de predição baseados em homologia não foram considerados.
+Foram então avaliados os seguintes métodos de predição de ES:
+SOPM , NetSurfP , GorV (Sen , 2005 ) , cSSP (Gupta , 2009 ) , sable (Adamczak , 2004 Karplus , 2009 ) , sspro4 e Porter. O desempenho individual dos métodos usados na aplicação do consenso da versão original do CReF (DPM, DSC, PHD, PREDATOR e SCRATCH) também foram avaliados.
+A predição de estrutura secundária obtida em cada um dos métodos avaliados foi comparada, resíduo a resíduo, com a estrutura determinada experimentalmente para determinar a acurácia de cada método (esta análise pode ser consultada no Apêndice B).
+Em os testes realizados, o método Porter apresentou a melhor acurácia para a maioria das proteínas, exceto para proteínas muito pequenas, como a 1K43.
+Com base nesses resultados definiu- se o Porter como método a ser utilizado na predição de estrutura secundária para proteínas com 20 ou mais aminoácidos, e, para proteínas com menos de 20 aminoácidos, optou- se por utilizar o método SAM-T08.
+O SAM-T08 foi o método com a melhor acurácia para mini-proteínas.
+Em a etapa 8, a predição de estrutura secundária guia a escolha dos grupos retornados por o Weka para representar cada um dos aminoácidos.
+A realização de sucessivos testes indicou que as regras que orientam essa escolha deveriam ser alteradas para compreenderem as diferentes situações possíveis.
+A nova versão do CReF passou a aplicar as regras 1 e 2 da seguinte forma:
+Regra 1: O (s) grupo (s) ki deve ter rot igual ao rótulo identificado para o i-ésimo aminoácido no consenso da predição da estrutura secundária.
+Quando for selecionado mais de um grupo, deve ser escolhido o grupo com maior número de tuplas ti.
+Essa escolha varia conforme o tipo de estrutura secundária identificada na predição:
+Hélice (h):
+Escolher os grupos rotulados por &quot;A «(região mais favorável), caso não exista grupo nessa condição, deve escolher um grupo rotulado por &quot;a «(região favorável);
+Folha (e):
+Escolher os grupos rotulados por &quot;B «(região mais favorável), caso não exista grupo nessa condição, deve escolher um grupo rotulado por &quot;b «(região favorável);
+Volta ou alça (c):
+Escolher os grupos rotulados por &quot;c&quot;(~ a,~ b,~ l,~ p e restante da área), em seguida grupos rotulados por:
+p (região favorável), &quot;a «(região favorável), &quot;b «(região favorável), &quot;B «(região mais favorável), &quot;A «(região mais favorável).
+Regra 2: Se na predição da estrutura secundária for predito um estado conformacional de estrutura regular (h ou e) para o i-ésimo resíduo e não existir um grupo ki com rótulo rot igual ao identificado para este resíduo, deve- se proceder de acordo com a posição do i-ésimo resíduo na sequência:
+Início e fim:
+Se o i-resíduo estiver no início ou no fim da sequência deve- se aplicar a regra 1 para volta ou alça para escolher um grupo ki.
+Meio: Se o i-resíduo estiver entre resíduos para os quais forem encontrados grupos conforme a regra 1, deve- se proceder calculando o valor médio entre os ângulos presentes nos resíduos i ­ 1 e i+ 1.
+Os valores obtidos devem representar o i-ésimo resíduo na sequência alvo K, isso se justifica por o padrão existente entre os ângulos diedros dos aminoácidos que compõem as estruturas secundárias regulares e um resíduo i+ 1 também sem grupo correspondente ao tipo de estrutura, deverá ser buscado o próximo resíduo i+ n (b) para o qual tenha sido encontrado grupo.
+Então, deve- se proceder com o cálculo da média entre (a) e (b), o valor obtido deve substituir o i-resíduo.
+Após isso o cálculo do resíduo i+ 1 será composto por a média i-resíduo e do resíduo i+ n..
+O valor obtido deve substituir o resíduo i+ 1.
+Estas regras eram aplicadas de forma manual para determinar quais agrupamentos representariam cada aminoácido da sequência alvo na versão inicial.
+Em a nova versão do CReF, essas regras passaram a ser aplicadas automaticamente, desde que a informação da predição da estrutura secundária esteja disponível.
+O problema da otimização de voltas e alças Como já foi visto na seção 3.4, voltas e alças são espirais desorganizadas que conectam estruturas secundárias regulares e podem corresponder a um terço de uma proteína.
+Em a Tabela 5 é possível observar- se alguns dos diferentes tipos de voltas existentes.
+As alças aparecem na maioria das proteínas com mais de 60 resíduos, uma ou mais vezes, e se localizam, frequentemente, na superfície para exercer seu papel no reconhecimento biológico.
+As regiões de volta e alça possuem grande influência na determinação da forma de enovelamento das proteínas, isto é, na forma como as estruturas secundárias regulares organizam- se em nível terciário.
+Isso se deve ao fato de que essas estruturas são bem mais flexíveis nas mudanças conformacionais do que hélices e folhas e, por tanto, podem ocupar qualquer região no mapa de Ramachandran, inclusive regiões de estruturas regulares.
+Em virtude de isso, essas regiões provocam distorções no enovelamento que são difíceis de serem previstas a priori.
+A construção de regiões tão sensíveis quimicamente é influenciada por uma série de restrições.
+Por exemplo, as restrições do tipo estérica procuram evitar a ocorrência de colisões entre as cadeias laterais, o que impacta de forma direta na qualidade da conformação.
+Já as restrições de planaridade limitam os ângulos de torção da cadeia principal das proteínas.
+A conformação de uma região de volta é influenciada também por átomos que não fazem parte da região, mas precedem e sucedem essa região.
+Por isso, numa abordagem que busque por segmentos que combinem com esta estrutura é importante considerar estas regiões.
+A escolha desses segmentos deve ser orientada por critérios de geometria e/ ou similaridade com a sequência alvo.
+Quando há a necessidade de endereçar a modelagem para uma classe específica de voltas que permita o uso de bibliotecas, essa abordagem é mais eficiente.
+Se a busca for realizada diretamente numa base de dados de proteínas, como o PDB, é de extrema importância estabelecer critérios para limitar a busca, da mesma forma como é feito na busca de proteínas molde para uma predição.
+A dificuldade na predição destas regiões aumenta conforme o tamanho do segmento.
+Para segmentos maiores podem ser encontradas mais conformações incorretas, por isso, a função de energia, ou outro critério adotado, precisa identificar corretamente as melhores conformações.
+Os testes realizados por Fiser Comprovaram essa dificuldade e demonstraram que o ambiente pode influenciar no resultado final das conformações.
+Distorções no ambiente geram erros que tem maior impacto em regiões menores do que nas maiores.
+Isso deve explicar- se por o fato desses casos já possuírem baixa precisão em ambiente nativo.
+Uma das métricas mais comuns para medir esse erro é o RMSD, que pode ser local ou global.
+O RMSD local fornece a precisão da conformação, pois não depende da orientação.
+Já o RMSD global depende da conformação resultante da orientação da proteína predita.
+Portanto, a melhor conformação precisa apresentar uma combinação de menor valor de ambas as métricas, entre outras.
+A precisão da modelagem pode ser avaliada também em termos de RMSD e energia potencial, a conformação mais próxima da experimental deve ter baixo RMSD e baixa energia potencial.
+A obtenção dessa combinação de valores não é uma tarefa fácil, o que foi comprovado por os experimentos iniciais do CReF.
+Há uma grande quantidade de métodos que tem por objetivo a modelagem dessas regiões e que usam diferentes abordagens.
+De entre eles, há uma classe de métodos analíticos que determina a conformação adequada através da identificação das possíveis soluções para um conjunto de equações algébricas derivadas da distância geométrica, conforme descrito no trabalho de Go e Sheraga e outros que se baseiam na teoria cinemática.
+A abordagem chamada Cyclic Coordinate Descent ­ CCD que trata de voltas com diferentes comprimentos através do ajuste iterativo dos ângulos diedro foi incorporada ao Rosetta que apresentou os resultados obtidos em.
+Há métodos que se baseiam nas restrições impostas a estas regiões, como o algoritmo desenvolvido por Liu Que inicia com coordenadas atômicas randômicas e que gera conformações independentes com base em um esquema de ajuste de distâncias.
+Os resultados da versão inicial do CReF comprovaram o quão complicado é predizer espirais desorganizados.
+Tendo em conta as especificidades das regiões de voltas e alças, a versão inicial do CReF tratou- as na etapa 9.
+Esse tratamento gerava conformações com base na escolha aleatória dos ângulos de torção para compor uma região de volta.
+A partir de essa escolha as conformações eram construídas com o ajuste das cadeias laterais.
+O intervalo de conformações a ser analisado era reduzido através de matemática intervalar e uma função de energia potencial indicava a melhor conformação para representar a região analisada.
+Em a busca por a melhoria na predição dessas regiões decidiu- se, no âmbito deste trabalho, abandonar essa estratégia e adotar uma nova.
+Seguindo a tendência dos métodos de modelagem de voltas e alças e dos métodos de avaliação de qualidade das conformações, foi escolhida a técnica de Dinâmica Molecular (DM) como estratégia de refinamento da conformação inicial predita por a nova versão do CReF.
+Para a realização do refinamento dessa conformação buscou- se ensaiar um protocolo com a indicação de parâmetros para as simulações, de forma que pudessem conduzir à melhoria da conformação predita.
+O detalhamento sobre os parâmetros e os resultados deste refinamento é apresentado no próximo capítulo.
+Resumo do capítulo Este capítulo discorreu sobre as melhorias realizadas no CReF e originaram uma nova versão da ferramenta.
+As implementações foram divididas em melhorias técnicas e melhorias do método.
+A mais significativa das melhorias foi na forma de execução que deixou de ser manual e passou a ser automatizada.
+Em a nova versão o usuário pode disparar as diferentes etapas que geram a conformação inicial através de um único comando.
+Apenas duas tarefas do método podem necessitar da intervenção manual do utilizador.
+O problema da otimização de voltas e alças foi aqui descrito com o intuito de demonstrar como esse tema é importante e para justificar a mudança na forma como essa questão passou a ser tratada na nova versão do CReF.
+O tratamento das regiões de voltas e alças deixou ser considerado uma etapa do CReF e passou a ser tratado como um processo pós-CReF de refinamento da conformação inicial.
+Em esta seção serão descritos os experimentos realizados e os resultados obtidos com a nova versão do método CReF gerada por este trabalho.
+Os experimentos iniciaram por o mesmo conjunto de teste utilizado na versão inicial do CReF.
+Compõem este conjunto seis proteínas cujas estruturas 3D são conhecidas e representam diferentes classes de proteínas:
+Complementarmente a estas proteínas, foram realizados testes com um novo conjunto de proteínas teste que são apresentadas a seguir.
+Definição de novo conjunto de proteínas teste Em o intuito de aprimorar a predição do método CReF foi definido um novo conjunto de dez proteínas para teste.
+A escolha desse conjunto tomou por base artigos que descreviam a realização de testes de predição de estrutura 3D por outros métodos.
+Além de considerar proteínas já utilizadas em testes, foram selecionadas aquelas com diferentes classes estruturais(, e) e tamanhos diferenciados.
+As proteínas selecionadas apresentam um empacotamento organizado das estruturas secundárias e foram testadas nos trabalhos de Simons, de Zhang E de Zhang Proteínas pequenas 2 ERL:
+Estrutura cristalina do feromônio Er-1 do protozoário ciliado Euplotes raikovi, determinada por raios X, considerada proteína pequena, classe SCOP,.
+Proteínas médias 1C5A:
+Estrutura tridimensional da C5adesArg de porco, determinada por NMR, considerada proteína média (73 aminoácidos), classe SCOP, (Williamson e Madison, 1 CSP:
+Estrutura cristalina da proteína principal de choque frio de Bacillus subtilis (Escherichia coli), determinada por raios X, considerada proteína média (67 aminoácidos), classe SCOP, (Schindelin, 1993).
+Escherichia coli, determinada por raios X, considerada proteína média (74 aminoácidos), classe SCOP+, (Leijonmarck e Liljas, 1993).
+Proteínas grandes 2 EZK:
+Estrutura em solução do subdomínio Ibeta de ligação ao DNA da extremidade Mu da transposase Mu do fago Entobacteriófago Mu, determinada por NMR, considerada proteína grande, classe SCOP,.
+Materiais e métodos O desenvolvimento da nova versão do CReF envolveu o uso de um conjunto de ferramentas e algumas parametrizações importantes para a execução do método.
+Quanto a parametrizações, o tamanho dos fragmentos foi mantido o mesmo da versão inicial (l $= 5 resíduos).
+Para a seleção de proteínas molde foi adotado como critério a exclusão de todas aquelas proteínas com mais de 30% de identidade que apresentassem relação evolucionária com a proteína alvo.
+A relação evolucionária pode não apresentar- se exclusivamente por a identidade, ela pode estar caracterizada por uma origem comum, enovelamento semelhante, etc..
+Para alguns casos a combinação de uma série de características determinará se a proteína molde deverá ser excluída ou não, portanto, o ideal seria a análise de um especialista.
+Quanto mais criteriosa for a indicação das proteínas alvo a excluir, maior será a garantia de que a predição do CReF baseia- se em estruturas diferentes da proteína alvo.
+Em a biblioteca criada com as principais funções do CReF também estão disponíveis os parâmetros para execução do método e que podem ser alterados por o usuário conforme a necessidade.
+A figura a seguir apresenta estes parâmetros adaptáveis:
+O CReF é executado em ambiente Linux e foi desenvolvido na linguagem de programação Python.
+A biblioteca BioPython de código aberto foi adaptada para a realização da consulta ao BLASTp (módulo NCBIWWW) e do download do arquivo das proteínas molde junto ao banco de dados PDB.
+A predição de estrutura secundária é feita através de dois métodos que disponibilizam página web para submissão das sequências e enviam o resultado da predição por e-mail.
+Para para pequenas proteínas fez- se uso do método.
+Para a implementação da submissão automática de sequências ao Porter usou- se a linguagem de programação Ruby 1.9.2 Para o cálculo dos ângulos de torção foi usada a ferramenta Torsions que a partir de a leitura do arquivo PDB calcula os ângulos phi, psi e ômega.
+A etapa de data mining foi implementada através da ferramenta Weka 3.6.0 que identifica padrões de agrupamento para os dados submetidos conforme os fragmentos da sequência alvo.
+A construção da conformação inicial com base nos resultados da mineração de dados e da predição de estrutura secundária foi realizada com o AMBER 9.
+A o final da execução do CReF, a nova versão permite a visualização da conformação inicial que é feita através da ferramenta Jmol 12.2.5.
+A avaliação de um método de predição deve ser realizada com a aplicação de métricas que possam quantificar a qualidade da estrutura predita.
+Para a avaliação da nova versão do CReF analisou- se as métricas utilizadas na avaliação dos grupos participantes da categoria de refinamento de estruturas do CASP9).
+De entre as métricas consideradas estava o desvio médio quadrático (RMSD -- Root Mean Square Deviation) que realiza uma comparação átomo a átomo de cada estrutura.
+Levando em conta que as estruturas preditas a serem avaliadas se tratavam de conformações iniciais, considerou- se que métricas mais complexas não seriam adequadas para esta avaliação.
+Por isso, optou- se por usar o RMSD como métrica devido a a facilidade de cálculo e por permitir uma avaliação global quando aplicado a toda conformação e uma avaliação local quando aplicado a uma estrutura secundária.
+As análises das conformações obtidas, a sobreposição da estrutura predita com a estrutura experimental e o cálculo do RMSD foram realizados na ferramenta Swiss--PdbViewer v 4.0.1.
+Esta ferramenta permite que a estrutura possa ser girada e avaliada sob diferentes ângulos, entre outras análises, o que permite uma análise da qualidade da predição complementar ao valor do RMSD.
+O cálculo do RMSD foi obtido por a sobreposição dos átomos C da estrutura predita com os C da estrutura experimental ou de comparação.
+A criação de mapas e algumas análises foram realizadas por meio de o Ramachandran Plot que permite a geração de mapas com base em um código PDB ou num arquivo, e também disponibiliza opções de visualização:
+Como da proteína inteira ou de apenas um segmento.
+As representações gráficas das estruturas 3D foram preparadas através do PyMOL.
+A implementação da nova versão do CReF foi realizada num ambiente de máquina virtual com o sistema operacional Ubuntu 10.04.
+Essa máquina virtual é executada num notebook Hp Intel CPU T2050 1,60 GHz com sistema operacional Windows XP, 103 GB de espaço em disco e 2 GB de memória RAM.
+Como o refinamento usa estratégias e ferramentas diferentes num contexto bem específico, optou- se por a descrição dos materiais e métodos juntamente com a descrição do protocolo na seção 6.5.
+Experimentos com a nova versão do CReF Ao contrário de o que se considerou inicialmente, os experimentos da primeira versão não puderam ser repetidos.
+Para isso seria necessário considerar o mesmo conjunto de proteínas molde dos experimentos iniciais, mas não havia a relação desses moldes para todas as proteínas utilizadas nos experimentos.
+Portanto, como os experimentos iniciais e os atuais foram realizados sobre conjuntos de proteínas molde diferentes, os resultados não são comparáveis de forma direta.
+Sendo assim, os resultados iniciais (estrutura 3D e valor de RMSD) serviram de parâmetro para os experimentos da nova versão.
+Os resultados iniciais considerados referem- se à conformação inicial, isto é, referem- se à conformação obtida antes da execução da etapa de otimização das regiões de volta e alça.
+Isso foi necessário já que a nova versão do CReF considera a otimização dessa região um processo pós-CReF.
+De essa forma, as predições geradas por os experimentos iniciais são comparáveis apenas às conformações obtidas após o refinamento da conformação inicial resultante da execução da nova versão.
+Em esse capítulo serão apresentados os resultados para algumas proteínas alvo do conjunto de teste:
+Duas de elas pertencentes ao conjunto teste dos experimentos iniciais e as outras duas pertencentes ao novo conjunto de proteínas teste.
+Para as duas primeiras proteínas o objetivo, além de analisar os resultados, é avaliar a diferença no desempenho de ambas as versões do CReF.
+Para as outras proteínas o objetivo é analisar se as características do método mantém- se com outros alvos.
+O resultado obtido para as demais proteínas alvo pode ser consultado em formato resumido no Apêndice C deste trabalho.
+O Domínio A da mini-proteína estabilizada por pontes dissulfeto cujo código PDB é 1 ZDD foi alvo dos testes de predição de ambas as versões do CReF.
+A sua sequência com 34 resíduos de aminoácidos foi dividida em 30 fragmentos com tamanho de l $= 5 resíduos.
+Para a busca dos fragmentos molde no PDB foram excluídas 19 proteínas que apresentaram relação evolucionária com a proteína alvo.
+Essas são as mesmas proteínas que foram desconsideradas no teste realizado com a versão inicial do CReF:
+1 ZDC, 1 ZDD, 1L6X, 1 OQO, 1 OQX, 1 ZDA, 1 ZDB, 2 SPZ, 1LP1, 1Q2N, 1FC2, 1 BDC, 1 BDD, 1SS1, 1 DEE, 1 EDK, 1 EDJ, 1 EDI e 1 EDL.
+A Tabela 9 apresenta os fragmentos em a qual a 1 ZDD se dividiu e um comparativo entre a quantidade de moldes obtida com a versão inicial e com a nova versão.
+Em média, houve um crescimento de 137% na quantidade de moldes encontrados por fragmento.
+A nova versão do CReF possibilita a escolha da quantidade de grupos a serem buscados na etapa de mineração de dados, que pode ser quatro ou seis.
+Foram realizados testes com ambas as quantidades de grupos, mas considerando o mesmo conjunto de proteínas molde.
+Desta forma, para ambos os casos, foi submetido o mesmo conjunto de dados para a mineração.
+O resultado da mineração indica um conjunto de grupos de ângulos phi e psi para representar cada resíduo de aminoácido da sequência alvo, excluindo os dois primeiros e os dois últimos resíduos da sequência.
+Os grupos candidatos a representar cada resíduo são apresentados em ordem de significância, isto é, o primeiro grupo é aquele que reuniu uma quantidade maior de moldes e, assim por diante.
+Cada grupo é classificado de acordo com a região do mapa de Ramachandran a que ele se refere.
+O resultado da predição da estrutura secundária orienta na escolha do grupo que deve representar cada resíduo.
+Portanto, para cada resíduo deve ser escolhido o grupo mais significativo que tenha a mesma classificação indicada por a predição 2D.
+Em a análise, sob o ponto de vista da região do mapa de Ramachandran, o processo de mineração teve um acerto de 67%, isto é, para 20 resíduos não houve a necessidade de selecionar outro grupo para representar- lo.
+Para os resíduos em que foi necessário selecionar outro grupo, encontrou- se para todos os casos um grupo com classificação conforme a indicação da predição 2D.
+A partir de a conformação inicial foram analisadas as estruturas secundárias da 1 ZDD que são duas hélices:
+Hélice 1 com 11 resíduos e hélice 2 com 14 resíduos.
+A sobreposição dessas estruturas com as estruturas secundárias da proteína experimental comprovou que as estruturas foram bem preditas, mantendo o desempenho da versão inicial, conforme demonstram os valores em RMSD:
+Os mapas da Figura 35 também confirmam a boa predição das hélices (correspondem à concentração de pontos na região &quot;A «em vermelho) e, de forma geral, a predição (B e C) ocupou as mesmas regiões do mapa que foram ocupadas por a estrutura experimental (A).
+Os resíduos da predição que ficaram mais deslocados foram os da alça, como o ASP15 que nas predições ficou na região de&quot;~ l &quot;quando deveria ficar na região de «b».
+E (C) conformação inicial com 6 grupos (RMSD:
+6,64 Å).
+A análise das estruturas gráficas da Figura 36 ajuda a compreender a diferença indicada por os valores RMSD.
+Quanto a as hélices pode- se ver que elas estão um pouco desalinhadas quando comparadas à estrutura experimental, mas bem formadas conforme mostram os valores de RMSD da Tabela 10 e mapa de Ramachandran (Figura 35).
+A diferença principal está na conformação da alça que liga as hélices, da mesma forma como mostraram os resultados preliminares.
+Para a proteína alvo 1 ZDD a nova versão do CReF obteve uma conformação inicial com valor de RMSD próximo a a conformação obtida inicialmente.
+Devido a a falta de histórico e aos problemas para execução da versão inicial do método não é possível afirmar se a versão inicial manteria esse resultado nas condições atuais do banco de dados PDB.
+A=1  ZDD também foi submetida para predição em dois dos principais métodos de predição de estrutura terciária.
+O método I-Tasser permite a exclusão de proteínas que tem relação evolucionária com a proteína alvo, desta forma a submissão foi realizada excluindo o mesmo conjunto de proteínas alvo que o CReF.
+O RMSD da estrutura predita foi de 1,57 Å, mas que não pode ser comparado aos valores da Figura 36 já que estas são conformações iniciais sem refinamento de voltas e alças.
+A=1  ZDD também foi submetida ao Robetta cuja estrutura predita apresentou 1,32 Å de RMSD, mas este não é comparável ao CReF.
+Isso se deve ao fato que a predição do Robetta foi realizada com base em moldes que foram excluídos por o CReF, isto é, a predição foi realizada com base em moldes muito próximos à proteína alvo.
+Esses resultados referem- se à conformação final da predição, isto é, podem ser comparáveis ao resultado do refinamento de uma conformação inicial.
+Em este sentido, são resultados de referência de uma excelente predição 3D para a proteína 1 ZDD.
+O Domínio B1 da proteína G do streptococcal cujo código PDB é 1GB1 foi alvo dos testes de predição de ambas as versões do CReF.
+Em a busca por fragmentos molde no PDB foram excluídas 62 proteínas que apresentaram relação evolucionária com a proteína alvo:
+1GB1, 1 PGA, 1 MHX, 2 JWU, 2 KDM, 2 KDL, 1 ZXH, 2 JWS e 1LE3.
+De entre elas estão as 35 proteínas desconsideradas no teste realizado com a versão inicial do CReF.
+Os 56 resíduos de aminoácidos da sua sequência foram divididos em 52 fragmentos com tamanho de l $= 5 resíduos.
+Estes fragmentos e um comparativo entre a quantidade de moldes obtida com a versão inicial e com a nova versão são apresentados na tabela a seguir.
+Em média, houve um crescimento de 353% na quantidade de moldes encontrados por fragmento.
+O processo de mineração teve um acerto de 56% em relação a os grupos mais significativos para representar os resíduos, isto é, para 23 grupos foi necessário selecionar outro grupo para representar o resíduo.
+Para todos esses casos encontrou- se um grupo com classificação conforme a indicada por a predição 2D.
+A proteína 1GB1 apresenta uma estrutura secundária do tipo hélice e uma folha com quatro fitas.
+Essas estruturas foram analisadas na conformação inicial e a hélice foi bem predita conforme demonstra o valor do RMSD abaixo.
+Já as fitas não foram formadas, da mesma forma como aconteceu no teste da versão inicial.
+Figura 38 ­ Mapa de Ramachandran da proteína alvo 1GB1: (
+A) mapa da estrutura experimental, (B) mapa da estrutura predita sem otimização com base em 4 grupos na etapa de mineração de dados, (C) mapa da estrutura predita sem otimização com base em 6 grupos na mineração.
+Os mapas apresentados na Figura 38 também mostram a boa predição da hélice, que corresponde à concentração de pontos na região &quot;A «(mais favorável em vermelho).
+Em (B) e (C) verifica- se que nestas concentrações os pontos ficaram reunidos e alguns sobrepostos, já em (A) vêse os pontos mais dispersos.
+Ainda em relação a a hélice, vê- se que a predição com quatro e seis grupos ocuparam praticamente a mesma região.
+Em relação a as fitas, as predições com ambos os grupos concentraram os resíduos na região de &quot;B».
+Alguns resíduos das fitas localizam- se em outras regiões do mapa na estrutura experimental (A), para estes resíduos as predições apresentaram a principal divergência mapeando- os em regiões diferentes e com maiores distorções.
+Em os mapas (B) e (C) observa- se alguns resíduos identificados e que ocupam outras regiões, como por exemplo:
+Asn37, Val39 e Asp 40.
+Estes resíduos são de regiões de volta e juntamente com os demais resíduos dessas regiões são os que apresentaram maior discrepância.
+Isso ocasionou o posicionamento incorreto das estruturas no espaço 3D e, fazendo com que as ligações de hidrogênio não se estabelecessem e a folha não se formasse.
+E (C) conformação inicial com 6 grupos (RMSD:
+14,85 Å).
+As estruturas gráficas da Figura 39 comprovam as análises anteriores.
+Em a predição com quatro grupos (B) não há possibilidade de formação da folha com o enovelamento apresentado.
+Já na predição com seis grupos houve um enovelamento mais aproximado da estrutura experimental, fato também expressado por o valor do RMSD.
+Em as predições (B) e (C) verifica- se que a hélice apresenta uma curvatura semelhante, mas que difere da estrutura experimental (A).
+De forma geral, a má conformação das regiões de voltas e alças implicou numa má predição de proteínas com folhas expressada por um valor de RMSD mais alto.
+A nova versão do CReF fazendo uso de seis grupos na etapa de mineração de dados, obteve uma conformação inicial com RMSD próximo de a predição da versão inicial.
+A 1GB1 também foi submetida aos métodos de predição I-Tasser e Robetta e foram obtidos os valores de RMS D5, 52 Å e 1,06 Å, respectivamente.
+O excelente resultado do Robetta é explicado por o uso de moldes muito próximos e que foram excluídos na execução do CReF.
+Sendo assim, somente o valor do I-Tasser pode ser considerado como referência para a predição da 1GB1 após um processo de refinamento da conformação inicial.
+A estrutura tridimensional da C5adesArg de porco, cujo código PDB é 1C5A, é uma das proteínas de tamanho médio que compõe o novo conjunto de teste.
+Em a busca por fragmentos molde no PDB foram excluídas 10 proteínas que apresentaram relação evolucionária com a proteína alvo:
+Em o processamento do resultado da mineração de dados, para 48% dos resíduos, foi necessário selecionar outro conjunto de ângulos para representar- los.
+Para todos esses resíduos encontrou- se um grupo com classificação adequada para representar- los na conformação inicial.
+O método Porter de predição da estrutura secundária não conseguiu atribuir um tipo de estrutura para os sete últimos resíduos da sequência, para estes resíduos optou- se por a escolha de grupos com a classificação de coil.
+A proteína alvo 1C5A é composta por quatro hélices:
+Hélice1 com nove resíduos, hélice2 com 11 resíduos, hélice3 com sete resíduos e hélice4 com 20 resíduos.
+As hélices das estruturas preditas foram sobrepostas com as hélices da estrutura experimental, o que demonstrou uma boa predição das hélices e conforme comprovam os valores RMSD:
+Em a submissão aos métodos I-Tasser e Robetta, a proteína 1C5A obteve RMSD de 5,11 Å e 1,49 Å, respectivamente.
+A predição considerando seis grupos na mineração de dados foi a que apresentou RMSD mais próximo a o da predição do I-Tasser que é considerada como referência.
+Em a Figura 41 são apresentados os mapas de Ramachandran que analisam a disposição dos resíduos na predição.
+Em os três mapas verifica- se uma concentração de resíduos na região de &quot;A «que corresponde às hélices.
+A análise dos mapas mostrou que, a maioria dos resíduos das hélices, se concentraram numa mesma área da região &quot;A».
+Em as predições das hélices houve vários resíduos que ocuparam pontos muito próximos aos ocupados na estrutura experimental.
+Considerando os valores RMSD das hélices, essa proximidade compensou o posicionamento de alguns resíduos que ficaram em outra região do mapa ou apresentaram posição mais deslocada em relação a a estrutura experimental.
+Os resíduos Asp31 e Glu32 destacados em (A) correspondem à região de volta e é uma demonstração de que também nesta proteína teste, a predição de voltas e alças apresentou as maiores distorções.
+As estruturas gráficas da Figura 42 comprovam a boa formação das hélices e como o mau posicionamento as regiões de voltas fizeram com que as hélices não ocupassem a posição correta no espaço 3D.
+Em (C) é possível verificar que a hélice4 se posicionou de forma muito semelhante à estrutura experimental, o que contribuiu à obtenção de um RMSD global melhor do que o da outra predição.
+E (C) conformação inicial com 6 grupos (RMSD_ 9,56 Å).
+A estrutura da proteína rica em histidina (HPr), mutante Ser46Asp de Escherichia coli, cujo código PDB é 1 OPD, é uma das proteínas de tamanho médio que faz parte do novo conjunto de proteínas teste.
+Em a busca por fragmentos molde no PDB foram excluídas 50 proteínas que apresentaram relação evolucionária com a proteína alvo:
+1 OPD, 2 JEL, 2 EZE, 2 EZB, 2 EZA, 1 GGR, 1 JEM, 1KA5, 1Y4Y, 1Y50 e 1Y51.
+Os 85 resíduos de aminoácidos da sua sequência foram divididos em 81 fragmentos com tamanho de l $= 5 resíduos que são apresentados na tabela a seguir com a quantidade de moldes obtida.
+Em o processamento do resultado da mineração de dados, para 44% dos resíduos, foi necessário selecionar outro conjunto de ângulos para representar- los.
+Para todos esses resíduos encontrou- se um grupo com classificação adequada para representar- los na conformação inicial.
+A proteína alvo 1 OPD apresenta três hélices, formadas por:
+Hélice1 com 12 resíduos, hélice2 com seis resíduos, hélice3 com 14 resíduos, e quatro fitas.
+As hélices das estruturas preditas foram sobrepostas com as hélices da estrutura experimental, o que demonstrou uma boa predição das hélices, também indicada por os valores RMSD:
+Em os mapas da Ramachandran da Figura 43 verifica- se uma concentração de pontos na região de &quot;A «que correspondem às hélices.
+Em as predições (B) e (C) os resíduos ocuparam pontos bem semelhantes aos observados na estrutura experimental (A).
+O resíduo Lys27 da primeira hélice foi o que apresentou um maior deslocamento, pois nas predições ficou na região de&quot;~ l &quot;quando deveria ter ficado em «A».
+A hélice3 foi a que apresentou o RMSD mais alto, o que foi ocasionada por resíduos que ficaram mais afastados do ponto onde era esperado estarem.
+Assim como na estrutura experimental, os resíduos das fitas concentraram- se na região de &quot;B «em padrão disperso.
+De as fitas os resíduos mais distorcidos foram a Ala44 que ficou na região de&quot;~ p quando deveria ter ficado em &quot;A «e o Thr59 que deveria ficar em &quot;B «e ficou na região de &quot;b».
+Os demais resíduos indicados em (B) e (C) (Ala10, Ser31, Gln57 e Glu68) fazem parte de regiões de volta e são indicativos de que novamente a principal distorção foi destas regiões.
+A Figura 44 mostra que nas predições não houve a formação das folhas, da mesma forma como aconteceu com a proteína alvo 1GB1.
+Em a conformação inicial com quatro grupos (B) não há possibilidade de formação da folha com o enovelamento apresentado.
+Já na conformação com seis grupos, houve uma melhora no empacotamento, conforme demonstrado por o valor do RMSD, mas ainda insuficiente para a formação da folha.
+As hélices estão próximas da estrutura experimental, apesar de o posicionamento diferente que é influenciado por a má conformação das regiões de volta.
+Em a conformação (C) a segunda hélice não foi formada na estrutura gráfica apresentada, mas corresponderia a região de coil que aparece enrolada na parte debaixo de a representação.
+Em algumas situações, uma proteína pode apresentar uma representação gráfica diferente conforme o software utilizado na visualização.
+Um exemplo disto é a representação da figura acima que foi gerada através do PyMOL, já uma representação gerada através do Swiss--PdbViewer formou a segunda hélice.
+A proteína 1 OPD foi submetida aos métodos I-Tasser e Robetta e obteve RMSD de 6,35 Å e 1,04 Å, respectivamente.
+Os valores de RMSD obtidos por as conformações iniciais das predições estão bem distantes do valor de referência (I-Tasser).
+Essa diferença é influenciada por o tamanho da sequência e por suas estruturas secundárias, especialmente as do tipo de folha que o CReF não consegue formar devido a a má conformação das voltas e alças.
+Além de as quatro proteínas descritas nas seções anteriores, foram testadas as outras quatro proteínas do conjunto inicial e as demais oito proteínas do novo conjunto de teste.
+O resultado dos testes é apresentado, em formato resumido, na Tabela 17 com as seguintes informações:
+Legenda: Nd $= Não Disponível;
+Gr. $= grupos;
+Hn $= Hélice n, onde n varia de 1 a 6;
+Fn $= Fita n, onde n varia de 1 a 7.
+Em a tabela alguns valores estão apresentados em negrito que indicam o melhor RMSD de entre os valores de predição da conformação inicial com o CReF.
+São considerados os valores da conformação inicial obtida com quatro e seis grupos com a nova versão do CReF e os valores obtidos com a versão inicial.
+Os resultados obtidos até a etapa de construção da conformação inicial confirmaram que o problema principal está na conformação de voltas e alças.
+Isso se comprova por os bons resultados da predição das estruturas secundárias apresentados acima, transferindo para a região de voltas e alças a responsabilidade por o altos valores de RMSD das conformações iniciais.
+Por isso optou- se por pesquisar métodos mais atuais que contribuam para a otimização dessas regiões, em vez de investir tempo para reorganizar a execução do processo usado na versão inicial do CReF.
+Desempenho do CReF O método CReF tem duas tarefas que demandam mais tempo para a sua execução:
+A execução do BLASTp para cada fragmento e a busca das proteínas molde.
+A execução do BLASTp é tarefa essencial ao método e é importante que seja executada para toda a proteína alvo submetida a fim de refletir atualizações ocorridas no PDB.
+Quanto a o download dos arquivos PDB, é possível reduzir esse tempo de execução através da manutenção de um repositório para estes arquivos.
+Esse repositório tem o objetivo de armazenar os PDBs utilizados na execução do método e pode ser atualizado conforme as proteínas alvo forem submetidas ao CReF ou pode ser criado um processo que atualize o repositório com os PDBs existentes no banco de dados PDB.
+A manutenção de um repositório local de arquivos PDBs contribui significativamente na redução do tempo de execução do CReF.
+Em contrapartida, para esta solução, é necessário equipamento capaz de armazenar o grande volume de informações e a existência de um processo que atualize de forma periódica este repositório com novos PDBs.
+Podem também causar impactos na performance do método as tarefas com dependência manual que estão associadas à predição das estrutura 2D.
+Proteínas com 20 ou mais aminoácidos são submetidas à ferramenta Porter para predição, e as demais são submetidas à ferramenta SAMT08.
+A submissão ao Porter é feita de forma automática por o método, já a submissão ao SAM-T08 precisa ser feita manualmente por o usuário.
+Isso pode ser evitado se já existir no repositório de predições de estrutura 2D um arquivo com a predição buscada.
+Caso contrário, será necessária a intervenção manual para submissão ao SAM-T08 e para disponibilizar o resultado de ambas as predições, que são enviadas por e-mail, para uso do método.
+A implementação da execução automática de todas as etapas do método contribuiu significantemente para uma execução mais eficiente e rápida do método.
+Para uma proteína grande e considerando a necessidade do download de um conjunto de PDBs, a conformação inicial foi obtida através da execução da nova versão após 1 hora e 40 minutos.
+Desta forma é possível afirmar que a nova versão do CReF mantém a boa performance da versão inicial inclusive em plataforma de baixo custo e com facilidade na instalação.
+Refinamento de conformações iniciais Em substituição à etapa 9, que existia na versão inicial, criou- se um processamento pósCReF que será responsável por o refinamento das estruturas preditas (conformações iniciais).
+A estratégia adotada será ilustrada por o refinamento da estrutura predita da proteína 1 ZDD, referenciada aqui por 1 ZDD_ P. Esta proteína foi escolhida por ser a mais simples entre todas aquelas investigadas neste trabalho.
+Em a seção 5.2 discutiu- se sobre o problema da otimização de voltas e alças em proteínas e do grande desafio que este processo representa.
+Como visto na seção 6.3.1, que trata do estudo de caso da 1 ZDD, o maior problema na predição foi a conformação da alça que conecta as hélices 1 e 2 (Figura 36B e 36 C).
+Os valores de RMSD mostraram que a estrutura da cadeia principal das hélices, individualmente, eram muito similares às da proteína experimental 1 ZDD.
+Entretanto, o RMSD global, da proteína inteira, apresentou para a conformação inicial com quatro grupos na mineração um valor de 9,82 Å (Figura 36 B) e para a conformação com seis grupos apresentou um RMSD de 6,64 Å, o que representa uma melhoria em relação a a anterior.
+Como as hélices foram bem formadas, a conformação da alça que as conecta foi responsável por a disposição inadequada dessas hélices no espaço 3 D, o que faz com que a estrutural global da 1 ZDD_ P seja tão diferente da experimental 1 ZDD (Figura 36B e 36 A, respectivamente).
+Apesar de o valor elevado do RMSD, na visualização ambas as conformações iniciais aproximam- se bem da estrutura experimental.
+Por isso, são denominadas estruturas 3D aproximadas preditas.
+A ideia subjacente ao método CReF é que as estruturas aproximadas preditas sejam boas o suficiente para serem submetidas a protocolos de refinamento por as técnicas de simulação por a dinâmica molecular (DM) (Dorn e Norberto de Souza, 2008).
+Em uma simulação da DM, as equações clássicas de movimento que governam a evolução temporal e microscópica de um sistema de muitos corpos (átomos numa macromolécula, por exemplo) são resolvidas numericamente e sujeitas a condições periódicas apropriadas à geometria e simetria do sistema (van Gunsteren e Berendsen, 1990).
+Portanto, a metodologia da DM é fundamentada nos princípios da Mecânica Clássica e pode fornecer uma visão microscópica do comportamento dinâmico de átomos individuais que constituem um sistema, como uma proteína.
+Como resultado, uma simulação por DM produz um conjunto de conformações (ensemble) da proteína em função de o tempo.
+A partir de o ensemble em equilíbrio, o valor médio de parâmetros termodinâmicos como pressão, temperatura, volume, calor específico, pode ser calculado, assim como parâmetros estruturais, incluindo o raio de giro e a estrutura média da proteína.
+Apesar de a estrutura predita da 1 ZDD_ P, na Figura 36 C, representar o melhor resultado para este estudo de caso, o modelo na Figura 36B foi escolhido como conformação inicial por estar mais distante da estrutura desejada.
+Essa conformação apresenta- se, a princípio, como um maior desafio para os protocolos de refinamento por o método de simulação por a DM, os quais ainda precisam ser desenvolvidos.
+O programa usado para a realização das simulações por DM da 1 ZDD_ P foi o módulo SANDER do pacote AMBER 9 fazendo uso do campo de força ff99SB.
+Em as simulações da DM para o refinamento da estrutura predita com quatro grupos na mineração 1 ZDD_ P (Figura 36 B), o ambiente aquoso (solvente) é representado de forma implícita, como um dielétrico contínuo, utilizando o formalismo denominado Generalized Born (GB) (Bashford e Case, 2000;
+Jayaram, 1998).
+Se a adição do solvente ocorresse de forma explícita, isso aumentaria de maneira considerável o tempo de simulação.
+Com o solvente representado implicitamente, o efeito hidrofóbico do sistema é calculado atribuindo- se penalidades para a exposição de resíduos hidrofóbicos e compensações quando os resíduos expostos são polares.
+A energia de solvatação é calculada através da mudança de área total do sistema acessível ao solvente.
+A estabilidade da simulação, para o propósito deste trabalho, foi avaliada por o monitoramento do RMSD da cadeia principal das proteínas (apenas os átomos C) com relação a a estrutura experimental inicial desejada.
+Simulações por DM analisam milhares de átomos e calculam seus movimentos, exigindo recursos computacionais de alto desempenho.
+As simulações deste trabalho foram realizadas num PC QuadCore de 2,4 GHz e 4 GB RAM.
+Cada uma de elas demanda dias, semanas ou até meses, dependendo do tamanho da proteína e do tempo de duração.
+Em os testes realizados o tempo médio para cada simulação de 1.000,0 ps, para a proteína 1 ZDD_ P com 569 átomos, foi de 12 horas.
+Sete simulações por DM foram realizadas a diferentes temperaturas, incluindo 281 K, 298,16 K e 325 K, e com diferentes escalas de tempo, todas começando da estrutura predita 1 ZDD_ P (Figura 36 B).
+A estrutura experimental, determinada por o método de NMR, foi adotada como estrutura de referência e, portanto, parâmetro de comparação para os resultados.
+A conformação inicial para a simulação da DM foi gerada com o módulo tleap do programa AMBER 9.
+Como as hélices foram preditas com alta acurácia (RMSDs muito pequenos, próximos de zero), suas conformações foram mantidas, por meio de a introdução de restrições harmônicas às coordenadas internas (ângulos diedrais) que as definem.
+Assim, durante as simulações todo o sistema pode se mover, mas as conformações das hélices ficaram restritas àquelas preditas por o CReF.
+Isso fez com que, neste protocolo, o espaço conformacional acessível à alça que conecta as hélices fosse explorado de forma mais eficiente.
+De entre os diferentes protocolos das sete simulações por DM testados, apresenta- se aqui aquele que forneceu o melhor resultado de refinamento da 1 ZDD_ P. Os principais parâmetros deste protocolo foram:
+Temperatura final de 325 K, restrições das conformações das hélices preditas.
+Ainda, o resíduo de histidina teve liberdade para se mover como se fosse parte da alça que conecta as hélices.
+O tempo total de simulação da 1 ZDD_ P foi de 1.000 ps, com conformações instantâneas salvas a cada 0,5 ps..
+Assim, 2.000 conformações foram empregadas na análise do refinamento da 1 ZDD_ P. Em este refinamento o objetivo foi fazer com que a estrutura predita 1 ZDD_ P se aproximasse o máximo possível da estrutura desejada, a estrutura experimental 1 ZDD.
+Uma métrica bastante comum para medir essa similaridade estrutural é o RMSD, o qual pode ser local ou global.
+A Figura 45 mostra o RMSD global e local, medido em Å, da trajetória dinâmica da 1 ZDD_ P com relação a estrutura experimental, como função do tempo de simulação.
+O gráfico menor inserido nesta figura mostra apenas os primeiros 100,0 ps para que detalhes das transições conformacionais ocorridas neste intervalo de tempo sejam visualizadas mais claramente.
+como se pode observar, neste intervalo ocorreram as principais transições conformacionais que permitiram à 1 ZDD_ P, durante a simulação, se aproximar da 1 ZDD, atingindo um RMSD global de 1,63 Å (curva G) em 100,0 ps..
+Quando se analisa apenas a sobreposição das hélices, o RMSD é bem inferior e igual a 1,13 Å (curva H).
+O RMSD local (curva A) foi calculado apenas para a alça que conecta as hélices H1 e H2.
+Pode- se notar que a curva A flutua durante quase toda a simulação em torno de um valor um pouco acima de 2,00 Å.
+Porém, o gráfico inserido mostra que há uma mudança conformacional na alça que vai de 3,0 ps a 15,0 ps..
+Em estes dois instantes o RMSD é de 2,50 Å aproximadamente.
+Em o interior desta região, em 5,5 ps e em 11,5 ps, o RMSD da alça atinge os seus menores valores, 0,68 Å e 0,65 Å, respectivamente.
+Isso significa que a conformação da alça da 1 ZDD_ P é, nestes instantes, praticamente idêntica a da estrutura alvo, à da 1 ZDD (Figuras 46B e 46 C).
+É possível observar que nesta faixa de intervalo em que ocorre a transição conformacional na alça, os RMSDs globais (curvas G e H) atingem seus maiores valores de 11,02 Å em 10,5 ps..
+Isso é claramente ilustrado quando se observa as posições relativas das hélices nas Figuras 46B e 46C.
+GLU32 e trata- se de uma medida de RMSD global.
+A curva H (linha cinza escuro) representa o RMSD da sobreposição dos resíduos das hélices.
+A curva A (linha cinza claro) corresponde ao RMSD da alça que conecta as duas hélices, e formada por os resíduos HIS14 a ASN19.
+O gráfico menor inserido nesta figura ilustra, de forma detalhada, os eventos dinâmicos que ocorreram nos 100,0 ps inicias da simulação por DM e que não podem ser visualizados de forma clara no gráfico da trajetória dinâmica completa.
+A transição conformacional espontânea que ocorre na alça no intervalo de 3,0 ps a 15,0 ps é fundamental para o sucesso deste protocolo de refinamento.
+O comportamento dos RMSDs globais (curvas G e H) mostra que a simulação da 1 ZDD_ P começa a convergir para a estrutura desejada, a 1 ZDD, já antes dos primeiros 100,0 ps..
+A Figura 46 mostra uma parte representativa da trajetória dinâmica da 1 ZDD_ P durante o seu refinamento.
+Verifica- se, a partir de a Figura 46D à Figura 46 H, como o protocolo de refinamento foi efetivo em promover as mudanças conformacionais para que em 950,0 ps (Figura 46 H) a estrutura predita 1 ZDD_ P atingisse um RMSD de apenas 1,29 Å e 0,64 Å para as curvas G e H, respectivamente, na Figura 45.
+Estes valores significam que o enovelamento da cadeia principal da 1 ZDD_ P é praticamente idêntico ao da proteína alvo.
+Resumo do capítulo O capítulo 6 apresentou o conjunto de proteínas teste que foi submetido ao método.
+Esse conjunto foi composto por as seis proteínas testadas por Dorn e por as dez proteínas selecionadas para compor um novo grupo, as quais representam diferentes classes e tamanhos de proteínas.
+Também foram listadas as ferramentas e os recursos usados para compor o método e as ferramentas empregadas nas análises e na representação gráfica das proteínas e suas conformações preditas.
+Para o conjunto de proteínas teste foram realizados experimentos considerando quatro e seis grupos na mineração de dados para comparação de resultados.
+Por meio de representações no mapa de Ramachandran, de representações gráficas das conformações e dos valores de RMSD local (por estrutura secundária) e global das predições para a conformação inicial foram analisados os experimentos com as proteínas alvo 1 ZDD, 1GB1, 1C5A e 1 OPD.
+Os resultados dos testes com as 12 proteínas restantes foram apresentados de forma resumida e com a indicação do melhor valor do RMSD obtido para cada uma.
+Além de os experimentos, analisou- se o desempenho da nova versão do CReF.
+O uso de repositórios para os arquivos PDBs e predições de estrutura secundária contribuiu para um desempenho ainda melhor.
+O único entrave está associado à atividade manual associada à predição de estrutura secundária quando a proteína alvo não for encontrada no repositório.
+Em contrapartida, a execução automática traz alertas sobre as tarefas em andamento ou em falta e elimina a dependência do usuário para uma execução rápida e eficiente.
+Este capítulo também tratou sobre o refinamento de conformações iniciais ilustrando sua aplicação à conformação inicial da 1 ZDD obtida com quatro grupos na mineração de dados.
+Como as hélices foram bem preditas optou- se por manter sua conformação a partir de restrições de coordenadas internas, procurando permitir que todo o sistema pudesse se mover, inclusive os resíduos que precedem e sucedem a alça.
+Foram realizados diversos testes com variação dos parâmetros até chegar- se ao protocolo que obteve o melhor resultado.
+O resultado obtido apresentou- se promissor para um método de refinamento de estruturas 3D de proteínas.
+A importância da Bioinformática é indiscutível e comprovada por o aumento exponencial das bases de dados biológicos.
+Diversos bancos de dados e inúmeras ferramentas para análise bioinformática estão disponíveis para domínio público com o objetivo principal de permitir a geração de conhecimento a partir de a análise e transformação dos dados.
+Este tem sido um desafio bastante instigante, pois a partir de o conhecimento se realizam descobertas que permitem entender essa máquina excepcional chamada vida.
+Uma das importantes fontes de informação para o entendimento da vida são as proteínas e os processos relacionados a elas.
+Para compreender- los, uma etapa fundamental é conhecer as funções das proteínas, o que é possível fazer a partir de sua estrutura terciária.
+Para auxiliar na construção deste conhecimento existem diferentes métodos de predição que buscam traduzir a informação contida na sequência de uma proteína para construir uma possível estrutura tridimensional.
+Confirmando a importância destes métodos, as diferentes metodologias de predição reúnem- se no CASP para serem avaliadas e comparadas entre si.
+Através do CASP é possível acompanhar os resultados de uma série de métodos que tem realizado boas predições 3D de proteínas atualmente.
+A maior parte destes métodos tem a sua disposição infraestrutura e recursos de alta tecnologia.
+Juntamente com o intuito de aprender sobre o problema da predição e de contribuir nesta área, surgiu a possibilidade de trabalhar com o método CReF de predição aproximada.
+Na contramão dos métodos mais expressivos, CReF se diferenciava fazendo uso de uma plataforma de baixo custo, entretanto apresentava dificuldades na usabilidade e na predição.
+Este trabalho de dissertação propôs- se, então, a implementar melhorias no método, a partir de o conhecimento mais aprofundado da ferramenta.
+O primeiro passo para isso foi a simulação dos experimentos da versão inicial, o que já se apresentou como uma dificuldade.
+Além de as alterações previamente identificadas, outras alterações mostraram- se necessárias para que o CReF pudesse ser executado fazendo uso de versões mais atuais das ferramentas acessórias (descritas na seção 6.2), o que demandou mais tempo do que o planejado para esta etapa.
+O conjunto de proteínas teste foi composto por proteínas de diferentes tamanhos e de diferentes classes estruturais a fim de permitir uma melhor avaliação do método.
+Os resultados dos experimentos realizados com a nova versão do CReF são resumidos na Tabela 18.
+Não é possível estabelecer uma relação direta entre os resultados da versão inicial do CReF e a atual versão (colunas &quot;RMSD 4 Grupos «e &quot;RMSD 6 Grupos&quot;).
+Uma diferença importante está no conjunto de proteínas molde considerado na predição por cada versão.
+Como não existia um histórico do conjunto de moldes usado por a versão inicial, a nova versão não pode simular uma predição sob o mesmo conjunto de moldes.
+Como consequência do aumento crescente da quantidade de proteínas armazenadas no PDB, o conjunto de moldes encontrado na nova versão foi bem maior.
+Em a Tabela 18 observa- se que para quatro das seis proteínas do conjunto inicial de teste, o RMSD da versão 1.0 foi melhor do que o da nova versão.
+A partir desses dados pode- se levantar a hipótese de que uma maior diversidade de proteínas pode causar uma maior dificuldade na predição.
+Em suma, conforme o número de proteínas aumenta, a predição a partir de moldes também se tornará mais complexa e precisará evoluir suas estratégias ou estabelecer critérios de exclusão mais rígidos.
+Para as proteínas 1 GAB e 1 UTG, a nova versão do CReF apresentou resultados melhores do que a versão 1.0, sendo que para a 1 UTG a melhora foi significante.
+Possivelmente, isso deve ter sido proporcionado por o conjunto de moldes considerado, já que as outras proteínas da classe alfa ou da mesma categoria de tamanho não apresentaram o mesmo comportamento.
+Considerando os resultados das proteínas alvo pertencentes ao conjunto inicial de testes e que foram submetidas a ambas as versões, é possível afirmar que a nova versão mantém o mesmo desempenho da anterior.
+As diferenças encontradas entre as predições da conformação inicial foram ocasionadas por influência dos moldes (seja para melhor ou pior).
+A análise das predições de todos os experimentos realizados aponta que para vários casos houve uma diferença importante entre a predição com quatro grupos e seis grupos.
+Para a maioria, os melhores valores de RMSD foram de predições realizadas com seis grupos na etapa de mineração de dados.
+Apenas para proteínas grandes seria interessante considerar outros alvos para avaliar se melhores valores de RMSD com quatro grupos são uma tendência para esta categoria ou não.
+Com os resultados obtidos e com a amostragem considerada, não é possível afirmar que existam tendências que se reflitam em valores de RMSD e que estejam associadas a categorias de proteínas (classe ou tamanho).
+Como esperado, as predições da nova versão apresentaram uma grande diferença em relação a os valores obtidos por o I-Tasser, isso porque as predições são de conformações iniciais.
+Serão comparáveis ao I-Tasser os valores obtidos por as predições após o processo de refinamento, por isso não é possível avaliar compatibilidade nessas condições.
+De forma geral, os valores de RMSD do I-Tasser também não apresentaram tendências relacionadas à classe ou tamanho da proteína.
+Por exemplo, na Tabela 18 observa- se que o melhor resultado do I-Tasser foi da 1 CTF (proteína média da classe alfa beta) e o pior, o da 1 UTG (proteína média da classe alfa).
+Em a comparação com o I-Tasser, o CReF apresenta uma vantagem, pois consegue predizer proteínas (polipeptídio) muito pequenas, como a 1K43.
+Os resultados dos experimentos demonstraram que as alterações realizadas no método não implicaram em melhoria da conformação, mas mantiveram a boa predição de estruturas secundárias.
+Além disso, comprovaram a dificuldade de se predizer as conformações de regiões de voltas e alças.
+Conforme já indicado por os experimentos iniciais, um processo de refinamento dessas regiões é essencial para implicar em melhoria da qualidade das predições.
+Em contrapartida, houve grandes avanços em relação a usabilidade da ferramenta por meio de a sua automatização.
+Em essa nova versão o usuário poderá:
+Parametrizar os diretórios a serem usados, criar repositórios de arquivos PDBs e predição 2 D, executar o processo com apenas uma linha de comando, encontrar apoio num manual para a instalação e para a execução da ferramenta.
+Além disso, na forma em que foi implementada, a nova versão do CReF possibilita a proveniência dos experimentos realizados e um acompanhamento por tarefa executada por a ferramenta com mensagens amigáveis ao usuário.
+O CReF mantém- se uma ferramenta de boa performance e executável em plataforma de baixo custo que tornou- se parametrizável, de execução simples e que ao final permite ao usuário uma visualização gráfica da conformação inicial (estrutura 3D aproximada predita).
+As melhorias técnicas implementadas permitem ao CReF estar bem mais próximo de uma disponibilização para acesso público.
+Esta disponibilização poderá ser sustentável a partir de o momento que um processo de refinamento tenha sido claramente definido e implementado.
+O fator surpresa deste trabalho foi a dificuldade em definir uma boa estratégia para melhorar a conformação das regiões de voltas e alças.
+Uma das estratégias consideradas foi o uso de bibliotecas de alças, mas eram limitadas a estas regiões não permitindo que trechos próximos se movimentassem em busca da conformação mais adequada no espaço 3D.
+Então, optou- se por a simulação por Dinâmica Molecular para a modelagem dessas regiões.
+Em virtude de a limitação de tempo, este trabalho contou com apoio do conhecimento de um especialista no desenho de um protocolo de refinamento.
+Uma série de fatores químicos e físicos precisaram ser combinados e ajustados para se obter o resultado esperado que, neste caso, era a conformação mais próxima o possível da estrutura experimental.
+O resultado obtido com o refinamento da conformação inicial que usou quatro grupos na mineração de dados para a 1 ZDD foi excelente.
+Este resultado também ficou muito próximo de o RMSD do I-Tasser.
+A conformação refinada foi obtida aos 950,0 picossegundos (ps) da simulação e para o cálculo do RMSD foram considerados apenas os átomos C dos resíduos da posição 3 a 32.
+Acredita- se que um bom resultado também seja obtido no refinamento da conformação inicial com seis grupos da 1 ZDD, para este caso espera- se que o posicionamento correto seja atingido em menos tempo.
+Para proteínas com apenas uma estrutura irregular, a versão inicial do CReF, precisou de, aproximadamente, 24 a 48 horas para que o algoritmo de otimização de voltas atingisse o critério de parada para, então, compor a conformação final da estrutura predita.
+Em o refinamento por DM, o tempo médio para cada simulação foi de 12 horas.
+Portanto, após a definição do protocolo mais adequado a ser usado, o refinamento de uma conformação inicial é executado em torno desse tempo, o que representa uma melhora expressiva do tempo de execução em relação a a versão inicial.
+A melhora também é perceptível em relação a a conformação final predita, pois a estrutura 3D final predita da versão inicial obteve um RMSD de 5,00 Å, enquanto a estrutura resultante do processo de refinamento obteve RMSD de 1,29 Å, a figura a seguir apresenta estas estruturas.
+Esse bom resultado é fator motivador para ampliar o teste do protocolo às demais proteínas alvo consideradas por este trabalho.
+Após um teste mais amplo será possível definir um protocolo capaz de obter boas conformações refinadas para diferentes classes de proteínas, como as testadas nesta dissertação.
+Um bom protocolo precisará obter o melhor resultado possível para os mais diferentes tipos de proteína, o que claramente define- se como um trabalho extenso.
+Para a proteína 1 ZDD, o protocolo demonstrou ser possível obter uma conformação de alça excelente, isto é, muito próxima da estrutura experimental.
+Em contraposição a isto, a conformação das hélices obteve o pior valor de RMSD no mesmo ponto da simulação (gráfico menor na Figura 45).
+Isso indica que há uma barreira a ser rompida para que as hélices possam assumir a conformação adequada quando a região de alça está na conformação esperada.
+Esta barreira energética foi vencida por meio de o uso de uma temperatura de 325 K, bem acima de a temperatura em a qual a estrutura experimental foi resolvida.
+A teoria diz, mas a prática comprovou que predizer estrutura tridimensional de proteínas é uma tarefa complexa por a influência de um conjunto muito grande de fatores.
+Contudo, ao lembrarse da instigante máquina que é a vida, que nos surpreende por a sua perfeição e que nos aflige por seus mistérios, é razoável que o segredo a ser descoberto a partir de as proteínas não fosse revelado de forma tão fácil.
+Entender a vida é uma das missões do ser humano, assim como vencer obstáculos não deve ser uma opção, mas deve ser um caminho para chegar às respostas.
+Principais contribuições As principais contribuições desta dissertação foram:
+Automatização da ferramenta e possibilidade de parametrizações.
+Interação automática com o sítio de predição de estrutura secundária do método Porter.
+Análise de diferentes métodos de predição de estrutura secundária.
+Agrupamento das tuplas em quatro ou seis grupos na mineração de dados.
+Protocolo de refinamento com excelente resultado para a estrutura 3D aproximada predita da 1 ZDD.
+Trabalhos futuros Apesar de os resultados encorajadores desta dissertação, trabalhos futuros poderão abordar os seguintes problemas:
+Investigação do impacto que um número maior de moldes causa na predição e estudo de novos critérios para seleção das proteínas moldes.
+Aplicação de estratégias mais elaboradas de mineração de dados.
+Extensão do protocolo de refinamento para as outras classes de proteínas investigadas neste trabalho.
+Automatização do protocolo de refinamento.
+Integração do protocolo de refinamento ao CReF.
+Disponibilização da ferramenta via webApp.

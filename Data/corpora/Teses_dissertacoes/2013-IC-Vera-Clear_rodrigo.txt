@@ -1,0 +1,1008 @@
+Este trabalho estuda o Word Sense Disambiguation no domínio da Biomedicina, para a língua inglesa, com uso de fontes externas de conhecimento.
+De entre as propostas existentes para a seleção de um sentido para uma palavra ambígua, está a abordagem baseadas em grafos.
+Essa abordagem emprega uma métrica na avaliação de grafos que contêm candidatos ao sentido correto da palavra ambígua.
+Em esta pesquisa um conjunto de métricas é analisado individualmente e, com base nas avaliações, propõe- se um modelo híbrido de seleção de métricas com o objetivo de determinar a métrica mais adequada a ser empregada.
+O modelo faz uso de um conjunto de features e heurísticas que determinam uma solução semi-supervisionada para o WSD.
+Os resultados obtidos com experimentos apontam melhoria na performance e revelam novas perspectivas de pesquisa.
+O modelo proposto eleva a taxa de acerto a 68,48%, aumentando significativamente em 3,52% a taxa reportada na literatura.
+Palavras Chave: Word Sense Disambiguation, Biomedicina, grafos, algoritmos, métricas.
+A ambiguidade é o fenômeno linguístico em que uma palavra possui mais de um sentido.
+Ela representa um dos principais desafios para o Processamento da Linguagem Natural (PLN).
+O problema de Word Sense Disambiguation (WSD) na computação tem sido explorado desde 1950 e é considerado uma importante etapa no processamento de textos.
+Soluções para esse problema podem influenciar, por exemplo, a performance de sistemas para a tradução automática, mineração e classificação de textos.
+De entre as abordagens desenvolvidas ao longo desses anos estão aquelas com propósito específico, em que o WSD se restringe a um domínio do conhecimento.
+Em o domínio biomédico, sistemas que empregam PLN são projetados para analisar textos.
+A finalidade é indexar documentos e dar suporte à tomada de decisão.
+Para atingir esse objetivo esses sistemas devem lidar com ambiguidade.
+MedLEE1 e PubMed2 são dois exemplos.
+MedLEE é um sistema que extrai informações a partir de textos de radiologia.
+Ele organiza e classifica essas informações na forma de um vocabulário controlado.
+PubMed é um indexador de artigos biomédicos.
+Em ambos os casos, a busca por informação está associada à identificação e classificação dos conceitos presentes em textos.
+No entanto, o processo de identificar automaticamente o sentido correto de uma palavra num texto é um problema cuja solução ainda pode ser melhorada.
+Por exemplo, considere a busca da palavra glucose no indexador PubMed.
+De acordo com o metatesauro UMLS (Unified Medical Language System), especializado na área de Biomedicina, a palavra glucose está presente em três conceitos:
+Glucose, plasma glucose measurement e glucose measurement.
+O usuário que pesquisar pela palavra glucose no indexador PubMed pode desconhecer, e até mesmo não desejar, os resultados com os conceitos plasma glucose measurement e glucose measurement.
+Para identificar o sentido correto de uma palavra, o contexto em que ela foi empregada tem papel importante.
+Geralmente, conceitos ou simplesmente as palavras do entorno (i.
+e palavras que ocorrem antes e depois da palavra ambígua num texto) representam o contexto.
+Com esse tipo de informação é possível empregar algum método automático que considere a situação em que a palavra foi empregada, e então selecionar o sentido mais adequado de acordo com um conjunto préestabelecido de possíveis sentidos, como por exemplo aqueles estabelecidos no UMLS.
+Abordagens baseadas no aprendizado supervisionado são comuns no WSD de textos de Biomedicina.
+Contudo, elas exigem exemplos etiquetados para o treinamento, que podem estar ou não à disposição, ou serem de alto custo para serem elaborados.
+Essa limitação significa que as abordagens supervisionadas podem desambiguar uma amostra de palavras para a qual um conjunto de dados de treino foi elaborado, e isso limita sua utilização na prática.
+Por outro lado, abordagens não-supervisionadas não necessitam de exemplos etiquetados.
+Por fazerem uso de recursos estruturados como fonte de conhecimento, não há necessidade de um conjunto para treino e teste.
+Abordagens não-supervisionadas e semi-supervisionadas já foram exploradas anteriormente com o uso do UMLS.
+Além disso, essas fontes de conhecimento podem também ser utilizadas como um grafo, onde a topologia dessa estrutura de dados pode servir ao aprendizado não supervisionado.
+O UMLS, assim como a WordNet, estabelece relacionamentos semânticos entre os conceitos na forma de um grafo.
+A estrutura de um grafo viabiliza o emprego de métricas para avaliação de vértices.
+Métricas no domínio da matemática são funções que generalizam a ideia geométrica de distância.
+No caso de o UMLS, vértices correspondem a conceitos e as métricas estabelecem uma medida de importância para os mesmos.
+Existem algoritmos baseados em grafos para implementação dessas métricas.
+Entre os mais conhecidos, associados a recuperação de informações na Internet, estão o PageRank e Hits.
+Os algoritmos PageRank, Degree Centrality, Betweenness, Key Player Problem, entre outros, foram explorados em domínios especializados e não especializados.
+Os resultados obtidos nessas pesquisas identificaram os melhores algoritmos para diferentes configurações de cenários (i.
+e domínio do conhecimento, fonte de conhecimento, corpora para teste), mas lacunas ainda estão presentes.
+Em este enquadramento este trabalho se propõe a um estudo dos problemas e soluções relacionados ao Word Sense Disambiguation (WSD) no domínio da Biomedicina.
+Este domínio é pesquisado por o grupo de Processamento da Linguagem Natural da PUCRS, em o qual esta Tese está inserida.
+Abordagens baseadas em grafos são exploradas com o objetivo de comparar, identificar lacunas e ampliar os resultados encontrados até o presente momento.
+Estudos preliminares demonstram que métodos não supervisionados com abordagens baseadas em grafos podem obter resultados semelhantes aos alcançados por métodos supervisionados.
+Este trabalho apresenta os resultados de experimentos não supervisionados e semisupervisionados baseados em grafos, que conduziram a um modelo híbrido para o processamento do WSD em Biomedicina.
+Em o contexto do presente trabalho, métricas para grafos são métodos não supervisionados empregados no WSD.
+Estes métodos representam um modelo simples de processamento, por empregar uma métrica na seleção do sentido correto de uma ou mais palavras ambíguas.
+O estado da arte na pesquisa com o modelo simples apontam o PageRank Personalizado como a métrica mais indicada para o WSD no domínio da Biomedicina.
+A taxa de acerto dessa métrica é cerca de 66,16%.
+Contudo, os resultados de experimentos desenvolvidos nesta Tese revelam que existem casos em que outras métricas identificam o sentido de palavras corretamente, em casos que o PageRank Personalizado não o faz.
+Essa constatação revela que, se a métrica mais adequada para uma dada palavra ambígua for selecionada, as chances de sucesso na seleção, e na taxa de acerto, podem crescer significativamente.
+A hipótese desta Tese é a de que é possível identificar a métrica mais adequada para uma dada palavra ambígua.
+Este trabalho apresenta uma proposta para implementar esse processo.
+Chamado de modelo híbrido de seleção de métricas para o WSD em Biomedicina para a língua inglesa, o objetivo desse modelo é estabelecer o processo de seleção da métrica mais adequada.
+Para isso são extraídas features da palavra ambígua e estas são empregadas, por heurísticas, na seleção da métrica.
+Experimentos foram elaborados para identificar quais features e heurísticas são as mais apropriadas para esse processo.
+O emprego de informações a respeito de os candidatos a sentido demonstra que este pode ser um meio (feature) adequado para identificar a métrica.
+A heurística que relaciona estas informações com a métrica é baseada na probabilidade condicional da ocorrência.
+Ela é estabelecida com base nos dados de experimentos com o modelo simples de WSD, reproduzidos neste trabalho a partir de pesquisas elaboradas por outros autores.
+O modelo híbrido constitui um modelo semisupervisionado para WSD.
+Os experimentos com o modelo proposto indicam uma taxa de acerto de 68,48%, melhorando significativamente, em 3,52%, os resultados do estado da arte relatado.
+Este documento esta organizado da seguinte maneira.
+O Capítulo 2 resume os principais conceitos e métodos empregados no WSD.
+O Capítulo 3 apresenta as principais abordagens baseadas em grafos para o WSD.
+São descritos os meios para representar grafos, algoritmos e resultados obtidos por outros autores.
+O emprego da abordagem baseada em grafos no domínio da Biomedicina é o tema do Capítulo 4.
+Corpora e propostas de WSD supervisionadas e não-supervisionadas não descritos, assim como os resultados obtidos até então com essas abordagens.
+O por três métricas.
+Lacunas são identificadas e discutidas.
+O Capítulo 6 apresenta o modelo híbrido de seleção de métricas.
+As alternativas de features e heurísticas para seleção de métricas são analisadas também neste capítulo.
+Por fim, o Capítulo 7 apresenta conclusões e sugestões de trabalhos futuros.
+O processo de selecionar o sentido correto de uma palavra é chamado Word Sense Disambiguation.
+Identificar sentidos de palavras auxilia o aperfeiçoamento de outras áreas de aplicação do Processamento da Linguagem Natural.
+Tradução automática, sistemas para perguntas e respostas, recuperação de informações e a classificação de textos também são exemplos de aplicações desse processo.
+A maneira como o WSD é explorado nessas e outras áreas de aplicação varia de acordo com as suas particularidades.
+A discussão apresentada aqui ignora essas diferenças específicas e foca no WSD como uma área independente.
+Em a forma mais elementar, algoritmos para o WSD consideram como entrada palavras com uma lista fixa de potenciais sentidos.
+Como resultado, retorna a palavra que representa o sentido correto para um determinado emprego.
+A natureza da entrada e do inventário de sentidos depende da área de aplicação.
+Para tradução automática do Inglês para o Português, o inventário de etiquetas de sentidos para uma palavra em Inglês será um conjunto de diferentes traduções da mesma para o Português.
+Se o objetivo é a sintetização de voz, o inventário deve se restringir a homógrafos com diferentes pronúncias como no caso de as palavras &quot;colher», &quot;seca «e &quot;jogo «como substantivos ou verbos.
+Se o objetivo é a indexação de artigos biomédicos, um exemplo é o inventário de sentidos e etiquetas, como o tesauro MeSH (Medical Subject Headings) 3.
+Quando tratado isoladamente o WSD, é possível utilizar dicionários ou tesauros como WordNet ou LDOCE.
+Existem duas variantes do processo genérico de WSD.
+A primeira é o processamento lexical sample, onde um pequeno conjunto de palavras pré-selecionadas é escolhido, juntamente com um inventário de sentidos para cada palavra encontrada em algum dicionário.
+Como o conjunto de palavras e o conjunto de sentidos são pequenos, abordagens baseadas em aprendizado de máquina são geralmente empregadas no processamento lexical sample.
+Para cada palavra, um número de instâncias do corpus (sentenças do contexto) podem ser selecionadas e etiquetadas manualmente com o sentido correto de cada uma das palavras em análise.
+Sistemas de classificação podem então ser treinados com esses exemplos etiquetados.
+Palavras não etiquetadas podem ser então etiquetadas com a utilização do classificador treinado.
+Trabalhos anteriores em WSD empregavam exclusivamente esse método no processamento lexical sample, construindo algoritmos específicos para a desambiguação de uma única palavra.
+Por outro lado, no processamento all-- words, um programa recebe textos inteiros e um dicionário com um inventário de sentidos para cada entrada, com a tarefa de desambiguar cada palavra contida no texto.
+O processamento all-- words é similar ao da anotação morfossintática, exceto por considerar um conjunto muito maior de etiquetas já que cada palavra tem seu próprio conjunto de sentidos.
+A consequência desse grande conjunto de etiquetas é um sério problema de dados esparsos, pois é improvável produzir dados de treino para cada palavra presente no conjunto de teste.
+Além disso, considerando o possível número de palavras polissêmicas presentes num dicionário comum, as abordagens baseadas no treinamento de um classificador por termo são impraticáveis.
+Seleção de Sentidos Um sentido é um significado comum para uma palavra.
+Por exemplo, considere as seguintes sentenças:
+A palavra &quot;manga «é utilizada nas sentenças com três sentidos diferentes:
+A fruta (a), um restaurante (b) e o jogador de futebol (c).
+Um inventário de sentidos tem como objetivo relacionar um intervalo finito de significados de uma palavra.
+Contudo, a elaboração de um inventário não é uma tarefa trivial.
+Os exemplos (b) e (c) podem se referir a dois campeões, mas cada um de eles se refere a uma categoria diferente (gastronomia e esporte, respectivamente).
+Por outro lado, o nível de especificidade que se utiliza pode depender do tipo de aplicação.
+Por exemplo, para um sistema de recuperação de informações, pode ser relevante associar &quot;manga «ao conceito de um &quot;jogador «e, mais especificamente, um &quot;goleiro».
+Existem duas abordagens comuns para tornar explícitos os sentidos de uma palavra.
+A primeira é a abordagem enumerativa, que relaciona sentenças descrevendo o sentido.
+A Figura 2.2 exemplifica entradas para o substantivo &quot;manga «presente nas sentenças anteriores.
+Contudo, esta abordagem é limitada, se for necessário organizar os sentidos em termos de especificidade e generalidade.
+A abordagem gerativa apresentada por Pustejosky se propõe, por outro lado, a estabelecer os sentidos de uma palavra através do seu relacionamento com outras palavras a partir de regras.
+A instanciação de um conjunto de regras leva à criação de sentidos de uma dada palavra.
+A Figura 2.1 apresenta um exemplo simples para a definição da palavra bank.
+Em ele estão relacionadas duas variantes de sentido da palavra, diferenciadas por dois aspectos:
+Categoria lexical (CAT) e classe (GENUS), que associa a palavra com alguma taxonomia pré-estabelecida.
+De acordo com Navigli, a abordagem enumerativa é a mais adotada por a comunidade científica, e por essa razão será adotada neste trabalho.
+Fontes Externas de Conhecimento Fontes de conhecimento fornecem dados que são essenciais para associar sentidos às palavras.
+Por essa razão, conhecimento é fundamental para o WSD.
+Corpora anotado, ontologias e tesauros são exemplos de fontes de conhecimento e estas podem ser classificadas como recursos estruturados ou recursos não estruturados.
+Recursos estruturados são aqueles que estabelecem conjuntos de conceitos e relacionamentos semânticos com a finalidade de viabilizar o seu processamento automatizado.
+Tesauros e ontologias são exemplos desse tipo de recurso.
+Tesauros fornecem informações sobre o relacionamento entre palavras, como sinonímia (e.
+g &quot;moto «é sinônimo de &quot;motocicleta&quot;) e antonímia (e.
+g &quot;bom «é antônimo de &quot;mau&quot;), entre outras relações, como uma medida de similaridade ou distância semântica.
+Duas palavras são mais similares se elas compartilham mais significados ou são quase sinônimas.
+De forma inversa, são menos similares ou mais distantes semanticamente as palavras que possuem menos sentidos em comum.
+Desta forma, os relacionamentos de sinonímia e similaridade definem relações entre sentidos ao invés de relações entre palavras.
+Outro exemplo de recursos estruturados são as ontologias.
+Estas são a &quot;especificação explícita de uma conceitualização», que se refere a um conjunto de distintos conceitos de um único domínio.
+WordNet e UMLS são considerados ontologias por estabelecerem uma rede de relacionamentos semânticos entre conceitos de domínio geral (WordNet) e específico A WordNet é uma base dados lexical destinada ao uso computacional.
+Substantivos, verbos, adjetivos e advérbios estão organizados na forma de conjuntos de sinônimos, chamados synsets, cada um representando um conceito.
+Além de a relação de sinonímia, outras relações semânticas estão presentes na WordNet, como hiponímia e hiperonímia.
+A WordNet, na sua mais recente versão, contém cerca de 155.000 palavras relacionadas a cerca de 117.000 synsets.
+Por exemplo, a palavra adjustment é expressa na WordNet com o seguinte synset:
+Este synset representa um conjunto de palavras com sentido semelhante.
+Em ele, o valor subscrito de cada conceito representa uma etiqueta morfossintática para substantivos, verbos, adjetivos e advérbios (aqui indicada como s, v, adj e adv, respectivamente).
+Os valores sobrescritos representam o sense number, que é uma espécie de identificador único do synset.
+Assim, a palavra adjustment possui diversos significados e estes representam um conjunto de synsets definidos como:
+O UMLS, descrito no Capítulo 4, é considerado um metatesauro por representar a unificação de um amplo conjunto de vocabulários controlados de medicina, além de sistemas de classificação.
+O metatesauro é organizado com base em conceitos e cada um é relacionado a um Concept Unique Identifier (CUI).
+Por exemplo, os seguintes Cuis estão associados ao termo cold:
+O metatesauro também contém informações sobre as relações entre Cuis, expressas na forma de bases de dados em tabelas.
+A tabela MRREL reúne as relações entre Cuis em diferentes tipos.
+Por exemplo, C0009443 Common Cold está relacionado com o C0035243 Respiratory Tract Infections por a relação chamada Par (parent).
+Outros tipos de relações na tabela MRREL incluem QB (pode ser qualificado por -- qualified by), RQ (relacionado e possivelmente sinônimo) e RO (relacionado, exemplo, C0009443 e C0460004 são encontrados no National Cancer Institute Thesaurus.
+A mesma relação pode ser encontrada em múltiplas fontes, por exemplo as Cuis C0009443 e C0035243 são encontradas em quatro diferentes fontes.
+As relações de coocorrência entre Cuis são encontradas na tabela MRCOC.
+Essas relações um grande número de relações de coocorrência, a maioria dos conceitos não tem qualquer relação de coocorrência associada.
+A associação nessa tabela foi criada automaticamente por o processamento de três fontes de informação:
+MEDLINE, 2002-2007;
+Ai/ RHEUM, 1993 e o Canonical Clinical Problem Statement System, 1999.
+A tabela MRCOC inclui detalhes sobre o peso da relação de coocorrência entre conceitos baseado no número de coocorrências identificadas.
+Recursos não estruturados, por sua vez, são aqueles que reúnem palavras sem estabelecer qualquer repositório explícito exclusivo de conceitos e seus relacionamentos semânticos.
+Corpora, anotados ou não anotados, são exemplos desse tipo de recurso.
+Além de corpora, informações contidas indiretamente nos textos também são utilizadas por métodos de classificação em abordagens supervisionadas e não-supervisionadas (Seção 2.4).
+Listas com a coocorrência de palavras, listas de frequência de palavras e stoplists (tais como listas de palavras de uso comum) também são utilizadas como recursos não estruturados para o WSD.
+Representação do Contexto Texto é considerado uma fonte de informação não estruturada.
+Para poder processar- lo algoritmicamente, é necessário converter- lo numa forma estruturada, o que geralmente é feito por meio de o pré-processamento.
+Essa etapa costuma incluir as seguintes subetapas:
+Tokenização, anotação morfossintática, lematização, chunking e parsing.
+A tokenização é uma etapa de normalização que divide o texto em tokens, geralmente associados a palavras.
+A anotação morfossintática consiste na atribuição de uma categoria gramatical para cada palavra, simples ou composta.
+Considere por exemplo a seguinte frase anotada:
+&quot;A/ DET manga/ S é/ V indicada/ V para/ PRP o/ DET tratamento/ S de/ PRP anemia/ S.».
+As etiquetas DET, S, V e PRP representam artigos definidos, substantivos, verbos e preposições, respectivamente.
+A lematização é a redução das variantes morfológicas de uma palavra a uma forma base, seu lema.
+Por exemplo, &quot;é ser», &quot;indicada indicar «e &quot;a o».
+Chunking é processo de divisão de um texto em partes sintaticamente relacionadas.
+Por exemplo, Sn[ é indicadapara o tratamento de anemia] SP, onde Sn, SV e SP significam sintagma nominal, sintagma verbal e sintagma preposicional, respectivamente.
+Por fim, o parsing é o processo de identificação da estrutura de uma sentença, com a geração de uma árvore que a representa.
+Como resultado do pré-processamento da mesma sentença, temos a sequência representada na Figura 2.3.
+O resultado de cada uma dessas etapas pode ser retratado como um vetor de caracteres.
+Computacionalmente, essas informações podem ser então utilizadas e complementadas com mais informações, por exemplo informações a respeito de o contexto.
+Assim, métodos automáticos podem encontrar o sentido mais apropriado para uma palavra (e.
+g &quot;manga&quot;), presente num inventário de sentidos, por intermédio destas e outras informações a respeito de o contexto da palavra ambígua.
+Estas informações a respeito de o contexto são chamadas de features ou atributos e incluem as informações identificadas em cada um dos passos do pré-processamento.
+Mas podem incluir outras, como a frequência de uma palavra ou relações de sinonímia, por exemplo.
+Segundo Navigli as features podem ser reunidas nos seguintes grupos:
+Features locais representam o contexto local em que uma palavra foi empregada, tal como a categoria morfossintática ou lema de um pequeno intervalo de palavras no entorno da palavra em análise;
+Features de tópico definem, ao contrário de as features locais, o tópico geral de um texto ou porção do discurso (referente a um conjunto de palavras, como uma sentença ou frase, por exemplo);
+Features sintáticas indicam relações sintáticas entre a palavra ambígua e outras presentes na mesma sentença;
+Features semânticas expressam informações semânticas, como o sentido das palavras dentro de o contexto, indicadores do domínio das palavras, etc..
+Com as features estabelecidas, cada ocorrência de uma palavra (geralmente dentro de uma sentença) pode ser convertida num vetor.
+Por exemplo, a Figura 2.4 ilustra exemplos simples de vetores de features para as sentenças (a) e (b) apresentadas na Seção 2.1.
+Em ele estão indicadas as categorias morfossintáticas de quatro palavras do contexto da palavra &quot;manga», as duas anteriores e as duas posteriores.
+Também está relacionado o sentido correto da palavra &quot;manga «nesse contexto.
+A extensão do contexto pode ser estabelecida de diferentes formas.
+Unigramas, bigramas, trigramas ou mesmo uma janela de palavras, como é proposto na Figura 2.4, são formas de estabelecer o intervalo de palavras do contexto.
+Utilizar palavras de uma determinada categoria morfossintática é outra forma de estabelecer o vetor.
+Por exemplo, podemos selecionar todos os substantivos presentes numa janela de palavras.
+Com as informações do contexto representadas de forma estruturada, como a de um vetor, é possível aplicar métodos de classificação na tentativa de identificar o sentido das palavras ambíguas.
+Método de Classificação A maioria das abordagens de resolução da ambiguidade de palavras tem origem no aprendizado de máquina, variando entre métodos fortemente supervisionados e abordagens de reconhecimento de padrões estruturais e sintáticos.
+A classificação supervisionada no WSD emprega técnicas de aprendizado de máquina na construção de um classificador a partir de um conjunto de treino anotado.
+Os exemplos são codificados com um conjunto de features e o sentido correto da palavra ambígua.
+Por outro lado, a classificação não-supervisionada no WSD utiliza corpora não etiquetados ou quaisquer outros corpora anotados com sentidos.
+Além disso, é necessário distinguir as abordagens baseadas em conhecimento das abordagens baseadas em corpus, ou mais pobres em conhecimento.
+As abordagens baseadas em conhecimento utilizam recursos externos, como dicionários, tesauros e ontologias.
+Esses recursos não representam informações linguísticas, mas informações a respeito de o domínio das palavras que se deseja analisar (por exemplo, tesauro UMLS empregado na desambiguação de sentidos de termos em textos de Biomedicina).
+As abordagens baseadas em corpus, por outro lado, não utilizam recursos externos para desambiguação.
+A combinação de métodos supervisionados ou não, com abordagens baseadas em conhecimento ou corpus, segundo Navigli, pode variar e trazer diferentes resultados.
+A maior parte das abordagens baseadas em conhecimento que emprega propriedades estruturais, como a estrutura de grafos em redes semânticas, utiliza mais supervisão e conhecimento do que aqueles baseados apenas em sobreposição de grafos ou métodos para determinar a dominância de um sentido.
+Por fim, abordagens para o WSD podem ser classificadas como baseadas em tokens (tokenbased) ou baseadas num padrão, chamadas type-- based.
+A abordagem token-- based associa um sentido específico para cada ocorrência de uma palavra ambígua num texto.
+Isso significa que, dependendo do contexto em que se encontra, uma palavra pode assumir diferentes significados.
+Por outro lado, a desambiguação type-- based se baseia na hipótese de que uma palavra é utilizada com o mesmo sentido ao longo de um mesmo texto.
+Consequentemente, estas abordagem podem inferir o sentido predominante de uma palavra, para então utilizar- lo em todas as ocorrências da palavra.
+Em os últimos anos há um crescente interesse por a pesquisa sobre redes, sejam elas sociais, de hiperdocumentos ou outras.
+Em parte devido a o crescimento da Internet, mas também devido a o desenvolvimento de algoritmos para análise de links com objetivo de recuperar informações.
+Entre eles, PageRank e Hits são os mais lembrados.
+Em o WSD, os recursos estruturados podem ser utilizados com esse tipo de algoritmo como um meio de classificar os termos candidatos a desambiguação.
+O PageRank determina um peso para cada elemento de um conjunto de documentos correlacionados por meio de hyperlinks.
+O objetivo é medir a importância relativa de um documento dentro de o conjunto de documentos.
+Hits classifica páginas por os seus valores de autoridade e centralidade.
+Enquanto um documento central aponta para outros documentos com distâncias mínimas, um documento com autoridade é aquele para o qual muitos apontam.
+Além de a recuperação de informação, algoritmos para análise de links foram empregados em outras tarefas, como a detecção de spam, recuperação de informação por tópicos, busca por palavrachave em bases de dados relacionais, e medida de fator de impacto.
+Abordagens baseadas em grafos têm se popularizado na área do PLN.
+A razão para tal, em muitos casos, é que vários problemas estão associados à seleção do melhor candidato à solução, de entre vários outros inter-relacionados.
+A desambiguação do sentido de um palavra é um exemplo de problema.
+Considerando a viabilidade de um dicionário relacionar palavras, seus diferentes sentidos e relacionamentos com as demais palavras num domínio, é possível estabelecer métodos para tentar determinar o sentido correto.
+Ou seja, quando uma palavra ambígua é empregada numa sentença, o resultado da busca nesse dicionário é composto por múltiplas entradas.
+A análise dos relacionamentos de cada uma de elas com as demais pode subsidiar a escolha de uma das entradas para então determinar o sentido correto.
+As diferentes interpretações de uma palavra podem ser representadas de forma compacta como um grafo, onde os nodos correspondem a sentidos e as arestas a relacionamentos entre os sentidos (e.
+g sinonímia, hiponímia etc.).
+Desta forma, a tarefa é determinar um único sentido para uma palavra ambígua dentro de o contexto.
+Isso pode ser feito, por exemplo, com a seleção do sentido com maior número de conexões (i.
+e arestas de entrada) no grafo.
+Estes relacionamentos podem receber pesos de acordo com o seu tipo semântico.
+Por exemplo, relações de sinonímia podem ser mais importantes que as de hiponímia.
+Navigli e Velardi classificam os sentidos de uma palavra de acordo com a distância entre os nodos do grafo.
+O PageRank também é empregado na classificação dos sentidos de uma palavra ambígua.
+Algoritmos para grafos são considerados ideais para o WSD por serem não supervisionados e, por essa razão, não necessitarem de dados anotados manualmente com os sentidos corretos.
+Além de o WSD, algoritmos para grafos foram empregados nas tarefas de sumarização, análise de sentimentos, recuperação de sentenças em sistemas de pergunta e resposta, aprendizagem de ontologias, e análise de diálogos.
+Apesar de a existência de métodos baseados em grafos para o PLN, existem poucos estudos que apresentem um levantamento de como o grau de conectividade de grafos, e as diferentes formas de mensurar- lo, podem afetar diferentes tarefas.
+Métricas para conectividade de grafos têm sido propostas na análise de redes sociais e aplicadas a diferentes tipos de redes.
+Newman discute a dificuldade em estabelecer uma métrica universal.
+Para Newman, identificar quais são as propriedades mais importantes de um grafo é uma tarefa fortemente atrelada às respostas que se deseja extrair do grafo.
+Trabalhos com a abordagem baseada em grafos utilizaram quase exclusivamente duas alternativas e suas variantes:
+Grau de centralidade e PageRank.
+As métricas baseadas em similaridade (entre a palavra ambígua e as outras do contexto), por outro lado, foram avaliadas por outros trabalhos em WSD.
+Outra questão importante é o dicionário empregado na construção do grafo de sentidos.
+Ele determina a topologia do grafo e determina seus padrões de conexões.
+Por exemplo, um grafo densamente conectado será criado a partir de um dicionário com muitas relações de sentido.
+O trabalho de Navigli e Lapata explora essas questões.
+Esse trabalho emprega duas versões da WordNet em experimentos com nove métricas de conectividade para o WSD.
+Contudo, os resultados não deixam claro se as diferenças de performance no WSD estão relacionadas a uma métrica de conectividade, a um processo de construção de um grafo, ou se recebem influência de ambos.
+A Seção 3.3 apresenta estes e outros resultados.
+Utilizando Grafos a Partir de Textos A utilização de algoritmos baseados em grafos passa por duas etapas.
+A primeira é a construção de um subgrafo dos conceitos presentes numa base de conhecimento lexical pré-estabelecida.
+Ele relaciona um candidato a sentido de uma palavra ambígua com as palavras encontradas no contexto.
+Por exemplo, considere o seguinte parágrafo:
+Este parágrafo foi extraído do corpus NLM-WSD proposto em, apresentado na Seção 4.1.
+O corpus inclui 5000 textos contendo 50 palavras ambíguas anotadas.
+Cada anotação tem 100 instâncias (textos).
+As textos são resumos extraídos aleatoriamente da base MEDLINE em 1998.
+As instâncias foram manualmente desambiguadas por 11 anotadores, que anotaram cada ocorrência do termo com o significado correspondente encontrado no UMLS.
+A palavra adjustment, por exemplo, tem três sentidos possíveis, indicados no corpus como:
+Individual Adjustment Adjustment Action Psychological adjustment Em este caso, a primeira opção representa o sentido escolhido por os anotadores.
+Algumas instâncias foram classificadas como none para indicar que os anotadores não encontraram um possível significado para o termo no UMLS.
+Cerca de 1017 instâncias, ou 20,34%, foram classificadas como none, o que já denota as dificuldades, mesmo humanas, nessa área.
+Para construir o grafo que represente os termos presentes no contexto da palavra ambígua, os demais conceitos presentes no contexto devem ser identificados.
+Considerando uma janela de 20 termos, 10 antes da palavra ambígua e 10 após, temos a seguinte anotação:
+8 7, were 6 (&quot;5», after 4), 0 for nonresponse+ 1.+
+2 for As palavras entre colchetes determinam os conceitos e a sua posição relativa ao termo ambíguo.
+Por exemplo, a sexta palavra antes do termo ambíguo é calculated.
+Termos compostos podem ser encontrados (ex.:+
+4). Como os termos do contexto são aqueles encontrados no metatesauro UMLS, os mesmos podem ser ambíguos, como é o caso de+ 5.
+Em esta situação, o primeiro sentido encontrado é o utilizado neste exemplo.
+De uma forma geral os algoritmos para desambiguação de sentidos procedem de forma incremental, uma sentença por vez.
+Assim, inicialmente é construído um grafo G $= (V, A) para cada sentença, que é induzido a partir de o grafo do léxico de referência (base de conhecimento).
+Os vértices do grafo são sentidos de palavras e as arestas são relações semânticas.
+Para cada palavra w i, temos o conjunto de sentidos de wi presente no léxico utilizado, definido como Sentidos (wi), e o sentido mais apropriado para wi definido como Swi Sentidos (wi).
+A construção do grafo G a partir de o léxico de referência segue um conjunto de passos, como definidos em.
+Considerando uma sequência de palavras $ , temos:
+Para exemplificar o processo de construção do grafo G considere o parágrafo mostrado anteriormente nesta mesma seção.
+De acordo com o UMLS existem três sentidos possíveis para o termo adjustment.
+São eles:
+Individual adjustment, adjustment action e psychological adjustment.
+UMLS. Em a Figura estão representados nas elipses escuras os termos encontrados no contexto.
+O retângulo cinza representa o termo candidato a desambiguação.
+Os demais são termos que estabelecem o relacionamento entre o termo candidato e os encontrados no contexto.
+Outros dois grafos representam os relacionamentos dos outros termos candidatos para desambiguação.
+Métricas de Conectividade Para selecionar o sentido correto é necessária a classificação de cada vértice de acordo com a sua importância, baseado em alguma métrica de conectividade.
+Existem várias propostas de entre as quais foram selecionadas as mais discutidas e que obtiveram melhores resultados de acordo com Navigli e Lapata e Navigli e Lapata.
+São elas o Degree Centrality, Key Player Problem (KPP), PageRank personalizado e Betweenness Centrality.
+Degree Centrality, ou simplesmente Degree, é a maneira mais simples de medir a importância de um vértice.
+Ela é determinada por o seu grau, ou seja, o número de arestas do vértice.
+Para isso temos:
+Um vértice é central se e somente se ele possui um alto grau.
+De a mesma forma, um vértice não conectado tem grau igual a zero.
+O grau de centralidade é o grau de um vértice normalizado por o seu máximo grau, ou seja, o número de vértices do grafo com exceção de si mesmo.
+Temos então:
+De acordo com o grafo da Figura 3.1 a importância do termo Psychological Adjustment, ou 0,21568627 Os demais termos candidatos, Individual Adjustment e Adjustment Action têm graus, respectivamente:
+Portanto, o mais alto grau encontrado é do termo C0683269 (Psychological Adjustment), o escolhido como sentido.
+Com o Key Player Problem (KPP), um vértice é considerado importante se e somente se ele está relativamente próximo de todos os outros vértices.
+Temos então:
+V: Uv onde o numerador é a soma das distâncias inversas entre v e todos os outros nodos.
+O denominador é o número de nodos do grafo, excluindo v..
+O KPP de um nodo desconectado é uma constante pequena, dada por Por exemplo, considerando a Figura 3.1, temos o KPP $= 0,319149, o KPP $= 0,230769 e o KPP $= 0,277778.
+Portanto, C06883269 é escolhido como a melhor alternativa.
+O algoritmo PageRank é um método para classificação de vértices de um grafo de acordo com a sua importância estrutural relativa.
+Ele foi originalmente desenvolvido para a classificação de páginas na Internet com base no número de páginas que contêm links para as mesmas.
+Em esta tese o algoritmo é descrito como um algoritmo para grafos genéricos.
+O PageRank utiliza o modelo de random walk, onde um random surfer começa a percorrer o grafo a partir de um nodo arbitrário e, a cada passo, escolhe uma aresta de saída para um nodo qualquer e assim continua a visita de novos nodos.
+O surfer pode também decidir quando parar de seguir por as arestas e se transferir para outro nodo no grafo.
+O PageRank de um vértice produz a probabilidade de um random surfer ser encontrado naquele vértice, assumindo que o movimento no grafo continua indefinidamente.
+Especificamente, tomemos G como um grafo com N vértices.
+Para um dado vértice vi considere In o conjunto dos vértices que apontam para vi e dj o número de arestas de saída do vértice vj.
+O PageRank de um vértice vi é definido na Equação (3.4).
+P (vi) $= (1-c) P (v j)+ c v j In (vi) d j O PageRank para um vértice vi é a soma de dois termos.
+O coeficiente c, chamado damping factor, é um valor escalar entre 0 e 1.
+Ele modela a importância relativa de cada um dos dois termos da soma.
+O primeiro termo representa a probabilidade do surfer aleatoriamente saltar para qualquer nodo com igual probabilidade.
+O primeiro termo pode também ser visto como um fator de suavização (smoothing factor) tornando qualquer grafo aperiódico e irredutível, e assim garante que o cálculo do PageRank convirja para uma unique stationary distribution.
+O segundo termo modela a probabilidade de um random surfer chegar até vi por as arestas de um vértice vj até o vértice vi, dada por a soma das probabilidades de cada vértice vj que tenha uma aresta para vi vezes o peso de cada aresta, dada por o inverso do grau de vi.
+PageRank é calculado por a execução iterativa do algoritmo da Equação 3.4 até a convergência abaixo de um determinado limiar ser atingida ou até um número pré-estabelecido de iterações terem sido executadas.
+O damping factor costuma ser configurado no intervalo.
+Experimentos de Aguirre e Soroa, por exemplo, utilizaram um damping factor de A Figura 3.2 apresenta um grafo (a) e os valores de PageRank para esse grafo (b).
+Inicialmente, P para todos os nodos é inicializado com uma distribuição uniforme, i.
+e 0,25.
+Com um fator de amortecimento de 0,85, na primeira iteração os valores de PageRank são atualizados da seguinte maneira:
+Px1, 0+ 0,15x0, 25 $= 0,25 Os subscritos correspondem à iteração atual, i.
+e P corresponde ao valor inicial e P corresponde à primeira iteração.
+A segunda iteração pode calcular P (A2) com base em P (A1), e assim por diante.
+Após algumas iterações a convergência é atingida e o valores do PageRank, apresentados no grafo (Figura 3.2.
+São obtidos.
+Em certas situações, incluindo WSD baseado em grafos, é desejável incluir informações sobre a importância relativa dos vértices no grafo.
+De essa forma, dado um conjunto de vértices de interesse, é possível identificar quais outros vértices estão mais relacionados com eles no grafo.
+Por exemplo, considere o interesse em identificar quais nodos no grafo (Figura 3.2.
+Estão mais relacionados com o nodo D (como apresentado na Figura 3.2.
+Uma variação do algoritmo PageRank empregada no WSD é o PageRank personalizado.
+Ela calcula a importância estrutural dos vértices de um grafo quando alguns de eles são mais relevantes do que outros para uma determinada situação.
+Com o objetivo de apresentar o PageRank personalizado a Equação (3.5), proposta por Agirre et al.,
+é re-escrita numa forma compactada utilizando matrizes, como é apresentado a seguir.
+Considere M uma matriz de probabilidade de transição N x N, onde M ji $= se um caminho de um vértice vi para vj existe, senão é zero.
+Considere que v é um vetor estocástico normalizado N x 1 cujos valores são todos.
+Então, o cálculo do Vetor PageRank P sobre o grafo G é equivalente à resolução da seguinte equação:
+P $= cMP+ v Em o PageRank o vetor v é distribuído uniformemente, assim determinando probabilidades iguais para todos os vértices no grafo quando saltos aleatórios são feitos.
+No entanto, no PageRank personalizado o vetor v pode ser não uniforme e determinar probabilidades mais altas para determinados vértices, predispondo o resultado do vetor de PageRank para vértices preferenciais.
+Por exemplo, se toda a probabilidade for concentrada num único vértice vx, todos os saltos aleatórios no percurso retornarão para vx e consequentemente sua classificação será alta;
+Além disso, a alta classificação de vx fará com que todos os vértices da sua vizinhança tenham uma classificação alta também.
+A importância do vértice vx na distribuição inicial de v se espalha por o grafo durante as sucessivas iterações do algoritmo.
+Em esse caso, o vetor personalizado P representa a importância de cada vértice no grafo, relativa a vx.
+O PageRank personalizado pode então ser calculado da mesma maneira que o PageRank tradicional.
+A Figura 3.2 apresenta os resultados do PageRank em (b), onde v é uniforme, e o resultado do PageRank personalizado em (c) para o caso onde v recebe 0 para todos os vértices exceto D, que recebe 1.
+Para o PageRank tradicional, o vértice C recebe o valor de 0,29 (grafo da Figura 3.2.,
+o que significa que um random surfer nesse grafo pode gastar 29% do seu tempo nesse nodo.
+C tem a maior classificação entre os nodos, e por essa razão o nodo C é o mais importante nodo no grafo.
+Por outro lado, se for utilizado o PageRank personalizado e o random surfer fizer todos os saltos aleatórios para o nodo D (grafo da Figura 3.2.,
+então a classificação de D é a mais alta, seguida por o nodo A, que está conectado diretamente a D, e os nodos C e B. O algoritmo Betweenness Centrality calcula para um dado vértice v a fração dos menores caminhos entre dois vértices que passam por v.
+Formalmente, o Betweenness Centrality é definido como:
+V: Svt mst onde mst é o número de menores caminhos de s para t, e mst é o número de caminhos de s para t que passam por o vértice v..
+A normalização é feita por a divisão do betweeness por o número máximo de pares de vértices excluindo v, s e t..
+Temos então:
+O objetivo desta métrica é identificar os vértices que estão envolvidos com o maior número de menores caminhos entre outros dois vértices, em comparação com o número total de pares de vértices.
+O betweenness centrality de um nodo desconectado é zero.
+Avaliação de Métricas Navigli e Lapata desenvolveram um estudo experimental para avaliar oito métricas de conectividade utilizando três corpora, o corpus SemCor, o corpus Senseval-3, e o corpus Semeval-2007.
+O objetivo era comparar o desempenho de cada métrica com as demais, além de dois baselines.
+Navigli e Lapata utilizaram a WordNet como fonte de conhecimento (grafo) para distinguir os sentidos, assim como as relações lexicais e semânticas dos corpora.
+O corpus SemCor é composto por 352 documentos.
+De estes, 186 documentos têm substantivos, verbos, adjetivos e advérbios identificados e anotados com seus respectivos sentidos.
+Os 166 documentos restantes tiveram apenas os verbos anotados com seus sentidos.
+O corpus foi criado para viabilizar exemplos de sentidos em seus contextos.
+Uma curiosidade é a de que a ordem de importância de cada sentido na WordNet é baseada na sua frequência no SemCor.
+O SemCor é utilizado em experimentos supervisionados e não supervisionados em WSD.
+O Senseval-3 e o Semeval-2007 são subconjuntos do corpus Wall Street Journal.
+Eles contêm, respectivamente, versão diferente da WordNet.
+SemCor utiliza a versão 1.6, Senseval-3 utiliza a versão 1.7.1 e o Semeval-2007 a versão 2.1.
+Para a avaliação conjunta a anotação da WordNet nos três corpora a anotação foi normalizada para a WordNet 2.0, utilizando mapeamentos de sentidos à disposição em Além de a versão disponível publicamente, uma versão estendida criada por Navigli, chamada EnWordNet, também foi utilizada.
+O grafo deste léxico contém cerca de 60.000 arestas adicionais que relacionam conceitos por intermédio de relações sintáticas chamadas collocations.
+Essa informação não está codificada explicitamente na WordNet.
+A EnWordNet foi elaborada a partir de a lista de expressões presentes, principalmente, nos dicionários Oxford Collocations e no Logman Language Activator.
+As expressões representam pares consistindo num elemento base (e.
+g o verbo drink) e seu collocate (e.
+g o substantivo water), desde que presentes na WordNet.
+Após um processo de desambiguação semi-automático do sentido na WordNet as novas relações foram reunidas e acrescentadas ao conjunto original da WordNet.
+Dois baselines foram utilizados.
+O primeiro é baseado na seleção aleatória de um sentido e o segundo utiliza o algoritmo de Lesk para o WSD.
+O trabalho se propõe a desambiguar uma palavra com a comparação das palavras encontradas em definições de um dicionário (textos com informações adicionais presentes na WordNet) com as palavras encontradas no contexto da palavra ambígua.
+O sentido que obtivesse o maior número de coincidências seria então o escolhido.
+Navigli e Lapata implementaram um conjunto de experimentos para avaliar diferentes configurações de métricas, recursos estruturados e corpora.
+Os resultados do comparativo, considerando os algoritmos para grafos apresentados anteriormente, estão reunidos na Tabela 3.1.
+Segundo Navigli e Lapata os resultados dos experimentos com as métricas Degree e PageRank no corpus SemCor, são estatisticamente similares.
+Independentemente da fonte de conhecimento externa utilizada o valor de um nodo para o PageRank é proporcional ao seu grau em grafos nãodirigidos.
+Por outro lado, uma diferença significativa entre eles é a da complexidade.
+Degree é considerado O (n) e o PageRank O (n2), ou seja, o tempo para a análise dos termos cresce de forma linear e quadrática, respectivamente.
+Outra constatação importante é a respeito de as fontes de conhecimento externas.
+Relações semânticas mais densas, presentes na EnWordNet, aumentaram em até 9% a performance das métricas (quando na modalidade lexical samples).
+Este aumento está relacionado ao fato destas abordagens se beneficiarem do número de relacionamentos para distinguir melhor a importância dos vértices.
+O número médio de relacionamentos exclusivos da EnWordNet (collocations) presentes nos termos selecionados por a métrica Degree é de 20,5 arestas.
+A WordNet original tem como relacionamentos mais expressivos os de hiperonímia e hiponímia, representando juntos o número de 9,29 arestas em média nos termos selecionados corretamente por a métrica Degree.
+Navigli e Lapata consideram que, além de um grau maior, os relacionamentos exclusivos da EnWordNet estabelecem conexões transversais importantes e que não necessariamente fazem parte de uma taxonomia.
+Desta forma, há um indicativo de que relações do tipo collocations são importantes para o WSD.
+Considerando o corpora Senseval-3 e Semeval-2007 a métrica de Degree não obteve melhores resultados que os campeões das duas competições.
+No entanto, de entre os que utilizaram métodos não supervisionados a métrica obteve um resultado significativamente melhor que os demais concorrentes.
+Por fim, o uso desta métrica é relevante quando comparado com outros métodos mais sofisticados sem a necessidade de treino ou qualquer outra informação morfossintática.
+No entanto, o emprego de uma fonte de conhecimento externo com maior número de relacionamentos entre os termos, é determinante para o WSD.
+O WSD é um problema explorado em diferentes áreas do conhecimento, do geral ao especializado.
+Em o domínio especializado o Biomédico é de grande destaque.
+Em este domínio específico, dois grupos de métodos de classificação são geralmente utilizados:
+Os supervisionados e os não supervisionados, como foi apresentado no Capítulo 3.
+Além de os métodos, o corpus NLM-WSD é utilizado com frequência para a comparação entre as diferentes propostas de solução para o problema.
+Dada a sua importância na fundamentação de conceitos deste trabalho, o corpus NLMWSD é apresentado num primeiro momento.
+O capítulo segue com a apresentação das abordagens mais utilizadas.
+O Corpus NLM-WSD O corpus NLM-WSD foi construído a partir de 409.337 resumos (título+ resumo) presentes na base MEDLINE em 1998.
+Os conceitos do metatesauro UMLS presentes nos resumos foram identificados por o parser MetaMap.
+O parser faz o mapeamento dos conceitos de acordo com uma versão do UMLS.
+É possível observar, a título de detalhe, que na ocasião da construção do corpus a versão utilizada foi a de 1999.
+O parser identificou 4.051.445 sintagmas ambíguos, ou seja, que foram relacionados por o parser com duas ou mais entradas no UMLS.
+Eles são o equivalente a 11,7% dos mais de 34 milhões de sintagmas identificados nos 409.337 resumos processados.
+Três tipos de ambiguidade foram identificadas de acordo com Weeber et al.:
+Significados diferentes, por exemplo, o conceito activity que possui três entradas no UMLS.
+Esse tipo de ambiguidade representa 94,3% de todos os casos ambíguos identificados por o MetaMap.
+Em a construção do corpus apenas as ambiguidades de tipo simples foram utilizadas.
+Foram então selecionados para a anotação manual os 50 conceitos ambíguos mais frequentes.
+De estes, alguns foram desconsiderados por não terem definições ou relacionamentos consistentes no UMLS.
+Estas eram condições importantes pois foram utilizadas por os anotadores como fonte de informação na anotação.
+Para cada um dos conceitos frequentes selecionados foram coletadas aleatoriamente 100 instâncias (sintagmas) para anotação manual, num total de 5.000 instâncias.
+Os conceitos selecionados tinham entre 3 e 6 alternativas para desambiguação.
+No entanto, em 17 dos 50 conceitos, uma ou mais alternativas não foram utilizadas por terem sentidos muito próximos para uma distinção prática.
+Um exemplo é o conceito depression, com as alternativas depression motion, depressive episode, e mental depression.
+Os dois últimos foram considerados muitos próximos em significado e portanto apenas o último, mental depression, foi utilizado.
+Além de as alternativas presentes no UMLS, os anotadores poderiam classificar um conceito como none caso não houvesse uma resposta adequada.
+Os resultados da anotação foram analisados com o emprego de até três métodos, para então selecionar a alternativa final.
+O primeiro consiste em selecionar a alternativa com a maioria dos votos.
+Caso não haja uma alternativa com uma diferença de dois votos ou mais para as demais, a estatística Kappa (k) foi utilizada para excluir os resultados que divergem dos demais.
+Por fim, se a exclusão por o Kappa não altera os resultados, o método Latent Class Analysis (LCA) foi utilizado para definir a classificação.
+A Figura 4.1 relaciona os conceitos anotados no corpus NLMWSD.
+De os 50 conceitos selecionados, apenas 12 utilizaram o último método para desambiguação.
+De estes, 159 instâncias tiveram de ser discutidas por o grupo de anotadores para a classificação final.
+Em Weeber et al.
+É recomendada a utilização dos 38 conceitos que obtiveram maior concordância entre os anotadores, cerca de 3.800 instâncias.
+Em a Figura 4.1 as palavras com um asterisco(*) representam os 12 conceitos mais difíceis para a anotação.
+O corpus na versão 3 contém um arquivo para cada conceito ambíguo anotado.
+Cada arquivo contém um conjunto de 100 resumos e em cada um de eles uma instância anotada do conceito ambíguo, com os conceitos candidatos e o selecionado por os anotadores.
+O conceito é anotado com a sua posição no texto além de sua CUI, que corresponde à versão 1999 do UMLS.
+Abordagens Supervisionadas e Não-supervisionadas Abordagens baseadas no aprendizado supervisionado são comuns no WSD de textos de Biomedicina, a exemplo daquelas de Joshi, Liu e Savova.
+Contudo, elas exigem exemplos etiquetados para o treinamento que podem não estar à disposição, ou representar alto custo para serem elaborados.
+Essa limitação significa que as abordagens supervisionadas podem desambiguar uma pequena amostra de palavras para a qual um conjunto de dados de treino foi elaborado, e isso limita sua utilização na prática.
+Abordagens não-supervisionadas, por sua vez, não necessitam de exemplos etiquetados.
+Por fazerem uso de recursos estruturados como fonte de conhecimento externa, não há necessidade de um conjunto para treino e teste.
+Três exemplos são relevantes neste aspecto e utilizam o corpus NLM-WSD como conjunto de teste.
+McInnes utiliza o UMLS como fonte de conhecimento sobre os conceitos candidatos a desambiguação.
+As palavras do contexto do conceito ambíguo são comparadas com as palavras presentes em definições, ou comentários dos conceitos candidatos no UMLS.
+Em a ausência destes, são utilizadas as definições dos tipos semânticos (Semantic Types -- St do UMLS) relacionados aos conceitos.
+Uma medida de distância entre os candidatos e o contexto identifica qual conceito é o mais apropriado.
+Essa abordagem foi avaliada com 13 conceitos do corpus NLM-WSD e atingiu uma performance de 48,11% de acerto.
+Outro exemplo é o de Humphrey, que propõe o ranking dos STs relacionados aos conceitos candidatos.
+Essa classificação é obtida com base numa medida de relacionamento das palavras do contexto e o St de cada candidato.
+Contudo, essa proposta é semi-supervisionada.
+O peso do relacionamento entre palavra e St é calculado por um processo que utiliza 4.000 textos da MEDLINE e as palavras contidas nos conceitos associados a cada St para estabelecer o ranking entre palavra e St.
+Além disso, o resultado não é conclusivo quando os conceitos candidatos estão associados a um mesmo St, o que lhes confere o mesmo peso.
+Outro tipo de abordagem, de entre as não-supervisionadas, é a que faz uso da estrutura de um grafo como fonte de conhecimento externo.
+Os meios para modelar e empregar essa abordagem foram apresentados no Capítulo 3.
+Os trabalhos que empregam esse tipo de abordagem, no WSD independente de domínio, utilizam com frequência a WordNet como fonte de conhecimento estruturado (grafo).
+Como corpus para teste, uma ou mais versões do corpus Semeval costumam ser utilizadas.
+De o mesmo modo, métodos baseados em grafos foram empregados em domínios específicos, com é o caso do domínio de Biomedicina.
+Em este cenário o trabalho de Agirre et al.
+É um exemplo e motivação desta proposta.
+Abordagem de Grafos Agirre et al.
+Propõem a utilização da abordagem baseada em grafos para o domínio da Biomedicina.
+Em esse trabalho, o algoritmo de PageRank personalizado (apresentado na Seção 3.2) é empregado no WSD, com o uso do metatesauro UMLS como fonte de conhecimento.
+Os relacionamentos presentes no UMLS são utilizados na construção de um grafo, que é então analisado por o algoritmo.
+Assim, o ranking de cada conceito candidato é gerado com base na importância relativa do mesmo em relação a os demais conceitos do contexto do conceito ambíguo.
+Esse algoritmo foi utilizado anteriormente num cenário independente de domínio, utilizando a WordNet como base de conhecimento.
+Ele resultou em melhores resultados que as outras propostas baseadas em grafos.
+Utilizando o corpus NLM-WSD de Weeber et al.,
+Agirre et al.
+Comparam os resultados do algoritmo PageRank personalizado com a performance de dois baselines.
+Além disso, os experimentos foram comparados com os resultados de McInnes, que utilizou um subconjunto do corpus NLM-WSD.
+O software elaborado para os experimentos utiliza três fontes como entrada (Figura 4.2).
+A primeira entrada é um dicionário composto por todos os conceitos do UMLS mapeados no corpus, incluindo as palavras e seus Cuis.
+A segunda entrada são os contextos de cada instância de conceito ambíguo presente no corpus NLM-WSD.
+Em ela estão relacionados os conceitos mapeados no corpus numa janela de 20 conceitos.
+A terceira entrada são os relacionamentos entre os conceitos presentes no UMLS.
+A versão do UMLS utilizada nos experimentos é a 2007 AB.
+As três entradas são resultado do pré-processamento de diferentes fontes de informação por intermédio de scripts, que extraem ou relacionam as informações das mesmas.
+O dicionário e o contexto foram elaborados a partir de o corpus NLM-WSD.
+Agirre et al.
+Utilizam a versão 3 do corpus NLM-WSD.
+O pré-processamento executa as seguintes etapas:
+Anotar os demais conceitos presentes em cada resumo utilizando o parser MetaMap, 2) construir um Dicionário de entrada com todos os conceitos encontrados e seus respectivos Cuis, e 3) extrair os conceitos do contexto de acordo com a janela estabelecida.
+MetaMap é um parser que relaciona os conceitos de Biomedicina presentes num texto com conceitos do metatesauro UMLS.
+Ele é o mesmo parser utilizado na anotação do NLM-WSD, embora em Agirre et al.
+Uma versão mais recente tenha sido utilizada.
+O algoritmo que implementa seu funcionamento executa cinco passos:
+O parsing, a geração de variantes, a recuperação de candidatos, a avaliação de candidatos e a construção do mapeamento.
+A etapa de parsing faz prioritariamente a identificação de sintagmas nominais.
+O objetivo é reduzir o escopo de possibilidades e consequentemente reduzir o processamento.
+A identificação dos sintagmas tem como base o léxico SPECIALIST, que é parte do UMLS.
+Além disso, também são identificadas as categorias morfossintáticas das palavras, presentes nos sintagmas e que não representem stop phrases.
+A etapa de geração de variantes utiliza, além de uma base de dados suplementar do autor, o conhecimento presente no léxico SPECIALIST.
+As variações consistem numa relação entre cada palavra do sintagma e seus acrônimos, abreviações, etc..
+Por exemplo, considerando a palavra ocular, temos seus sinônimos, flexões e derivações apresentadas na Figura 4.3.
+A hierarquia representa a ordem em que elas foram criadas.
+Para cada variação é identificada sua categoria morfossintática e uma pontuação da distância em relação a a palavra original.
+Flexões (f) com peso 1.
+Sinônimos (s) ou acrônimos e suas expansões com peso 2.
+Finalmente, derivações (d) com peso 3.
+A palavra ophthalmia é um substantivo cuja pontuação é 7, por ser a derivação de um sinônimo (ophthalmic) do sinônimo (eye) de ocular.
+A etapa de recuperação de candidatos relaciona todas as entradas que contêm pelo menos uma das variantes de uma palavra no UMLS.
+Isso significa que um conceito composto por mais de uma palavra, mas que contém uma das variantes, é relacionado como candidato.
+Com todas as entradas identificadas, a etapa de avaliação de candidatos é executada.
+As palavras do sintagma são avaliadas em relação a cada candidato a conceito do UMLS, de acordo com o peso médio de quatro métricas:
+Centralidade, que mede o envolvimento com o núcleo do sintagma;
+Variação, o envolvimento com a pontuação da distância das variações;
+Cobertura e coesão, onde é medido o quanto um candidato combina com o texto do sintagma, e em quantas palavras.
+Os nove candidatos para o sintagma ocular complications são apresentados na Figura 4.4.
+Para demonstrar o processo completo e o resultado final, considere o conceito cold na seguinte frase extraída do corpus NLM-WSD (Figura 4.5):
+Após o pré-processamento de anotação dos conceitos com o parser MetaMap, e extração do contexto, temos o resultado exposto na Figura 4.6.
+Cada conceito anotado é seguido de sua classe gramatical, posição no resumo e uma indicação de se é ou não o conceito ambíguo do resumo.
+Por exemplo, o conceito diagnosis&amp; n&amp; w40&amp; 0 é um substantivo(&amp; n) na posição 40(&amp; w40) e não corresponde ao conceito ambíguo do resumo.
+Já o conceito cold&amp; n&amp; w41&amp; 1 é outro substantivo, na posição 41 e corresponde ao conceito ambíguo.
+Para utilizar o PageRank personalizado no WSD, o UMLS é pré-processado para que sejam extraídos os relacionamentos entre Cuis na forma de um grafo.
+Em a versão UMLS utilizada em Agirre et al.
+As seguintes Cuis estão associadas ao conceito` cold':
+C0009443:` Common Cold', C0009264:`
+Cold Temperature' e C0234192:`
+Cold Sensation'. O Metatesauro contém informações sobre os relacionamentos entre Cuis na forma de bases de dados em tabelas.
+A tabela MRREL reúne diferentes tipos de relacionamentos entre Cuis.
+Ela também relaciona a fonte de onde a relação foi obtida.
+Como foi apresentado na Seção 2.2.,
+a mesma relação pode ser encontrada em múltiplas fontes.
+Por exemplo, as Cuis C0009443 e C0035243 são encontradas em quatro fontes diferentes.
+Além de as relações entre Cuis presentes na tabela MRREL, as relações de coocorrência entre Cuis são encontradas na tabela MRCOC.
+A tabela MRCOC inclui detalhes sobre o peso da relação de coocorrência entre conceitos, baseada no número de coocorrências identificada.
+Contudo, os resultados encontrados em Agirre et al.
+Demonstram que as relações de coocorrência não levaram a melhores resultados.
+A hipótese levantada por aqueles autores é de que as relações de coocorrência alteram negativamente a topologia do grafo, prejudicando a performance do algoritmos de PageRank personalizado.
+A conversão da informação contida nas tabelas num grafo é simples.
+Os conceitos se tornam vértices e as relações presentes nas tabelas se tornam as arestas entre eles.
+Nenhum peso é associado às relações que são extraídas da tabela MRREL.
+Por outro lado, a tabela MRCOC pode produzir subgrafos com o emprego dos pesos das relações de coocorrência.
+Considere a tabela MRREL, que obteve os melhores resultados, e o conceito candidato C0009443:`
+Common Cold. Um grafo pode ser criado de acordo com método apresentado na Seção 3.1.
+Considerando o contexto apresentado na Figura 4.6 temos o grafo da Figura 4.7.
+Com as três entradas estabelecidas o experimento conduzido por Agirre et al.
+Empregou três configurações diferentes com o algoritmo de PageRank personalizado.
+Duas variam a quantidade de tabelas do UMLS utilizadas como fonte de conhecimento:
+Apenas a MRREL ou a MRREL e a MRCOC.
+Quando empregada, a tabela MRCOC adiciona relacionamentos ao grafo com base nas relações com maior probabilidade de ocorrência.
+Isso significa que dados sobre a frequência das coocorrências não são utilizados por o algoritmo de PageRank como um peso de uma relação.
+A terceira configuração utiliza um subconjunto do corpus NLM-WSD.
+Além de estas configurações o algoritmo foi comparado com uma versão estática e outra aleatória.
+A versão estática utiliza todo o grafo UMLS para selecionar o sentido, sem considerar o contexto.
+A versão aleatória simplesmente seleciona um sentido de forma aleatória.
+A Tabela 4.1 resume os resultados Os dois primeiros valores representam os resultados do PageRank personalizado com as duas configurações de base de conhecimento.
+O método estático resultou numa performance menor em relação a o algoritmo proposto em, assim como o método aleatório.
+Em comparação ao trabalho de McInnes, o algoritmo de PageRank obteve uma performance 6,9% melhor.
+Uma análise parcial dos resultados, palavra por palavra, também é feita por Agirre et al.,
+onde os resultados percentuais são apresentados para cada conceito analisado.
+A Tabela 5.1 apresenta essas informações em conjunto com resultados de experimentos implementados nesta proposta de tese, abordados no Capítulo 5.
+A relevância dos resultados obtidos por Agirre et al.
+É uma das discussões apontadas no trabalho.
+A Tabela 4.2 apresenta um comparativo entre os resultados de Humphrey et al.,
+utilizado em McInnes.
+Humphrey et al.
+Obtiveram a maior parte dos melhores resultados individuais.
+Cerca de 76% dos conceitos obtiveram o melhor resultado.
+A média atingida foi de 68,26% de acerto.
+A destacar que este experimento relatado em se restringe a um subconjunto do corpus NLM-WSD.
+Além disso, ele não emprega a abordagem de grafos que foi selecionada para nossa proposta.
+Como veremos mais adiante neste trabalho, a média de acerto de Humprhrey não foi usada como baseline para nossa pesquisa, por este motivo.
+A abordagem de McInnes não obteve melhores resultados individuais e resultou numa média de 48,11% de acerto.
+A abordagem de Agirre et al.
+Atingiu uma média de 56,14% de acerto.
+Obteve os melhores resultados individuais em 3 conceitos (cerca de 23% do total).
+Em outros dois casos ficou próxima dos melhores resultados.
+O fato a ser destacado é que a abordagem de Humphrey et al.
+Sanderson indica que uma taxa mínima de 90% de acerto é necessária para que um sistema de WSD seja útil para a tarefa de Recuperação de Informação (Ri), donde salientamos o espaço de melhoria em relação a os resultados atuais.
+Em razão de as taxas de acerto, geralmente, não atingirem este patamar, a afirmação de Sanderson ainda não foi descartada.
+No entanto, mesmo com taxas de acerto menores, um sistema de WSD melhora a performance de sistemas de Ri.
+Outro aspecto é a dificuldade em desambiguar os conceitos do corpus NLM-WSD, uma vez que a concordância entre os anotadores obteve um Kappa 0,47.
+De entre os 12 conceitos considerados difíceis, segundo Weeber et al.,
+7 fazem parte do conjunto presente na Tabela 4.2 (sublinhados na coluna Conceito).
+Considerando apenas os conceitos difíceis, a abordagem de Humphrey et al.
+O estudo destas propostas para o WSD não supervisionado e, em especial, a abordagem baseada em grafos, levou à investigação de outros algoritmos que pudessem ser aplicados a este cenário.
+O próximo capítulo apresenta novas alternativas de algoritmos para o domínio da Biomedicina e uma nova proposta de abordagem utilizando grafos.
+A tarefa de desambiguar conceitos de Biomedicina por intermédio de abordagens baseadas em grafos é a principal motivação desta pesquisa.
+Identificar métodos que conduzam a novos resultados exige procedimentos de proposta, implementação, teste e avaliação de métricas.
+Os capítulos 3 e 4 apresentam modelos simples para a seleção do sentido de uma palavra ambígua.
+Em outras palavras, cada proposta emprega apenas uma métrica como método.
+Por esta razão, de forma geral, três propostas foram selecionadas para estabelecer um comparativo.
+De entre elas, o trabalho de Agirre et al.
+É a principal referência para experimentação e fundamentação desta tese.
+Agirre et al.,
+em trabalho apresentado no Capítulo 4, propõem a experimentação do algoritmo de PageRank personalizado, no domínio de Biomedicina.
+O trabalho utiliza dados para teste e uma fonte de conhecimento externa, que são reconhecidos por sua importância, tanto para o WSD como para o domínio em questão.
+Além de os procedimentos e resultados experimentais descritos no artigo, o software que implementa os experimentos e a fonte de conhecimento estão publicamente à disposição na Internet 4.
+Por essas razões, uma pesquisa exploratória foi executada com o objetivo de reproduzir os experimentos e coletar resultados.
+Além disso, outro objetivo era identificar lacunas que pudessem ser exploradas.
+Em esse sentido, trabalhos relacionados que poderiam ser empregados de forma complementar à proposta de Agirre et al.
+Foram investigados.
+De entre os trabalhos relacionados temos Navigli e Lapata, abordados no Capítulo 3.
+Os autores apresentam um estudo sobre métricas de conectividade de grafos, para o WSD não supervisionado.
+A WordNet foi utilizada como fonte de conhecimento externo nesta pesquisa, e não estava voltada a um domínio específico.
+De entre as métricas avaliadas, Degree e KPP obtiveram os melhores resultados.
+Os autores afirmam, em razão de os resultados, que a qualidade da fonte de conhecimento externa influência diretamente a performance do WSD, afirmação esta que viremos a utilizar ao longo de a tese.
+Além disso, as métricas experimentadas são independentes do léxico utilizado.
+O fato de induzirem um ranking de sentidos, empregando apenas a conectividade do grafo, torna possível a portabilidade entre algoritmos, línguas e fontes de conhecimento.
+Considerando o trabalho de Agirre et al.
+Com a abordagem baseada em grafos num domínio específico, e o trabalho de Navigli e Lapata com a identificação da melhor abordagem baseada em grafos, em domínio independente, a seguinte hipótese foi levantada:
+H1: As métricas não-supervisionadas com melhor desempenho, encontradas em Navigli e Lapata e Navigli e Lapata levam ao melhor resultado no domínio da Biomedicina, em comparação ao cenário Para investigar a hipótese H1 foram estabelecidos objetivos.
+Eles incluem a elaboração de novos experimentos com a implementação de algoritmos.
+Para que os resultados da pesquisa possam ser comparados aos resultados de Agirre et al.,
+os objetivos contemplam os mesmos requisitos e meios de interpretação utilizados por esses autores.
+Sendo assim, temos os seguintes objetivos:
+A reprodução do experimento de Agirre et al.,
+que fez parte da pesquisa exploratória realizada no âmbito desta tese, utilizou um conjunto de instruções propostas por os autores.
+Estas instruções e o incluíam o download de código-fonte, arquivos de dados, softwares, configuração e compilação de ferramentas.
+A Figura 5.1 reúne todas essas etapas.
+Para o download são necessárias a solicitação e a aprovação de um registro junto ao site do download compreende a obtenção de cinco arquivos.
+Um de eles (mmsys.
+Zip) inclui um software para a navegação e extração das informações contidas no UMLS.
+Para extrair a tabela MMREL é necessária a configuração e utilização desse software.
+A tabela MMREL contém mais informações que as necessárias para o experimento.
+Por essa razão, um script extrai apenas as relações entre os conceitos, e as armazena num arquivo no formato texto.
+O corpus corresponde a um conjunto de arquivos compactados em duas versões.
+Uma de elas contém anotações no formato PMID (PubMed Identifier), que é utilizado nas demais etapas.
+O parser MetaMap está disponível em diferentes versões.
+Ele faz a anotação de textos de acordo com uma versão do UMLS.
+A versão do parser utilizada por Agirre et al.
+É a 2007, em razão de a versão do UMLS utilizada ser a 2007 AB.
+No entanto, essa versão do parser não se encontra mais à disposição, o que estabeleceu um problema em potencial com as anotações do corpus e a tabela MMREL.
+Para contornar o problema, os autores do artigo foram contatados, e por intermédio de eles se teve acesso à versão 2008 do parser MetaMap.
+Outra questão relacionada às versões dos softwares utilizados no experimento são os scripts elaborados por os autores.
+Muitos de eles são compatíveis apenas com as versões do período em que os experimentos foram executados.
+Em razão de essa limitação, não foi possível utilizar versões mais novas do MetaMap.
+Por outro lado, versões recentes do UMLS poderiam ser utilizadas, uma vez que as Cuis dos conceitos presentes no UMLS são únicas.
+Além disso, uma versão mais recente levaria (potencialmente) a resultados novos.
+Se a fonte de conhecimento é mais recente mas o algoritmo (PageRank) é o mesmo, é possível avaliar brevemente as mudanças nos resultados ao longo de as versões do grafo.
+Compreender esses resultados pode ou não confirmar a hipótese levantada por Navigli e Lapata, de que a fonte de conhecimento influência os resultados.
+Portanto, foram empregadas no novo experimento as versões 2008 e 2011 AA do MetaMap e do UMLS, respectivamente.
+Todas as etapas foram executadas em consideração à janela de contexto padrão.
+O software distribuído por os autores, escrito em C+, foi então compilado.
+Este software executa duas etapas.
+A primeira utiliza o arquivo texto da tabela MMREL na geração de uma versão binária da mesma.
+O objetivo é reduzir o tempo de execução e otimizar o uso de memória.
+A segunda etapa utiliza a versão binária da MMREL, o dicionário de conceitos, os termos ambíguos e seus contextos para então desambiguar- los.
+Um esquema dessa etapa foi apresentado no overview da Figura 4.2.
+O resultado da reprodução do experimento levou a um percentual de acerto de 66,16%.
+De a mesma forma que Agirre et al.
+Se posicionaram, os casos anotados como none não fazem parte desta análise de resultados.
+Experimentos e Resultados Com a reprodução do experimento concluída, o segundo objetivo envolve a implementação dos algoritmos KPP e Degree.
+A Figura 5.2 apresenta um overview completo dos experimentos.
+A codificação dos algoritmos segue as características descritas no Capítulo 3.
+Os experimentos realizados com os dois novos algoritmos utilizam os mesmos recursos e parâmetros empregados na reprodução do experimento com o PageRank.
+Agirre et al.
+Apresentam uma tabela contendo os resultados da desambiguação para cada conceito do corpus.
+Semelhante a esta, uma nova tabela foi elaborada com os resultados dos dois novos algoritmos.
+Os conceitos em itálico representam os casos difíceis discutidos no Capítulo 4.
+A coluna&quot;&amp; totalInst «representa a quantidade de instâncias avaliadas por o algoritmo para cada conceito.
+Ou seja, ela representa todas as instâncias de conceitos ambíguos que não foram classificadas como none por os anotadores.
+As colunas&quot;&amp; inst «representam a quantidade de instâncias classificadas corretamente por cada algoritmo.
+As colunas percentual(%) apresentam a taxa de instâncias classificadas corretamente, por a relação entre as colunas&quot;&amp; inst &quot;e a coluna&quot;&amp; totalInst».
+Os melhores resultados estão indicados em negrito.
+Em alguns casos mais de um algoritmo atingiu o melhor resultado.
+A coluna &quot;Agirre et al.»
+reproduz os resultados percentuais que o artigo apresenta para cada conceito.
+Não estão à disposição os valores absolutos de instâncias corretamente classificadas.
+Como a Tabela 5.1 apresenta de forma discreta os resultados obtidos, outro meio de expor os resultados foi elaborado, através de um diagrama de Venn.
+A Figura 5.3 apresenta a interseção dos resultados de cada algoritmo em relação a as instâncias.
+De entre as 5.000 instâncias do corpus, 3.983 instâncias de conceitos foram avaliadas.
+O algoritmo PageRank personalizado classificou corretamente 2.635 instâncias.
+De este total, apenas este algoritmo acertou o sentido correto de 580 instâncias.
+O algoritmo KPP classificou corretamente 1.676 instâncias e destas, 676 foram acertadas apenas com este algoritmo.
+Por fim, 129 instâncias (3,2%) puderam ser classificadas apenas por o algoritmo Degree, que por sua vez classificou 1.833 instâncias corretamente.
+Algumas instâncias foram classificadas corretamente por mais de um algoritmo.
+Em esta situação, 458 instâncias foram classificadas corretamente por os algoritmos PageRank e KPP.
+Por os algoritmos PageRank personalizado e Degree um total de 1.162 instâncias foram classificadas corretamente.
+KPP e Degree classificaram corretamente 107 instâncias (2,6%) do corpus NLM-WSD.
+Cerca de 435 instâncias foram classificadas corretamente por todos os algoritmos.
+Por fim, nenhum dos três algoritmos conseguem classificar corretamente 436 instâncias.
+Em primeiro lugar vamos considerar algumas particularidades a respeito de os valores relacionados na Tabela 5.1.
+O resultado obtido com a reprodução do experimento de Agirre et al.
+Levou a um melhor resultado do que aquele atingido no experimento conduzido por os autores.
+Não foi possível encontrar explicações conclusivas, mas tudo indica que dois fatores podem ser responsáveis por essa diferença.
+O primeiro é que os parâmetros utilizados na ferramenta de extração da tabela MRREL podem não ser os mesmos.
+Não há documentação precisa a respeito de quais vocabulários deveriam ser selecionados.
+O segundo fator é que o UMLS sofre pequenas atualizações entre a versão utilizada por os autores e a que foi utilizada na reprodução.
+Desta forma a estrutura do grafo e, consequentemente, os relacionamentos entre conceitos, foram alterados.
+Os demais algoritmos não obtiveram um resultado geral melhor do que aquele alcançado por o PageRank.
+Alguns conceitos têm menos de 20% de suas instâncias avaliadas por os algoritmos.
+Curiosamente, algumas de elas não fazem parte do conjunto de conceitos difíceis, como é o caso de fit, reduction e resistance.
+Isso significa que, apesar de não serem consideradas difíceis em Weeber et al.,
+grande parte das instâncias anotadas não obtiveram classificação.
+A taxa média geral de utilização das instâncias é de 81,29%, enquanto a dos conceitos considerados difíceis é de 78,33%.
+Essa diferença indica que a existência de uma grande quantidade de instâncias anotadas por os anotadores como none não significa que as mesmas são consideradas difíceis.
+Além disso, a classificação dos conceitos considerados difíceis obteve resultados diferentes do âmbito global.
+Enquanto o algoritmo de KPP obteve uma taxa de 48,83%(+ 6,75 pontos que no geral), os algoritmos PageRank e Degree têm a performance reduzida a 51,06% e 27,02% (19 pontos), respectivamente.
+Uma explicação para o fato de que KPP tenha um melhor desempenho é a relação entre a dificuldade dos anotadores em escolher um conceito, e o nível de centralidade do conceito correto no contexto avaliado.
+O conceito mais central, na janela de contexto em que se encontra, leva à classificação correta de um conceito ambíguo difícil.
+Outra questão relacionada aos resultados da Tabela 5.1 são as variações de resultados entre os algoritmos.
+De entre os melhores resultados, em treze conceitos (26% do total) um único algoritmo obteve o resultado maior ou igual ao dobro dos outros algoritmos.
+Por exemplo, para o conceito fit o algoritmo KPP classificou corretamente 100% das instâncias analisadas, e o PageRank apenas 11,1%.
+Ao contrário de o discutido em Agirre et al.,
+o fator determinante para as escolhas na classificação não é a densidade com a qual o sentidos estão conectados.
+O algoritmo de KPP destaca aqueles que são centrais na estrutura do grafo, e não apenas por a densidade dos relacionamentos.
+Este comportamento levou a um efeito contrário com KPP, onde o conceito secretion chegou ao pior resultado dos três algoritmos.
+Em resumo, o algoritmo PageRank obteve 62% destes melhores resultados, enquanto KPP chegou a 38%.
+O algoritmo Degree não se destacou em nenhum dos conceitos.
+A conclusão alcançada com a análise dos resultados dos experimentos desenvolvidos neste trabalho não confirma a hipótese H1.
+Os algoritmos discutidos em Navigli e Lapata e Navigli e Lapata, cujo desempenho se destacou em experimentos sem domínio específico, não repetiram a mesma performance no domínio específico da Biomedicina.
+Todos esses aspectos ligados às variações de resultados entre algoritmos e conceitos levaram a dúvidas em relação a a performance em nível das instâncias.
+Se alguns dos algoritmos podem ter resultados muito ruins ou muito bons em relação a os demais, torna- se necessário identificar a proporção e a distribuição desses resultados.
+A Figura 5.3 apresenta a distribuição das 3.983 instâncias classificadas nos experimentos.
+De entre aquelas que foram corretamente classificadas, o resultado de cada algoritmo vs.
+Instância permite estabelecer um conjunto de considerações.
+Em primeiro lugar, apesar de o algoritmo de PageRank obter o melhor resultado geral, o algoritmo KPP classificou exclusivamente o maior número de instâncias.
+Foram 676 casos contra 580 do algoritmo PageRank.
+Por outro lado, o algoritmo Degree classificou corretamente cerca de 60% das instâncias classificadas por o PageRank.
+Conforme Navigli e Lapata, a complexidade dos algoritmos PageRank e Degree é, respectivamente O (n2) e O (n).
+Isso significa que mais da metade das instâncias pode ser analisada num período de tempo menor, se for utilizado o algoritmo Degree, acarretando num melhor desempenho.
+De entre os 435 casos em que todos os algoritmos identificaram corretamente o sentido, apenas 3 conceitos (em itálico na Figura 5.4) fazem parte do conjunto considerado difícil.
+Os conceitos lead, resistance e transport tiveram aproximadamente 100% das instâncias classificadas corretamente por os três algoritmos.
+A união dos resultados corretos dos três algoritmos (PageRank KPP Degree) corresponde a um total de 3.547 instâncias classificadas corretamente.
+Essa quantidade corresponde a uma taxa de acerto de 89,05%.
+Esse resultado leva a crer que, ao invés de se tentar corrigir os erros na classificação, é possível superar os resultados encontrados até o momento, com o emprego de múltiplos métodos.
+Tal hipótese foi levantada, mas não confirmada, nas conclusões de Navigli e Lapata.
+Os autores colocam que a performance poderia crescer se houvesse um framework que escolhesse o algoritmo mais adequado.
+Inspirado na sugestão inicial de Navigli e Lapata, acrescida dos resultados de Agirre et al.,
+e fundamentado nos experimentos prévios realizados, este trabalho propõe um modelo híbrido com o emprego de métricas na seleção do sentido para um dado conjunto de instâncias ambíguas.
+Os resultados discutidos até aqui (Seção 5.2) demonstram que, se a métrica certa for selecionada, o desempenho pode aumentar, seja ele em termos de percentual de acerto ou em termos de ganhos de processamento.
+Considerando um processo de cinco etapas para desambiguar instâncias, o modelo híbrido necessita de uma ou mais features e heurísticas para selecionar uma métrica.
+Em esse processo a primeira etapa diz respeito à seleção das instâncias.
+Somente aquelas consideradas relevantes são utilizadas.
+Por exemplo, nos experimentos com NLM-WSD as instâncias classificadas como none são desconsideradas.
+A segunda etapa compreende a extração de features.
+As features correspondem a informações a respeito de as instâncias, que serão utilizadas na etapa seguinte.
+Detalhe, esta etapa não deve substituir a tarefa da métrica de identificar o sentido correto mas, sim, servir à seleção da métrica mais adequada para essa análise.
+A etapa de seleção de métrica compreende a escolha de algum método que, utilizando as features selecionadas na etapa anterior, selecione a métrica que irá classificar uma determinada instância.
+Com a métrica selecionada, o processo de classificação das instâncias é o mesmo do modelo simples.
+O sistema que implementa o modelo simples de WSD pode ser complementado, então, com este processo de extração e classificação de instâncias (Figura 6.2).
+O modelo híbrido de métricas é então avaliado de duas formas.
+A primeira é a comparação dos resultados obtidos por conceito do NLM-WSD em relação a os obtidos nos experimentos deste trabalho e aqueles obtidos nos demais trabalhos apresentados anteriormente.
+Ou seja, os resultados são analisados em comparação àqueles descritos na Tabela 5.1.
+A segunda forma de avaliação compreende a análise dos resultados em nível das instâncias.
+De forma semelhante à análise feita na Seção 5.1, a distribuição dos erros e acertos encontrados neste estudo experimental é empregada na avaliação dos resultados obtidos com diferentes propostas de configuração de features e métodos na seleção de métricas.
+Essas configurações exigiram a elaboração de experimentos que combinassem as opções de features e heurísticas de seleção de métricas.
+Tais experimentos foram conduzidos no mesmo procedimento e rigor metodológico que os anteriores, e são registrados e analisados no presente trabalho.
+A o final deste processo, foi estabelecido um modelo para o emprego de múltiplas métricas baseadas em grafos para o WSD.
+Seleção de Features Esta proposta estabelece o uso de um conjunto de features.
+As features podem ter origem com base nos dados e resultados utilizados nos experimentos, e serem selecionadas a partir de análise estatística.
+Por outro lado, as features podem ser obtidas do corpus ou das fontes de conhecimento externas, não utilizadas nos experimentos.
+Considerando cada instância do corpus, temos à disposição:
+Palavra e CUI para os candidatos a sentido;
+Palavra e CUI para o conceito correto;
+Fonte do conceito correto e dos candidatos;
+Essas informações foram reunidas e analisadas estatisticamente para a elaboração de heurísticas (tema discutido na Seção 6.2) ou para servir como entrada a um algoritmo de aprendizado de máquina.
+Observa- se que não foram selecionadas features que são empregadas diretamente por as métricas.
+Em outras palavras, foram selecionadas features que não fazem parte do processo direto de análise das instâncias.
+O objetivo é evitar o processamento redundante de informações e não utilizar informações que estabeleçam algum tipo de tendência para uma métrica ou candidato na etapa seguinte.
+Um exemplo é a utilização do grau dos candidatos no grafo do contexto das instâncias, utilizado por a métrica Degree.
+Fazer uso dessa informação pode beneficiar a indicação das instâncias em que Degree identifica corretamente o sentido mas não permite que os demais, reconhecidos por as outras métricas, possam ser identificados.
+Apesar de ser uma estratégia possível de ser trabalhada, a combinação de heurísticas dessa natureza não foi adotada neste trabalho.
+A seleção de features do ponto de vista estatístico utiliza a frequência dos conceitos corretos, métricas e demais features.
+Além disso, a coocorrência entre elas também foi calculada.
+As estatísticas levantadas a partir de o corpus, do UMLS e dos resultados dos experimentos permitem estabelecer as bases da criação de heurísticas de seleção de métricas.
+Por exemplo, a correlação entre uma métrica e um conceito pode estabelecer uma regra para seleção da métrica a partir de as características desse conceito.
+Tais características podem ser encontradas nas fontes de conhecimento, sejam externas ou não.
+Essas ideias são exploradas na Seção 6.2.
+A consulta de mais informações a respeito de os conceitos viabiliza uma perspectiva generalizada sobre os mesmos.
+Por exemplo, para cada instância ambígua do NLM-WSD há um conjunto de conceitos candidatos presente no UMLS.
+Esses candidatos foram estabelecidos na construção do corpus e estão relacionados a Cuis do metatesauro.
+Cada CUI, por sua vez, está associada à fonte original de a qual os conceitos foram obtidos na construção do metatesauro (tabela MRCONSO.
+RRF). A fonte pode ser identificada para todos os candidatos associados a uma instância, ou apenas para o candidato correto.
+A fonte dos candidatos pode então ser empregada como uma feature para agregar valores estatísticos.
+Por exemplo, ao invés de contabilizar a coocorrência entre métrica e candidato correto, são utilizadas a métrica e a fonte do candidato correto.
+Dadas estas constatações, a fonte original de cada conceito se torna uma alternativa de feature.
+Este método é empregado no modelo híbrido (formalizado na Seção 6.3).
+Um experimento foi elaborado com o objetivo de identificar as features mais relevantes para a escolha da métrica.
+Dois algoritmos de aprendizado de máquina com diferentes parâmetros foram utilizados 5.
+Como candidatos a features foram selecionados, para cada instância, a fonte do conceito correto e até três tipos semânticos do conceito correto, e a contagem de palavras da sentença, do título e do resumo em que o conceito ambíguo ocorre.
+O atributo classe selecionado é o das métricas que identificaram o sentido correto no experimento preliminar.
+O melhor resultado do experimento revelou por meio de uma árvore de decisão6 que a fonte do conceito correto se correlaciona com a métrica de melhor desempenho.
+Essa constatação determinou a escolha do uso das fontes dos candidatos como um meio de selecionar a melhor métrica para o WSD.
+Por fim, de entre as categorias morfossintáticas da instância e seu contexto, apenas a informação de que os conceitos são substantivos consta no NLM-WSD.
+O texto poderia ser processado por outras ferramentas de anotação e assim determinar- se a estrutura sintática das sentenças em que as instâncias estão inseridas.
+No entanto, a estrutura sintática das sentenças não representa necessariamente a mesma estrutura de conceitos analisada por as métricas.
+Portanto, optou- se por a não utilização deste novo processo nem dessas informações.
+Concluindo, o trabalho passa a estudar a seleção de métricas com o emprego das fontes dos candidatos como feature, além de as métricas que identificam o sentido de cada instância.
+Essas informações são utilizadas na etapa seguinte, a seleção de métricas, abordada na próxima seção.
+As fontes de candidatos que fazem parte desta pesquisa são apresentadas na Seção 6.3.
+Seleção de Métricas Para a seleção de métricas, duas alternativas foram exploradas:
+O aprendizado de máquina e a probabilidade da correlação entre métricas e features.
+Experimentos com aprendizado de máquina foram elaborados para seleção de métricas.
+Utilizando as features propostas na Seção 6.1, duas configurações foram estabelecidas.
+Elas compreendem subconjuntos de features e níveis de poda no algoritmo J48.
+Uma de elas é o experimento utilizado na seleção de features.
+A outra são experimentos que empregam o conjunto das fontes dos candidatos como features.
+Ao invés de tratar cada fonte de candidato como uma feature (individualmente), o conjunto das features foi retratado como uma única feature.
+Por exemplo, considere que para uma dada instância i as fontes dos seus candidatos a sentido são AOD e MTH (estas siglas e as respectivas fontes são apresentadas na Seção 6.3).
+Ao invés de considerarmos cada fonte separadamente como uma feature, o conjunto das fontes AOD-MTH foi utilizado como uma única fonte.
+O objetivo dessa modificação é identificar se os conjuntos de fontes podem conduzir à escolha da métrica com generalização dos casos numa única feature.
+Todo esse processo será detalhado na Seção 6.3.
+Os resultados dos experimentos com aprendizado de máquina revelaram dois problemas.
+O primeiro é que o modelo de aprendizado extraído com melhor resultado/ configuração utiliza a fonte do conceito correto, além de eventualmente outras features, para determinar a (s) métrica (s) mais adequada (s).
+Ele corresponde ao modelo criado para seleção de features.
+O problema é que identificar o conceito correto é a etapa seguinte no processo de desambiguação (descrito na Figura que configurações que não têm problemas desse tipo tiveram resultados inferiores ao da melhor métrica e por essa razão foram descartados.
+Os resultados ficaram abaixo de os até aqui levantados A probabilidade da correlação é outro meio de selecionar uma métrica para o WSD.
+Em esse caso, a correlação entre o valor de uma feature e as métricas disponíveis pode determinar qual a métrica mais adequada para a classificação.
+Este estudo considerou o emprego da fonte dos candidatos como a melhor alternativa.
+Os experimentos da Seção 6.1 identificaram a fonte como a feature mais promissora e por essa razão foi utilizada.
+Considerando a fonte do candidato correto e a (s) métrica (s) que o identificam é possível estabelecer uma correlação entre a estrutura da fonte do candidato e esta (s) métrica (s).
+Utilizando o conjunto de todas as instâncias disponíveis no corpus NLM-WSD é possível então estabelecer a probabilidade da correlação entre fonte e métrica.
+Em outras palavras, ela estabelece um relação entre fonte e métrica baseada na probabilidade identificada a partir de os exemplos do corpus.
+Portanto, para cada fonte de candidato é possível sugerir a (s) métrica (s) com maior probabilidade de identificar o conceito correto.
+No entanto, essa sugestão se baseia apenas num candidato.
+Considerando o fato de que as instâncias de um corpus podem ter um ou mais candidatos a sentido, de diferentes fontes, se for determinada uma métrica para cada candidato é necessária alguma heurística para selecionar a métrica definitiva.
+O método mais simples é utilizar a métrica do candidato com a probabilidade mais alta.
+Os experimentos indicaram que a taxa de acerto desse método é a mesma da melhor métrica no modelo simples Para solucionar o problema, o conjunto das fontes de candidatos foi empregado para seleção da métrica.
+Considerar as fontes como apenas uma feature viabilizou a construção do modelo e obtenção de melhores resultados em comparação ao modelo simples.
+A Seção 6.3 descreve detalhes de como a seleção e extração das features foi implementada.
+Descreve ainda como a heurística de seleção é estabelecida e os resultados são atingidos, com o modelo híbrido.
+O Modelo Este trabalho propõe um modelo híbrido para a seleção de métricas para o WSD baseado em grafos.
+Para uma dada instância ambígua, a seleção da métrica que vai ser aplicada é determinada por sua probabilidade condicional.
+A probabilidade de uma métrica nesse caso é dependente da ocorrência de um conjunto de fontes de candidatos a sentido para a instância analisada.
+As instâncias do corpus NLM-WSD anotadas com o conceito correto no UMLS também foram associadas a um conjunto de conceitos candidatos a sentido correto.
+Todos estes conceitos possuem Cuis, que por sua vez estão associadas às suas fontes (vocabulário de origem).
+Utilizando os resultados do experimento preliminar, resumido na Tabela 5.1, é estabelecida uma medida de probabilidade entre as métricas que identificam corretamente o sentido de uma instância.
+O modelo proposto foi avaliado em comparação com os resultados do experimento preliminar, e os resultados dessa avaliação são apresentados a seguir.
+Para descrever o processo de seleção de métrica a partir de as fontes, considere:
+F $= o conjunto de todas as fontes dos conceitos presentes no UMLS.
+Ft $= o conjunto da união de todos os conjuntos de candidatos das instâncias pertencentes a I;
+Mi $= conjunto das métricas que identificam o sentido da instância i.
+O conjunto das fontes F inclui todas as fontes utilizadas nos experimentos (relembrando, as fontes são provenientes de bases bem constituídas que descrevemos logo a seguir).
+Portanto, temos:
+AOD (Alcohol and Other Drug Thesaurus) 7 é um guia de conceitos para pesquisadores e and Alcoholism (NI').
+Serve como um vocabulário controlado para indexação e recuperação de informação em sistemas de banco de dados.
+CHV (Consumer Health Vocabulary) 8 é produzido por o Biomedical Informatics Department da Universidade de Utah em colaboração com outras quatro instituições.
+Seu objetivo é permitir a transcrição automática de conceitos técnicos e termos simples para leigos.
+MSH (Medical Subject Headings) 9 é um tesauro para indexação, catalogação e busca de informações e documentos sobre Biomedicina e saúde.
+Ele é mantido por a National Library of Medicine e é utilizado, por exemplo, no sistema de busca do site PubMed para pesquisas por assuntos.
+MTH (Unified Medical Language System® Metathesaurus) 10 contém conceitos, construção do UMLS.
+NCI (National Cancer Institute) 11 reúne conceitos relacionados ao câncer no atendimento clínico, pesquisa e atividades administrativas.
+NDFRT (National Drug File -- Reference Ele é utilizado na classificação de drogas em termos de seus ingredientes, estrutura química, entre Standards Development Organisation.
+Ele reúne conceitos para a padronização de registros médicos empregados internacionalmente.
+O conjunto I inclui todas as instâncias cujo sentido foi identificado por os anotadores do NLM-WSD.
+De a mesma forma que no experimento preliminar, as instâncias classificadas por os anotadores como none não foram consideradas.
+O conjunto final leva a um total de 3983 instâncias.
+Contudo, apenas as instâncias cujo sentido foi identificado por pelo menos uma métrica foram consideradas.
+Como se deseja analisar apenas a probabilidade das métricas, as instâncias cujo sentido não foi identificado por nenhuma métrica foram descartadas.
+Portanto, restaram 3547 instâncias em I. Cada instância i tem associado a ela um conjunto de conceitos candidatos a sentido Si.
+Como estes candidatos não consideram o contexto em que a instância se encontra, o conjunto dos candidatos de um conceito é igual para todas as suas instâncias.
+Por exemplo, o conjunto dos conjuntos de fontes de candidatos:
+Cada conceito está associado a um conjunto de fontes de Ft.
+A Tabela A. 1 do Apêndice A apresenta a relação entre conceitos e os conjuntos de fontes.
+A partir de essas definições e análises a probabilidade condicional de uma métrica m, dado um conjunto de fontes f Ft, é determinada por:
+P (m| f) $= P (m f), onde P (f) If m f e P (f) $= Para cada instância i do espaço amostral I há um conjunto de métricas Mi que identifica o sentido correto de i.
+A probabilidade condicional P (m| f) é dada por a divisão de dois valores.
+O primeiro é a probabilidade da métrica m ocorrer com o conjunto de fontes f, dada por P (m f).
+Esta probabilidade é calculada por o número de instâncias de I em que a interseção ocorre, dividido por o número de instâncias de I. O outro valor é a probabilidade da ocorrência do conjunto de fontes f, dado por P (f).
+Ele é determinado por o número de instâncias de i em que f ocorre.
+I) o sentido foi identificado por a métrica Degree e utilizava candidatos cujas fontes correspondem a frequência com que foi empregado.
+Cerca de 521 instâncias em I têm como fontes de candidatos o métricas e conjuntos de fontes, e das probabilidades das fontes pode ser encontrada no Apêndice B, tabelas B. 1, B. 2 e B. 3, respectivamente.
+Cada métrica pode então ser analisada a partir de a sua probabilidade condicional em razão de um conjunto de fontes pré-estabelecido.
+A métrica cuja probabilidade é a mais alta (identificada em negrito na Tabela 6.2) é então selecionada como a mais indicada para classificação de uma instância com o dado conjunto de fontes.
+Por exemplo, considere uma instância i cuja palavra ambígua é adjustment.
+Os conceitos candidatos são individual adjustment, psychological adjustment e adjustment action.
+As fontes desses conceitos são respectivamente SNOMEDCT, MSH SCTSPA.
+Considerando as recomendações apresentadas na Tabela 6.2 cada instância de I pode ser analisada com a finalidade de identificar a métrica mais adequada, aplicar- la e então avaliar qual dos candidatos é o mais adequado.
+O experimento preliminar descrito no Capítulo 5 implementou cada uma das métricas e apresentou os resultados na análise de cada instância do corpus.
+Cada conceito em análise naquele experimento utilizava o mesmo conjunto de candidatos, e indiretamente fontes desses candidatos, para cada métrica.
+Apenas os conceitos do contexto variam, de uma instância para outra.
+Sendo assim, cada conceito tem associado a ele um conjunto de fontes, oriundas dos candidatos.
+Os resultados do experimento preliminar identificaram, para cada instância de cada conceito, qual ou quais métricas selecionam o sentido correto.
+Uma vez que a quantidade de instâncias com sentido correto por conceitos está à disposição nos resultados daquele experimento, as recomendações de métricas por a probabilidade condicional podem ser analisadas por conceitos.
+De essa forma é possível contabilizar os acertos de cada conceito em razão de a métrica selecionada.
+A Tabela 6.3 relaciona os conceitos do corpus NLM-WSD, seus respectivos conjuntos de fontes de candidatos, a métrica selecionada, o número absoluto de acertos e taxa de acertos geral em relação a o número de instâncias relevantes.
+Resultados e Discussão Utilizando o modelo de seleção de métricas com os dados do experimento preliminar é possível mensurar os resultados parciais dos subconjuntos de conceitos propostos em Humphrey et al.
+E McInnes.
+De acordo com a Tabela 6.2, os resultados da utilização do modelo de seleção de métricas conduzem a um total de 2728 instâncias corretamente classificadas, estabelecendo uma taxa de acerto de 68,48%.
+Ela é 3,52% 14 melhor que a obtida com a reprodução dos experimentos com o PageRank Personalizado, onde foram classificadas 2635 instâncias corretamente, com 66,16% de acerto.
+O resultado é significativa, considerando os acertos exclusivos de cada proposta.
+Em a análise da performance dos 12 conceitos considerados difíceis, o modelo tem uma performance idêntica à do PageRank personalizado, uma vez que o modelo selecionou, para todos estes conceitos, o PageRank Personalizado.
+Em relação a os conceitos selecionados em Humphrey et al.
+O modelo é 4,07% melhor, com 664 instâncias classificadas corretamente, contra 638 classificadas por o PageRank Personalizado.
+Quando são analisados os conceitos difíceis nessa seleção, a performance é idêntica à do PageRank personalizado, pois estes conceitos são um subconjunto do conjunto dos difíceis.
+Algumas heurísticas foram extraídas do relacionamento entre as métricas e os conjuntos de nenhuma outra, todas as métricas podem ser empregadas.
+O PageRank Personalizado é a métrica empregada.
+Em o caso em que todas as métricas podem ser empregadas, a de menor complexidade algorítmica pode ser escolhida.
+Em esse caso, um total de 157 instâncias, cerca de 4,42% do total relevante, seria afetado com o emprego da métrica Degree.
+Para destacar os resultados a Figura 6.5 resume todas as heurísticas identificadas por o cálculo da probabilidade condicional.
+Cerca de 60% das métricas escolhidas determinaram o melhor resultado.
+Cinco das métricas selecionadas levaram a um erro acima de 50% das instâncias classificadas.
+Em quatro desses casos (conceitos condition, fit, inhibtion e sensitivity) a métrica com melhor performance foi Key Player Problem, mas a escolhida foi o PageRank Personalizado.
+O caso restante (conceito single) deveria ser classificado com o PageRank Personalizado ao invés de o Key Player Problem.
+Os demais erros variaram entre 1% e 32% (média 11,48% e um desvio padrão de 12,39%).
+O experimento com aprendizado de máquina também foi cogitado para ser empregado na seleção de métricas.
+No entanto, o modelo de aprendizado extraído utiliza a fonte do conceito correto, além de outras features como tipos semânticos, para determinar a (s) métrica (s) mais adequada (s).
+Identificar o conceito correto é a etapa seguinte no processo de desambiguação e portanto não poderia ser utilizado na etapa de seleção de métrica, conforme já expresso nesse texto.
+Experimentos com a utilização dos conjuntos de fontes como features também foram executados.
+Contudo, os resultados ficaram todos abaixo de os até aqui levantados.
+Uma limitação do modelo proposto é a utilização de novos conjuntos de fontes.
+A probabilidade condicional foi estabelecida com base nos conjuntos de fontes presentes no NLM14 Este valor representa a diferença percentual entre os valores absolutos de acerto de cada modelo (simples vs.
+Híbrido). WSD.
+Isso significa que, para um corpus com novos conceitos, haverá a necessidade da reavaliação ou adaptação das relações apresentadas neste modelo (Tabela 6.2).
+Lista de conjuntos de fontes e métricas sugeridas, respectivamente:
+De forma exclusiva temos:
+Algumas propostas para a generalização do Modelo Híbrido foram investigadas.
+A correlação entre atributos ou características do grafo das fontes e as métricas de seleção de sentido foi investigada.
+Foram avaliadas a densidade do grafo e o grau médio das arestas.
+Um grafo denso é aquele que está próximo de o número máximo de arestas.
+Para cada fonte a densidade é estabelecida por o conjunto de vértices V (conceitos da fonte) e por o conjunto de arestas A (relacionamentos entre os conceitos), e calculada por:
+A densidade D de um grafo varia entre 0 e 1, onde zero representa um grafo sem arestas e um representa aquele totalmente conectado (cada vértice possui uma aresta para todos os outros vértices).
+A densidade de um conjunto de fontes foi calculada a partir de a média da densidade das 0,000486738.
+Esta média é então associada à métrica que de acordo com o Modelo é considerada a mais indicada, neste caso a métrica Degree.
+A Tabela 6.4 relaciona a densidade de cada fonte de F. Em particular, a fonte CHV é diferente das demais.
+Ela não possui relações entre seus conceitos 15 (não constam na tabela MRREL).
+Seus conceitos foram associados a outros conceitos presentes no UMLS quando de a sua inserção no metatesauro.
+Portanto, os vértices podem ser estimados, a partir de a tabela MRCONSO, mas suas arestas não.
+Os intervalos de valores médios de densidade estabelecidos para cada métrica foram utilizados na elaboração da Figura 6.6.
+Em ele é possível observar que, para fontes com densidades acima de 0,000140871 (o máximo de Ppr), é recomendável utilizar a métrica Degree.
+Por outro lado, não é possível identificar intervalos que caracterizem as métricas Kpp e Ppr.
+Os intervalos permitem identificar a relação entre algumas métricas e o grau médio das fontes.
+A primeira constatação é de que conjuntos de fontes com grau superior a 4,612280 arestas devem ser analisados por a métrica Deg.
+Também é possível estabelecer outros três intervalos.
+São eles:
+Que leva ao uso de Ppr, (1,505370;
+3,112190] que leva ao emprego de Kpp e (3,112190;
+4,612280] que leva à utilização de Ppr.
+Estes intervalos foram utilizados como forma de selecionar a métrica de cada conceito de acordo o grau médio do conjunto das fontes.
+No entanto, essa estratégia resulta numa performance inferior à dos demais resultados.
+De qualquer forma, a possibilidade de generalizar o emprego das fontes como forma de selecionar a métrica mais adequada deve ser mais amplamente investigada, o que só seria possível para além de o escopo dessa tese.
+Figura 6.7: Valores máximo, mínimo e médio do grau médio dos conjuntos de fontes Mesmo sendo o Word Sense Disambiguation uma tarefa antiga do Processamento da Linguagem Natural, é ainda um tema de pesquisa em aberto.
+Exploradas na forma de experimentos com domínios específicos ou de âmbito geral, as propostas para selecionar o sentido correto utilizam diferentes métodos computacionais.
+O trabalho realizado Este trabalho investigou soluções para o domínio da Biomedicina.
+Foram explorados um corpus elaborado especificamente para este domínio, fontes de conhecimento externo estruturadas e métodos para a seleção não-supervisionada do sentido correto.
+O principal benefício desses métodos é a sua manutenção, pois não há necessidade de treino, ou seja, novos casos de ambiguidade solucionados, para o aprendizado.
+O conhecimento é retirado de fontes externas que, se mantidas e aprimoradas, permitem a evolução dos resultados.
+A abordagem de grafos foi escolhida, nesta pesquisa, como meio de selecionar o sentido mais adequado.
+Os candidatos a sentido de uma instância ambígua estão presentes numa fonte de conhecimento estruturada.
+Em esta área da Biomedicina, a fonte escolhida, o UMLS, é utilizada amplamente por os pesquisadores na investigação, além de ser usada em sistemas voltados para os profissionais.
+O metatesauro UMLS reúne formalmente uma série de relacionamentos semânticos entre os conceitos de diferentes fontes, que são mantidas por diferentes instituições.
+Para utilizar o grafo de uma fonte estruturada na seleção de um sentido é necessário escolher uma métrica.
+Ela serve como um meio de classificar os vértices (conceitos) de um grafo.
+Várias métricas foram empregadas em domínios não especializados.
+Degree, Key Player Problem e o PageRank Personalizado são algumas de elas.
+Em o domínio da Biomedicina o PageRank Personalizado se destacou como uma das melhores métricas para seleção de sentido nãosupervisionada.
+No entanto, o algoritmo PageRank personalizado é de maior complexidade e em domínios não especializados outras métricas se destacaram.
+Este trabalho investigou e avaliou o emprego das três métricas anteriormente citadas, Degree, Key Player Problem e o PageRank Personalizado, no domínio da Biomedicina.
+Elas correspondem aos melhores resultados encontrados no domínio geral e específico, obtidos até então.
+A hipótese inicialmente levantada com este trabalho era de que as melhores métricas para o domínio não especializado também o são para o domínio especializado da Biomedicina.
+Elas foram implementadas e os resultados comparados.
+A conclusão identificou o PageRank Personalizado como a melhor escolha no contexto dos experimentos realizados.
+Contudo, os resultados obtidos foram analisados e revelaram a possibilidade de melhoria.
+Inicialmente os resultados foram avaliados no formato usual da área.
+Cada instância de palavra ambígua presente no corpus determinou a taxa de acerto geral para cada métrica.
+As taxas de acerto eram então comparadas umas com as outras.
+Em a sequência, nosso estudo comparou as instâncias corretamente classificadas por cada métrica e identificou que, juntas, as métricas poderiam alcançar uma taxa de acerto maior que cada uma de elas individualmente.
+Levantou- se então a perspectiva da existência de um meio de identificar a métrica mais adequada para uma dada instância e assim atingir uma performance melhor do que as partes individualmente.
+A identificação da métrica passa por a necessidade de estabelecer features e uma heurística para, a partir de elas, selecionar- se a métrica mais adequada.
+Um modelo de como selecionar as features, baseado em heurísticas, foi estabelecido e denominado Modelo Híbrido.
+Este modelo se baseia na seleção de uma métrica a partir de a probabilidade condicional entre a métrica e o conjunto das fontes dos candidatos a sentido de uma determinada instância.
+Cada instância ambígua foi anotada no corpus com um conjunto de candidatos a sentido.
+Estes candidatos a sentido estão associados a um conceito no UMLS e, consequentemente, a sua fonte original.
+A probabilidade condicional de uma métrica ocorrer quando é dado um determinado conjunto de fontes foi calculada, para cada conceito.
+Isso é possível por que os candidatos de cada conceito são os mesmos, para todas as suas instâncias ambíguas.
+Uma relação entre a métrica com maior probabilidade e o conjunto de fontes foi então construída.
+Utilizando este modelo e as heurísticas estabelecidas a partir de ele, o par (métrica, fonte), uma nova avaliação foi executada.
+Em ela, a decisão de qual métrica a utilizar para cada conceito foi determinada por aquele que possui a maior probabilidade de sucesso, ou seja, a maior probabilidade condicional.
+Os resultados revelaram um desempenho significativamente melhor do que o melhor resultado individual (PageRank Personalizado).
+Além de essa contribuição, que é o ganho de 3,52%, em relação a o melhor resultado disponível, o trabalho traz outras contribuições.
+Apresentou de forma organizada resultados que indicaram o espaço de melhoria que se pode alcançar, ao trabalhar com múltiplas métricas.
+E é o primeiro, até onde sabemos, a propor, e implementar, testar e avaliar uma estratégia de articulação de diferentes métricas através de um Modelo Híbrido para o WSD em Biomedicina.
+O trabalho que precedeu esse esforço incluiu minuciosa análise referente a seleção de features e heurísticas.
+Os estudos sobre a generalização do emprego de fontes levaram ao aprofundamento, com a mais experimentos fazendo o uso da densidade e grau de vértices.
+Finalmente, o material disponível em com aprendizado de máquina.
+Limitações e oportunidade de aprimoramento As limitações identificadas neste trabalho conduzem a um conjunto de oportunidades de novas pesquisas.
+A primeira diz respeito à limitação dos resultados a um conjunto de fontes existentes.
+Testes com novas métricas, novas features, emprego de novas versões do UMLS, além de novos corpora, são assuntos que devem ser explorados.
+A limitação dos resultados com relação a as fontes existentes, já discutida no Capitulo 6, diz respeito à possibilidade de extrair características específicas das fontes do UMLS utilizadas neste estudo.
+Elas poderiam ser utilizadas na generalização das probabilidades condicionais extraídas entre métricas e conjunto de fontes.
+O modelo passaria a representar essas heurísticas com um relacionamento entre métricas e característica (s).
+Duas possibilidades foram exploradas neste trabalho.
+A densidade e o grau médio dos grafos das fontes.
+Como foi discutido no capítulo anterior, nenhuma destas obteve um resultado satisfatório.
+Outro ponto se refere a novas métricas que podem ser incluídas.
+Considerando a variedade de fontes que fazem parte do UMLS, e a sua constante atualização, novas métricas podem ser úteis nos casos em que todas as métricas aqui exploradas erraram.
+Em este trabalho 436 instâncias não tiveram seu sentido identificado corretamente por as métricas avaliadas.
+Elas representam 10,94% das instâncias relevantes (não anotadas como none).
+Outro ponto a destacar são as novas features que podem ser exploradas.
+Elas podem servir tanto às métricas como ao modelo de seleção de métricas.
+Nenhuma das métricas e nenhum dos autores aqui investigados utilizou algum dos tipos de relações especializadas presentes no UMLS.
+Existem 191 tipos de relações entre conceitos expressos na versão UMLS utilizada nesta pesquisa.
+Utilizar subconjuntos dessas relações pode influenciar a performance das métricas.
+Por exemplo, cada métrica poderia fazer uso das relações do tipo QB (qualified by) o que determinaria relações mais qualificadas de sinonímia.
+O UMLS é atualizado em média duas vezes por ano.
+A manutenção é decorrente das atualizações das fontes que o compõem.
+Em este trabalho se optou por utilizar a mesma versão do UMLS empregada nos experimentos de Agirre et al.,
+a 2007 AB.
+O objetivo era reproduzir da maneira mais próxima os experimentos em.
+No entanto, experimentos com versões novas do metatesauro não foram realizados.
+Um ponto importante é que o UMLS não necessariamente aumenta em quantidade de conceitos e relacionamentos, mas pode melhorar em qualidade.
+As fontes atualizam os conceitos e seus relacionamentos na busca de redundâncias ou erros.
+Por exemplo, enquanto a fonte MSH aumentou o número de conceitos da versão 2011 AA para versão 2012 AA, a fonte SNOMEDCT diminuiu o número de conceitos.
+Por outro lado, algumas não recebem atualizações com tanta frequência, como é o caso da NCI.
+Essas mudanças influenciam diretamente a performance das métricas.
+Um estudo comparativo entre as versões do UMLS podem comprovar ou não essa influência.
+O Modelo Híbrido proposto aqui salientará ainda mais as mudanças entre versões.
+Uma vez que as fontes são empregadas na tomada de decisão por uma métrica, é grande a probabilidade da qualificação das fontes influenciar a performance deste Modelo.
+As pesquisas desenvolvidas para o WSD em Biomedicina fazem recorrente referência ao corpus NLM-WSD.
+Ele foi criado em 2001 utilizando os conceitos presentes no UMLS na versão corpus possui 203 conceitos ambíguos anotados e cerca de 37 mil instâncias ambíguas.
+Por se tratar de um conjunto de dados maior, ele pode trazer novas conclusões sobre como ampliar os resultados do modelo proposto.
+Certamente, com o uso desse novo corpus no desenvolvimento das pesquisas em WSD o Modelo Híbrido também deverá ser testado e adaptado, o que não diminui a sua contribuição.

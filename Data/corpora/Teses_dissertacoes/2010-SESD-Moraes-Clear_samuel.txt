@@ -1,0 +1,543 @@
+MPSoCs (Multi-Processor Systems-on-Chip) são arquiteturas bastante complexas e, por consequência, a verificação do correto funcionamento do sistema bem como a garantia da qualidade de serviço são ações que se tornam cada vez mais difíceis de serem realizadas.
+Assim sendo, é importante a pesquisa de mecanismos para a verificação da operação do sistema como um todo que visem a captura de informações sobre seu estado a cada instante, obtidas através de monitores adequadamente adicionados à arquitetura.
+Este trabalho apresenta o desenvolvimento de uma infra-estrutura de monitoramento para MPSoCs baseados em NoC (Network-on-Chip), sendo realizado através de monitores de tráfego adicionados à NoC.
+A estrutura de monitoramento é integrada ao microkernel do processador que controla o MPSoC.
+Os resultados demonstram que os monitores não interferem no desempenho global da NoC e que é possível calcular a taxa de recepção de pacotes na rede através das informações coletadas por os monitores.
+A integração da estrutura de monitoramento ao MPSoC é validada a partir de matrizes inseridas no microkernel do processador de controle, que armazenam os valores de monitoramento dos canais de cada roteador da NoC.
+Palavras Chave: Redes intra-chip (NoCs);
+Monitores; Sistemas de monitoramento;
+Desempenho; MPSoCs.
+Com a evolução da tecnologia do silício obteve- se um aumento significativo na densidade dos circuitos integrados.
+Isso levou à criação de dispositivos cada vez mais complexos, que agregam de dezenas a centenas de módulos comunicando- se internamente num único chip, conduzindo ao conceito de SoC (System-on-a-Chip).
+O avanço contínuo da tecnologia permite o projeto de sistemas mais complexos, tais como sistemas multiprocessados integrados na forma de um SoC.
+Um primeiro esforço nesse sentido resultou nos processadores Dual Core, que estão substituindo os processadores com um único núcleo de processamento.
+Dada a especificidade e elevada quantidade de aplicações dos sistemas embarcados atuais, é MPSoCs são arquiteturas compostas por n elementos de processamento (Processing Element, PE) que executam instruções específicas e que, em conjunto, devem atender a requisitos de uma dada aplicação ou classe de aplicações.
+MPSoCs são uma tendência atual no mercado de dispositivos eletrônicos voltados à computação móvel.
+Esses dispositivos utilizam como meio de interconexão, entre seus diversos núcleos de processamento, estruturas do tipo barramentos ou redes intra-chip (Networks-on-Chip, NoC).
+A comunicação através de barramentos não satisfaz os requisitos de desempenho para os dispositivos compostos por diversos núcleos, visto que os elementos de processamento desses dispositivos comunicam- se entre si em alta velocidade, fazendo com que um MPSoC possua requisitos rígidos de comunicação.
+Com isso, as NoCs com topologia regulares destacam- se como uma tendência, devido a características intrínsecas ao seu funcionamento, como escalabilidade e paralelismo na comunicação.
+De entre algumas vantagens que essa estrutura de comunicação apresenta, citam- se:
+Escalabilidade da largura de banda;
+Paralelismo na comunicação;
+Reusabilidade; Confiabilidade;
+E eficiência na gerência do consumo de energia.
+Sob o ponto de vista do multiprocessamento, um MPSoC é dito homogêneo quando os elementos processadores que o compõe são todos da mesma natureza.
+Por exemplo, um sistema composto por n processadores com a mesma arquitetura e que permite a execução do mesmo conjunto de instruções ISA (Instruction Set Architecture) pode ser considerado homogêneo.
+Por outro lado, quando os elementos processadores são de naturezas distintas, o MPSoC é dito heterogêneo.
+Isso pode ocorrer, por exemplo, quando os processadores embarcados no sistema possuem arquiteturas diferentes, como MIPS, ARM e PowerPC, ou propósitos diferentes, como processadores de propósito geral e processadores para processamento de sinais.
+Mesmo que o emprego de MPSoCs represente uma tendência em sistemas embarcados, alguns tópicos ainda necessitam de maiores estudos, tais como metodologias de seus projetos e suporte à execução.
+Algumas funções essenciais de suporte à execução são:
+Gerência de memória;
+Escalonamento; E mapeamento de tarefas.
+Em geral, tais políticas são implementadas por sistemas operacionais.
+Em MPSoCs com carga dinâmica de tarefas, um elemento de processamento deve realizar essas funções de controle em tempo de execução.
+Por exemplo, o mapeamento de tarefas pode se beneficiar do emprego de monitores caso considere em sua heurística o estado do sistema, definido por a informação de monitoramento.
+Caso esse estado fosse obtido por estimativas produzidas em tempo de projeto, a informação do estado do MPSoC pode ser imprecisa num cenário de carga dinâmica de aplicações.
+Com monitores é possível substituir estimativas por medidas reais.
+Outra aplicação importante dos monitores é o auxílio à validação, um dos pontos críticos no projeto de MPSoCs.
+Simulação é o estado da arte na verificação do desempenho de MPSoCs, no entanto ela possui desvantagens conceituais que a tornam inviável conforme a complexidade do sistema cresce.
+Em esse caso, uma possível solução é utilizar emulação, onde monitores de tráfego capturam informações relativas ao MPSoC em hardware enquanto este está em funcionamento.
+Essa técnica é mais eficiente e mais confiável que simulação, pois obtém informações relativas ao funcionamento real do MPSoC ao custo de elevada complexidade de execução.
+Em este trabalho é apresentado o desenvolvimento de uma infra-estrutura de monitoramento para MPSoCs que usam NoC como meio de interconexão, com o objetivo de analisar o tráfego das portas de entrada dos roteadores.
+A partir de essa análise é possível realizar tomadas de decisões, tais como mapeamento e migração de tarefas em núcleos aptos a receber novas tarefas, para que o MPSoC tenha um melhor desempenho.
+A partir de as informações de tráfego da NoC, obtidas através dos monitores, é montada uma estrutura de dados no processador que controla o MPSoC e que reflete a ocupação do MPSoC como um todo.
+Motivações do Trabalho MPSoCs estão sendo cada vez mais empregados, tanto na indústria como no meio acadêmico e a tendência é que ainda haja um grande crescimento na utilização desses sistemas.
+Para conectar os diversos núcleos de processamento, MPSoCs utilizam como meio de interconexão estruturas do tipo barramentos ou redes intra-chip (NoCs).
+As NoCs destacam- se como uma tendência, pois são mais escaláveis que barramentos, oferecendo maior largura de banda.
+Como MPSoCs são arquiteturas bastante complexas, e em geral suas aplicações apresentam naturezas distintas com relação a os requisistos de comunicação, torna- se cada vez mais difícil estimar o comportamento do sistema.
+Assim, a realização de tarefas fundamentais, tais como a verificação do correto funcionamento do sistema e a garantia da qualidade de serviço tornam- se igualmente complexas.
+Uma alternativa para auxiliar na realização dessas tarefas, está no uso de monitores de tráfego em NoCs.
+A avaliação de um conjunto de variáveis, tais como:
+Violações no escalonamento dos processos;
+Falhas no atendimento de deadlines das aplicações de tempo real;
+E congestionamento no meio de comunicação;
+É importante para definir qual o conjunto de informações que deve ser gerado por os monitores.
+Objetivos do Trabalho O objetivo principal deste trabalho é descrever a implementação e validação de uma infra-estrutura de monitoramento para MPSoCs baseado em NoC.
+A validação ocorre através de sua implementação na NoC Hermes utilizada como meio de interconexão dos núcleos da plataforma MPSoC HeMPS.
+O monitoramento é realizado através de monitores inseridos nas portas de entrada dos roteadores da NoC que geram informações da quantidade de flits1 que passam nas portas de entrada dos roteadores numa determinada janela de tempo.
+Essa análise permite, por exemplo, obter a taxa de recepção dos pacotes (vazão).
+Cada roteador envia pacotes com os dados de monitoramento a um processador responsável por a gerência do MPSoC, o qual monta uma estrutura de dados que reflete a ocupação dos núcleos do MPSoC.
+A partir de essa infraestrutura espera- se melhorar o desempenho da plataforma, realizando tomadas de decisões, tais como mapeamento e migração de tarefas em núcleos da plataforma que estejam menos sobrecarregados e aptos a receber novas tarefas.
+Contribuição do Presente Trabalho O presente trabalho apresenta como contribuições uma estrutura de monitoramento de NoCs e a integração do monitoramento num MPSoC realizado através de um sistema de recepção e tratamento dos dados monitorados.
+Flit é a menor unidade de transferência de dados.
+As contribuições deste trabalho, no que se refere ao monitoramento de NoCs, compreendem o monitoramento da vazão da rede Hermes, através do compartilhamento da rede para dados de aplicação e monitoramento.
+Destaca- se que o monitoramento pode ser realizado sobre diferentes configurações da rede Hermes.
+Em relação a a integração do monitoramento, um sistema de recepção e tratamento dos dados monitorados foi incluído no kernel do MPSoC HeMPS.
+O sistema permite que o processador mestre (gerente) tome decisões relevantes para a melhora de desempenho do MPSoC.
+Organização do Documento Este trabalho está organizado como segue.
+O próximo Capítulo apresenta conceitos relacionados ao processo de monitoramento de NoCs, bem como a revisão bibliográfica de trabalhos relacionados ao monitoramento do meio de comunicação em MPSoCs.
+A arquitetura dos monitores implementados e a nova estrutura da rede intra-chip, criada a partir de a inserção dos monitores na rede, é apresentada, em detalhes, no Capítulo 3.
+Em seguida, o Capítulo 4 apresenta a utilização dos dados de monitoramento na plataforma MPSoC HeMPS enquanto que o Capítulo 5 traz os resultados obtidos com os monitores inseridos na rede Hermes e aqueles obtidos através da integração dos monitores em serviços do microkernel na plataforma HeMPS.
+Finalmente, o Este Capítulo apresenta o estado da arte em sistemas para monitoramento de NoCs e MPSoCs baseados em NoC, tanto em questões de implementação quanto em requisitos de desempenho e métricas propostas para avaliar o desempenho de plataformas MPSoCs.
+A monitoração de tráfego em NoCs tem por objetivo observar o comportamento dos dados que trafegam na rede, de modo a oferecer suporte a algum dispositivo de controle para que se mantenha o funcionamento correto no MPSoC onde a rede está inserida.
+O número elevado de núcleos em MPSoCs com requisitos rígidos de desempenho, além de a própria complexidade inerente de NoCs, faz da monitoração um aspecto crítico no projeto de plataformas MPSoCs.
+O processo de monitoração ocorre em duas etapas:
+Coleta de informações;
+E processamento das informações coletadas.
+O serviço de monitoração em NoCs consiste em se configurar pontos de teste que são integrados a roteadores ou interfaces de rede, onde as informações de tráfego são coletadas.
+A conexão dos pontos de teste à rede pode ser realizada de maneira externa, onde são acoplados a interfaces de rede dos IPs receptores de tráfego, ou de maneira interna, em a qual é acoplado um ponto de teste em cada roteador ou num subconjunto de roteadores da NoC.
+As informações coletadas devem ser transmitidas para um sistema de controle, denominado MSA (Monitoring Service Access Point), para que sejam processadas e para que se tome alguma decisão de acordo com os eventos diagnosticados, tais como mapeamento ou migração de tarefas.
+As informações de monitoração normalmente incluem valores de variáveis relativas ao tráfego que interferem no desempenho da aplicação.
+De entre esses valores pode- se considerar, por exemplo, os parâmetros de contenção e liberação de pacotes, bem como a utilização de filas de roteadores.
+A avaliação da contenção de pacotes verifica o atendimento de requisitos relacionados ao tempo de envio de mensagens de uma dada aplicação.
+Os seguintes parâmetros podem ser monitorados:
+Os requisitos de liberação de pacotes são avaliados com o objetivo de verificar o cumprimento ou não de requisitos de taxa de transmissão de dados por a fonte, recepção no destino e ocupação dos canais da rede.
+O tráfego aceito é a relação existente entre as taxas de injeção e as taxas de recepção, sendo que as informações para análise são coletadas nas interfaces externas dos núcleos geradores e receptores de tráfego.
+A taxa de utilização de canais especifica o percentual de tempo em que o mesmo está ocupado com a transmissão de dados.
+Durante a monitoração de utilização de filas são verificados os buffers dos roteadores (buffers internos) e/ ou aqueles conectados às interfaces de rede -- Ni (Network Interface).
+Em essa monitoração, salientam- se alguns parâmetros importantes, tais como:
+Quando as informações são avaliadas após a execução do sistema, e servem como referência para alguma modificação estrutural da arquitetura da rede, o processamento é denomidado offline.
+Por exemplo, em função de os dados obtidos durante a simulação pode- se dimensionar enlaces, buffers e até suprimir roteadores da rede gerando- se uma topologia irregular.
+Entretanto, quando as informações são avaliadas durante a simulação do sistema, o processamento é denominado online.
+O foco do presente trabalho está no monitoramento on-line.
+O monitoramento on-line permite a tomada de decisões de mapeamento e de roteamento, por exemplo.
+O processamento off-line mostra- se mais apropriado para tratamento de tráfego conhecido, onde é maior a previsibilidade do comportamento da aplicação, isto devido a rotas de tráfego previamente definidas.
+Quanto a a localização do serviço de processamento dos dados de monitoração, duas abordagens podem ser adotadas:
+Monitoração centralizada;
+E monitoração distribuída.
+As maneiras como podem ser transmitidas as informações de monitoramento em NoCs são apresentadas abaixo:
+Em este trabalho empregam- se:
+Monitoração distribuída, com controle centralizado;
+E interconexão física comum multiplexada.
+Marescaux Apresentam uma técnica de controle de congestionamento utilizando monitores em roteadores, denominado monitor de buffer.
+O monitor de buffer utiliza quatro sinais:
+New_ packet, acionado quando um novo pacote chega ao roteador;
+Source, que indica a fonte do pacote;
+Priority, que especifica a prioridade do pacote e packets_ outqueue, que informa quantos pacotes existem no buffer.
+O monitor de buffer é conectado na porta de saída dos buffers dos roteadores da rede de dados.
+Sua função principal é verificar o congestionamento através de medição da quantidade de pacotes que são armazenados no interior do buffer do roteador.
+Se existirem mais pacotes no buffer do que especificado num nível de threshold, significa que o mesmo está congestionado.
+Uma vez detectado congestionamento, deve ser enviada uma mensagem de congestionamento para o IP de controle.
+Para tomar uma decisão, o monitor de buffer armazena informações relativas a pacotes recentes numa fila separada de histórico, denominada hFIFO, a qual contém o endereço fonte e a prioridade do pacote.
+É então invocada a função find_ lowest para pesquisar todos os campos de prioridade na hFIFO para encontrar o endereço fonte do pacote que possui a menor prioridade.
+Se dois pacotes possuem a mesma prioridade, a fonte do pacote mais recente é selecionada.
+Uma mensagem de notificação de congestionamento composta por o endereço fonte e a prioridade é então reportada ao monitor de congestionamento.
+A entrada na FIFO de histórico é marcada como notified para evitar notificações subsequentes.
+A marca notified é local à hFIFO do monitor de buffer, portanto o mesmo pacote pode acionar mais notificações de congestão nos próximos hops ao longo de o caminho de um fluxo.
+Finalmente, é gerada uma mensagem de controle que utiliza fios separados para transmitir notificações de congestionamento sobre a rede para as fontes de tráfego relacionadas, as quais ajustam a sua taxa de injeção.
+Brand 2007 Brand Propõem uma estratégia de controle de congestionamento com o objetivo de limitar a latência na rede, denominada CCBE (Congestion Controlled Best Effort).
+Os autores definiram a utilização dos enlaces como sendo o parâmetro de medição de congestionamento, por o fato do considerarem mais direto que a ocupação em buffers.
+Medidas de congestionamento realizadas no enlace são consideradas mais precisas, por especificar com precisão onde a congestão ocorre.
+A técnica MPC (Model Predictive Control) combina predições baseadas na modelagem de um sistema com dados de medição.
+Controladores MPC oferecem suporte para tratar latências com variabilidade (jitter), o que é considerado um fator crítico.
+Parâmetros de referência, como por exemplo utilização de enlaces e cargas oferecidas por conexões de melhor esforço ­ Be (BestEffort) podem ser especificados ao MPC, o qual toma decisões de controle com base nestes valores para que o sistema não oscile.
+O controlador MPC é utilizado de forma centralizada em conjunto com o serviço de monitoração centralizado.
+Pontos de teste espalhados por a rede são utilizados para obter medidas de utilização dos enlaces.
+Tais informações são transmitidas ao longo de canais de serviço garantido ­ Gs (Guaranteed Service), para atingir o objetivo de se obter um sistema confiável, sem interferência de outros fluxos da rede.
+A partir de os dados de medição, é realizado o controle de injeção de dados na rede por a fonte, de modo a evitar congestionamento.
+Ciordas 2004 Ciordas Em propõem um serviço de monitoramento genérico para NoCs onde os pontos de teste de monitoração são conectados a componentes tais como:
+Roteadores ou interfaces de rede.
+O serviço de monitoração é configurado em tempo de execução, por um módulo IP conectado a uma interface de rede, denominado MSA (Monitoring Service Access Point).
+O serviço de processamento dos dados de monitoração pode ser centralizado ou distribuído.
+Em um serviço de monitoração centralizada, como o apresentado na Figura 1 (a), a informação monitorada por os pontos de teste é coletada num ponto central, nesse caso por um simples MSA, destacado na Figura 1 (a).
+Essa configuração é possível e conveniente para redes pequenas.
+Contudo, o envio de dados monitorados somente para um ponto central pode tornar- se um gargalo em redes maiores.
+Em o serviço de monitoramento distribuído, a informação a ser monitorada é coletada de diferentes subconjuntos de componentes de NoC, localizados em diferentes pontos da rede.
+Em essa configuração, gargalos de desempenho são minimizados adquirindo- se, assim, escalabilidade, o que torna esta estratégia mais adequada para redes de maior tamanho.
+A Figura 1 (b) ilustra o serviço de monitoração distribuído, composto por dois subconjuntos de componentes, MSA1 e MSA2, que controlam diferentes regiões da rede.
+O gerenciador de tráfego direciona o tráfego do MSA para os pontos de teste (quando for requisitada a configuração dos pontos de teste) e o tráfego dos pontos de teste para o MSA (quando forem requisitadas informações de monitoramento).
+Toda a informação monitorada é modelada no formato de eventos.
+Cada evento possui os seguintes parâmetros:
+Os pontos de teste de monitoração responsáveis por a captura das informações na NoC não são necessariamente conectados a todos os componentes da NoC, sendo sua localização definida em tempo de projeto.
+Para a definição dessa localização é necessário observar o compromisso de seu custo com a quantidade de eventos observados.
+Eventos monitorados podem ser relacionados:
+Ciordas Apresentam diversas alternativas escaláveis para a transmissão das informações de monitoramento em NoCs.
+As alternativas de como podem ser transmitidas as informações de monitoramento são ilustradas na Figura 2.
+Em essa Figura, podem ser observados exemplos da utilização de um processamento de informações centralizado, onde o MSA é um núcleo IP conectado à rede.
+É possível, entretanto, a utilização de uma configuração distribuída.
+Em o caso ilustrado por a Figura 2 (a), outra rede física específica é escolhida para monitorar a rede de dados a qual são conectados os pontos de teste.
+Essa estrutura é utilizada para transportar as informações monitoradas por os pontos de teste para o MSA e para monitorar a configuração de seu tráfego para os pontos de teste.
+A estrutura dessa NoC pode ter topologia diferente da rede de dados.
+Um número menor de pontos de teste pode ser adotado, dando cobertura a regiões mais críticas da rede.
+O fato dos dados monitorados trafegarem numa rede isolada traz como vantagem a ausência de interferência que seria causada por dados de aplicações.
+As desvantagens dessa abordagem estão relacionadas ao custo em área de silício e à impossibilidade de reuso da estrutura para outros tipos de tráfego.
+A inserção de mais fios aumenta a probabilidade de aparecimento de crosstalk, um fenômeno que pode ocasionar erros na transmissão dos dados.
+Em a Figura 2 (b) é ilustrada uma segunda alternativa de monitoração, onde apenas uma rede é utilizada.
+Observa- se que são acrescentadas novas portas nos roteadores para fazer a conexão dos pontos de teste e do MSA.
+O fato dos enlaces serem conectados aos mesmos roteadores que a rede de dados de aplicações traz ao sistema flexibilidade, uma vez que é possível o acionamento da transmissão de dados por essas vias quando as mesmas não estiverem enviando dados de monitoração.
+A principal desvantagem dessa alternativa é que os roteadores são normalmente limitados a um número máximo de portas.
+A terceira alternativa para transmitir as informações de monitoramento é ilustrada na Figura 2 (c), onde se pode visualizar a abordagem em que os enlaces que interligam os roteadores têm sua utilização multiplexada entre tráfego de dados de monitoração e de aplicações.
+Essa abordagem pode causar interferência dos dados de monitoração na transmissão de dados de aplicação, o que pode ser minimizado com a adoção de um mecanismo de escalonamento de comunicação baseado em prioridades.
+As vantagens dessa abordagem encontram- se no menor custo em área de silício e a reusabilidade da estrutura original da rede.
+Um breve resumo das vantagens e desvantagens das alternativas para transmitir informações de monitoramento abordadas anteriormente é apresentado na Tabela 1.
+Observa- se na Tabela 1 que o uso de caminhos independentes para a monitoração, alternativas e, são opções não-intrusivas (não afetam o fluxo dos dados) e são mais simples de serem acrescidas no fluxo de projeto da rede.
+A alternativa requer a modificação do roteador, sendo necessário o acréscimo de lógica adicional.
+Por essa razão o fluxo de projeto é comprometido.
+Entretanto, a alternativa é a que menor causa impacto na área final, pois não requer uma rede extra) nem portas adicionais na interface de rede (alternativa (2)).
+Kim 2007 Kim Em propõem um sistema de monitoração de tráfego onde são medidos diversos parâmetros em tempo de execução, com o objetivo de, através dos valores medidos, modificar dois parâmetros da NoC:
+Tamanhos de buffers;
+E caminhos de roteamento.
+A estrutura do sistema de monitoramento de tráfego consiste de três subsistemas:
+Interface hospedeira;
+Controlador central;
+E unidades de monitoramento.
+A unidade de monitoramento consiste de um ponto de teste de tráfego, um gerenciador de tráfego e uma memória de tráfego.
+O ponto de teste é conectado a um roteador ou a uma interface de rede com o objetivo de registrar parâmetros de tráfego em tempo de execução, tais como latência fim-a-fim, preenchimento de buffers e utilização de enlaces.
+O gerenciador de tráfego, então, armazena os dados em sua memória local após anexar um timestamp em cada registro, utilizando como referência um contador global conectado a todas as unidades de monitoramento.
+Durante a execução de uma aplicação, todos os resultados monitorados são armazenados na memória local correspondente.
+Os resultados monitorados são transferidos por o módulo interface hospedeira para um computador externo (controlador central), através de uma conexão do tipo Ethernet.
+O controlador central habilita/ desabilita cada unidade de monitoramento baseado num escopo de requisições de monitoramento a partir de regiões da rede e um intervalo de tempo.
+O sistema de monitoramento de tráfego proposto por os autores possui uma arquitetura modular o que permite anexar uma unidade de monitoramento a qualquer componente da NoC em tempo de execução.
+Fiorin 2008 Fiorin Em apresentam um sistema de monitoramento para arquiteturas baseadas em NoC, com o objetivo de detectar violações de segurança em dispositivos e ajudar a combater- las através do monitoramento de acessos a endereços específicos de memória e desvios de comportamentos esperados.
+O sistema de monitoramento é composto, por três elementos:
+Pontos de teste;
+Gerente de segurança da rede;
+E infra-estrutura de comunicação (roteadores e interfaces de rede).
+Os pontos de teste coletam informações sobre o tráfego da NoC e são localizados dentro de interfaces de rede.
+O fato de adicionar os pontos de teste dentro de NIs permite a análise direta do tráfego quando inserido por o núcleo.
+Sendo assim, um tráfego detectado como malicioso pode ter seu acesso suspenso ou limitado à NoC.
+Cada ponto de teste gera um evento a ser encaminhado a um gerador de eventos.
+Em esse, é gerado um pacote utilizado para notificar o gerente de segurança da rede sobre possíveis violações de segurança encontradas.
+As definições de evento são aplicadas através dos conceitos discutidos em, onde um evento pode ser representado como uma tupla, composta de um identificador, uma etiqueta de tempo (timestamp), um produtor e vários atributos.
+A arquitetura do ponto de teste é constituída por dois módulos principais, são eles:
+Ponto acessos ilegais a blocos de memórias ou faixas de endereços de memórias em sistemas com memória compartilhada.
+No entanto, esse módulo não fornece proteção contra os ataques visando à criação de negação de serviço num sistema, por exemplo, através da injeção de pacotes inúteis que tenham como meta a intenção de reduzir os recursos de largura de banda do sistema.
+O DoSP é responsável por coletar informações sobre o tráfego gerado por os elementos de processamento que fazem interface com a Ni para detectar comportamentos não comuns no tráfego, interpretados como sintomas de ataques de negação de serviço.
+O gerente de segurança da rede é um núcleo dedicado do sistema responsável por a coleta de eventos e informações provenientes dos pontos de teste além de analisar esses dados e elaborar medidas adequadas para neutralizar a ataques.
+O sistema de monitoramento de segurança consome em torno de 25,6% da área total da interface de rede utilizada por esse sistema.
+Comparada com a mesma interface de rede, porém sem o sistema de monitoramento, a sobrecarga de área associada é em torno de 34,7%.
+Vermeulen 2009 Vermeulen Em apresentam uma infra-estrutura de monitoramento para MPSoCs que possui seus elementos de processamento comunicando- se através de uma NoC e de barramentos.
+A Figura 3 ilustra a infra-estrutura proposta por o autor.
+Nota- se, através da Figura que há barramentos externos a NoC, conectados a mais de um roteador.
+A infra-estrutura é aplicada com o objetivo de analisar o desempenho do MPSoC e validar o seu correto funcionamento.
+Um modelo (template) genérico de monitor é implementado para monitorar barramentos e roteadores, esses monitores são instanciados em tempo de projeto através de um fluxo de projeto de NoC.
+O monitoramento de roteador observa um fluxo de pacote de dados nos canais de comunicação entre roteadores ou entre roteadores e interfaces de rede.
+Em o monitoramento dos barramentos externos é observado o fluxo de dados entre as interfaces de rede e barramentos, ou barramentos e elementos de processamento.
+O template do monitor projetado inclui os seguintes componentes:
+O PSFE possui um filtro de transações para restringir o monitoramento para um subconjunto de dados de comunicação sobre um canal.
+Utilizando o conhecimento do protocolo de comunicação da NoC, o PSFE fornece dados brutos e informações sobre:
+Qualidade de serviço (Best Effort, Be ou Guaranteed Throughput, GT), número de palavras num flit do pacote da NoC, e se os dados no canal pertencem a um cabeçalho do pacote, um corpo de pacote e fim de um pacote.
+Através dessas informações o PSFE pode ser configurado para filtrar as transações observadas por os monitores.
+A utilização de largura de banda para esse trabalho é definida como o número real de ciclos de barramento usado para transportar dados sobre o canal monitorado, normalizados para o número total de ciclos de barramento num determinado intervalo de tempo.
+Essa métrica é medida para todos os subconjuntos de tráfego sobre o canal, conforme determinado por a programação do filtro de transações opcionais.
+Medições de latência são úteis para os protocolos de barramento, onde um protocolo de comunicação (handshake) é usado para transferir cada elemento de dados de uma transação.
+Em uma NoC, os dados são tipicamente transportados através de canais num determinado período de tempo, isto é, sem variação na latência.
+Em esses casos, não é necessário incluir medidas de transação de latência para o monitor.
+O componente gerador de trigger é usado para gerar um disparo de depuração após um número predefinido de transações específicas que tenham ocorrido sobre o canal monitorado.
+O componente de gerador de checksums é útil para calcular assinaturas compacta de dados brutos sobre o canal de comunicação ou valores de protocolos abstratos.
+A mesma funcionalidade do filtro de transação é aplicada no componente de somas de verificação.
+O controle dos monitores e os registros de status são acessíveis a partir de uma interface de depuração.
+Através desses registros um operador do sistema pode programar as métricas de desempenho para medir e definir pontos de disparo para parar o sistema de monitoramento.
+Os resultados experimentais desse trabalho apresentam que o custo de área para cada monitor é relativamente pequeno comparado a um projeto de SoC de milhões de portas, habilitando seu uso irrestrito em lugares estratégicos numa plataforma MPSoC, de forma a ajudar a encontrar erros funcionais e auxiliar na análise de desempenho em tempo execução.
+Fiorin 2009 Fiorin Em propõem monitoramento em tempo de execução de atividades de um sistema numa plataforma MPSoC baseada em NoC através da observação das operações realizadas sobre um subsistema de comunicação.
+A principal meta do sistema de monitoramento é recuperar informações úteis em tempo de execução para otimizar e alocar recursos em sistemas adaptativos.
+As informações são coletadas através de pontos de teste inseridos dentro de interfaces de rede e são enviadas para uma unidade central, encarregada de coletar as informações em tempo de execução.
+A plataforma referida nesse trabalho possui seus núcleos mapeados em memória e a NoC implementa um protocolo no nível de transação, com núcleos atuando como iniciadores (fontes) ou destinos de transações.
+O sistema de monitoramento é composto por três elementos principais:
+Pontos de teste;
+Infra-estrutura de comunicação (roteadores e NIs);
+E gerente.
+Em os pontos de teste, as transações são analisadas quando solicitadas por um núcleo (pontos de teste em iniciadores Ni) ou quando são recebidos (pontos de teste em fontes Ni).
+As informações medidas por os pontos de teste são enviadas ao gerente (unidade central) através de pacotes de eventos criados por um gerador de eventos, acionado por os pontos de teste.
+As definições de evento são aplicadas através dos conceitos discutidos em, onde um evento pode ser representado como uma tupla, composta de um identificador, uma etiqueta de tempo (timestamp), um produtor e vários atributos.
+A partir de a análise de possíveis transações solicitadas por um núcleo agindo como iniciador ou destino, foram identificadas três categorias gerais de perfis que podem ser extraídos por o sistema de monitoramento:
+A arquitetura do ponto de teste é composta por três diferentes arquiteturas de pontos de teste, são elas:
+Ponto de teste de vazão;
+Ponto de teste de tempo;
+E ponto de teste contador.
+O ponto de teste de vazão (Throughput Probe, THP) fornece medidas sobre a quantidade de tráfego gerado por os núcleos numa determinada janela de tempo.
+Em o ponto de teste de tempo (Timing Probe, TMP) informações sobre medidas de tempo são fornecidas.
+O ponto de teste contador (Counter Probe, CNP) monitora o número de transações, dirigidos a um destino específico.
+O comprimento da janela de tempo pode ser definido por o gerente em tempo de execução ou por um projetista em tempo de projeto.
+Em o final da janela de tempo, o gerador de eventos é acionado e cria um pacote para transmitir as informações coletadas para o gerente.
+A sobrecarga de área que o sistema de monitoramento implica na Ni é de aproximadamente 27% para pontos de teste implementados em iniciadores e de aproximadamente 10% quando implementados em destinos.
+Considerações Finais A Tabela 2 resume as principais características dos trabalhos identificados na literatura e apresentados neste Capítulo.
+Observa- se que os trabalhos possuem como métrica de monitoramento o preenchimento de buffers e quantidade de dados que trafegam nos enlaces.
+Os pontos de teste localizam- se em roteadores em grande parte dos trabalhos.
+Quanto a o processamento de informações de monitoração, a abordagem centralizada é ainda a alternativa mais utilizada.
+Em a transmissão das informações monitoradas, a maioria dos trabalhos utiliza somente uma rede como estrutura de comunicação.
+Além disso, os sistemas que monitoram o tráfego da rede observam o comportamento do tráfego em tempo de execução, obtendo assim, informações mais precisas do tráfego de dados.
+Em o trabalho proposto os monitores são adicionados nos roteadores da NoC, para que observem em tempo de execução o comportamento do tráfego de dados nas portas de entrada dos roteadores.
+O foco do trabalho esta no processamento das informações realizado no processador gerente do MPSoC, que de posse das informações gera uma estrutura de dados que reflete a ocupação dos processadores da plataforma MPSoC.
+A transmissão dos dados de monitoramento ocorre na mesma rede em que trafegam dados de aplicação, evitando um acréscimo de área.
+Baseando- se nos trabalhos revisados, os monitores nos roteadores da rede HERMES2 foram implementados com o objetivo de monitorar o tráfego da rede, gerando informações úteis para analisar seu desempenho.
+Esse monitoramento indica a vazão em cada porta de entrada dos roteadores e permite, assim, que se determine a carga da rede.
+Este Capítulo corresponde à principal contribuição da Dissertação, ou seja, a implementação dos monitores em roteadores da rede Hermes.
+O restante do Capítulo apresenta as alterações realizadas no roteador da arquitetura alvo para adicionar os monitores na rede bem como o módulo desenvolvido para receber as informações geradas por os monitores e realizar a montagem de um pacote de dados de monitoramento.
+A rede Hermes é uma infra-estrutura parametrizável, especificada em VHDL no nível RTL.
+Os roteadores possuem uma lógica de roteamento centralizada e cinco portas de comunicação bidirecionais:
+Leste, Oeste, Norte, Sul e Local.
+A porta Local é utilizada para estabelecer a conexão entre o roteador e seu módulo de processamento local, enquanto as outras portas são conectadas a roteadores vizinhos.
+Cada porta possui buffers de entrada para armazenamento temporário de dados.
+Cada porta unidirecional (entrada ou saída) do roteador corresponde a um canal físico.
+A rede utiliza o modo de chaveamento wormhole, em o qual um pacote é transmitido entre os roteadores em flits.
+O modo wormhole permite que cada canal físico seja multiplexado em n canais virtuais (Virtual Channel, VC).
+Para controle de fluxo pode ser utilizada a estratégia handshake ou a baseada em créditos.
+A arquitetura básica da rede utilizada para a implementação dos monitores apresentada possui uma topologia malha 4x4, com tamanho do flit de 16 bits, profundidade das filas de 8 posições, algoritmo de roteamento XY, controle de fluxo baseado em créditos e não possui canais virtuais.
+Implementação dos Monitores na Rede Hermes A análise do desempenho da NoC Hermes é realizada através de monitores inseridos nas portas de entrada de todos os roteadores da rede.
+Os monitores implementados geram informações sobre o tráfego da rede a partir de a quantidade de flits que passam nas portas de Hermes realiza a interconexão dos núcleos da plataforma MPSoC alvo desse trabalho.
+As informações geradas por os monitores são transmitidas a um módulo denominado de GPC (Gerador de Pacotes de Controle), sendo que a transmissão é realizada através dos próprios monitores.
+O GPC tem por finalidade enviar periodicamente pacotes de dados de monitoramento a um sistema de controle (MSA), onde as informações de todos os monitores são coletadas.
+Para a estrutura de monitoramento são inseridos nos roteadores da NoC Hermes monitores em cada porta de entrada dos roteadores, assim como o módulo gerador de pacotes (GPC), como pode ser visto na Figura 4.
+Como há somente uma rede como estrutura de comunicação, é necessário realizar a multiplexação de alguns sinais provenientes da porta local do roteador e do GPC para que sejam transmitidos ou dados provenientes do IP, ou seja, das aplicações ou dados de monitoramento oriundos do GPC.
+A arquitetura do monitor é desenvolvida para roteadores de cinco portas, mas esses podem ser aplicados a roteadores com um número menor de portas.
+No caso de roteadores que possuam um menor número de portas, o monitor irá conter o valor de quantidade de flits igual a zero para as portas inexistentes, pois nessas não há tráfego de dados.
+Por exemplo, para o roteador que possua apenas as portas oeste, norte e local, o valor da quantidade de flits que passaram numa determinada janela de tempo na porta de entrada sul e leste é igual a zero.
+As portas leste, oeste, norte, sul e local enviam ao GPC o valor referente a a quantidade de flits recebidos (count_ xxx).
+O IP conectado à porta local envia ao GPC o sinal de controle rx, o qual indica se esse IP está ou não injetando dados na rede.
+Como os dados de monitoramento (data_ aux) são multiplexados com os dados do IP (data_ in (4)) e o sinal de controle rx (4) é multiplexado com o sinal de controle rx_ aux, houve a necessidade de se criar o sinal enable_ aux para realizar esses controles.
+Quando o sinal enable_ aux está ativo, os dados de monitoramento são enviados para a rede.
+O controle de fluxo responsável por a transmissão de dados da aplicação é realizado por o sinal credit_ o, definido em função de os sinais credit_ aux e enable_ aux, provenientes da fila Flocal e GPM, respectivamente.
+Quando se está enviando dados de monitoramento, a porta lógica And desabilita o sinal de crédito que vai para o IP conectado à porta local, evitando, assim, a inserção de novos dados durante a transmissão de pacotes de controle.
+Os monitores repassam a quantidade de flits que são recebidos nas portas de entrada dos roteadores numa janela de tempo.
+Em o nível físico a transferência de flits nos enlaces da NoC Hermes segue duas possíveis estratégias de controle de fluxo:
+Crédito e handshake.
+Os monitores funcionam para essas duas estratégias.
+Em um controle de fluxo baseado em créditos, a transferência de um flit se dá num ciclo de relógio (na NoC Hermes, sinal clock_ rx do roteador).
+A quantidade de flits só é computada por o monitor se houver crédito na porta do roteador.
+No caso de o controle de fluxo baseado no protocolo handshake, a transferência de um flit se dá em dois ciclos de relógio, ou seja, a quantidade de flits é computada por o monitor a cada dois ciclos de relógio.
+O módulo Gerador de Pacote de Controle recebe as informações coletadas por os monitores, ou seja, recebe informações sobre o tráfego provindas das cinco portas do roteador.
+Em cada um dos dados há a informação da quantidade de flits que foram consumidos por as portas leste, oeste, norte, sul e local dos roteadores da rede.
+Tais informações devem ser transmitidas para um sistema de controle.
+Para isso, o GPC as encapsula num pacote de monitoramento, denominado pacote de controle.
+Esse pacote tem um tamanho total de dez flits, sendo quatro para o cabeçalho (header) e seis para o corpo de dados (payload).
+A Figura 5 ilustra os campos que compõem o pacote de controle.
+Como visto, além de as informações de tráfego tem- se outras informações no pacote.
+Para compor o cabeçalho do pacote temos o campo target, em que é determinado o destino do pacote;
+A Figura 6 ilustra a máquina de transição de estados que controla a transmissão dos pacotes de controle.
+A máquina é inicializada através do sinal reset.
+O estado inicial chama- se Sidle.
+Em esse estado ocorre a inicialização dos sinais:
+O segundo estado é o Sstart.
+A máquina permanece nesse estado enquanto a janela de tempo não chegar ao valor pré-definido.
+Em o estado seguinte, Stx, ocorre a verificação se a porta local está ou não ocupada recebendo dados de um IP.
+Se a porta local estiver desocupada a máquina avança para o próximo estado, Senable.
+Em esse estado, o sinal trigger é ativado, através desse sinal os monitores param a contagem de quantidade de flits.
+Ainda em Senable o sinal enable_ ctrl é ativado.
+Em o estado seguinte, Starget, o envio do pacote é inicializado, ativando- se o sinal rx_ ctrl_ out..
+Em a forma de onda apresentada na Figura 7 é possível verificar o funcionamento correto da máquina de estados que controla a transmissão dos pacotes de controle.
+É destacada na forma de onda a transição de nível lógico de três sinais importantes no controle do envio dos pacotes, rx_ ctrl_ in, enable_ ctrl e rx_ ctrl_ out..
+Em cada um dos destaques da Figura é possível verificar que:
+Após esta ativação o sinal data_ ctrl_ out passou a receber os valores correspondentes a cada campo do pacote.
+Em a Figura 8, observa- se a montagem correta do pacote de controle.
+Em destaque na Figura, é possível ver os dez campos que compõem o pacote bem como seus respectivos valores conforme apresentado na Figura 5 (página 43).
+Outro destaque dessa Figura é a quantidade de flits registrada nos monitores.
+Percebe- se a que esses valores preenchem os últimos cinco campos do pacote, ou seja, os valores correspondentes as informações monitoradas.
+É importante destacar que os dados de monitoramento são enviados apenas quando a janela de tempo atingir o tempo pré-determinado e se o IP conectado à porta local do roteador responsável por a geração dos dados de monitoramento não estiver injetando dados na rede.
+Caso o IP esteja injetando dados na rede e a janela de tempo tenha atingido o tempo definido, os monitores não param de contar a quantidade de flits.
+Portanto cria- se o sinal trigger, que é responsável por o controle de leitura da contagem dos monitores, e o respectivo zeramento dos mesmos.
+Em a Figura 8, pode- se verificar que os dados de monitoramento são enviados após a ativação do sinal trigger.
+Utilização DOS Dados De Monitoramento NA Plataforma HeMPS Este Capítulo corresponde à segunda contribuição da Dissertação, ou seja, o desenvolvimento de um sistema para recepção e tratamento dos dados monitorados no MPSoC HeMPS.
+O restante deste Capítulo apresenta como é realizada a integração da estrutura de monitoramento com a plataforma MPSoC.
+Plataforma HeMPS Em este trabalho é utilizado o MPSoC HeMPS, uma plataforma homogênea que emprega processadores Plasma interconectados por a NoC Hermes.
+A HeMPS possui uma arquitetura de processadores mestre-escravo, e uma infra-estrutura de hardware e software.
+A Figura 9 ilustra uma instância do MPSoC HeMPS utilizando uma NoC com dimensões 2 x 3 para interconectar cinco processadores Plasma-IP SL (processador escravo) e um processador Plasma-IP MP (processador mestre).
+Plasma-IP. Diversas aplicações, sejam elas com a mesma ou diferentes finalidades podem executar simultaneamente num MPSoC.
+Caso novas aplicações possam ser inseridas no sistema em tempo de execução, caracteriza- se uma carga dinâmica de trabalho.
+Uma forma do MPSoC suportar novas aplicações em tempo de execução é ter um número de recursos de processamento igual ao somatório das tarefas de todas as aplicações, o que freqüentemente não ocorre.
+Uma forma de minimizar o custo do sistema é através do uso de mapeamento dinâmico de tarefas, onde apenas a tarefa inicial de cada aplicação é mapeada no sistema.
+A plataforma HeMPS assume que todas as aplicações são modeladas através de um grafo de tarefas, em que somente as tarefas iniciais são carregadas no sistema no momento da inicialização do mesmo.
+As demais tarefas são armazenadas numa memória externa, chamada de repositório de tarefas, sendo inseridas dinamicamente no sistema em função de as requisições de comunicação e dos recursos disponíveis.
+Os processadores escravos (Plasma-IP SL) executam um microkernel que suporta os serviços de execução multi-tarefa e comunicação entre tarefas.
+O microkernel segmenta a memória em páginas, alocando a si próprio a primeira página e utilizando as demais para a alocação de tarefas.
+Cada Plasma-IP tem uma tabela de tarefas com a localização das tarefas locais e remotas.
+O processador mestre (Plasma-IP MP) é responsável por o gerenciamento dos recursos do sistema.
+Este processador não executa tarefas de aplicações, e é o único a ter acesso ao repositório de tarefas, visando reduzir o tráfego de dados na NoC e aumentar o desempenho do sistema.
+Suas principais funções são a alocação das tarefas iniciais e o mapeamento de novas tarefas demandadas em tempo de execução.
+Além disso, também verifica o fim da execução de uma tarefa e a liberação de recursos no sistema, bem como recepciona mensagens de controle, tais como finalização de tarefas e debug de pacotes.
+As informações de monitoramento são tratadas neste processador.
+Detalhes do Módulo Plasma-IP O módulo DMA (Direct Memory Access), contido no Plasma-IP é responsável unicamente por transferir os códigos objeto das tarefas que chegam à Ni para a memória do processador escravo local, permitindo que o processador realize a execução das suas tarefas em paralelo com a recepção de novas tarefas.
+Visando facilitar a avaliação de desempenho do sistema, foi criado um registrador denominado tick_ counter.
+Este registrador acumula ciclos de relógio durante a execução do sistema e pode ser lido por o microkernel ou por aplicações através de uma chamada de sistema.
+Um contador, denominado time_ slice, é criado para controlar uma determinada fatia de tempo durante a qual uma tarefa é executada.
+Dentro de o módulo Plasma-IP é incluída uma interface de rede, que realiza a interconexão entre o processador Plasma e a NoC, sendo responsável por:
+Enviar e receber pacotes da rede;
+E repassar o código objeto de tarefas recebido da rede, através do DMA, para a memória e informar ao microkernel qual a sua localização na rede.
+A o receber um pacote da rede, a Ni interrompe o processador para que este receba os dados.
+Um pacote que trafega na rede possui o formato:
+O campo payload é formado por: Através do código do serviço o microkernel decide qual ação tomar após ter recebido o pacote.
+Os serviços que um pacote pode carregar juntamente com seus códigos de identificação são descritos na Tabela 3.
+A Tabela 3 lista os serviços de comunicação entre processador mestre e escravo, para:
+Alocação estática e dinâmica de tarefas;
+Message_ request:
+Solicitação de uma mensagem por parte de o processador escravo 0x00000010 MESSAGE_ DELIVERY:
+Entrega de uma mensagem previamente solicitada 0x00000020 MESSAGE_ UNAVAILABLE:
+Aviso de que a mensagem solicitada não existe 0x00000030 TASK_ ALLOCATION:
+Alocação de tarefa 0x00000040 TASK_ ALLOCATED:
+Aviso de que uma nova tarefa está alocada no sistema 0x00000050 TASK_ REQUEST:
+Requisição de uma tarefa por parte de o processador escravo para o nodo mestre (alocação dinâmica) 0x00000060 TASK_ TERMINATED:
+Aviso por parte de o processador escravo para o nodo mestre de que uma tarefa terminou a sua execução 0x00000070 TASK_ DEALLOCATED:
+Aviso por parte de o nodo mestre de que uma tarefa terminou a sua execução e pode ser liberada 0x00000080 FINISHED_ ALLOCATION:
+Aviso que o nodo mestre terminou a alocação inicial das tarefas (alocação estática) 0x00000090 Debug_ MESSAGE:
+Mensagem de depuração 0x00000100 Em uma alocação estática, o processador mestre, através do serviço TASK_ ALLOCATION, informa a um determinado processador escravo que uma tarefa deve ser alocada no mesmo.
+Após a alocação da tarefa, o processador mestre informa através do serviço TASK_ ALLOCATED os outros processadores escravos que fazem parte do sistema, exceto o escravo com a tarefa alocada, de que a tarefa foi alocada num determinado processador).
+Em a alocação dinâmica diferentemente da alocação estática, é usado um serviço adicional, TASK_ REQUEST, este enviado por o processador escravo ao mestre solicitando uma tarefa).
+Através do serviço FINISHED_ ALLOCATION o processador mestre informa aos outros processadores do sistema que a alocação estática de todas as tarefas terminou).
+Os serviços MESSAGE_ UNAVAILABLE e MESSAGE_ DELIVERY são respostas do serviço MESSAGE_ REQUEST, e são utilizados na comunicação entre tarefas remotas).
+Quando um processador escravo termina a execução de uma tarefa é necessário que um aviso informando o término da execução seja feito ao processador mestre, aviso este feito através do serviço TASK_ TERMINATED.
+O mesmo ocorre por parte de o mestre, que deve informar aos escravos, exceto a o que lhe enviou o serviço, que a tarefa pode ser liberada, informação essa transmitida por o serviço TASK_ DEALLOCATED).
+O serviço Debug_ MESSAGE permite aos usuários da plataforma HeMPS analisar simulações de aplicações que utilizem este serviço).
+Integração da Estrutura de Monitoramento no Microkernel do Plasma-IP MP A estrutura de monitoramento implementada no presente trabalho está inserida no microkernel do processador mestre do MPSoC HeMPS na forma de um serviço que recebe e identifica pacotes de controle, coletando seus dados e os armazenando em estruturas de controle.
+Uma nova função é destinada ao processador mestre, em a qual este é o responsável por a montagem das estruturas de dados que armazenam o estado do sistema, sendo utilizadas para o controle da ocupação dos canais da rede e dos processadores.
+Portanto, para o processador mestre realizar a nova função, fez- se alterações em sua estrutura.
+O Plasma-IP MP é o responsável, assim, por o sistema de controle (MSA).
+A funcionalidade do novo serviço adicionado no microkernel do processador mestre é detectar e tratar os pacotes de controle provenientes dos processadores escravos.
+Este serviço é denominado Debug_ MONITORING e possui o seguinte código de identificação:
+0x00000110. A o detectar o recebimento de um pacote de controle, através do campo service que contém o código do serviço Debug_ MONITORING, o microkernel deve tratar as informações de monitoramento contidas nos pacotes.
+Lembrar, que o campo payload dos pacotes que trafegam por a rede, é formado por os campos: As informações a serem tratadas estão contidas no campo service_ parameters, que é preenchido com o payload do pacote de controle, ilustrado na Figura 5 (página 36).
+O tratamento dessas informações é realizado através da função DebugMonitoring () implementada no microkernel do processador mestre, sendo o pseudo-código da função apresentado na Figura 11.
+A interface de rede (Ni) ao receber um pacote realiza as seguintes ações:
+Montagem das palavras de 32 bits a partir de os flits de 16 bits, e geração de uma interrupção para o processador.
+O processador ao ser interrompido por a Ni executa a função responsável por tratar o pacote recebido.
+A primeira ação é identificar o serviço contido no pacote.
+Caso o serviço seja de monitoramento, a função contida no pseudo-código da Figura 11 é executada.
+A linha 1 realiza a primeira leitura de palavra da Ni, correspondendo aos flits source e peast (a Ni os agrupa numa palavra de 32 bits).
+A linha 2 isola o número de flits da porta leste (east).
+Em a linha 3 é obtido o endereço do roteador que gerou o pacote recebido (source).
+As linhas 4 e 5 definem a partir de a variável source, o valor para a linha (l) e coluna (c), que serão utlizados para identificar o roteador que gera o pacote durante o preenchimento da estrutura de dados.
+Em a sequência há duas novas leituras de palavra da Ni, para se obter os valores dos demais monitores.
+Tratamento dos Pacotes de Monitoramento As estruturas de dados geradas para tratar os dados monitorados é implementada através de dois conjuntos de matrizes, baseadas em.
+O primeiro conjunto de matrizes armazena a quantidade total de flits recebida em cada canal ao longo de a execução das aplicações.
+O conteúdo destas matrizes é incrementado a cada novo pacote de monitoramento recebido.
+Cinco matrizes compõem este conjunto:
+East Channels Total (ECT), matriz contendo a ocupação dos canais com direção para leste;
+West Channels Total (WCT);
+North Channels Total (NCT);
+South Channels Total (SCT), e;
+Local Port Total (LPT).
+O segundo conjunto de matrizes armazena a quantidade instantânea de flits recebida em cada canal, a cada novo pacote de monitoramento recebido.
+Cinco matrizes compõem este conjunto:
+East Channels RCV (ECR), matriz contendo a ocupação dos canais com direção para leste;
+West Channels RCV (WCR);
+North Channels RCV (NCR);
+South Channels RCV (SCR), e;
+Local Port RCV Em estas matrizes, as posições de coluna c e linha i são obtidas por o pseudo-código apresentado na Figura 11.
+Essas 10 matrizes são inseridas no microkernel do processador mestre, e devem ser atualizadas em tempo de execução para que, baseado nas informações de ocupação dos recursos, o processador mestre possa definir, por exemplo, a melhor posição de mapeamento de tarefas.
+A Tabela 4 ilustra as matrizes para armazenamento total de flits.
+As matrizes RCV possuem estrutura análoga.
+A atualização das matrizes é implementada na função DebugMonitoring ().
+O pseudo-código apresentado na Figura 12, continuação do pseudo-código apresentado na Figura 11, demonstra como os dados monitorados são armazenados nas cinco matrizes Total e RCV.
+Figura 12 -- Pseudo-código demonstrando o armazenamento dos dados monitorados em cada uma das cinco matrizes Total e RCV.
+A posição da coluna e linha identifica qual é o roteador que enviou o pacote de controle que esta sendo tratado e as variáveis east, west, north, south e local armazenam o número de flits das cinco portas desse roteador.
+De a linha 1 até a linha 5 é realizado o preenchimento das matrizes RCV, de acordo com a posição coluna c e linha l. O preenchimento das matrizes Total com os dados monitorados é realizado das linhas 6 até a linha 10.
+A janela de tempo que é definida por o projetista da rede (tjanela) para geração dos pacotes de controle deve ser calculada de tal forma que o processador mestre não seja sobrecarregado com processamento de pacotes de controle.
+Assume- se como carga máxima um valor de 10% da carga do processador mestre para tratamento de pacotes de monitoramento.
+A Equação 1 pode ser utilizada para definir o valor da janela de tempo em ciclos de relógio.
+Onde: Nucleosqtd corresponde à quantidade de núcleos que compõem o MPSoC;
+Ttratamento é o tempo consumido para tratar o recebimento de pacotes de controle, em ciclos de relógio;
+Ocup é o valor de ocupação do processador mestre para tratamento de pacotes de controle.
+Por exemplo, assumindo- se:
+A o aplicar os valores mencionados na Equação 1 obtém- se uma janela de tempo igual a 8400 ciclos de relógio.
+A o se calcular o valor da janela, cabe ao projetista da rede informar, em tempo de projeto, seu valor.
+Em este Capítulo são apresentados os experimentos realizados para validar o correto funcionamento dos monitores implementados, bem como a estrutura de monitoramento integrada com o microkernel do processador mestre do MPSoC.
+Avaliação da Rede Hermes Os monitores implementados nas portas de entradas dos roteadores da NoC Hermes foram validados através de simulação.
+Três cenários de teste foram gerados utilizando a ferramenta Atlas, uma plataforma desenvolvida para geração automática da rede Hermes através de parâmetros definidos por o usuário, tais como dimensões da rede, tamanho dos buffers, largura dos flits, algoritmo de roteamento, entre outros.
+A o final da simulação de cada um dos três cenários espera- se calcular as taxas de recepção dos pacotes na rede.
+A Figura 13 apresenta a interface da plataforma Atlas para a geração das redes dos cenários de teste.
+Os parâmetros adotados para a rede dos cenários são:
+Dimensão da rede:
+4x4 roteadores;
+Tamanho do flit de 16 bits;
+Controle de fluxo baseado em créditos;
+Sem canais virtuais;
+Profundidade das filas de 8 bits, e;
+Algoritmo de roteamento XY.
+Os três cenários de teste utilizam a mesma configuração de rede e freqüência de operação de 50 MHz.
+Cada um dos cenários é gerado de modo que as taxas de injeção atinjam 10%, 20% e 25% da taxa máxima da rede.
+O cálculo da taxa máxima (taxamax) de injeção da rede é dado por a Equação 2.
+Onde tamflit é o tamanho do flit em bits e perclock é o período do relógio da rede em segundos.
+Aplicando- se na Equação 2 os valores do tamanho do flit e o período do relógio obtémse uma taxa máxima de injeção por canal igual a 800 Mbps.
+Através das informações coletadas por os monitores é possível calcular as taxas de recepção dos pacotes para cada uma das cinco portas de entrada dos roteadores.
+A taxa de recepção dos pacotes (taxarecep) é dada por a Equação 3.
+Onde qtdflits é a quantidade de flits computada por o monitor num determinado intervalo de tempo de simulação, perclock é o período do relógio da rede e tamostragem é a janela de tempo de amostragem.
+O Cenário1 e o Cenário2 possuem a mesma distribuição espacial), diferenciando- se apenas na taxa de injeção, de 10% e 20% respectivamente.
+O Cenário3 possui uma distribuição espacial) diferente dos Cenários1 e 2 e uma taxa de injeção de 25%.
+Para os três cenários utilizam- se 2000 pacotes para cada fluxo, e tamanho do pacote de 48 flits e a distribuição temporal uniforme.
+A Figura 14 (b) ilustra o tráfego dos Cenário1 e 2.
+Em ambos cenários há monitores inseridos em todos os roteadores da rede, exceto no roteador responsável por receber os dados monitorados, denominado Tl (Top Left).
+A Figura 14 (a) detalha as origens e destinos de cada fluxo para estes cenários.
+Em estes dois cenários não há fluxos de pacotes concorrentes, logo as taxas de recepção dos pacotes medidas devem ser iguais as taxas de injeção.
+Dado que o objetivo dos experimentos propostos é de validar os monitores, o intervalo entre pacotes de controle é fixo em 1ms, sem preocupação com a carga de tratamento destes pacotes no processador mestre (roteador Tl).
+A Tabela 5 apresenta as taxas de recepção dos pacotes para o Cenário1, obtidas ao aplicar- se a Equação 3 para um intervalo de tempo de simulação igual a 1ms.
+Os resultados apresentados na Tabela demonstram que os monitores computaram corretamente as taxas de injeção dos pacotes igual a 80 Mbps, 10% da taxa máxima da rede.
+Nota- se ainda nos resultados apresentados que é possível observar a carga induzida por os monitores.
+Por exemplo, a porta leste do roteador 9 recebe apenas dados de monitoramento provenientes do roteador 10.
+A taxa medida neste monitor é igual a 1,1%, essa a taxa referente a os pacotes de controle.
+A Tabela 6 apresenta os resultados das taxas de recepção dos pacotes obtidas na simulação do Cenário2.
+Em esse cenário a taxa de injeção dos pacotes é igual a 20% da taxa máxima da rede, ou seja, 160 Mbps.
+Os resultados apresentados na Tabela demonstram que através dos monitores é possível calcular as taxas de recepção dos pacotes.
+Nota- se que o tempo de simulação para esse cenário é a metade do tempo em relação a o Cenário1, isso ocorre em função de o Cenário2 ter a taxa de injeção dos pacotes duas vezes maior que a do Cenário1.
+A carga inserida por os monitores manteve- se a mesma, em torno de 1%.
+Em a Figura 15 (b) é ilustrado o tráfego do Cenário3 e a Figura 15 (a) detalha as origens e destinos de cada fluxo para este cenário.
+Em todos os roteadores da rede são inseridos monitores, exceto no roteador Tl, responsável por receber os dados monitorados.
+Em esse cenário há fluxos de pacotes concorrentes, portanto as taxas de recepção dos pacotes medida devem ser iguais ao somatório das taxas dos fluxos concorrentes.
+Um exemplo de fluxos concorrentes neste cenário pode ser observado na porta leste do roteador 9, fluxos F10 e F11.
+Os resultados obtidos a partir de a simulação do Cenário3, aplicados na Equação 3 com um intervalo de tempo de simulação igual a 1 ms, são apresentados na Tabela 7.
+Em esse cenário a taxa de injeção dos pacotes é igual a 25% da taxa máxima da rede, ou seja, é igual a 200 Mbps.
+Analisando- se em especial a porta leste do roteador 9, nota- se que os valores das taxas são em torno de 50%.
+Esses valores comprovam a recuperação das taxas para o cenário, visto que nesse há concorrência entre os fluxos de pacotes F10 e F11.
+Os experimentos realizados demonstram que a implementação dos monitores está correta.
+Através das simulações realizadas para cada um dos cenários apresentados, foi possível calcular as taxas de recepção dos pacotes, sendo assim tem- se a validação dos monitores.
+Em as simulações também foi possível verificar que a vazão original dos pacotes da rede sofre um acréscimo em torno de 1,1%, esse referente a os pacotes de controle.
+Para determinar a área adicional utilizada por a rede com os monitores, inicialmente sintetiza- se uma rede sem alterações, com dimensões de 3 x 3 roteadores, utilizando o ambiente de desenvolvimento da Xilinx ISE versão 10.1, fazendo uso da ferramenta de síntese XST (Xilinx Synthesis Technology), tendo como plataforma alvo o dispositivo FPGA Xilinx Virtex5 XC5 VLX50T, com 28800 blocos lógicos (LUTs).
+Para verificar o impacto dos monitores apresentados no Capítulo 3, sintetizou- se a rede com os monitores com as mesmas condições utilizadas na geração da rede original.
+A Tabela 8 mostra os resultados de área para a rede original, ou seja, sem os monitores inseridos nos roteadores da rede e para a rede com os monitores, bem como os resultados de área para roteadores de três, quatro e cinco portas.
+como se pode observar, a adição dos monitores nos roteadores da rede possui um acréscimo de área elevado em relação a a rede original, a ocupação de blocos lógicos em FPGA aumenta cerca de 43% para a rede com os monitores.
+Visto que a estrutura de monitoramento é implementada para roteadores de cinco portas, e é utilizada nos roteadores com um número de portas inferior a cinco, tem- se um hardware subutilizado nesses roteadores.
+Em a rede sintetizada, há quatro roteadores de três e quatro portas e apenas um de cinco portas, com isso justifica- se o elevado valor da sobrecarga de área que a estrutura de monitoramento implica na rede original.
+Avaliação da Plataforma HeMPS Utilizando as estruturas de dados para armazenar os valores de monitoramento dos canais de cada roteador da NoC, realizou- se uma validação da integração da estrutura de monitoramento com a plataforma HeMPS.
+A validação ocorre através da simulação de um cenário de teste, Cenário1.
+Em o Cenário1, são utilizadas duas aplicações communication executando ao mesmo tempo no MPSoC HeMPS com uma configuração de tamanho 3 x 3, com monitores inseridos em todos os nodos da rede, exceto no nodo mestre.
+As tarefas das aplicações são mapeadas estaticamente como representado na Figura 16, sendo que o número ao fim do seu nome se refere à aplicação.
+Por exemplo, taskA_ 1 corresponde a tarefa A da aplicação communication1.
+O fluxo das comunicações entre as tarefas são ilustrados da Figura, sendo representados por F1 os fluxos da aplicação communication1 e F2 os fluxos da aplicação communication2.
+A taxa de comunicação da aplicação communication é apresentada na Figura 17.
+Em esta aplicação, são enviadas 10 mensagens msg1, de tamanho 60 flits, da taskA e da taskB para a taskC.
+A taskC recebe essas 20 mensagens e repassa para a taskD.
+Sabendo- se que o cabeçalho de um pacote de dados que trafega na rede tem 12 flits, o tamanho total de um pacote para cada mensagem enviada é igual a 72 flits.
+De acordo com a comunicação e a taxa de comunicação entre as tarefas, podemos estimar a quantidade de tráfego que será observado ao final da execução das aplicações em cada porta dos roteadores.
+A Figura 18 ilustra, por exemplo, a estimativa para roteador central (roteador CC).
+Somente são apresentadas na Figura as mensagens que passam por as portas do roteador CC, visto que é utilizado um roteamento XY para comunicação entre mensagens.
+Lembra- se ainda que os monitores contam apenas o número de flits de recebimento e não de envio.
+Em a Figura 18, a notação taskA_ 2 x 10, por exemplo, significa que 10 mensagens provenientes da tarefa taskA_ 2 passam por a porta norte (N) do roteador.
+Pode- se observar que além de pacotes de envio das mensagens trafegando por a rede, tem- se as mensagens utilizadas por o mapeamento efetuado por o mestre das tarefas taskD_ 2 (MestretaskD_ 2) e taskB_ 1 (MestretaskB_ 1).
+Outros pacotes, não apresentados na figura, também trafegam por a rede.
+Como por exemplo, os referentes ao debug do sistema gerados por o monitoramento, assim como pacotes enviados ao mestre informando início e término de tarefas.
+Tabela 10 ­ Tamanho das mensagens de mapeamento enviadas por o mestre para as tarefas.
+Mensagens (mestre para tarefas) Mestre Mestre Mestre Mestre Mestre Mestre Mestre Mestre taskA_ 1 (MA) taskA_ 2 (MA) taskB_ 1 (MB) taskB_ 2 (MB) taskC_ 1 (MC) taskC_ 2 (MC) taskD_ 1 (Md) taskD_ 2 (Md) Tamanho (flits) A estimativa de tráfego nas portas dos roteadores de toda a rede é apresentada na Figura 19.
+A o fim da execução das aplicações, tem- se a quantidade total de dados que trafegam nas portas dos roteadores monitorados da rede, ou seja, a quantidade total de flits recebidos em cada porta do roteador.
+Esses valores encontram- se armazenados nas cinco matrizes que compõem a estrutura matriz Total, as matrizes ilustradas na Tabela 12 apresentam os valores.
+Esses valores também são mostrados na Tabela 13.
+A o fazer uma análise nos resultados apresentados na Tabela 13, especificamente no roteador 11, por esse ser o único roteador a possuir cinco portas no cenário proposto, pode- se perceber que as portas leste (E) e local (L) que recebem 10 mensagens têm um valor muito próximo de o número de flits ao final da execução das aplicações, sendo 956 flits medidos na porta leste e 816 flits na porta local.
+Em a porta norte (N) e na porta oeste (W) que recebem 20 mensagens é contabilizado um valor igual do número de flits, sendo 1640 flits medidos em ambas as portas.
+Isto comprova um correto funcionamento dos monitores, pois mostra que portas que tem um número igual de mensagens a ser recebidas apresentam um comportamento muito parecido.
+Além disso, a porta sul (S) que recebe além de as 20 mensagens de dados, pacotes referentes ao mapeamento, possui um valor muito maior do que as portas que recebem só as 20 mensagens.
+Tabela 13 ­ Quantidade total de dados que trafegam nos roteadores monitorados.
+Roteador Leste (E) Quantidade de dados nas portas (flits) Oeste (W) Norte (N) Sul (S) Local (L) Fazendo um cálculo de número de flits para 10 mensagens, teríamos 10 vezes 72 (número de flits de um pacote de dados para a mensagem msg1) resultando 720 flits, valor este que está próximo a os 816 e 956 flits encontrados nas portas que recebem este número de mensagens, tais como porta leste e local.
+Vale ressaltar que este número é maior devido a os pacotes não tomados em consideração, como relatado anteriormente.
+O mesmo acontece com portas que recebem 20 mensagens, em que o cálculo resulta 1440 flits e o valor medido é 1640 flits.
+O experimento realizado demonstra que as estruturas de dados geradas para tratar os dados monitorados estão funcionando corretamente, tem- se assim a correta integração da estrutura de monitoramento com a plataforma MPSoC.
+Esse trabalho apresentou uma infra-estrutura de monitoramento para plataformas MPSoCs que utilizam NoC como meio interconexão.
+O monitoramento é realizado através de monitores inseridos em roteadores da NoC.
+Uma estrutura para monitorar a NoC foi implementada.
+Para que fosse possível inserir os monitores nos roteadores, foi necessário realizar alterações na arquitetura original dos roteadores da rede.
+Os monitores estão inseridos nas portas de entrada dos roteadores da NoC e geram informações da quantidade de flits que passam nessas portas numa determinada janela de tempo.
+A partir de essas informações é possível calcular a taxa de recepção de pacotes na rede (vazão).
+Cada roteador envia pacotes com os dados de monitoramento a um processador responsável por a gerência do MPSoC.
+Esse processador recebe os dados e monta uma estrutura de dados para armazenar os valores de monitoramento dos canais de cada roteador.
+Essa estrutura reflete a ocupação dos núcleos do MPSoC.
+A partir de uma análise realizada na estrutura de dados, o processador gerente pode tomar decisões relevantes para a melhora de desempenho do MPSoC.
+Em o sentido de validar os monitores, realizaram- se simulações de três cenários de teste.
+Em todos os cenários esperou- se que os monitores recuperem a taxa de recepção dos pacotes.
+O primeiro e o segundo cenário possuem respectivamente uma taxa de injeção dos pacotes igual a 80 Mbps e 160 Mbps.
+Como nesses dois cenários não há fluxo de pacotes concorrentes, as taxas de recepção dos pacotes medidas devem ser iguais as taxas de injeção.
+Em os dois primeiros cenários foi possível observar que os monitores computaram corretamente as taxas de injeção dos pacotes, igual a 10% e 20%.
+O terceiro cenário apresenta fluxos concorrentes, portanto as taxas de recepção dos pacotes medidas devem ser iguais ao somatório das taxas dos fluxos concorrentes.
+Em esse cenário verificou- se que os monitores calcularam a taxa de 25%, esta correspondendo à taxa de injeção dos pacotes para esse cenário.
+Ainda foi possível observar que algumas taxas recuperadas foram iguais a 50%, nesse caso há concorrência entre fluxos de pacotes.
+Através dessas simulações sabe- se que os monitores geram um acréscimo em torno de 1,1% na vazão original dos pacotes na rede.
+Utilizando as estruturas de dados para armazenar os valores de monitoramento dos canais de cada roteador da NoC, realizou- se uma validação da integração da estrutura de monitoramento com a plataforma MPSoC HeMPS.
+Foi gerado um cenário onde são utilizadas duas aplicações executando ao mesmo tempo no MPSoC e com monitores inseridos em todos os nodos da rede, exceto no nodo mestre.
+De acordo com a comunicação e a taxa de comunicação entre as tarefas, foi possível fazer uma estimativa de tráfego em cada porta dos roteadores que será observado ao final da execução das aplicações.
+A partir de a estimativa de tráfego realizada, tem- se a estimativa da quantidade total de dados que trafegam nos roteadores monitorados.
+A o final da execução das aplicações, obteve- se a quantidade total de dados que trafegam em cada roteador monitorado.
+Essa quantidade é obtida através da estrutura de dados que é gerada por o processador mestre.
+A o fazer uma análise nos valores medidos, pode- se perceber que esses possuem um valor muito próximo a os valores estimados, demonstrando assim o correto funcionamento de toda a infra-estrutura de monitoramento proposta nesse trabalho.
+Sendo assim, este trabalho atingiu seu objetivo de monitorar a plataforma MPSoC HeMPS visto que os monitores inseridos nos roteadores da rede Hermes recuperam corretamente a taxa de recepção dos pacotes na rede.
+Com isso, o processador responsável por o gerenciamento da rede monta corretamente a estrutura de dados que reflete a ocupação dos núcleos do MPSoC em tempo de execução, podendo tomar decisões relevantes para a melhora do desempenho da plataforma.
+Trabalhos Futuros É importante destacar que a pesquisa realizada deixa margens para que trabalhos futuros possam ser realizados.
+Inicialmente, a parametrização dos monitores de acordo com a quantidade de portas dos roteadores, visando uma redução da sobrecarga de área que os monitores implicam é um trabalho a ser realizado.
+Após a parametrização dos monitores, sugere- se automatizar a inclusão dos monitores na rede no framework Atlas.
+Destaca- se ainda como trabalho futuro a ser realizado, aplicar a infra-estrutura de monitoramento para MPSoC nas tomadas de decisão para uma melhora no desempenho do mesmo, por exemplo, o mapeamento de ajuste dinâmico de freqüência, onde o processador responsável por o gerenciamento do sistema possa recomendar que um determinado roteador da rede seja desligado ou tenha sua frequência de operação diminuída.
+Ainda no sentido quanto a tomadas de decisão, destaca- se o mapeamento dinâmico e a migração de tarefas em núcleos que estejam com uma menor carga de trabalho ou com o caminho que tenha o menor tráfego de comunicação entre tarefas.
+A inclusão de novas métricas nos monitores, como latência e jitter, podem contribuir para o melhor controle dos recursos do sistema em tempo execução.

@@ -1,0 +1,1137 @@
+O projetista de um SoC (System on Chip) que conecta núcleos de propriedade intelectual através de uma NoC (Network on Chip) necessita de métodos que ofereçam suporte para avaliação do desempenho das aplicações que executam nesse tipo de estrutura de comunicação.
+Dois aspectos fundamentais que tais métodos devem considerar são a geração e avaliação de tráfego.
+A geração de tráfego corresponde à injeção de pacotes na rede de acordo com especificações das aplicações, como carga oferecida e latência mínima.
+A avaliação de desempenho auxilia no cálculo de métricas como latência e tráfego aceito nos canais e interfaces da rede, auxiliando na identificação de pontos de congestionamento e de contenção.
+Em este trabalho são apresentados métodos genéricos para geração de tráfego e avaliação de desempenho nas transações que ocorrem em NoCs.
+A validação dos conceitos de geração de tráfego e avaliação de desempenho é realizada através de estudos de caso executados na infra-estrutura de comunicação Hermes.
+Dois parâmetros são considerados na geração de tráfego:
+Distribuição espacial e carga oferecida por os núcleos.
+Dois tipos de métodos para avaliação de desempenho são propostos:
+avaliação externa, uma estratégia bastante utilizada por diversos grupos de pesquisa, onde a rede é considerada uma caixa preta e os resultados de tráfego são obtidos apenas a partir de as interfaces de rede externas;
+avaliação interna, onde o desempenho é computado em cada canal da rede.
+Através do conjunto de métodos aqui apresentados, o projetista obtém condições estabelecer diferentes cenários de tráfego e avaliar o desempenho das comunicações que ocorrem nestes cenários.
+Palavras Chave: NoC (Network-on-Chip), SoC (System-on-a-Chip), geração de tráfego, avaliação de desempenho.
+Um Sistema-em-Chip (SoC, do inglês System-on-a-Chip) corresponde a um sistema computacional completo implementado num único circuito integrado.
+Normalmente um SoC possui um ou mais processadores de propósito geral, lógica digital (programável ou não), circuitos analógicos, além de bancos de memória dinâmica e estática.
+Em comparação com projetos baseados em múltiplos circuitos integrados numa placa de circuito impresso, SoCs apresentam como vantagens maior desempenho, menor consumo de potência, menor volume e peso.
+A gerência da complexidade inerente ao projeto de um SoC pode ser realizada através da divisão computação-comunicação:
+Computação ­ a funcionalidade dos núcleos de Propriedade Intelectual1 (IP, do inglês Intellectual Property) que compõem um SoC;
+Comunicação ­ movimentação de informações entre os núcleos.
+Os pontos que esta divisão procura atacar estão relacionados com as fortes pressões de time- to-- market exercidas por o mercado e o aumento da complexidade dos SoCs:
+Reusabilidade, validação, proteção à propriedade intelectual, e integração.
+A separação computaçãocomunicação permite reutilizar módulos pré-projetados e pré-validados, o que pode reduzir consideravelmente o tempo de projeto.
+A validação pode ser simplificada, pois os componentes que compõem um SoC foram previamente validados, restando ao projetista a tarefa, não menos complexa, de validação do sistema como um todo.
+Considerando que os núcleos contém alto valor agregado, é importante que os desenvolvedores destes protejam a propriedade intelectual dos mesmos.
+Como os projetistas de SoCs necessitam apenas a interface externa dos núcleos, estes podem ter sua descrição interna protegida (por exemplo, descrição do processador MicroBlaze).
+Por fim, a separação computação-comunicação impulsiona o desenvolvimento de interfaces padronizadas, como OCP (Open Core Protocol), para simplificar o processo de integração de núcleos.
+Em o cenário de projeto de SoCs, acima apresentado, o presente trabalho de Dissertação está relacionado à validação de estruturas de comunicação.
+Em relação especificamente à comunicação, geralmente a interconexão entre os núcleos que compõem os SoCs é realizada através de fios dedicados e/ ou barramentos.
+A utilização destas estruturas combinado com SoCs cada vez maiores e mais complexos podem acarretar na queda de desempenho global destes sistemas, segundo diversos autores.
+As comunicações realizadas através de fios dedicados apresentam melhor desempenho, por proporcionar alto grau de paralelismo ao sistema, uma vez que transações entre diferentes iniciadores e alvos de tráfego ocorrem por meio de canais exclusivos.
+No entanto, tal solução apresenta pouca escalabilidade, reusabilidade e flexibilidade por necessitar de um número excessivo de fios para o caso de se interligar um SoC com uma grande quantidade de núcleos.
+Referenciados apenas como núcleos no presente trabalho.
+A utilização de barramentos oferece ao sistema um conjunto de fios a ser compartilhado por os núcleos.
+Tal solução apresenta maior escalabilidade e reusabilidade em comparação com a utilização de fios dedicados.
+Entretanto, barramentos possuem um baixo grau de paralelismo, por o fato de que apenas uma transação pode ser realizada num dado instante de tempo.
+Outro problema diz respeito às altas capacitâncias e resistências parasitas inerentes à utilização de fios longos, o que pode trazer queda no desempenho global do sistema.
+A utilização de múltiplos barramentos interligados por pontes ou organizados de forma hierárquica apenas reduz os problemas citados, mas não os elimina.
+Os problemas apresentados por as estruturas de comunicação citadas acima motivaram a abertura de um novo campo de pesquisa relacionado às transações que ocorrem entre núcleos.
+A idéia central desse novo paradigma é trazer para o projeto de sistemas embarcados conceitos oriundos da área de redes de computadores, telecomunicações e sistemas distribuídos.
+O desafio é estabelecer uma estrutura de comunicação capaz de atender a requisitos de desempenho e consumo de energia para as diferentes aplicações que executam sobre SoCs.
+Tal paradigma para comunicação em SoCs é denominado Rede-intra-chip Uma NoC é uma estrutura de comunicação onde os núcleos componentes de um SoC são interligados através de roteadores.
+Como já mencionado, o projeto de uma NoC utiliza conceitos oriundos da área de redes de computadores, telecomunicações e sistemas distribuídos.
+Entretanto, o projetista de uma NoC também deve considerar requisitos de consumo de energia e área, não considerados no projeto de redes de dados tradicionais.
+O estudo de NoCs propõe- se a encontrar alternativas para minimizar os problemas encontrados em arquiteturas de comunicação baseados em fios dedicados e barramento expostos no início deste Capítulo.
+As principais características das NoCs são:
+Paralelismo: Devido a a multiplicidade de caminhos possíveis numa NoC, o paralelismo de comunicação entre pares distintos de núcleos é possível.
+Possibilitar a estruturação e o gerenciamento de fios em tecnologias sub-micrônicas:
+Utilização de fios mais curtos, ponto-a-ponto, com menor capacitância parasita;
+Compartilhamento de fios:
+Possibilitando sua utilização de maneira mais eficiente;
+Confiabilidade e eficiência na gerência do consumo de energia;
+Escalabilidade da largura de banda, o acréscimo de um elemento na rede leva ao aumento do número de canais de comunicação, melhorando de uma maneira global seu desempenho;
+Reusabilidade: Possibilidade de se aproveitar a mesma estrutura de comunicação em aplicações distintas;
+Decisões de roteamento distribuídas:
+O que pode trazer um maior balanceamento na utilização dos recursos da rede.
+Porém, a utilização de NoCs traz como principais desvantagens:
+Considerável consumo de área de silício, em relação a barramentos;
+Utilização de wrappers:
+Núcleos projetados para arquiteturas baseadas em barramento necessitam de adaptadores de protocolo para comunicação, dificultando o reuso de núcleos;
+Latência (tempo para transmissão de pacotes):
+Causada por contenções na rede;
+Complexidade de projeto;
+Mudança de paradigma:
+Projetistas de SoCs devem se adaptar a novos conceitos de comunicação;
+Normalmente o projeto de uma NoC envolve as etapas construção da rede e execução e teste, que constituem o fluxo ilustrado na Figura 1.
+Construção da rede da NoC Execução e teste emulação requisitos temporais das aplicações interna e externa Não atende aos requisitos das aplicações?
+Construção da rede Em a etapa construção da rede, os parâmetros estruturais da NoC são definidos e a rede é implementada.
+Inicialmente esses parâmetros são definidos de acordo com o conhecimento que o projetista tem a respeito de a movimentação de dados da aplicação-alvo.
+Tal conhecimento pode ser melhorado através das medições de desempenho obtidas na etapa execução e teste, podendo- se realizar a realimentação da ação 6 até a ação 1.
+Assim, o projetista procura a configuração da NoC que melhor atenda à aplicação (ou conjunto de aplicações) que executarão sobre a mesma.
+A topologia corresponde à estrutura de interconexão entre os diversos nodos da rede.
+Tais nodos podem ser de processamento (núcleos -- Figura 2 (a)) ou roteamento (roteadores -- Figura 2 (b)).
+Quanto a a topologia, uma rede pode ser classificada numa das seguintes classes:
+direta, onde para cada roteador há um núcleo associado (Figura 3 (a) e (c)); (
+ii) indireta, onde somente alguns roteadores possuem ligação com núcleos (Figura 3 (b)).
+Os roteadores transferem informações entre núcleos, conectando um número de canais de entrada a um número de canais de saída.
+A estrutura de um roteador geralmente é constituída de um ou mais módulos de controle de chaveamento, roteamento interno, buffers para armazenamento temporário de informações e portas de comunicação com outros roteadores ou núcleos.
+Os algoritmos de roteamento são executados por os roteadores com o objetivo de determinar por qual porta de saída será encaminhado um dado recebido numa determinada porta de entrada.
+Um algoritmo de roteamento pode ser determinístico (não-adaptativo), se o algoritmo de roteamento sempre escolher o mesmo caminho entre um determinado par origem-destino;
+Ou adaptativo, se o algoritmo de roteamento fizer uso de alguma informação a respeito de o tráfego da rede para escolher o caminho de um determinado pacote.
+Um exemplo de algoritmo de roteamento determinístico é o XY (também conhecido como dimension-ordered).
+Exemplos de algoritmo de roteamento adaptativo são WF (West--First), Dyad e Contention-look--ahead.
+Um pacote representa uma informação para comunicação num formato padrão para as mensagens da rede, constituindo- se de um cabeçalho (header), dados úteis (payload) e terminador (trailer).
+Baseado nas informações do header, o roteador define o caminho a ser seguido por o restante do pacote.
+O trailer é utilizado para verificação de erros e sinalização de fim do pacote.
+O modo de chaveamento especifica como os pacotes se movimentam através dos roteadores.
+Em o chaveamento de circuitos uma conexão do núcleo origem até o núcleo destino deve ser inicialmente estabelecida para posterior envio dos dados.
+Quando o chaveamento for de pacotes, são alocados apenas os canais necessários para transmissão de pacotes, permitindo assim que diferentes conexões compartilhem os mesmos recursos da rede.
+Os métodos de chaveamento de pacotes utilizados são:
+Store- and-- forward, onde o pacote é completamente armazenado no buffer do roteador para posteriormente ser repassado;
+virtual-cut-through, onde um roteador pode enviar o pacote assim que o roteador destino assegurar sua completa recepção;
+Wormhole, que é uma variação do virtual-cut-through, que reduz a necessidade de memória para buffers, sendo os pacotes transmitidos em unidades menores denominadas flits (flow control digits), que avançam por a rede num modo pipeline.
+O flit é a unidade básica para alocação de largura de banda na transmissão de pacotes, sendo esta alocação realizada por os métodos de controle de fluxo.
+As estratégias de controle de fluxo especificam as negociações que devem ocorrer para a concretização de cada transferência de dados que ocorre entre os roteadores (alocação de largura de banda).
+Em a estratégia handshake, o emissor informa a intenção de enviar um dado ao receptor através de um sinal de disponibilização (request) e o receptor confirma a disponibilidade de espaço em buffer para receber esse dado através de uma linha de aceitação (acknowledge).
+Em a estratégia baseada em créditos (credit-based), uma transmissão é realizada sempre que o receptor está sinalizando ter espaço suficiente em seu buffer para armazenamento dos flits a serem recebidos.
+Em uma rede sem congestionamento, espera- se que sejam necessários dois ciclos para se transmitir um flit, se o controle de fluxo adotado for o handshake.
+Para o controle de fluxo baseado em créditos, apenas um ciclo de relógio é necessário para transmissão de um flit.
+Com a definição dos parâmetros acima citados, o projetista implementa a rede para a segunda etapa, onde é verificado se a estrutura de comunicação projetada atende aos requisitos de desempenho da aplicação-alvo.
+Em os experimentos realizados durante a elaboração do presente trabalho fez- se uso de redes intra-chip diretas, com topologia malha, chaveamento por pacotes com o método wormhole e controle de fluxo baseado em créditos.
+Entretanto, tais restrições não se aplicam ao desenvolvimento deste trabalho como um todo, podendo as técnicas de geração de tráfego e avaliação de desempenho que serão apresentadas serem aplicadas a qualquer especificação de arquitetura de NoC.
+Execução e teste Em a etapa execução e teste a rede é simulada, verificando- se se ela atende ou não aos requisitos de desempenho das aplicações que em ela executará.
+Em esse caso é realizada a simulação da arquitetura de rede escolhida associada com os padrões de transmissão de dados utilizados em cada núcleo gerador de tráfego.
+Durante a geração de tráfego, são caracterizadas as aplicações que executarão sobre a rede.
+Para cada iniciador de comunicação são definidos os seguintes parâmetros:
+Distribuição espacial, relação posicional entre cada iniciador e destinatário de tráfego;
+Taxa de injeção, que é a freqüência em que o núcleo tenta inserir os dados gerados.
+Para dimensionar tais parâmetros, normalmente são utilizados modelos de tráfego, que possuem informações probabilísticas de geração de dados similares a aplicações reais.
+Outra alternativa é a utilização de traces reais de tráfego.
+A utilização de modelos não traz uma caracterização exata de uma fonte real, mas é adequada para simulações, uma vez que é possível gerar uma quantidade relativamente pequena de dados com propriedades probabilísticas semelhantes a uma dada aplicação (por exemplo, vídeo).
+A utilização de traces normalmente não é adotada em simulação, por o fato da grande quantidade de dados envolvida que deve ser transmitida.
+Por esse motivo, experimentos envolvendo traces normalmente são realizados através de emulação.
+A avaliação de desempenho utiliza as informações da etapa da geração de tráfego como referência para a verificação de atendimento ou não dos requisitos de desempenho de um dado conjunto de aplicações.
+O projetista pode, desta forma, analisar quantitativa e qualitativamente os eventos de comunicação que ocorreram na rede.
+Duas maneiras de avaliar desempenho em NoCs são utilizadas:
+Avaliação externa (Figura 4 (a)), onde a NoC é considerada como sendo um núcleo de comunicação, sendo o tráfego para análise coletado nas interfaces externas (que se comunicam com os núcleos de processamento) ­ abordagem mais comumente utilizada por os autores pesquisados;
+Avaliação interna (Figura 4 (b)), onde o tráfego é coletado em cada canal da NoC, possibilitando a detecção de pontos de contenção da rede, bem como regiões onde há maior fluxo de dados.
+A presente Dissertação tem por objetivo propor métodos que farão parte do conjunto de etapas execução e teste para NoCs.
+A constituição dos objetivos do trabalho de mestrado é dividida em duas partes:
+Objetivos estratégicos e objetivos específicos.
+Os objetivos estratégicos compreendem:
+Domínio da tecnologia de redes intra-chip;
+Domínio de técnicas de geração de tráfego e avaliação de redes de comunicação de dados.
+Os objetivos específicos compreeendem:
+Aplicação de técnicas de geração tráfego para redes de comunicação a redes intrachip;
+Desenvolvimento de ferramentas de apoio à geração e avaliação de tráfego para redes intra-chip;
+Aplicação das técnicas e ferramentas desenvolvidas para a NoC Hermes.
+Os Capítulos 2 e 3 incluem conceitos básicos e revisão bibliográfica necessários à compreensão deste documento.
+O Capítulo 2 apresenta conceitos básicos sobre geração de tráfego e avaliação de desempenho para redes de comunicação em geral.
+Em o Capítulo 3 são revisados trabalhos relacionados à geração de tráfego e avaliação de desempenho em NoCs.
+A o final deste relacionando- se as contribuições do presente trabalho.
+Os Capítulos 4, 5, e 6 descrevem as contribuições deste trabalho.
+O Capítulo 4 apresenta um método para geração de tráfego espacial com taxas de injeção fixas e com distribuição de probabilidade.
+O Capítulo 5 descreve o conjunto de parâmetros para avaliação de desempenho, interno e externo, em NoCs.
+Os estudos de caso utilizados para validar os conceitos sobre geração de tráfego e avaliação de desempenho são objeto do Capítulo 6.
+Conclusões e direções para trabalhos futuros são apresentados no Capítulo 7.
+Este Capítulo apresenta conceitos básicos relacionados à geração de tráfego e avaliação de desempenho.
+São abordados conceitos de geração de tráfego, incluindo distribuição espacial e taxa de injeção de dados, modelagem de tráfego e geração de tráfego para redes com suporte a QoS utilizados para avaliação de desempenho.
+Cabe salientar que tais conceitos são normalmente utilizados na área de redes de comunicação tradicionais, especialmente ATM (Asynchronous Transfer Mode), cujo projeto é voltado para aplicações com requisitos rígidos de desempenho.
+Os métodos para utilização dos conceitos vistos no presente Capítulo e a inserção de outras variáveis para aplicação em NoCs são objeto do Capítulo 4.
+A geração de tráfego tem por objetivo definir uma estrutura de transmissão de dados originados por iniciadores para seus destinos, além de definir os iniciadores e destinos.
+É através da geração de tráfego que são caracterizadas as aplicações que venham fazer uso de uma determinada rede.
+Essa caracterização oferece ao projetista uma referência para a avaliação de desempenho, visto que nesta etapa é verificado se a rede atende aos requisitos das aplicações que usam seus serviços.
+Esta Seção mostra primeiramente padrões utilizados para geração espacial de tráfego.
+Posteriormente são abordados conceitos sobre injeção de pacotes.
+Complementam a Seção aspectos de modelagem de tráfego, classes de serviço e categorias de serviço.
+Os padrões de tráfego especificam a relação entre iniciadores e destinos, ou seja, que ponto da rede se comunica com que outro ponto.
+Devido a as similaridades existentes entre arquiteturas normalmente observados em aplicações paralelas podem ser usados para definir a distribuição espacial de pacotes em NoCs.
+Por exemplo, a transformada rápida de Fourier (FFT) e aplicações de ordenamento utilizam o padrão perfect shuffle (Figura 6), enquanto que operações de transposição de matrizes podem ser caracterizadas por o padrão matrix transpose.
+Dois conceitos são considerados em padrões de tráfego:
+Localidade espacial e localidade temporal.
+Uma aplicação apresenta localidade espacial quando a distância média entre nodos é menor do que a observada no padrão de tráfego uniforme (onde todos os nodos têm a mesma probabilidade de serem destinos).
+Como resultado, cada mensagem consome menos recursos da rede o que leva a redução na contenção de tráfego.
+Uma aplicação apresenta localidade temporal quando ocorre uma afinidade de comunicação entre um subconjunto de nodos.
+Como conseqüência, a probabilidade de enviar mensagens para nodos que foram recentemente escolhidos como destinatários para outras mensagens é maior do que para outros nodos.
+É importante salientar que nodos que possuem afinidade de comunicação entre si não precisam estar próximos na rede, ou seja, não é necessário que uma aplicação possua localidade espacial para que tenha também localidade temporal.
+Outro aspecto importante a enfatizar é a escolha do algoritmo de rotamento.
+Tal decisão pode introduzir diferenças significativas de desempenho, por o fato de haver a possibilidade de congestionamento em pontos críticos da rede.
+A combinação correta de um algoritmo de rotamento com um dado padrão de tráfego pode levar a um uso mais balanceado da rede.
+Inicialmente são apresentadas as distribuições uniforme e não-uniforme, onde não há um destino específico para cada pacote gerado por núcleo, exibindo, dessa forma, um baixo grau de localidade espacial.
+Posteriormente são apresentadas as distribuições bit-reversal, perfect shuffle, butterfly, matrix transpose e complemento, que possuem um destino específico para cada núcleo gerador de tráfego, exibindo localidade temporal.
+Uniforme e não uniforme Em o padrão de tráfego uniforme, todos os nodos têm a mesma probabilidade de serem destinos.
+Em o estudo de redes de comunicação de dados, a distribuição uniforme é a mais freqüentemente utilizada.
+Alguns dos trabalhos pesquisados para elaboração desta dissertação que utilizam a distribuição uniforme são.
+Em o padrão de tráfego não-uniforme, a probabilidade de um nodo enviar pacotes para um de seus nodos vizinhos é o dobro em relação a o envio de pacotes para os nodos restantes.
+A natureza de tal distribuição produz uma maior localidade espacial do tráfego em relação a a distribuição uniforme, o que a torna mais adequada para caracterização de aplicações reais.
+E realizam experimentos com o padrão de tráfego não-uniforme.
+Bit-reversal Em o padrão de tráfego bit-reversal, o nodo que possui coordenadas no formato binário a n 1, padrão de tráfego bit-reversal aplicado sobre uma NoC com topologia 4x4.
+Perfect Shuffle Em o padrão de tráfego perfect shuffle, o nodo que possui coordenadas no formato binário esquerda).
+A Figura 6 mostra um exemplo do padrão de tráfego perfect shuffle aplicado sobre uma NoC com topologia 4x4.
+Butterfly Em o padrão de tráfego butterfly, o nodo que possui coordenadas no formato binário a n 1, a n-2 o menos significativo).
+A Figura 7 mostra um exemplo do padrão de tráfego butterfly aplicado sobre uma NoC com topologia 4x4.
+Matrix Transpose Em o padrão de tráfego matrix transpose, o nodo que possui coordenadas no formato binário esquerda, onde n é o número de bits que identificam o nodo).
+A Figura 8 mostra um exemplo do padrão de tráfego matrix transpose aplicado sobre uma NoC com topologia 4x4.
+A Figura 10 ilustra o padrão de tráfego complemento numa NoC 4x4, utilizando o algoritmo de roteamento XY.
+As setas da Figura indicam os caminhos dos rotadores fonte até os destinos de tráfego.
+Dois iniciadores distintos utilizam simultaneamente os canais das bisecções X e Y. Devido a o congestionamento nas bisecções da rede, o padrão de tráfego complemento pode ser utilizado para avaliar os ganhos de desempenho quando de a utilização de canais virtuais, considerando que neste caso é realizado o compartilhamento de uso do canal físico por fluxos de pacotes distintos.
+A utilização de diferentes algoritmos de roteamento acarreta em alterações no uso dos canais, para o mesmo padrão de tráfego.
+A carga oferecida corresponde ao percentual de ocupação do canal, a ser definida por as comunicações geradas por um núcleo, ou mesmo de um conjunto de núcleos.
+Tal parâmetro relaciona a taxa de injeção de dados de determinado núcleo com a capacidade total do canal que conecta o mesmo núcleo a rede.
+Para estabelecer a carga oferecida por um determinado núcleo, o projetista pode escolher uma de entre as seguintes alternativas:
+Fixar o tamanho para o pacote e variar o intervalo entre os mesmos;
+Variar o tamanho dos pacotes e fixar o intervalo entre o fim de um pacote e o início de outro;
+Variar o intervalo decorrido entre o envio do início de um pacote e o envio do início do próximo pacote (intervalos de saída).
+A Figura 11 ilustra os parâmetros que podem ser variados quando de o dimensionamento da carga oferecida.
+Aplicações MPEG (Moving Picture Experts Group) normalmente possuem tamanhos de frames variados, com um intervalo de transmissão entre frames fixo.
+Dependendo do modelo de tráfego que se quer estabelecer, um frame pode estar contido num único pacote ou num conjunto de pacotes que devem ser gerados em rajada.
+Aplicações envolvendo sinalização (como por exemplo, redes de sensores) normalmente possuem tamanhos de pacotes pequenos.
+Outro exemplo está relacionado com aplicações que executam sobre multicomputadores, que geram mensagens longas, enquanto que sistemas multiprocessados com coerência de cache geram mensagens curtas.
+Em o modelo de tráfego constante, os pacotes são gerados a uma taxa fixa.
+Exemplos de aplicações com tráfego constante estão relacionadas a sinais telefônicos digitalizados nãocompactados e streams de áudio e vídeo nãocompactados.
+O modelo On-OFF caracteriza- se por possuir períodos de atividade e inatividade.
+Durante os períodos de atividade, a fonte de tráfego gera pacotes de tamanho fixo em intervalos regulares, enquanto que em períodos de inatividade não há geração de pacotes.
+Em este caso é variado o tamanho da rajada de pacotes.
+Segundo, a modelagem On-OFF com a distribuição de probabilidade Pareto pode ser utilizada para caracterização de tráfego de aplicações de vídeo MPEG-2 e aplicações de rede.
+O modelo Markov On-OFF é um dos mais populares modelos utilizado para caracterização de fontes de voz, streams de vídeo e Internet.
+Em este modelo, conhecido como Markov Modulated Process (MMP), a ocorrência de geração de dados a uma taxa r é especificada por o estado corrente da fonte de tráfego numa cadeia de Markov.
+Os parâmetros e indicam a probabilidades de mudança de estado da fonte.
+A função de probabilidade que descreve as mudanças de estado é a exponencial com média 1/ (mundança de Off para ONmudança de On para Off).
+Os processos de Poisson foram originalmente utilizados para modelagem de eventos que ocorrem em sistemas de telefonia, sendo um dos mais antigos modelos de tráfego.
+Tais processos utilizam a distribuição Exponencial de probabilidade para descrever o intervalo entre chegadas de pacotes.
+A distribuição normal é utilizada na modelagem de aplicações VBR (Variable Bit Rate), como áudio e vídeo compactados.
+A curva normal caracteriza- se por possuir forma de sino, onde sua ordenada máxima se situa na média.
+Outro parâmetro que caracteriza essa distribuição é um número que define o espalhamento relativo da curva normal em torno de a média, conhecido como desvio padrão.
+A tecnologia de redes de comunicação ATM foi projetada para oferecer suporte a uma gama variada de tipos de tráfego, com ênfase particular em aplicações multimídia, como voz e vídeo, mas com flexibilidade para atender com eficiência aplicações que não possuam requisitos rígidos de desempenho.
+Redes ATM são baseadas em conexão, ou seja, antes da transmissão de dados, um circuito deve ser estabelecido, reservando recursos da rede ao longo de o caminho conectando a fonte com o destino do tráfego.
+Enquanto que as conexões são baseadas em circuitos, a transferência de dados e o chaveamento são baseados em pacotes.
+Outra característica importante é que pacotes ATM (denominados células) possuem tamanho fixo:
+53 bytes.
+Tal característica objetiva reduzir a complexidade do projeto de roteadores ATM.
+A exemplo de uma rede ATM, uma NoC também possui tem por objetivo oferecer alto desempenho às aplicações que em ela executam.
+No entanto, algumas diferenças básicas podem ser observadas entre NoCs e redes ATM.
+Uma de elas é o modo de chaveamento, que além de poder ser de circuitos ela poder também ser de pacotes.
+Outra característica das NoCs é o tamanho de seus pacotes poder ser variável.
+Conforme já discutido na Seção 1.1, o presente trabalho pressupõe o uso do chaveamento de pacotes.
+Os conceitos de geração de tráfego que serão apresentados no Capítulo 4 consideram também a variação do tamanho dos pacotes.
+Em esta Seção são mostradas categorias de serviço, um conceito oriundo da tecnologia ATM, que têm por objetivo especificar fontes de tráfego de acordo com uma série de requisitos de desempenho.
+A geração de tráfego utilizando categorias de serviço é destinada a redes que oferecem suporte à QoS.
+Alguns dos trabalhos utilizados na elaboração desta dissertação tratam de projeto de NoCs com suporte a QoS A divisão de aplicações em categorias envolve a diferenciação das mesmas quanto a a variabilidade de suas taxas de transmissão, latência e variação de latência dos fluxos de dados.
+Tais parâmetros são especificados por descritores de tráfego, através de os quais a fonte de tráfego solicita serviços a rede de comunicação.
+A rede por sua vez atribui níveis de QoS ao tráfego oriundo da fonte solicitante, de modo a procurar atender aos seus requisitos de desempenho.
+Os tipos de serviços que uma rede pode disponibilizar são mostrados na Seção 2.1.5.
+O compromisso básico que deve haver entre a rede e a aplicação é que, uma vez a conexão estabelecida, a QoS negociada é assegurada para todos os pacotes que respeitam os limites de taxa de injeção estabelecidas nos parâmetros especificados por os descritores de cada categoria de serviço.
+São apresentadas nesta Seção as categorias de serviço CBR, VBR, ABR e UBR.
+A categoria de serviço CBR (Contant Bit Rate) é usada para conexões que exigem uma quantidade estática de largura de banda, que permanece continuamente disponível durante o tempo de vida da conexão.
+Um serviço CBR aloca largura de banda com base no descritor de tráfego PCR (Peak Cell Rate), que indica o limite máximo para a taxa de injeção de dados.
+Em este caso, a fonte injeta pacotes na taxa de pico ou abaixo de o PCR em qualquer momento e durante o tempo que desejar (ou não emitir nada).
+As aplicações que utilizam essa categoria de serviço normalmente têm requisitos de latência rigorosos, como no caso de aplicações de tempo real, áudio e vídeo não compactados.
+Outro exemplo de aplicação são conexões de voz com taxa de transmissão de 64 kbits/ s A categoria VBR (Variable Bit Rate) é utilizada por fontes que geram dados a taxas de injeção que variam com o tempo.
+Esta categoria utiliza os descritores de tráfego PCR, SCR (Sustainable Cell Rate) e MBS (Maximum Burst Size).
+O parâmetro SCR representa a taxa de transmissão de pacotes média esperada ou obrigatória atingida ao longo de um intervalo prédeterminado.
+O parâmetro MBS especifica o número máximo de pacotes que podem ser transmitidos por o gerador de tráfego na taxa de pico, ou seja, o tamanho máxima de rajada.
+A categoria VBR se divide em duas sub-categorias, rt-VBR e nrt-VBR.
+As aplicações que utilizam a categoria de serviço rt-VBR (real time VBR) não possuem a mesma garantia de QoS dada em serviços CBR.
+No entanto, é permitido a tais aplicações uma melhor utilização do canal, por o fato dos dados não serem enviados continuamente, o que torna possível somente a alocação necessária de recursos (como por exemplo, filas) nos roteadores que estiverem recebendo os dados.
+As aplicações que utilizam essa categoria de serviço são as de tempo real (como voz e vídeo compactados) e exigem controle rígido de latência média e variação de latência.
+A sub-categoria nrt-VBR (non-real time VBR) é recomendada para uso em aplicações que não sejam de tempo real, mas variam a sua taxa de injeção de pacotes.
+Um exemplo de aplicação que utiliza esta categoria é a de correio eletrônico multimídia.
+A categoria de serviço ABR (Available Bit Rate) foi projetada para tráfegos cuja variação de largura de banda é praticamente desconhecida e que pode sofrer ajustes, de acordo com a demanda de tráfego.
+A utilização dessa categoria de serviço evita a necessidade do estabelecimento de um compromisso em longo prazo com uma largura de banda fixa.
+A categoria ABR é especificada por os descritores MCR (Minimum Cell Rate) e PCR, este último já descrito anteriormente.
+O descritor MCR especifica a menor taxa de transmissão de pacotes.
+Uma fonte de tráfego ABR deve utilizar largura de banda com valor situado entre MCR e PCR, podendo variar dinamicamente durante a vida útil da conexão.
+É possível, por exemplo, especificar que a capacidade entre dois pontos dever ser de 5 Mbps, podendo haver, no entanto, picos de 10 Mbps.
+A partir de então, a rede garantirá 5 Mbps o tempo inteiro e fará o possível para fornecer 10 Mbps, embora não possa dar essa certeza.
+Esta categoria de serviço é utilizada por aplicações que não possuem requisitos de tráfegos de tempo-real.
+A categoria de serviço UBR (Unspecified Bit Rate) não solicita serviços de rede com garantias, sendo adequada na transmissão de pacotes de Internet.
+Os pacotes UBR são aceitos e encaminhados, caso a capacidade da rede não for ultrapassada.
+Caso haja congestionamento, os pacote UBR são descartados.
+Em redes de comunicação de dados, a divisão do tráfego em tipos de requisição de serviço pode proporcionar uma alocação de recursos da rede mais eficiente.
+Em este caso a rede define quais usuários, aplicações, dispositivos, fluxos e conexões possuem maior prioridade no atendimento de requisições a serviços, ou seja, quem obtém os recursos e quanto destes recursos são utilizados.
+Para realizar essa classificação, a rede faz uso dos parâmetros especificados por os descritores de tráfego, vistos na Seção 2.1.4.
+Pacotes com determinada característica (por exemplo, carga oferecida máxima (similar ao PCR), tamanho máximo de rajada (similar ao MBS) são analisados e classificados num nível de prioridade que deve ser considerado por o roteador no momento em que ele decidir qual pacote encaminhar, ou ainda, quanta largura de banda tais pacotes terão à disposição.
+Os serviços de comunicação best-effort, differented services e guaranteed throughput são aqui mostrados.
+Tais serviços foram definidos para especificação de serviços oferecidos por redes Best-effort Os pacotes pertencentes à classe de tráfego best-effort (Be) não possuem garantias de tempo de entrega.
+A rede neste caso realiza seu melhor esforço para encaminhar o pacote para o seu destino.
+Uma rede que oferece o serviço best-effort é caracterizada por filas FIFO, as quais não diferenciam os fluxos das aplicações entre si.
+Em o contexto de NoCs, os pacotes são injetados por o núcleo na fila de entrada do seu roteador, desde que haja espaço nesta fila.
+Dentro de a rede, a mesma estratégia é utilizada no encaminhamento de cada flit do pacote do canal de saída de um roteador para um canal de entrada de um roteador vizinho.
+Os serviços oferecidos por a rede em resposta a requisições best-effort caracterizam- se por serem imprevisíveis e não-confiáveis.
+As categorias de serviço atendidas por serviços best-effort são ABR e UBR.
+Differented Services Em a classe de tráfego differented services (Ds) alguns fluxos possuem prioridade em relação a outros, tendo direito, por exemplo, a um tratamento mais rápido e/ ou maior largura de banda disponível.
+Tal priorização se define normalmente através de dados estatísticos, não oferecendo às aplicações pertencentes a essa classe garantias rígidas de desempenho.
+A categoria de serviço atendida por os serviços diferenciados é a nrt-VBR.
+Guaranteed Throughput Em a classe de tráfego guaranteed throughput (GT) ocorre a reserva absoluta de recursos da rede para um tráfego específico, ao contrário de o que acontece em redes best-effort.
+Para obtenção dos recursos, o tráfego injetado por as fontes deve estar de acordo com um conjunto de restrições especificadas por descritores de tráfego de categorias de serviço.
+É estabelecido desta forma um contrato de serviço entre a fonte e o destino de tráfego.
+As categorias de serviço atendidas por os serviços guaranteed throughput são CBR e rt-VBR.
+Como exposto na Seção 1.1, uma NoC é formada por núcleos autônomos interligados através de roteadores.
+Duas características que compõem uma NoC são os serviços que ela oferece e um sistema de comunicação.
+Descreve como alguns dos serviços essenciais a integridade dos dados e garantia de vazão e latência.
+O sistema de comunicação deve garantir a entrega dos dados gerados numa determinada fonte para um dado destino.
+A avaliação de desempenho tem como objetivo verificar se a rede está oferecendo os serviços de maneira a garantir a correta entrega das mensagens com as restrições de vazão e latência das aplicações.
+Em esta Seção são mostrados parâmetros de desempenho utilizados em redes de comunicação e que são considerados no projeto de NoCs.
+O parâmetro vazão é à taxa em a qual pacotes são encaminhados por a rede, ou seja, a quantidade de informação encaminhada por unidade de tempo.
+Este parâmetro é medido através da contagem do número de bits que chegam no destino num intervalo de tempo para cada fluxo (par origem-destino).
+A largura de banda (bw) de um canal é a sua capacidade máxima para transmissão de dados.
+A equação abaixo apresenta o cálculo para a largura de banda.
+Equação 1 onde:
+T: Período de relógio utilizado.
+A vazão de tráfego em determinado canal (vazao) é a taxa em a qual os dados são transmitidos, sendo expressa na seguinte equação vazão $= bits_ trans n_ ciclos_ sim* T Equação 2 onde:
+A vazão relativa (vazão_ rel) corresponde ao percentual de ocupação do canal de comunicação, ou seja, a fração utilizada da capacidade máxima do canal.
+Este parâmetro também é conhecido como tráfego aceito.
+Um valor de vazão relativa igual a 1 significa que o canal de comunicação está sendo utilizado em 100% de sua capacidade.
+A vazão relativa é expressa por a seguinte fórmula vazão_ rel $= vazão_ max Equação 3 A latência é um parâmetro relacionado com a quantidade de tempo que o pacote leva para sair de um ponto a outro da rede.
+Normalmente quantifica- se a latência através do número de ciclos de relógio gastos para o pacote percorrer um caminho.
+Dependendo a partir de que momento se quer medir a latência e a quantidade de recursos da rede utilizados, podemos ter diferentes medidas de latência.
+A latência de rede é o tempo decorrido a partir de o momento em que a transmissão de um pacote é iniciada (a partir de o momento em que o primeiro flit é injetado na rede), até o momento em que seu último flit é recebido no nodo destino.
+Em este caso é considerada apenas a latência relacionada aos roteadores que constituem o caminho percorrido por o fluxo considerado.
+Em o contexto deste trabalho, consideramos a latência total como sendo o tempo decorrido desde a criação de um dado pacote até o momento em que seu último flit atinge o destino, considerando eventuais permanências de flits em buffers de roteadores.
+Tal interpretação é válida por considerar as contenções que o pacote pode sofrer devido a as condições adversas de tráfego que podem surgir ao longo de o caminho percorrido.
+Assim, o fato de determinado pacote entrar na rede muito tempo após ele ser criado indica congestionamento na rede.
+Aplicações do tipo real-time possuem requisitos rígidos de latência (afinal, devem ser atendidas num curto espaço de tempo), enquanto aplicações multimídia devem apresentar pouca variação nos valores de latência (por o fato de tais aplicações não tolerarem distorções de imagem ou som durante sua execução).
+Em este Capítulo foram apresentados conceitos básicos sobre geração de tráfego e avaliação de desempenho em redes de comunicação de dados.
+Através da geração de tráfego caracterizam- se as aplicações que executarão sobre a rede.
+Tal caracterização envolve a definição de origens e destinos de tráfego (padrões de tráfego espacial) e as taxas de injeção de dados.
+Com a modelagem de tráfego atribui- se aos dados gerados características probabilísticas pertencentes à aplicações reais.
+A divisão do tráfego em categorias de serviço estabelece as requisições de serviços a serem atendidos por redes com suporte a QoS.
+Tais redes devem reconhecer tais requisições e atribuir serviços de comunicação específicos, de acordo com as propriedades das fontes de tráfego solicitantes.
+A avaliação de desempenho permite a verificação do atendimento ou não aos requisitos de desempenho das aplicações que executam sobre a rede.
+Foram mostrados os parâmetros vazão (taxa de transmissão de pacotes) e latência (tempo de propagação de pacotes na rede).
+Os parâmetros mostrados neste Capítulo servirão como base para a geração de tráfego e avaliação de desempenho para NoCs, apresentados nos Capíulos 4 e 5, respectivamente.
+Este Capítulo apresenta os projetos de NoCs utilizados como referência no desenvolvimento deste trabalho.
+Em as seções 3.1 e 3.2 são abordados superficialmente aspectos arquiteturais, e a geração de tráfego e avaliação de desempenho mostrados com base nos experimentos realizados.
+Em as seções 3.3 e 3.4, o enfoque será dado no fluxo de projeto que envolve a construção da rede e a geração de tráfego e avaliação de desempenho.
+Em a seção 3.5 são mostrados outros trabalhos pesquisados relacionados à geração de tráfego e avaliação de desempenho.
+Finalmente será mostrado na seção 3.6 o posicionamento da dissertação em relação a o estado da arte.
+O roteamento de um pacote na rede SPIN varia de acordo com a direção do deslocamento do mesmo.
+Quando o pacote &quot;sobe «(afasta- se dos terminais-folha), o roteamento é adaptativo, sendo a escolha da porta de saída em direção a o nível superior da rede realizada de acordo com a disponibilidade da porta e de um mecanismo de escolha randômica, para o caso de haver a mesma disponibilidade em duas ou mais portas de saída.
+Quando o pacote &quot;desce «(aproxima- se de seu destino), o roteamento é determinístico, sendo a porta de saída a ser utilizada identificada no endereço do destinatário (especificada no pacote por o seu emissor).
+A avaliação de desempenho da rede SPIN é feita através da comparação desta com uma arquitetura de comunicação baseada em barramento.
+A arquitetura de barramento escolhida foi a PIBus.
+A arquitetura genérica de comunicação é mostrada na Figura 13.
+Todos os núcleos do sistema são compatíveis com o padrão de interface para interconexão de núcleos em sistemas integrados VCI (Virtual Component Interconnect).
+Wrappers (adaptadores de protocolo) realizam a conversão entre o protocolo VCI e o protocolo da arquitetura de comunicação utilizada.
+A simulação da rede foi realizada no nível de ciclo de relógio utilizando- se o simulador CASS.
+Dois aspectos foram considerados na avaliação de desempenho:
+A escalabilidade e o ponto de saturação da arquitetura de comunicação.
+Para avaliar a escalabilidade foram realizados experimentos com 4, 8, 16 e 32 núcleos, sendo mantido fixo o tamanho dos pacotes.
+Em cada experimento uma metade dos núcleos é formada por iniciadores (instâncias de um modelo de gerador de tráfego -- GT), enquanto que a outra metade é composta por os alvos (instâncias de um modelo de memória RAM ­ Random Access Memory).
+O padrão espacial de tráfego é mostrado na Figura 14.
+Em a Tabela 2 é mostrado as quantidade de pacotes para requisição e de resposta, bem como a quantidade de flits transmitidos em cada arquitetura de comunicação, com diferentes quantidade de núcleos.
+Observa- se que na arquitetura SPIN são transmitidos mais flits do que na arquitetura PIBus.
+Isso ocorre devido a a estrutura do pacote SPIN, que, ao contrário de o pacote que trafega na PIBus, possui flits de tamanho limitado a 32 bits, e as palavras de endereço e dado devem ser multiplexadas sendo ainda precedidas por um cabeçalho de roteamento.
+Figura 15 ­ Avaliação da escalabilidade das arquiteturas de comunicação através da análise da latência.
+A segunda avaliação refere- se à análise do ponto de saturação da rede.
+Este ponto corresponde à carga máxima que se pode aplicar à rede, com valores de latência situados num limite aceitável.
+Se a carga oferecida for maior que o ponto de saturação, a rede não será capaz de aceitar a carga aplicada e serão obtidos valores extremamente elevados de latência.
+Em os experimentos realizados, o tamanho do sistema foi fixado em 32 núcleos, sendo a carga oferecida estabelecida de acordo com a variação dos tamanhos das mensagens.
+A distribuição de tráfego espacial utilizada foi a uniforme (destinos escolhidos aleatoriamente) e a cada instância de modelo de memória RAM foi atribuída uma faixa de endereços.
+Foram realizadas em torno de 100.000 transações do tipo requisição/ resposta.
+A Figura 16 mostra os pontos de saturação encontrados para as duas arquiteturas de comunicação utilizadas.
+Observa- se que, apesar de a latência quando de a utilização do barramento PIBus ser relativamente baixa, o ponto de saturação obtido também foi baixo (4%).
+Para a arquitetura SPIN, a latência média esteve sempre em torno de 40 ciclos até atingir o ponto de saturação, que tem o valor de 28%.
+Os trabalhos, e propõem um fluxo de projeto e uma arquitetura de rede intra-chip (denominada QNoC), que satisfaça aos requisitos de QoS das aplicações (vazão e latência), sem deixar de atender a requisitos de custo da rede (consumo de área e energia).
+Os requisitos de QoS são verificados através de cálculos analíticos e simulações.
+A personalização da rede é realizada com a alteração de parâmetros arquiteturais da rede original (remoção de enlaces ociosos, dimensionamento de enlaces e variação na freqüência de transmissão), sem comprometer o desempenho do sistema.
+A Figura 17 mostra o fluxo de projeto estabelecido para construção da QNoC.
+Observa- se que tal fluxo é similar ao fluxo de projeto de NoCs ilustrado por a Figura 1.
+O fluxo de projeto QNoC é dividido nas seguintes etapas:
+Em esta etapa é possível remover enlaces ociosos, dimensionar enlaces e variar a freqüência de transmissão, com base em medições de carga relativa nos enlaces (avaliação interna);
+Em o experimento realizado, a topologia de rede utilizada é uma mesh 4x4.
+O algoritmo de roteamento utilizado é o XY simétrico.
+Em este algoritmo, se a coordenada X do destino for maior que a coordenada X da origem, é utilizado o roteamento XY, caso contrário é utilizado o roteamento YX.
+A vantagem deste método é a utilização do mesmo caminho de roteamento para as comunicações bi-direcionais que ocorrem entre cada par origem-destino.
+O controle de fluxo utilizado é o baseado em créditos.
+O tamanho de flit adotado é de 16 bits, sendo que os buffers dos roteadores situam- se na entrada dos mesmos e tem capacidade para armazenar 2 flits.
+Para transmissão de dados é definida uma escala de prioridades, sendo que cada pacote deve estar associado a um nível de serviço.
+Quatro níveis de serviço são definidos:
+Sinalização (maior prioridade):
+Sinais de controle e interrupção, sendo utilizados pacotes pequenos (2 flits), que devem ser encaminhados na menor latência possível;
+Tempo real:
+Processamento de streams em aplicações de áudio e vídeo, que exigem alta largura de banda e baixa latência;
+Leitura/ escrita:
+A carga oferecida de cada nível de serviço, bem como os requisitos de latência para cada nível de serviço são mostradas na Tabela 3.
+As distribuições espaciais de tráfego utilizadas foram a uniforme e a não-uniforme.
+A carga total oferecida.
+A Figura 18 ilustra a carga de tráfego relativa (Relative load) de todos os canais da malha, utilizando o padrão de tráfego uniforme (avaliação interna).
+As linhas (row) e colunas (column) representam os índices dos roteadores, corresponde ao roteador 00) e as barras verticais representam a carga relativa entre os canais.
+Os valores de carga nos canais e possuem a menor carga relativa no sistema, servindo como medida de referência de carga relativa para outros canais.
+Verifica- se também que a maior carga relativa pertence ao enlace (2,3).
+De acordo com a distribuição de carga relativa mostrada na Figura 18, é realizada a otimização da rede.
+Tal otimização é realizada através do re-dimensionamento de enlaces, que pode ser feita variando- se parâmetros como número de fios ou freqüência.
+Caso existam enlaces subutilizados, os mesmos podem ser removidos, tornando a rede uma malha irregular.
+A Tabela 4 ilustra para cada largura de banda alocada1, os valores obtidos para a utilização média dos canais da rede, bem como os valores de latência média em cada classe de serviço.
+Para avaliação de Somatório das larguras de banda em cada enlace da rede.
+Para avaliar o desempenho também foram gerados gráficos de distribuição de latências, onde no eixo x são impressos os valores de latência (Ete cycles) e no y a percentagem de pacotes de latências para o melhor caso.
+As elipses destacam as quantidades de pacotes que obtiveram os requisitos de QoS atendidos, para cada nível de serviço.
+Finalmente, observou- se o comportamento da latência média na rede (mean Ete delay) em função de a carga de tráfego oferecida (Total traffic load) (Figura 20).
+Foram escolhidos uma configuração de rede e largura de banda fixos e aplicadas várias cargas de tráfego, expandindo (diminuição de carga) e reduzindo (aumento de carga) o intervalo de chegada dos pacotes para cada nível de serviço.
+Pode- se observar que enquanto a carga de tráfego está crescendo, a latência média dos tráfegos relacionados à transferência de blocos e leitura/ escrita cresce de maneira rápida, mas a latência média de tráfegos sensíveis ao atraso (real-time e sinalização) permanece praticamente constante.
+Em os experimentos utilizando tráfego não-uniforme, os requisitos de QoS em termos de largura de banda e latência média e os resultados de desempenho obtidos foram semelhantes aos apresentados por o cenário de tráfego uniforme, sendo apresentados com mais detalhes em Os trabalhos propõem a NoC.
+Os serviços que esta rede oferece são baseados em conexão, oferecendo desta forma garantias de comunicação aos núcleos.
+Os principais objetivos do projeto são:
+Desacoplamento da computação e comunicação:
+Como mencionado no início do Capítulo 1, este método de projeto é fundamental para gerenciamento da construção dos SoCs atuais;
+Oferecer compatibilidade com os projetos de barramento:
+Através de um modelo de comunicação baseado em transações, sendo que cada núcleo deverá ser mestre e/ ou escravo;
+Oferecer suporte a aplicações de tempo-real:
+Onde são dadas garantias de vazão e latência;
+Possuir implementação de baixo custo em termos de área.
+A construção de uma NoC baseia- se num fluxo de projeto que possui como etapas principais a geração, configuração e a verificação/ simulação.
+Segundo os autores, tal divisão traz como benefícios:
+A simplificação para se adotar heurísticas, aumentando o controle do usuário sobre o processo;
+Redução da complexidade para otimização da rede;
+Facilidade para o usuário personalizar, adicionar ou substituir partes do fluxo de forma a melhorar seu desempenho.
+Em o fluxo de projeto a construção da rede (geração de topologia e mapeamento dos núcleos) é realizada ao mesmo tempo que o seu balanceamento (dimensionamento dos enlaces com menor carga), diferentemente do que acontece na QNoC, onde a construção da rede é feita, seguida da análise interna de desempenho, para posteriormente otimizar a rede.
+A etapa de geração da NoC recebe como dados de entrada arquivos formatados em XML contendo:
+requisitos da aplicação (requisitos_ xml e comunicação_ xml/ xls):
+Onde são especificados uma lista de conexões, sendo que cada conexão especifica qual mestre se comunicará com qual escravo (padrão espacial de tráfego), a largura de banda mínima a ser utilizada (carga oferecida), a latência máxima permitida, o tamanho da rajada para leitura ou escrita de dados e a classe de serviço que deve atender o fluxo (podendo ser best-effort ou guaranteed throughput).
+Um exemplo de especificação da aplicação (arquivo de comunicação) é mostrado na Figura 22 (a);
+especificação dos núcleos conectados à NoC (núcleo_ xml).
+Cada porta deve especificar o protocolo de comunicação com a rede e o tamanho da largura da palavra de dados.
+São gerados arquivos XML descrevendo a topologia e o mapeamento dos módulos, servindo como entrada para a etapa de configuração.
+A descrição da topologia contém a especificação dos parâmetros da rede (como tamanho do flit e de slots de tempo para alocação de canais), de cada roteador (como número de portas e tamanho de buffer) e para cada instância de interface externa (número de portas, conexões por porta e tamanhos de buffer por conexão).
+O arquivo de mapeamento contém a descrição da conexão dos núcleos com as interfaces externas da NoC.
+Um trecho de arquivo gerado de topologia é mostrado na Figura 23.
+Em a etapa de configuração da NoC é gerado um arquivo que contém informações para síntese do hardware, contendo os valores dos registradores das interfaces de rede e, para cada conexão, o caminho do mestre até o escravo e o número de créditos para controle de fluxo.
+Um exemplo de arquivo de configuração gerado é mostrado na Figura 24.
+A etapa de verificação da NoC (que no contexto desta dissertação corresponde à avaliação de desempenho) recebe como entrada o arquivo de configuração e são realizados cálculos analíticos para o cálculo da vazão mínima obtida, da latência máxima, e da quantidade máxima de slots de buffer utilizada.
+Os resultados obtidos são comparados aos requisitos das aplicações (descritos nos arquivos de comunicação) e mostrados numa tabela indicando o atendimento ou não a estes requisitos.
+Um exemplo de arquivo de verificação é mostrado na Figura 25, onde os destaques indicam atendimento aos requisitos da aplicação.
+A etapa de verificação oferece suporte apenas às comunicações guaranteed throughput, e computa os valores de pior caso para vazão, latência e utilização de buffers, sem considerar casos médios.
+A etapa de simulação oferece suporte à avaliação de desempenho no caso médio para conexões tanto best-effort quanto guaranteeed throughput.
+Dois tipos de simulação podem ser adotados:
+RTL VHDL (com precisão de bit e de ciclo) e SystemC (nível de flit).
+Esta etapa recebe como entrada o mesmo arquivo de configuração recebido por a verificação.
+A tabela gerada (Figura 26) é semelhante à gerada no processo de verificação, tendo como adicional resultados do medições de valores médios para vazão, latência e alocação de buffers.
+O fluxo para emulação é mostrado na Figura 28.
+Em a compilação da plataforma são especificados os parâmetros da rede, sendo configurado o arquivo em verilog que descreve a plataforma.
+Em a inicialização da plataforma é realizada a geração de tráfego, que pode ser estocástica ou baseada em traces de aplicações reais (tal geração é detalhada adiante).
+A próxima etapa é a de emulação em FPGA, onde são executadas as comunicações e as estatísticas de tráfego são geradas.
+Finalmente, no relatório final as estatísticas obtidas são enviadas ao usuário descrevendo o tráfego que ocorreu na rede.
+As informações contidas no relatório de tráfego correspondem à latência média obtida, quantidade de pacotes enviados/ recebidos em cada TG/ TR, duração de tempo para cada rajada de flits, tempo total de emulação e histograma de flits encaminhados com a granularidade definida por o usuário.
+Dois tipos de geradores de tráfego podem ser utilizados.
+Em o gerador de tráfego estocástico o usuário pode especificar a taxa de injeção de dados, bem como as características dos pacotes, utilizando as distribuições de probabilidade.
+Dois tipos de tráfego estocático podem ser gerados.
+Em o que os autores denominam tráfego uniforme o tamanho de cada pacote, o intervalo entre geração de pacotes e o destino dos pacotes são aleatoriamente escolhidos.
+Em o tráfego de modo-rajada, uma cadeia de Markov de dois estados é utilizada.
+Em o estado rajada, pacotes são enviados com intervalo de geração especificado por o usuário.
+Em o estado estável, o gerador de tráfego é interrompido durante um intervalo de tempo, também especificado por o usuário.
+A distribuição de probabilidade que modela as mudanças de estado é especificada por o usuário no início da emulação.
+O momento da troca entre estados é escolhido aleatoriamente por um registrador LFSR (Linear Finite Shift Register).
+O tráfego pode também ser gerado utilizando traces de aplicações reais.
+Em este caso, o gerador de tráfego utiliza uma amostra de um tráfego real obtido a partir de a execução de alguma aplicação.
+Cada trace de tráfego consiste de três campos:
+Tamanho do pacote, destino e momento em que o pacote deve ser injetado na rede.
+Antes de cada emulação, o usuário deve armazenar os traces em memória.
+Assim como na geração de tráfego, dois tipos de receptores de tráfego podem ser utilizados.
+Em o primeiro, o usuário especifica a granularidade da análise da emulação, ou seja, a duração (em ciclos de relógio) da coleta de dados.
+Durante este tempo, são contados os flits transmitidos, podendo esta contagem ser mostrada num histograma gerado por o receptor.
+O segundo tipo de receptor de tráfego gera um trace para cada pacote recebido, no mesmo formato utilizado por o gerador baseado em traces.
+Em este caso o trace recebido é armazenado em memória para posterior análise.
+Para validação foram realizados três experimentos.
+Em o primeiro, foi utilizada uma rede malha 3x2, sendo um TG e um TR conectados em cada roteador.
+Dois tipos de taxas de injeção foram utilizados.
+Para o tráfego denominado por os autores como uniforme (uniform), o tamanho dos pacotes foi mantido fixo (em 5 flits) com intervalo de injeção escolhido aleatoriamente entre 4 e 8 ciclos de relógio.
+Para o tráfego em rajada, pacotes de mesmo tamanho são gerados consecutivamente.
+O gráfico da Figura 29 mostra que o tempo total para encaminhamento de pacotes (Run time (M Clk)) pertencentes ao tráfego em rajada é maior que para o tráfego uniforme.
+Tal resultado se justifica por o fato de haver maior probabilidade de colisões quando se utiliza o tráfego em rajadas.
+Em o segundo experimento, foi utilizada uma malha 2x2 com um TG e um TR para cada roteador.
+Foram gerados em cada TG rajadas de pacotes com modelagem obtida a partir de traces de aplicações reais.
+A avaliação de desempenho considerou a taxa de congestionamento (Congestion rate (k)) com relação a diferentes tamanhos de pacotes e tamanhos de rajada (Figura 30 (a)).
+Os resultados mostraram que a taxa de congestionamento não cresce linearmente com o tamanho de pacotes por rajada.
+Isso porque quanto mais pacotes são enviados em modo rajada, maior o período de inatividade entre duas rajadas.
+Desta forma, a probabilidade de colisão cresce menos do que linearmente.
+Finalmente, foram avaliados resultados de latência média (Avg Latency (Clk)) para diferentes tamanho de rajadas (N Packet/Burst).
+Através do gráfico ilustrado por a Figura 30 (b) verifica- se o ponto de saturação para cada tamanho de rajada.
+Hu e Marculescu propuseram um algoritmo de roteamento denominado Dyad, o qual combina a baixa latência obtida com roteamento determinístico com a alta vazão obtida com roteamentos adaptativos.
+Este algoritmo monitora seus vizinhos para verificar congestionamento.
+Caso haja congestionamento, o algoritmo adaptativo odd-even é utilizado, caso contrário, utiliza- se o algoritmo determinístico oe-fixed.
+O algoritmo de roteamento proposto foi comparado com três outros (XY, OE-fixo e odd-even).
+A avaliação de desempenho foi realizada de maneira externa, considerando a latência média obtida por os pacotes com relação a as cargas oferecidas.
+Dois cenários de tráfego foram adotados.
+Em o primeiro, os núcleos foram conectados numa malha 6x6 gerando pacotes de 5 flits, com intervalo de geração variando de acordo com uma distribuição exponencial.
+Os padrões de tráfego utilizados foram o uniforme e o complemento.
+Os resultados obtidos neste cenário mostraram que no padrão de tráfego uniforme o desempenho utilizando o algoritmo XY foi melhor, enquanto que no tráfego complemento, o algoritmo Dyad apresentou melhor desempenho.
+Tal resultado ocorreu por o fato de algoritmos adaptativos apresentarem melhor desempenho com padrões de tráfego que apresentam maior localidade, pois consultam seus vizinhos para obter informações de congestionamento.
+Em o outro cenário simulado, nove núcleos dispostos numa malha 4x4 foram aleatoriamente escolhidos para gerar tráfego multimídia (dados obtidos a partir de traces reais), e os núcleos restantes gerando tráfego a uma taxa constante.
+Apesar de o padrão de tráfego espacial utilizado ter sido o uniforme, o melhor desempenho foi obtido utilizando- se o algoritmo Dyad.
+Segundo os autores, tal resultado se justifica por o fato do tráfego multimídia gerar rajadas de pacotes, o que provoca maior congestionamento, sendo melhor gerenciado por algoritmos adaptativos.
+Santi et al.
+Realizaram experimentos para verificar sob quais condições de tráfego mecanismos de QoS podem ser oferecidos sem acrescentar a complexidade de um mecanismo de QoS explícito.
+Foram realizados experimentos com uma NoC sem mecanismos de suporte a QoS (best-effort) e dividindo o tráfego das aplicações em guaranteed thrughput (10% dos pacotes) e best-effort.
+A topologia de rede escolhida foi uma torus 8x8 com chaveamento de pacotes utilizando o modo wormhole.
+O algoritmo de roteamento escolhido foi o XY.
+Foram associados 4 canais virtuais a cada canal físico.
+O método de controle de fluxo adotado foi o baseado em créditos.
+Dois padrões de tráfego foram utilizados:
+Uniforme e não-uniforme.
+Três processos de injeção de pacotes foram utilizados:
+Bernoulli, onde um pacote pode ser inserido na rede a qualquer momento com uma determinada taxa de injeção;
+Marcov On-OFF (Seção A avaliação de desempenho foi realizada de maneira externa com a geração de três tipos de gráfico:
+Carga oferecida por latência média;
+Distribuição de latências;
+Carga oferecida por percentagem de pacotes que atingiram QoS.
+Com base na análise de desempenho, os autores concluíram que a inserção de mecanismos de QoS se justifica quando o objetivo é melhorar o desempenho das comunicações de aplicações cujo tráfego esperado ocorre em rajada (modelado nos experimentos por o processo Pareto On-OFF).
+Yum et al.
+Investigaram a possibilidade de se oferecer suporte de QoS em roteadores que utilizam o modo de chaveamento de pacote wormhole para aplicações multimídia (categorias de serviço CBR e VBR) e best-effort (categoria de serviço ABR).
+Para escalonamento de recursos para diferentes categorias de serviço foi utilizado o esquema de alocação de largura de banda virtual clock, onde para cada pacote é atribuído um momento de chegada (tomando como base um relógio global) em cada canal pertencente ao seu caminho.
+Foi utilizado nos experimentos o roteador MediaWorm, cujas chaves estiveram dispostas numa malha 8x8.
+O tamanho de flit adotado foi de 32 bits.
+Em a geração de tráfego VBR (caracterizando uma aplicação MPEG-2), o tamanho de cada frame foi selecionado a partir de uma distribuição normal com média 16,66 Kbytes, desvio padrão de 3,33 Kbytes e intervalo entre frames de 33 ms, o que resulta numa taxa média de injeção de 4 Mbps.
+Para o tráfego CBR com tamanho fixo de frame de 16,66 Kbytes, com intervalo entre frames de 33 ms, o que resulta numa taxa de injeção de 4 Mbps.
+Para transmissão de dados na rede, adotou- se para as duas categorias de serviço a divisão de cada frame em vários pacotes de tamanho fixo (exceto o último pacote do frame, para o caso da categoria VBR).
+Para o tráfego ABR (best-effort) fixou- se o tamanho do pacote em 20 flits.
+A distribuição espacial de tráfego utilizada nos três casos foi a uniforme.
+A avaliação de desempenho foi realizada de maneira externa, considerando a média e o desvio padrão dos intervalos entre frames para pacotes VBR e CBR, enquanto que para tráfego best-effort foi considerada a latência média.
+Os autores concluíram que a utilização do mecanismo virtual clock para gerenciamento de carga fez com que não houvesse influência do tráfego ABR no desempenho dos tráfegos VBR/ CBR.
+Um importante resultado obtido foi relacionado ao mínimo de variação de latência obtido para as categorias VBR/ CBR com taxas de injeção até 70%.
+A Tabela 5 mostra um resumo das principais características dos trabalhos pesquisados.
+Foram considerados o objetivo de cada trabalho, a prática de experimentos com simulação e/ ou emulação, a geração de tráfego tanto espacial quanto com taxas de injeção, a utilização de mecanismos de QoS e o método para avaliação de desempenho.
+O objetivo da maioria dos trabalhos foi oferecer uma arquitetura de comunicação com suporte a QoS, onde aplicações com características em comum foram agrupadas em níveis de serviço.
+Bolotin et al.
+Dividiram o tráfego em quatro níveis, enquanto que outros autores guaranteed throughput e best-effort.
+Os outros objetivos foram comparar arquiteturas de A maior parte dos trabalhos realizou experimentos de geração de tráfego e avaliação de desempenho através de simulação.
+Apenas e prototiparam seu projetos de NoC.
+A grande vantagem observada em tais experimentos é a grande quantidade de pacotes que podem ser gerados nos experimentos.
+Em a geração de tráfego espacial, o padrão uniforme só não foi utilizado por.
+Para caracterização de tráfego de acordo com taxas de injeção, apenas utilizou somente a taxa de injeção constante.
+Realizou experimentos tanto utilizando taxas fixas quanto variáveis.
+Os trabalhos restantes trabalharam somente com taxas variáveis.
+Finalmente, observa- se que a maioria dos experimentos realizou análise de desempenho de maneira externa, considerando a NoC como sendo uma caixa preta, sendo os resultados obtidos a partir de as interface externas.
+Apenas verifica a utilização média dos canais, realizando otimizações na rede a partir de esta métrica.
+Em o contexto deste trabalho, será utilizada a NoC Hermes, como suporte aos métodos de geração de tráfego e avaliação de desempenho.
+Esta estrutura de comunicação não oferece suporte de QoS às aplicações que em ela executam.
+Os pacotes são tratados da mesma maneira, sendo encaminhados na medida do possível (nível de serviço best-effort).
+O padrão de tráfego a ser utilizado será o complemento, por ser adequado para exploração do que acontece na bisecção XY.
+Serão simulados e emulados cenários de tráfego com taxas de injeção fixas e variáveis, utilizando nos experimentos a distribuição normal.
+Essa distribuição será utilizada por permitir melhor visualização do fenômeno flutuação de carga, que são desvios de taxas que ocorrem no encaminhamento.
+Finalmente, a avaliação de desempenho será realizada de maneira interna e externa, considerando métricas que influenciam na contenção e liberação de pacotes na rede.
+Este Capítulo apresenta a primeira contribuição do trabalho, representada por o método para geração de tráfego, e sua respectiva automação, integrando- a ao ambiente de geração da rede Hermes denominado Maia.
+Inicialmente, é abordado o conceito de pacote, que é a estrutura que deve ter a informação a ser transmitida na rede.
+Posteriormente, é mostrado o método para geração de padrões espaciais de tráfego, onde são definidos os iniciadores e alvos das comunicações.
+Finalmente, é mostrado o método para geração de tráfego com variação na taxa de injeção de dados.
+Como mencionado na Seção 1.1, o pacote representa uma informação para comunicação num formato padrão para as mensagens da rede, constituindo- se normalmente de um cabeçalho (header), dados úteis (payload) e terminador (trailer) (Figura 31).
+Embora o método de geração aqui mostrado seja genérico, é fundamental o conhecimento da estrutura do pacote por o gerador de tráfego.
+Tecnologias como ATM, Ethernet e IEEE 802.
+11 adotam basicamente a mesma estrutura apresentada na Figura 31, podendo no entanto utilizar os campos de maneiras distintas.
+Em a NoC Hermes, o header especifica o destino do pacote no primeiro flit e o seu tamanho no segundo flit.
+O payload contém os dados úteis transmitidos por o núcleo conectado ao roteador.
+Em a geração de tráfego, pode- se inserir informações adicionais, relativas à origem do pacote, ao seu momento de criação, número de seqüência (identificação única do pacote na rede), o momento em que o pacote entra na rede e os dados úteis.
+O número de seqüência é uma informação importante a ser adicionada ao payload quando forem utilizados algoritmos de roteamento adaptativos, isto porque os pacotes neste caso podem chegar desordenados em seus destinos, sendo necessário uma referência para seu re-ordenamento.
+Para o caso dos pacotes de um fluxo seguirem o mesmo caminho (normalmente estabelecido por um roteamento determinístico), o número de seqüência torna- se desnecessário.
+O payload pode ainda armazenar informações relativas à descrição da categoria de serviço ao qual o pacote pertence, quando a rede oferece mecanismos de QoS.
+Os pacotes da NoC Hermes não possuem trailer.
+Além de fornecer informações para fins de roteamento, a parametrização das origens e destinos dos pacotes que trafegarão na rede definem a estrutura do padrão espacial de tráfego.
+A parametrização do tamanho do pacote (ou da rajada de pacotes) combinado com o momento de sua inserção na rede especifica a sua taxa de injeção.
+De essa forma, é possível ao projetista caracterizar as aplicações que executam sobre a rede de acordo com seus requisitos espaciais e temporais de tráfego.
+Essa especificação visa oferecer uma referência para o receptor do pacote verificar se o mesmo está chegando com a taxa especificada no momento de sua criação e com a latência característica da aplicação que o gerou (avaliação externa de desempenho -- Figura 4 (a)).
+A geração de tráfego com padrões espaciais é detalhada na Seção 4.2 e a geração de tráfego na Seção 4.3.
+Como exposto na Seção 2.1.1, os padrões espaciais de tráfego definem a relação entre os iniciadores e destinos de tráfego, e quais são estes iniciadores e destinos.
+Esse tipo de geração modela comunicações normalmente observadas em aplicações que executam sobre arquiteturas paralelas e também em SoCs multiprocessados, sendo sua utilização adequada para simular a distribuição espacial de pacotes em NoCs.
+Foram mostrados na Seção 2.1.1 os padrões de tráfego uniforme, não-uniforme, bit-reversal, perfect shuffle, butterfly, matrix transpose e complemento.
+Para gerar tráfego de maneira espacial, primeiramente é necessário suporte para que o projetista do tráfego possa visualizar a disposição dos nodos da rede, ou seja, como é a sua topologia.
+A partir de esta referência pode- se optar por a geração do tráfego espacial como um todo (qual o padrão a ser seguido por todos os nodos da rede) ou então especificar o destino do tráfego gerado por um nodo (ou conjunto de nodos) específico.
+A Figura 32 (a) mostra um exemplo de geração de tráfego onde é especificado que todos os núcleos devem seguir o padrão complemento.
+Outro exemplo é mostrado por a Figura 32 (b), onde o nodo com coordenadas 22 gera dados para o nodo 32.
+Através do suporte exemplificado na Figura 32, é possível caracterizar o tráfego quanto a a sua localidade espacial (onde nodos podem gerar dados para outros mais próximos com maior probabilidade) e temporal (onde nodos podem estabelecer afinidade de comunicação com subconjuntos de nodos).
+Com a definição das origens e destinos de tráfego, é necessário definir qual a carga oferecida por o núcleo iniciador de comunicação para seu respectivo destino (ou conjunto de destinos).
+A carga oferecida corresponde à fração da largura de banda máxima do canal utilizada para transmissão de dados, ou seja, a relação da taxa de injeção de dados com a capacidade de transmissão do canal.
+Quatro parâmetros são considerados na geração de tráfego com taxas de injeção:
+Tamanho do pacote (pcksize), ou seja, sua quantidade de flits;
+tamanho da rajada (bsize), que é a quantidade de pacotes que são enviados consecutivamente;
+Período de ociosidade (idle), que é o intervalo de tempo decorrido entre o envio do último flit de um pacote e o início da transmissão do próximo pacote, ou da próxima rajada de pacotes;
+Intervalos entre saídas (outint) que é o intervalo de tempo decorrido entre o envio do primeiro flit de um pacote e o início da transmissão do próximo pacote, ou da próxima rajada de pacotes.
+A combinação dos parâmetros acima citados é o que caracteriza determinada aplicação que executará sobre a NoC.
+Cinco combinações de variação podem ser adotadas:
+Manter o tamanho dos pacotes fixo e variar o tempo entre o término da geração de um pacote e o início da geração do próximo pacote (Figura 33 (a));
+variar o tamanho dos pacotes e manter fixo o intervalo entre o término da geração de um pacote e o início da transmissão do próximo (Figura 33 (b));
+variar o tamanho do pacote e manter fixo o intervalo entre saídas de pacotes (Figura 33 (c)); (
+iv) manter fixo o tamanho dos pacotes e variar o intervalo de saídas dos mesmos (Figura 33 (d)) (v) variar o tamanho de cada rajada e manter fixo o intervalo entre saídas de rajadas (Figura 33 (e)).
+Para especificação da carga oferecida nos casos ilustrados por a Figura 33 em (a) e (b), é necessária a utilização de variáveis indicando a ocupação do canal e o tempo de ociosidade do mesmo (idle).
+Considerando a ocupação de um canal como sendo ocup $= pcksize* ncyclesflit Onde:
+Equação 4 período de ocupação do canal (em ciclos de relógio);
+O parâmetro ncyclesflit representa o tempo gasto por o roteador para transmitir um flit quando não há bloqueio, sendo parametrizado em função de a estratégia de controle de fluxo adotada quando de o projeto da rede.
+Em a rede Hermes, se o controle de fluxo for baseado em créditos, ncyclesflit é 1.
+Entretanto, se o controle de fluxo for handshake, ncyclesflit é 2.
+Sabendo- se que a carga oferecida corresponde à relação entre a taxa de transmissão do núcleo com a capacidade do canal (ipr/ chr), temos ipr ocup chr ocup+ idle Onde:
+Equação 5 taxa de transmissão do núcleo gerador (em bps);
+A Figura 33 (a) mostra o caso onde é fixo o tamanho do pacote e variado o tempo idle.
+O cálculo para o tempo idle envolve o isolamento desta variável na Equação 5, o que leva à Equação chr chr idle $= ocup* ipr -- 1 $= pcksize* ncyclesflit* ipr -- 1 Equação 6 Se quiséssemos variar o tamanho do pacote (caso (b)), isolaríamos pcksize, conforme a Equação 7.
+Chr ipr -- 1* ncyclesflit Equação 7 Para o caso ilustrado por a Figura 33 (c), temos um intervalo fixo entre saídas de pacotes, combinado com a variação do tamanho dos pacotes.
+A Equação 8 modela a carga oferecida nesta situação:
+Onde: Outint:
+Equação 8 intervalo entre saídas de pacotes (em ciclos de relógio);
+É necessário então isolar a variável pcksize (que é a que sofre variação), conforme a Equação 9.
+Equação 9 O caso mostrado por a Figura 33 (d) mostra a geração de pacotes com tamanho fixo e intervalo de saídas variável.
+Esta situação é também modelada por a Equação 8, sendo no entanto chr ipr Equação 10 Finalmente, a Figura 33 (e) mostra a geração de rajadas de pacotes.
+Em este caso, o tamanho de pacotes é fixo, devendo ser fornecido por o projetista do tráfego da rede.
+Varia- se então o número de pacotes por rajada (bsize).
+A Equação 11 modela a carga oferecida nesta situação ipr bsize* pcksize* ncyclesflit chr outint Equação 11 Isolando o parâmetro a ser variado (bsize) obtém- se bsize $= (chr* pcksize* ncyclesflit) Equação 12 Para o caso da obtenção de um valor fracionário para bsize, é necessário saber do tamanho do último pacote da rajada (que não é múltiplo do tamanho de pacotes escolhido).
+O parâmetro lastpcksize é obtido calculando- se o resto da divisão ilustrada por a Equação 12, ou seja, quantos flits faltam para completar a rajada com a taxa de injeção especificada.
+Equação 13 Um parâmetro a ser considerado adicionalmente em relação a os ilustrados na Seção 4.3.1 para caracterização de tráfego é o momento em que o pacote é criado por o núcleo gerador (pcktmp).
+Este momento serve como referência de tempo para o receptor de pacote ter condições de avaliar se o mesmo obedece às restrições temporais especificadas por a aplicação que o gerou.
+É necessário ao gerador de tráfego calcular o momento da criação do pacote (que também é o momento ideal para sua inserção na rede) e monitorar um relógio global, que possui a quantidade de ciclos decorridos desde o início das comunicações entre os núcleos.
+Se o valor deste relógio for igual ou maior que pcktmp, o pacote deve se injetado na rede por o núcleo que o criou.
+A hipótese do pacote ser inserido quando o relógio global for maior que pcktmp indica problemas de congestionamento na rede, retardando a sua transmissão.
+A Figura 34 mostra um pseudocódigo ilustrando a utilização de um relógio global globalcounter para invocar o envio de pacotes (rotina sendpck).
+O cálculo de pcktmp para os casos ilustrados por a Figura 33( (a) e (b)) é realizado de acordo com a Equação 14, sendo variados o período de ociosidade (idle ­ caso (a)) e o tamanho do pacote (pcksize ­ caso (b)).
+Equação 14 Os casos ilustrados por a Figura 33 (c) e (d) são ainda mais simples, pois apenas levam em consideração os intervalos entre saídas de pacotes (outint).
+Desta forma, o valor de pcktmp para cada pacote é obtido de acordo com a Equação 15: Equação 15 Para a geração do tráfego em rajadas, dois tipos de momentos de criação são considerados:
+O pseudo-código ilustrado por a Figura 36 corresponde à geração de nbursts rajadas:
+Bgen (bsize, btmp, pcksize, lastpcksize);
+Supor que o projetista da rede queira especificar para o núcleo gerador de tráfego a carga oferecida de 50%.
+Supor também que um flit seja igual a um bit e que o período de relógio seja de 100ms. Se for utilizado controle de fluxo baseado em créditos obtém- se para o canal a capacidade de transmissão (chr) de:
+Supondo então que o tamanho do pacote seja de 10 flits.
+O valor de idle será de acordo com a Equação 6: Finalmente, para o caso onde a geração envolve rajadas de pacotes (Figura 33 (e)) é necessário especificar o tamanho da rajada para a carga de 50%.
+Supondo que o tamanho do pacote seja de 10 flits e o intervalo entre inícios de rajadas é de 100 ciclos, bsize é calculado em bsize $= (chr* pcksize* ncyclesflit) $= 5 pacotes A geração de tráfego ocorre como mostra a Figura 39, incluindo o cálculo de cada pcktmp (de acordo com o pseudo-algoritmo da Figura 35).
+Se quiséssemos especificar uma carga de 55% (ipr $= 5.5 bps), teríamos um valor de bsize $= (chr* pcksize* ncyclesflit) $= 5.5 pacotes ou seja, um valor fracionário.
+O núcleo gerador de tráfego deve então gerar 5 pacotes de 10 flits e um último pacote da primeira rajada (P6) com tamanho lastpcksize de A Figura 40 mostra a geração de tráfego com carga oferecida de 55%.
+A modelagem de tráfego atribui características probabilísticas de aplicações reais ao fluxo gerado, onde são variadas as taxas de injeção de dados.
+Dois tipos de geração podem ser adotados.
+Em o primeiro, o usuário define todas as taxas de injeção que serão utilizadas.
+Em o segundo caso, uma variável aleatória é utilizada para definir as taxas de injeção em as quais serão gerados os dados.
+Em este tipo de geração o projetista deve especificar ao gerador de tráfego:
+Quais os parâmetros deverão sofrer variação (uma de entre as opções mostradas na Figura 33);
+os valores das taxas de injeção;
+Quantas gerações deverão ser realizadas para cada taxa de injeção definida, ou seja, quantos pacotes ou quantas rajadas deverão ser geradas.
+Inicialmente devem estar definidas as taxas de injeção dos núcleos da rede, onde para cada núcleo é necessário estabelecer basicamente três parâmetros:
+Taxa mínima (minipr), taxa máxima (maxipr), e incremento (incr).
+A variável incremento auxilia na definição de quantas taxas de injeção deverão ocorrer entre a taxa mínima e a máxima, e que taxas são essas.
+Através da Equação 16 é definida a quantidade de taxas de injeção que vão ser estabelecidas no sistema:
+Onde: Nrates:
+Equação 16 quantidade de taxas de transmissão;
+De essa forma, temos nrates taxas de transmissão, variando de minipr a maxipr com passo de variação incr.
+A próxima etapa é definir para cada taxa de transmissão estabelecida, o número de gerações de dados.
+Deve ser preenchida uma tabela com as entradas índice (index), taxa de transmissão do núcleo (ipr) e quantidade de gerações de pacotes ou de rajadas de pacotes (ngenerations) -- Tabela 6.
+A atribuição de valores ao campo ngenerations ocorrerá de acordo com a distribuição de probabilidades escolhida.
+Cada célula preenchida corresponde a uma percentagem do total de gerações especificado por o projetista do tráfego (totalrequired).
+A Figura 41 mostra o pseudocódigo para atribuição de valores a ngenerations para cada índice de uma tabela com os mesmos atributos da Tabela 6.
+O laço repete tantas vezes quanto forem o número de taxas obtidas em nrates.
+Seja fprob (j, other_ params) uma função de distribuição de probabilidades que recebe como parâmetros a própria taxa de injeção j e parâmetros adicionais para sua construção (como média e desvio padrão).
+Esta função auxilia na obtenção de ngenerations, que é o campo que descreve quantas vezes deverão ser gerados dados a uma taxa específica (estabelecida por o campo ipr).
+Em o contexto deste trabalho, a função de probabilidade normal é a utilizada para gerar tráfego com taxas pré-definidas por o projetista.
+A variável inserted é importante para os casos onde o valor atribuído a ngenerations é menor do que 1.
+Esta variável estabelece um controle de quantos pacotes foram inseridos, devendo ao final ser subtraída de totalrequired para se saber quantas gerações ainda faltam realizar para completar o número de gerações requerido por o projetista do tráfego.
+O valor de tal subtração corresponde ao número vezes que serão adicionalmente gerados pacotes, na célula onde estiver localizado o maior número de gerações.
+Com isso, a maioria dos dados serão gerados de acordo com a taxa média estabelecida quando de a especificação do tráfego.
+É importante salientar que o exemplo acima pode ser aplicado em qualquer um dos casos ilustrados na Figura 33, sendo necessária a substituição dos valores de ipr nas equações que modelam cada um dos cenários ali mostrados.
+A segunda hipótese para geração com taxas de injeção é deixar a cargo de o gerador de tráfego a definição de quais taxas de injeção de dados serão utilizadas.
+Este tipo de geração é mais simples que o mostrado na Seção 4.3.4.1, porque o projetista da rede entra apenas com o número de gerações que serão realizadas e o gerador de tráfego retorna as taxas de injeção de dados.
+Em o outro caso o usuário fornecia as taxas limite e o passo de incremento para obtenção das taxas restantes.
+A função de probabilidade calculava o número de gerações para cada taxa.
+O trecho de código mostrado por a Figura 43 ilustra um tipo de geração de taxas de injeção fornecidas por o gerador de tráfego.
+Em este caso, a função de probabilidade retorna a taxa de injeção para cada geração de dados.
+A distribuição de probabilidades Pareto On-OFF é utilizada por Pande et al.
+Para modelagem de tráfego MPEG utilizando este método.
+Como especificado na Tabela 1, atribui- se à variável r um valor entre 0 e 1.
+Um exemplo de curva gerado por o algoritmo mostrado na Figura 43 é mostrado na Figura 44.
+São gerados 1000 pacotes, sendo On $= 1.9 e Off $= 1.25.
+A largura de banda disponível em cada canal é de 100 Mbps.
+Para cada geração (ngeneration ­ eixo x) há um valor de taxa de injeção (ipr ­ eixo y).
+De acordo com o tipo de variação escolhida (uma de entre as opções escolhidas da Figura 33) o valor de ipr pode ser substituído na Equação 6 (caso (a)), Equação 7 (caso (b)), Equação 9 (caso (c)), Equação 10 (caso (d)) ou na Equação 12 (caso (e)).
+Este Capítulo apresentou a primeira contribuição deste trabalho, um método para geração tráfego com diferentes relações origem-destino e com diferentes taxas de injeção de dados.
+Através da geração de tráfego o projetista caracteriza as aplicações que executarão sobre a rede.
+Tal caracterização deve levar em consideração propriedades probabilísticas de aplicações reais.
+Dependendo da aplicação, são variadas as relações entre as origens e destinos de tráfego (padrão de tráfego espacial), os tamanhos dos pacotes, os intervalos entre gerações de pacotes (ou entre pacotes) e tamanhos de rajadas de pacotes.
+A geração de tráfego oferece, desta forma, uma referência para avaliação de desempenho quando os dados chegarem aos seus destinos.
+Isto porque as propriedades agregadas aos dados gerados devem ser mantidas ao longo de seu caminho na rede.
+Observa- se a generalidade de o método devido a os parâmetros apresentados levarem em consideração um conceito fundamental em redes de comunicação de dados em geral (como os protocolos Ethernet e ATM):
+O pacote.
+Para a geração de tráfego espacial, é necessário inserir no header do pacote o endereço do nodo destino do tráfego.
+Quanto a as taxas de injeção são configurados o tamanho dos pacotes, o intervalo entre gerações de pacotes e o tamanho das rajadas de pacotes.
+Adicionalmente, um parâmetro foi apresentado:
+O momento de inserção de um dado pacote na rede (pcktmp).
+Com este parâmetro, é oferecido ao tráfego gerado propriedades temporais, que, combinados com a quantidade de dados a serem transmitidos, estabelece a taxa de injeção de um dado núcleo.
+Resumidamente, a geração de tráfego é dividida em quatro etapas:
+Definição do momento de geração de cada pacote;
+Definição dos destinos de cada pacotes;
+Inserção do momento de geração do pacote no payload, permitindo o cálculo da latência e avaliações estatísticas de desempenho;
+Parametrização do tamanho do pacote.
+O próximo Capítulo detalha o método proposto para avaliação de desempenho de NoCs, onde é verificado se a rede consegue atender aos requisitos temporais das aplicações, especificadas na geração de tráfego.
+O suporte para avaliação externa de desempenho é oferecido por arquivos onde são impressos os dados coletados nos canais de recepção dos núcleos.
+Um exemplo de arquivo é mostrado na Figura 46.
+Este tipo de arquivo constitui- se das partes pacote (com informações do pacote em sicoordenada XY).
+Todos eles tiveram tamanho de 16 flits.
+Seus números de seqüência são respectivamente 1, 2, 3, 4 e 5.
+O arquivo também mostra que os pacotes entraram na rede no momento em que forma criados, o que leva à conclusão que os mesmos não sofreram bloqueio em seu ingresso.
+A parte de informações adicionais inclui os momentos de chegada do primeiro e último flits de cada pacote.
+A impressão de tais valores deve ser proporcionada por a leitura de um relógio global, que armazena a quantidade de ciclos de relógio decorridos desde o início das comunicações entre os núcleos.
+Este relógio é o mesmo tomado como referência para a geração de tráfego (Seção 4.3.2).
+Em a parte pacote são mostradas informações sobre a origem do pacote, o seu tamanho, quando foi criado, quando entrou na rede, seu número de seqüência (que é único em toda a rede) e o restante do payload.
+O restante do payload corresponde ao payload original do pacote, sem o acréscimo das informações adicionais, necessárias para o cálculo de métricas de desempenho.
+As informações na parte pacote são expressas em hexadecimal.
+Em a parte de informações adicionais são guardadas informações do momento em que o primeiro flit do pacote chegou no núcleo (para o cálculo de métricas de ocupação de canal) e do momento em que o último flit chegou (para cálculo da latência), sendo essas informações expressas na base decimal.
+Os principais registros considerados para avaliação externa de desempenho são os de tamanho do pacote (pcksize), os momentos de chegada do primeiro (tpfext) e último flit (tplext) de cada pacote e os momentos de chegada do primeiro flit do primeiro pacote (tsfext) e do último flit do último pacote (tslext).
+A Figura 47 ilustra estes registros.
+Por exemplo, o primeiro pacote mostrado no arquivo da Figura 46 possui tpfext $= 105, tplext $= 121 e pcksize $= 16.
+O arquivo ainda mostra que tsfext $= 105 e tslext $= 611.
+Onde: Tpfext:
+O suporte para avaliação interna é oferecido por arquivos que contém dados com informações do tráfego que ocorre em cada canal que interliga os roteadores.
+Para cada flit transmitido escreve- se uma dupla no formato` (flit, momento de transmissão)'.
+De a mesma forma que na construção de arquivos para análise externa, os momentos de transmissão dos flits são obtidos através da leitura de um relógio global.
+Em o exemplo mostrado na Figura 48 três pacotes são transmitidos (cada duas linhas representa um pacote).
+Os principais registros utilizados para avaliação interna de desempenho são os mostrados na Figura 49.
+Tais dados são aos momentos em que o primeiro (tpfint) e o último flit (tpfint) são transmitidos, o tamanho dos pacotes (pcksize) e os momentos inicial (tsfint) e final (tslint) entre os quais o canal transmitiu dados.
+Por exemplo, o primeiro pacote mostrado no arquivo da Figura 48 possui tpfint $= 8, tplint $= 76 e pcksize $= 16.
+O arquivo mostra ainda tsfint $= 8 e tslint $= 475.
+Onde: Tpfint:
+São mostradas nas próximas Seções as métricas que farão uso dos valores lidos nos arquivos de medição de tráfego e que determinam o valor dos parâmetros adotados para avaliação de desempenho.
+Inicialmente são mostradas medidas para avaliação do tempo de transmissão dos dados (latência e cpf).
+Posteriormente são mostradas métricas para avaliação da taxa de encaminhamento de dados (tráfego aceito e taxa de utilização de canais).
+Dois parâmetros são considerados na avaliação das distribuições de valores medidos para os parâmetros de avaliação de desempenho adotados.
+A média é o número obtido somando- se os valores medidos e dividindo- se a soma obtida por o número de medições.
+O desvio padrão indica a dispersão dos valores medidos em relação a a média.
+Um pequeno desvio padrão indica, desta forma, valores da distribuição próximos ao valor de sua média.
+Equação 17 nvalores Onde: --
+media) Equação 18 nvalores Como mostrado na Seção 2.2.2, a latência é um parâmetro relacionado com a quantidade de tempo que um dado pacote leva para sair de um ponto e chegar a outro na rede.
+Normalmente quantifica- se a latência através do número de ciclos gastos para um pacote percorrer um caminho.
+Dependendo a partir de que momento se deseja medir a latência e quais recursos são considerados durante o tráfego dos pacotes, podemos ter diferentes medidas de latência, mostradas na Seção Em o contexto deste trabalho, a latência é considerada como sendo o tempo decorrido entre a criação do pacote (pcktmp ­ Seção 4.3.2) e a chegada do último flit do mesmo em seu destino, sendo desta forma um parâmetro de avaliação externa de desempenho.
+Esta medida de latência considera as permanências dos pacotes em buffers de roteadores e o tempo de arbitragem e de roteamento.
+A vantagem em se utilizar esta medida de latência é a possibilidade da análise da contenção de pacotes na rede.
+Por exemplo, a entrada de um pacote na rede muito tempo após ele ser criado indica que houve contenção por parte de a rede a este pacote, devido a o congestionamento provocado por pacotes pertencentes a outros fluxos.
+A análise da latência tem como objetivo a verificação do atendimento ou não aos requisitos temporais da aplicação que gera o tráfego.
+Aplicações de tempo real, por exemplo, possuem requisitos rígidos de latência, por o fato da necessidade de seus dados terem de ser entregues no menor tempo possível.
+Aplicações de vídeo geram tráfego com intervalos fixos entre a geração de frames, o que exige que a rede encaminhe os pacotes com o mínimo de variação de latência.
+Para obter a latência é necessária a leitura do payload do pacote, mais especificamente no campo relacionado ao momento da criação do mesmo (pcktmp -- Seção 4.3.2).
+Outro parâmetro lido é o momento em que o último flit do pacote chega ao destino (tplext -- Figura 46).
+O cálculo da latência (lat) para um pacote i é realizado segundo a Equação 19: Por exemplo, o primeiro pacote do arquivo da Figura 46 possui valor Equação 19 lat 0 $= tplext0 -- pcktmp0 $= 121 -- 0 $= 121 ciclos A avaliação da latência é realizada neste trabalho através da utilização dois gráficos:
+Chaos Normal Form (CNF) e distribuição de latências.
+Em os gráficos CNF são impressos no eixo x os valores de carga oferecida estabelecidos por os geradores de tráfego e no eixo y os valores de latência média.
+Através deste tipo de gráfico o projetista consegue verificar o ponto de saturação da rede.
+O ponto de saturação corresponde ao valor de carga oferecida a partir de o qual inicia- se um significativo crescimento da latência.
+A Figura 50 mostra um exemplo onde o ponto de saturação ocorre a partir de uma carga oferecida de 15% da capacidade total da rede.
+A construção do tal gráfico baseia- se na leitura de arquivos de tráfego onde são computados o momento de criação, o tamanho (pcktmp) e a latência de cada pacote (obtida através da Equação 19).
+A partir de a leitura dos arquivos, preenche- se uma tabela com os campos carga oferecida, somatório de latências e o número de pacotes encontrados.
+Os registros do campo carga oferecida deve ser definidos através da verificação de todos os pacotes da rede.
+Cada novo valor de carga oferecida encontrado é adicionado como um novo registro nesta tabela.
+O valor de carga oferecida de cada pacote considera seu tamanho, o momento de sua criação e o momento de criação de seu subseqüente.
+A Equação 20 mostra como se computa a carga oferecida offeredload para cada pacote i.
+Equação 20 Com a definição de todos os registros de carga oferecida, o próximo passo é calcular a latência média para cada registro.
+Para cada pacote computa- se a sua latência e acrescenta- se este valor ao da latência acumulada correspondente à carga oferecida por o pacote.
+Deve- se também incrementar o valor do número de pacotes encontrados.
+A latência média para cada carga oferecida é obtida dividindo- se o valor do acúmulo de latências por o total de pacotes encontrados.
+A Tabela 8 mostra os valores para a geração do gráfico ilustrado por a Figura 50.
+O valor de latência média em itálico indica o ponto de saturação da rede.
+O gráfico de distribuição de latências objetiva verificar o tempo médio de transmissão dos pacotes de um dado fluxo, ou até mesmo de todos os pacotes da rede, e a variação deste tempo.
+Em o eixo x são impressas as latências e no eixo y são impressos o número de pacote com determinada latência.
+Um baixo valor da variação de latências leva o projetista a concluir que os pacotes chegam aos seus destinos de maneira uniforme no tempo.
+Em redes com suporte a QoS, a classe de tráfego Guaranteed Throughput deve oferecer aos pacotes pertencentes a esta classe garantias de valores reduzidos de latência média e de variação de latência.
+Para impressão dos valores dos intervalos de latência pertencentes ao eixo x (vetor latency), é necessário o conhecimento das latências mínima (min_ latency) e máxima (max_ latency) que ocorreram no tráfego.
+Com estes dois limites e um passo de incremento (increment) são definidos os valores intermediários.
+A obtenção dos valores do eixo y ocorre verificando a latência de cada pacote (latency-read), e incrementando o valor do eixo y no intervalo de latências ao qual latency read pertence.
+A Figura 51 mostra um pseudocódigo para geração de um gráfico de distribuição de latências.
+A Figura 52 mostra um exemplo de gráfico de distribuição de latências gerado (em (a)) e a tabela com os valores correspondentes (em (b)).
+A tabela mostra que o campo latency possui valor mínimo de 5894 ciclos e máximo de 343802 ciclos.
+Observa- se também que a maior parte dos pacotes teve latência no intervalo de 5894 a 17545 ciclos.
+Observa- se o alto grau de espalhamento dos dados do gráfico.
+O gráfico ilustra resultados de latência obtidos num experimento onde foram injetados 64.000 pacotes numa NoC 8x8 na taxa de 30% da capacidade total da rede (acima de o ponto de saturação).
+O tamanho dos pacotes é de 50 flits.
+A segunda métrica para avaliação do tempo de transmissão de dados é o tempo médio (em ciclos de relógio) para transmissão de flits (avcpf ­ average cycles per flit ­ ciclos por flit médio).
+O avcpf é uma métrica para avaliação interna de desempenho, sendo os dados para análise coletados nos canais de transmissão que interligam os roteadores entre si.
+A obtenção de avcpf consiste em inicialmente no cálculo do cpf (ciclos por flit) para cada pacote, que é o tempo gasto para sua transmissão dividido por o seu tamanho.
+A Equação 21 mostra o cálculo de cpf para um pacote i.
+Equação 21 Posteriormente deve- se realizar o somatório de todos os cpfs calculados e dividir por o número de pacotes transmitidos.
+A Equação 22 mostra o cálculo de avcpf.
+Cpf i $= 1 Equação 22 npck A métrica avcpf oferece uma medida quantitativa do congestionamento dos canais dos roteadores.
+Em a NoC Hermes sem congestionamento, idealmente avcpf possui valor 1 (quando a estratégia de controle de fluxo adotada for baseada em créditos) e 2 (quando o controle fluxo for handshake).
+Valores elevados de avcpf indicam a alocação de canais sem efetiva transmissão de dados.
+Duas maneiras de avaliar avcpf (e demais métricas para avaliação interna de desempenho) são utilizadas neste trabalho:
+Gráfico de superfície e mapa textual de tráfego.
+A visualização de valores para avaliação interna deve ser feita considerando a rede como um todo, devendo ser possível comparar todos os canais/ enlaces1 da rede ao mesmo tempo em diversas regiões.
+A Figura 53 mostra um exemplo de gráfico de superfície onde é avaliado o avcpf nos enlaces de uma NoC 4x4.
+Os destaques indicam que os maiores valores de avcpf estão em torno de 2,3 ciclos.
+Estes valores são apresentados nos enlaces formados por os pares de roteadores, e.
+Canais bidirecionais A Figura 54 mostra a visualização de avcpf nos canais de transmissão da mesma NoC apresentada na Figura 53.
+Em cada canal são mostrados os valores máximo (superior), médio e mínimo (inferior) de cpf.
+São destacados os canais que formam os enlaces com maior avcpf.
+Em o enlace conectando o par de roteadores (destaque no canto inferior esquerdo) o valor de avpcf é de:
+O tráfego aceito é uma medida através de a qual é verificado se os pacotes movimentam- se na rede mantendo as características estatísticas do modelo utilizado quando de sua geração.
+Pode- se avaliar o tráfego aceito de maneira tanto externa quanto interna.
+De maneira externa, observa- se o ponto de saturação da rede (através dos gráficos CNF) e a distribuição do tráfego aceito.
+Internamente é verificado, em cada canal, a distribuição do tráfego aceito.
+Para avaliação externa de desempenho, o tráfego aceito (acceptedtraffic) é obtido através da leitura de arquivos onde são armazenados os pacotes coletados nos canais que interligam os roteadores com os núcleos, mais especificamente nos campos tpfext e pcksize.
+A Figura 46 mostra a estrutura de um arquivo utilizado para avaliação externa.
+O cálculo de acceptedtraffic de um pacote i para análise externa é realizado através da Equação 23.
+Equação 23 A obtenção de acceptedtraffic para análise interna é similar à obtenção de acceptedtraffic para análise externa.
+Em este caso, captura- se o momento de envio do primeiro flit de cada pacote nos arquivos de dados coletados nos canais de transmissão que interligam os roteadores.
+O cálculo de acceptedtraffic para um pacote i para análise interna é realizado através da Equação 25.
+Equação 24 A avaliação do tráfego aceito é realizada através de gráficos de distribuição de tráfego aceito (para avaliação interna e externa de desempenho) e de gráficos CNF (para avaliação externa de desempenho).
+Em os gráficos CNF são impressos no eixo x todas as cargas oferecidas ao sistema e no eixo y o tráfego aceito para cada carga oferecida.
+Um exemplo de gráfico de tráfego aceito é mostrado na Figura 55.
+De a mesma forma que o gráfico CNF para latência média, o objetivo é encontrar o ponto de saturação da rede, sendo neste caso o ponto a partir de o qual o aumento de carga oferecida não produz qualquer aumento no tráfego aceito.
+A Figura 55 mostra um exemplo onde o ponto de saturação ocorre para uma carga oferecida de 40% da capacidade da rede.
+É necessário gerar uma tabela similar à que se deve gerar para um gráfico CNF de latência média.
+No entanto substitui- se o campo latência acumulada por tráfego aceito acumulado e latência média por tráfego aceito.
+Com a computação de todas as cargas oferecidas que ocorreram no sistema, é momento de calcular o tráfego aceito para cada carga oferecida.
+Para cada pacote computa- se o seu tráfego aceito e acrescenta- se este valor ao acumulado no campo tráfego aceito acumulado no registro relativo à sua carga oferecida.
+Deve- se também incrementar o número de pacotes encontrados com aquela carga oferecida.
+O tráfego aceito para cada carga oferecida é então obtido através da divisão do valor de tráfego aceito acumulado por o total de pacotes encontrados.
+A Tabela 9 mostra os valores para a geração do gráfico ilustrado por a Figura oferecida no último registro seja de 0,45 (45% da capacidade total da rede), a rede não consegue encaminhar dados a mais de o que 40%.
+A distribuição de tráfego aceito de um determinado fluxo (par origem-destino específico) permite a verificação ao longo de o caminho percorrido por o fluxo da manutenção ou não das taxas de injeção de dados estabelecidas na geração de tráfego.
+É indesejável, neste caso, a ocorrência de desvios em relação a o tráfego de entrada.
+O gráfico de distribuição de tráfego aceito é, desta forma, uma medida de tráfego interno (onde são verificadas as taxas de encaminhamento de pacotes em cada canal percorrido por o fluxo) e externa (onde é verificado se o núcleo destino recebe os dados nas taxas estabelecidas na origem).
+Em o gráfico de distribuição de tráfego aceito são impressos no eixo x os valores de tráfego aceito que ocorreram durante as comunicações entre os núcleos e no eixo y o número de pacotes que tiveram determinado tráfego aceito.
+A construção deste gráfico é similar ao da construção do gráfico de distribuição de latências.
+São considerados os parâmetros tpfext.
+Os valores do eixo x são obtidos encontrando- se os valores de tráfego aceito mínimo (min_ acceptedtraffic) e máximo (max_ acceptedtraffic) e com a utilização de passo de incremento (increment) para obtenção dos valores intermediários.
+Estes valores são indexados numa tabela similar ao da distribuição de latências, substituindo- se neste caso o campo latency, por acceptedtraffic.
+Para cada pacote é calculado então o seu tráfego aceito (acceptedtraffic_ read) através da Equação 23, para avaliação externa, e da Equação 24, para avaliação interna, e verificase a qual intervalo de tráfegos aceitos impressos no eixo x o tráfego aceito do pacote em questão pertence.
+Em o intervalo encontrado, incrementa- se npacks (número de pacotes -- eixo y) numa unidade (algoritmo da Figura 56).
+A Figura 57 mostra um exemplo de gráfico de distribuição de tráfego aceito para um determinado canal da rede.
+Observa- se que a maior parte dos pacotes possui o tráfego aceito de 41%.
+O tráfego aceito mínimo é de 26% e o máximo de 56% da capacidade total da rede.
+Foram observados, nesta medição, 998 pacotes.
+A utilização média de canais corresponde ao percentual de largura de banda utilizado por os pacotes para transmissão de dados.
+A avaliação da utilização média de canais toma como referência duas métricas:
+A largura de banda ocupada média utilizada e a taxa efetiva de transmissão de dados.
+Avalia- se esta utilização de maneira interna, ou seja, considerando todos os canais de transmissão da rede.
+Se a rede está corretamente dimensionada, é esperada uma utilização uniforme de todos os canais.
+Otimizações na rede, como inserção de canais virtuais e dimensionamento de buffers, podem ser necessárias se a utilização da rede não está balanceada.
+A primeira métrica considerada neste trabalho para avaliação da utilização média dos canais é o abw (average bandwidth).
+O abw é a largura de banda média utilizada para transmissão de dados nos canais.
+Para a obtenção de abw primeiramente calcula- se o somatório dos tempos de transmissão de cada pacote.
+O tempo de transmissão de cada pacote no canal é obtido através do cálculo da diferença de tempo entre a transmissão do primeiro flit (tpfint) e a transmissão do último flit do pacote (tplint).
+Divide- se então este somatório por o tempo total em que o canal transmitiu dados, que é a diferença entre o momento em que foi transmitido o primeiro flit do primeiro pacote e o momento em que foi transmitido o último flit do último pacote.
+A Equação 25 mostra o cálculo de abw.
+A Figura 49 ilustra a utilização da Equação 25.
+Equação 25 A Equação 25 modela a utilização média do canal para redes com mecanismo de chaveamento store- and-- forward e virtual-cut-through, mas pode superestimar a utilização média do canal em redes que utilizam o mecanismo wormhole.
+Ou seja, é possível a obtenção de altos valores de abw, no entanto, com uma baixa taxa efetiva de transmissão de dados.
+Isto pode acontecer por que no mecanismo wormhole, uma vez que um dado canal é alocado para transmissão de um pacote, ele permanece indisponível para transmissão de outros pacotes até o final da transmissão do pacote para o qual ele foi alocado.
+A taxa efetiva de transmissão de dados (thr) é o número efetivo de bits transmitidos numa dada quantidade de tempo, em número de ciclos de relógio.
+A Equação 26 computa thr para cada canal da NoC, dividindo o número total de bits transmitidos por o número de ciclos de relógio gastos para transmissão de pacotes.
+Onde: Flitsize:
+Pcksize* flitsize i $= 1 Equação 26 nsimc largura do flit, em número de bits;
+Pode- se ainda extender a Equação 26 para computar o valor de thr em bps (bits por segundo).
+Para isso, no entanto, é necessário o conhecimento a priori do período de relógio utilizado.
+A Equação 27 mostra como calcular thr utilizando o período de relógio npck thrbps channelXY $= Onde:
+Pcksize* flitsize i $= 1 Equação 27 nsimc* T período de relógio utilizado;
+A Figura 58 ilustra a comparação entre abw e thr.
+Considera- se para análise o intervalo de tempo de 16 unidades.
+Considera- se também que os pacotes transmitidos possuem tamanho de 4 flits.
+Em as situações em (a) e (b), abw é 0,5, ou seja, o canal é ocupado durante 50% do tempo.
+Entretanto, em (a) são transmitidos 8 flits no intervalo de 16 unidades, enquanto que em (b) são transmitidos 4 flits no mesmo período de tempo.
+Conclui- se então que, apesar de (a) e (b) apresentarem transmissões de pacotes com mesmo abw, (a) transmite efetivamente o dobro de bits por unidade de tempo em relação a (b).
+A exemplo da métrica avcpf, as métricas abw e thr também são métricas de avaliação interna da rede.
+De essa forma, a visualização dos valores das métricas de desempenho ocorre também por meio de gráficos de superfície e mapas textuais de tráfego.
+A Figura 59 em (a)/ (b) mostra abw nos enlaces/ canais de uma NoC 4x4.
+Observa- se que os maiores valores de abw estão localizados nos enlaces formados por os pares de roteadores e.
+A Figura 60 mostra thr para a mesma NoC cujo abw foi mostrado na Figura 59.
+Os enlaces da bisecção XY são os que exibem os maiores valores de thr (destaque em (a) e (b)).
+Através dos valores de abw e thr mostrados, verifica- se que os pacotes que trafegam nos enlaces formados por os pares de roteadores e ocupam uma maior largura de banda para poder transmitir dados na mesma taxa efetiva que os pacotes que trafegam nos demais enlaces da bisecção, devido a os bloqueios que os pacotes são sujeitos e também à utilização do padrão de tráfego complemento.
+Esta Seção apresenta um método para visualização de medições de parâmetros de avaliação externa de desempenho, de maneira que seja possível comparar- los com os parâmetros estabelecidos na geração de tráfego.
+Trata- se de uma tabela que mostra medições de parâmetros de desempenho para cada fluxo gerado, permitindo avaliar se o tráfego medido obedece aos requisitos especificados na geração.
+Este tipo de visualização é adotado em.
+A geração deste tipo de tabela baseia- se na leitura dos arquivos de tráfego que conectam os roteadores com os núcleos (ver exemplo Figura 46 ­ página 56).
+Os passos para geração de uma tabela são os seguintes:
+Identificação dos fluxos gerados:
+São percorridos todos os relatórios, onde são pesquisados todos os pares origem-destino gerados.
+Para cada novo par encontrado é criado um novo índice na tabela;
+Para cada fluxo é calculada a carga oferecida média e o desvio padrão desta carga;
+Para cada fluxo é calculada a latência média ideal.
+Dois parâmetros utilizados para o cálculo desta métrica destacam- se:
+Hops, a quantidade mínima de saltos de roteamento existentes a origem e o destino do fluxo considerado e arb_ time, o tempo que cada roteador gasta para processar o cabeçalho de cada pacote.
+Para a NoC Hermes, por exemplo, arb_ time possui o valor de 7 ciclos de relógio.
+Onde: Npacks:
+Pcksize+ (hops* arb_ time) i $= 1 Equação 28 npacks quantidade de pacotes do fluxo considerado;
+Para cada fluxo mede- se o tráfego aceito médio (Equação 24 mostra o tráfego aceito para cada pacote) e o desvio padrão da distribuição de tráfego aceito;
+Para cada fluxo mede- se a latência média e o desvio padrão da latência.
+A Tabela 10 apresenta um trecho de resultados obtidos para uma NoC 8x8, onde em ela é gerado um tráfego onde cada núcleo envia 1000 pacotes para destinos estabelecidos de acordo com o padrão complemento.
+O parâmetro tolerância (localizado ao lado direito da latência ideal) especifica a porcentagem permitida para valores excedentes de latência ideal, sendo especificado no momento em que se deseja gerar a tabela.
+Observa- se no exemplo que, embora as medições de tráfego aceito estejam de acordo com o especificado na geração dos fluxos, o mesmo não pode se dizer da latência média obtida, que em nenhum dos fluxos analisados esteve próximo de a latência média ideal.
+Tal comportamento justificase por a alta concorrência estabelecida entre os fluxos gerados, visto que foi especificado para cada núcleo a geração de 1000 pacotes utilizando o padrão complemento, o que acarreta congestionamento nas bisecções da rede.
+Em este Capítulo foram apresentados os parâmetros que servirão como referência para avaliação de desempenho para a NoC Hermes.
+Foram mostradas métricas relacionadas às características temporais das aplicações (latência e tempo médio para transmissão de flits) e com a taxa de encaminhamento de dados (tráfego aceito e taxa de utilização de canais).
+As métricas mostradas puderam ainda ser caracterizadas quanto a o ponto de vista adotado, podendo ser:
+Externas, com a verificação do tráfego que ocorre nos canais que interligam roteadores e núcleos;
+Internas, com a verificação do tráfego que ocorre nos canais que interligam os roteadores entre si.
+Através das métricas apresentadas é possível ao projetista verificar o desempenho das aplicações que executam sobre uma determinada arquitetura de rede sob diferentes cenários de tráfego, observando o comportamento tanto de fluxos específicos (avaliação externa) como de diferentes regiões da rede (avaliação interna).
+Em este Capítulo são apresentados os experimentos realizados para validar os conceitos de geração de tráfego e avaliação de desempenho abordados nos Capítulos 4 e 5.
+Para cada estudo de caso são mostradas as especificações de geração de tráfego e os parâmetros de desempenho tomados como referência para análise.
+A NoC utilizada nos experimentos é a Hermes.
+Essa rede possui chaveamento baseado em pacotes, utiliza a topologia malha, e tem como elementos básicos roteadores com lógica de controle centralizada e cinco portas bidirecionais:
+Leste, oeste, norte, sul e local.
+Cada porta local é conectada a um núcleo e as outras portas são conectadas aos roteadores vizinhos.
+Cada porta possui buffers de entrada para armazenamento temporário de dados.
+O modo de chaveamento utilizado é o wormhole.
+Para controle de fluxo pode ser utilizada a estratégia handshake ou baseada em créditos.
+Em os experimentos realizados o controle de fluxo adotado é o baseado em créditos.
+O tamanho do flit é parametrizável, sendo o número máximo de flits num pacote fixado em 2 (tamanho do flit, em bits).
+O primeiro e o segundo flits de cada pacote indicam o cabeçalho (header), sendo respectivamente o endereço do núcleo destino e o tamanho do pacote, em número de flits.
+O restante do pacote é constituído por os dados úteis (payload).
+O tempo de roteamento/ arbitragem em cada roteador da NoC Hermes é de 7 ciclos de relógio.
+Em este Capítulo, são discutidos 4 estudos de caso.
+Em o primeiro, núcleos enviam dados a taxas fixas utilizando o padrão de tráfego complemento.
+É realizada avaliação externa e interna de desempenho.
+Em a avaliação externa, o objetivo é verificar o ponto de saturação da rede e o espalhamento dos valores de latência a partir de o ponto de saturação.
+A avaliação interna tem como objetivo verificar a ocupação de enlaces utilizando diferentes algoritmos de roteamento e a contenção de pacotes quando de a utilização ou não de canais virtuais.
+Em o segundo estudo de caso, tráfegos gerados de maneira probabilística concorrem com tráfegos gerados com taxas de injeção fixas.
+Avaliação externa e interna de desempenho são realizadas.
+A avaliação externa objetiva verificar os valores de latência para diferentes quantidades de saltos de roteamento que formam os fluxos com taxa variável.
+Também se verifica a distorção de valores de tráfego aceito por a rede em relação a o tráfego gerado por os diferentes fluxos.
+A avaliação interna objetiva verificar a fidelidade ou não do tráfego encaminhado nos roteadores intermediários em relação a a carga oferecida na origem, para os fluxos com taxa variável.
+O terceiro estudo de caso discute a influência do redimensionamento de buffers de roteadores no desempenho das comunicações.
+Avaliação interna e externa de desempenho são realizadas.
+Em a avaliação interna é analisada a contenção nos enlaces para cada política de redimensionamento adotada.
+Em a avaliação externa são observadas as distribuições de latências.
+Os experimentos realizados mostram a diferença nos resultados obtidos, com o mesmo acréscimo de slots de buffers em regiões distintas da rede.
+Finalmente, no quarto Estudo de Caso, os métodos de geração de tráfego e avaliação de desempenho apresentados são validados em FPGA.
+A aplicação em questão é um comparador de seqüências de caracteres, sendo muito utilizada, por exemplo, para verificação de similaridade entre segmentos de DNA.
+Em o primeiro Estudo de Caso, núcleos enviam dados a uma taxa constante utilizando padrão de tráfego complemento (Seção 4.2).
+A topologia utilizada é uma malha 8x8.
+Os buffers de cada roteador possuem profundidade de 8 flits, sendo que cada flit possui largura de 16 bits.
+Para efeitos de avaliação dois algoritmos de roteamento XY (determinístico) e WF (oeste-primeiro, parcialmente adaptativo) e implementações com e sem canais virtuais são utilizados.
+Este experimento embasou a escrita do artigo, publicado no SBCCI' 05 (18 th annual O objetivo deste Estudo de Caso é verificar:
+O ponto de saturação da rede e o espalhamento dos valores de latência a partir de o ponto de saturação ­ avaliação externa;
+A ocupação de enlaces utilizando diferentes algoritmos de roteamento e a contenção de pacotes quando de a utilização ou não de canais virtuais ­ avaliação interna.
+Em a geração de tráfego espacial, cada núcleo envia 1000 pacotes com 50 flits para destinos determinados segundo o padrão de tráfego complemento, o que resulta num total de 64.000 pacotes transmitidos em cada simulação.
+Em esse padrão de tráfego, o nodo que possui coordenadas de todos os bits).
+Foram realizadas seis simulações, onde em cada uma as taxas de injeção de pacotes para cada núcleo tiveram valores de 10, 15, 20, 30, 40 e 60% da carga máxima da rede.
+Considerando que a largura do canal de transmissão de dados é de 16 bits e que a freqüência da rede é de 50 MHz, tem- se para chr:
+Conseqüentemente, as taxas de injeção de pacotes gerados em cada núcleo (ipr) foram de 80, 120, 160, 240, 320, 400, e 480 Mbps.
+A geração de tráfego com taxas de injeção adotou a alternativa (a) da Figura 33, onde é mantido fixo o tamanho do pacote (neste caso, 50 flits) e variase o período ocioso (idle) para cada taxa.
+Apresenta- se abaixo o cálculo do parâmetro idle (Equação 6) em ciclos de relógio para a taxa de 80 Mbps.
+Chr idle $= pcksize* ncyclesflit* ipr -- 1 Para as demais taxas os resultados obtidos foram de 283, 200, 75, 50 e de 33 ciclos.
+Em este primeiro estudo de caso, foram adotadas taxas de injeção fixas com o objetivo de verificar o comportamento da rede frente a tráfegos de dados com características similares a aplicações que solicitam serviços à rede de acordo com a categoria CBR.
+Inicialmente a avaliação de desempenho da rede para o cenário de tráfego estabelecido é realizada de maneira externa.
+São considerados dois tipos de gráfico:
+CNF, para obtenção do ponto de saturação da rede;
+Distribuição de latências, para verificação do grau de variação das latências dos pacotes.
+Os gráficos CNF apresentam os valores médios de latência e tráfego aceito obtidos para cada carga oferecida à rede.
+Desta forma, é possível verificar os limites da rede em termos destes parâmetros, de acordo com os padrões especificados na geração de tráfego.
+A Tabela 11 mostra os valores de latência média e tráfego aceito obtidos nos experimentos.
+A Figura 61 (a) mostra o quanto as latências médias são maiores para o caso em que é utilizado o algoritmo de roteamento WF sem canais virtuais (wf_ semCV).
+Observa- se que para o caso onde é utilizado o algoritmo XY com 2 canais virtuais (xy_ 2 VC) a latência é praticamente constante até o ponto de saturação, que ocorre a partir de a carga oferecida de 20%.
+Após este valor a latência apresenta significativo crescimento.
+Tal fato ocorre devido a a dificuldade dos pacotes serem injetados na rede, à medida que vai aumentando a carga oferecida por todos os nodos de origem, ou seja, os pacotes vão sendo injetados na rede num momento cada vez mais atrasado em relação a o de criação.
+Em a Figura 61 (b) observa- se que a utilização de canais virtuais também acarreta aumento no tráfego aceito máximo.
+Também é ilustrando mais uma vez a superioridade do algoritmo de roteamento XY sobre o WF.
+O maior ponto de saturação da rede ocorre onde se utiliza o algoritmo de roteamento XY e canais virtuais (xy_ 2 VC).
+Os gráficos CNF mostraram em quanto a utilização do algoritmo de roteamento XY foi superior ao WF.
+Os gráficos de distribuição de latências apresentados abaixo mostram a superioridade em termos de desempenho alcançado com a utilização de canais virtuais, para o algoritmo de roteamento XY.
+São mostrados nos gráficos o número de pacotes (npacks) com um dado valor de latência (latency).
+O objetivo é avaliar o grau de espalhamento das curvas obtidas, que é um indicativo do cumprimento ou não dos requisitos temporais do tráfego gerado.
+As curvas ilustradas na Figura 62 mostram a distribuição de latências a partir de o ponto de saturação quando se usa o algoritmo de roteamento XY, com e sem a utilização de canais virtuais.
+A plotagem de gráficos a partir de o ponto de saturação se justifica por o fato de tais gráficos apresentarem a maior diferença entre implementações com e sem canais virtuais.
+Os gráficos de distribuição de latências com cargas oferecidas de 10 e 15% apresentam praticamente os mesmos valores com e sem a utilização de canais virtuais.
+Observa- se nas quatro curvas que a implementação da rede sem canais virtuais apresenta o maior espalhamento em relação a a distribuição de latências referente a a utilização de canais virtuais (destaques em (a), (b), (c) e (d)).
+Outro detalhe a observar é o aumento deste espalhamento com o aumento da carga oferecida, em ambas implementações.
+O menor espalhamento observado na implementação com canais virtuais permite estimar o tempo para transmitir pacotes de maneira mais precisa, um fator fundamental para implementação de QoS em NoCs.
+A avaliação interna da rede considera neste experimento as métricas abw (largura de banda média utilizada) em cada enlace da NoC e avcpf (número médio de ciclos gastos para encaminhar cada flit).
+Valores elevados de abw indicam altas taxas de encaminhamento de pacotes, enquanto que valores elevados de avcpf indicam alta contenção.
+A Figura 63 mostra abw quando são utilizados os algoritmos de roteamento WF (em (a)) e XY (em (b)), sem a utilização de canais virtuais.
+A carga oferecida por os núcleos é de 20%, o que provoca a saturação da rede, em ambas as configurações.
+A Figura 63 (a) mostra a maior utilização dos enlaces no lado oeste da rede quando comparada à Figura 63 (b).
+Tal fato é explicado devido a a natureza do algoritmo WF, visto que este tenta rotear pacotes primeiramente na direção oeste para posteriormente tentar rotear nas outras direções.
+Em a Figura 63 (b) é observada uma distribuição mais homogênea da largura de banda utilizada.
+Outra análise interna realizada leva em consideração o avcpf nos enlaces da NoC, onde é possível observar pontos de contenção da rede.
+Em este caso é verificada a contenção imposta aos flits em decorrência da não utilização de canais virtuais e a diminuição desta contenção quando de a adoção de canais virtuais.
+Valores elevados de avcpf indicam em que pontos há maior dificuldade dos pacotes serem encaminhados.
+A Figura 63 (b) mostra que o centro da rede apresenta maior densidade de tráfego (maior utilização da largura de banda -- abw).
+Espera- se neste caso que haja maior contenção de pacotes nos roteadores localizados na periferia da rede.
+A Figura 64 (a) mostra que o CPF médio em tais roteadores está em torno de 5 quando não são utilizados canais virtuais, o que significa que o tempo médio de permanência em buffer para cada flit é de 5 ciclos.
+Com a utilização de canais virtuais (onde o canal físico é multiplexado) ocorre redução da contenção dos flits nos roteadores da periferia da rede (Figura 64 (b)) para valores em torno de 3 ciclos.
+Tal fato demonstra um benefício direto da utilização de canais virtuais:
+Diminuição da contenção em redes com modo de chaveamento wormhole.
+Em torno de 5 ciclos para transmissão de cada flit Redução dos valores de avcpf avcpf Roteadores no eixo Y Roteadores no eixo X Roteadores Em o eixo Y (a) ­ Sem utilização de canais virtuais, (b) ­ Com a utilização de 2 canais virtuais, roteamento XY.
+O segundo Estudo de Caso envolve a geração de tráfego com taxas constantes concorrendo com tráfegos que possuem taxas de injeção variando segundo a distribuição de probabilidade normal.
+O objetivo do experimento é verificar o efeito causado por fluxos com taxas de injeção constantes em fluxos gerados com taxas variáveis.
+Através da avaliação da distribuição de tráfego aceito será possível observar o fenômeno flutuação de carga, que são desvios que ocorrem nas taxas geradas por os núcleos de origem, devido a o congestionamento na rede.
+A distribuição de latência permite analisar a média e o espalhamento dos valores de latência encontrados de acordo com diferentes distâncias entre pares de núcleos origem-destino, a exemplo do que foi visto no Estudo de Caso 1.
+A topologia escolhida foi uma malha com dimensão 8x8, sendo associado a cada roteador, 2 canais virtuais.
+O padrão de tráfego espacial escolhido foi o complemento.
+A geração de tráfego com taxas de injeção utilizou as distribuições constante e normal.
+Em cada núcleo foram gerados 1000 pacotes de 50 flits cada.
+A variação das taxas de injeção é definida através do período de ociosidade entre pacotes (Figura 33 (a)).
+As especificações das taxas de injeção praticadas são mostradas na Tabela para o tráfego modelado por a distribuição normal.
+Dois cenários de tráfego foram avaliados.
+Em o Cenário 1 é estabelecida uma concorrência de recursos entre os fluxos gerados com taxas variando segundo a distribuição normal (Figura 65 (a) e (b)) e os fluxos gerados com taxas de injeção constante a 40 Mbps.
+Em o Cenário 2, fluxos gerados a 80 Mbps concorrem com os fluxos com taxas especificadas por a mesma distribuição normal do Cenário 1.
+O objetivo é verificar a influência do grau de concorrência estabelecido por as duas taxas constantes no fluxo modelado segundo a distribuição normal.
+Figura 65 ­ (a) Núcleos que geram dados segundo uma distribuição normal e seus destinos; (
+b) distribuição de probabilidade que descreve as taxas de injeção dos núcleos em (a).
+A avaliação de desempenho considerou as comunicações envolvendo tráfego probabilístico, verificando- se nas interfaces externas da rede as distribuições de vazão e latência correspondentes aos fluxos gerados.
+A Tabela 14 relaciona os fluxos medidos com a latência média e o desvio padrão obtidos nos dois cenários experimentados.
+A coluna Sem concorrência mostra as medições de latência quando apenas o tráfego probabilístico movimenta- se na NoC, servindo como referência para avaliação de Cenário 1 e Cenário 2.
+A o observarmos a Figura 66 (a) temos aproximadamente 500 pacotes com esta latência, e os demais com uma latência superior, devido a o congestionamento na rede.
+À medida que o congestionamento aumenta (Cenário 2) observa- se um sensível aumento no espalhamento das latências em função de o número de hops (destaque na Figura 66 (b)).
+A Tabela 15 mostra os valores de tráfego aceito para os fluxos com taxa variável.
+Observase na coluna Sem concorrência que os valores de tráfego aceito e o desvio padrão para cada fluxo são os mesmos em relação a a sua geração.
+Plota- se, na Figura 67, o tráfego aceito em função de o número de pacotes, para os fluxos gerados por o núcleos 0, 9, 18 e 27.
+Comparar estas curvas com a Figura 65 (b).
+O objetivo é verificar a fidelidade entre as taxas especificadas e as taxas que efetivamente chegam nos destinos.
+Quando o tráfego constante concorrente possui taxa relativa de 5% observa- se que o tráfego na chegada não é tão afetado, apesar de já apresentar um acréscimo no desvio padrão (Figura 67 (a)).
+Observa- se para o caso em que o número de hops é elevado dois picos, um à esquerda e um à direita da média, distorcendo a curva.
+Quando a concorrência é com um tráfego constante a 10%, há uma considerável distorção das taxas de saída em relação a a entrada, para todos os fluxos (Figura 67 (b)).
+A distorção acima mostrada deve- se ao fenômeno denominado flutuação de carga.
+Tal fenômeno é relacionado à variação da taxa de encaminhamento de pacotes decorrente da utilização dos buffers e congestionamento na rede.
+O destaque à esquerda da Figura 67 (b) corresponde a elevados intervalos de entrega entre pacotes consecutivos, diminuindo assim a vazão.
+Isto ocorre devido a congestionamentos na rede que ocorrem antes de sua saturação.
+De a mesma forma, após um pacote ser liberado, outro que estava bloqueado nos buffers pode ser enviado logo em seguida, com um intervalo entre pacotes muito pequeno, ocasionando uma elevada taxa instantânea (ver destaque da direita na Figura 67 (b)).
+Esta elevação na taxa instantânea ocorre após o ponto de saturação.
+A Figura 68 ilustra o fenômeno da flutuação de carga antes do ponto de saturação (em (a)) e após o ponto de saturação (em (b)).
+Em a avaliação interna de desempenho de um tráfego gerado de forma probabilística verificase a fidelidade com que os dados estão sendo encaminhados nos enlaces que interligam os roteadores.
+Para isso é necessário saber, para um dado fluxo, se a taxa média de encaminhamento dos pacotes e o desvio padrão se mantêm ao longo de o caminho de acordo com as taxas especificadas na geração de tráfego.
+Foi considerado para análise o tráfego gerado no nodo 18 com destino ao nodo 45.
+Cada seqüência de gráficos ilustra as estatísticas obtidas nas portas: --
+leste dos roteadores 18, 19 e 20; --
+norte dos roteadores 21, 29 e 37.
+Observa- se, na Figura 70, que a taxa de encaminhamento dos dados ao longo de o caminho é semelhante com o especificado na entrada.
+Os destaques na Figura 70 mostram que há alguns pacotes com elevada taxa de transmissão, o que caracteriza uma pequena flutuação de carga.
+A Figura 71 mostra a disparidade da distribuição de tráfego aceito em relação a a carga oferecida, comprovando a influência que o tráfego de 10% exerce sobre o tráfego probabilístico.
+Mais uma vez verifica- se o fenômeno da flutuação de carga provocada por o congestionamento que se estabeleceu na rede.
+Os resultados de avaliação de desempenho apresentados neste Estudo de Caso permitiram a visualização de um fenômeno que pode ocorrer devido a condições de congestionamento na rede.
+Em a flutuação de carga ocorrem desvios nas taxas de encaminhamento de pacotes em relação a o tráfego especificado na entrada.
+Pacotes gerados com uma determinada taxa podem ser atrasados, aumentando o intervalo entre si, causando diminuição na taxa de encaminhamento.
+Tais pacotes podem também ser liberados consecutivamente após estarem bloqueados em buffers, diminuindo o intervalo entre si, causando aumento em sua taxa de encaminhamento.
+Observou- se que, apesar de a rede estar implementada com canais virtuais, a adoção de tal mecanismo não pôde evitar a flutuação de carga.
+Conclui- se que apenas a adoção de canais virtuais não traz garantias de QoS para a rede, sendo necessário também mecanismos que realizem o tratamento dos fluxos.
+Tais mecanismos devem estabelecer:
+Priorização de encaminhamento de pacotes pertencentes a fluxos com requisitos mais rígidos de QoS;
+Gerenciamento de tráfego, onde o acesso a recursos da rede é controlado e os pacotes são condicionados a serem encaminhados na rede dentro de limites pré-estabelecidos de vazão;
+Escalonamento, onde é definida a classe de tráfego cujos pacotes devem ser transmitidos e gerenciamento de filas, onde é definido como são armazenados os pacotes que esperam ser transmitidos ou encaminhados por a rede.
+Através da adoção destes mecanismos diferenciam- se aplicações quanto a os seus requisitos de QoS, priorizando pacotes com maior urgência em serem atendidos, em detrimento a pacotes cuja classe não exija da rede um tratamento mais imediato.
+O terceiro estudo de caso utiliza o mesmo modelo de rede do estudo de caso 1.
+Apenas o algoritmo de roteamento XY é utilizado e não são usadas implementações com canais virtuais.
+São observadas as conseqüências no desempenho decorrentes de alterações na estrutura da rede, mais especificamente na profundidade dos buffers dos roteadores.
+Em esse caso, são aumentados para 16 fits a profundidade dos buffers de 32 do total de 64 roteadores que compõem a rede, levando em consideração as medições de cpf médio (avcpf) e utilização de largura de banda (abw) exibidos na avaliação interna do estudo caso 1.
+A Figura 72 (a) mostra a rede sem alterações estruturais, ou seja, todos os buffers possuem profundidade de 8 fits.
+A primeira alteração foi realizada nos enlaces onde foram obtidos as maiores quantidade de ciclos para transmissão de cada flit, sendo neste caso os enlaces localizados nas bordas da rede (Figura 72 (b)).
+A segunda alteração estrutural (Figura 72 (c)) considera os enlaces onde verificou- se maior taxa de utilização de canais.
+Em este caso, foram alteradas as profundidades de buffers pertencentes aos roteadores localizados na bisecção XY.
+Foi utilizada a mesma geração de tráfego do estudo de caso 1, com nodos enviado 1000 pacotes utilizando o padrão de tráfego complemento em cada uma das simulações.
+Seis simulações foram realizadas, onde as taxas de injeção tiveram valores fixos respectivamente de 80, 120, 160, 240, 320 e 480 Mbps.
+Para avaliação externa da rede, procurou- se primeiramente verificar qual o seu ponto de saturação.
+Foram então construídos gráficos CNF, onde foram comparados os efeitos do redimensionamento dos buffers das bordas com o redimensionamento dos buffers da bisecção XY.
+A Tabela 16 mostra os valores de latência e tráfego aceito para as diferentes cargas oferecidas à rede que serviram como referência para construção dos gráficos.
+Observa- se que, até o ponto de saturação, não ocorre ganho de desempenho em se redimensionar os buffers da periferia da rede, em relação a o não redimensionamento de buffers.
+Um pequeno ganho só se observa a partir de a carga oferecida de 15%, que é o ponto de saturação da rede para todos os casos.
+O melhor desempenho obtém- se com o redimensionamento de buffers na bisecção XY, isso porque há maior aceitação de pacotes originados na periferia da rede por os roteadores pertencentes a bisecção.
+Desta forma, a latência média rede como um todo é reduzida em Ponto de saturação melhor caso:
+15% tráfego aceito latência média (ciclos de relógio) relação às configurações onde são re-dimensionados os roteadores das bordas da rede.
+Outro gráfico extraído para avaliação externa foi o de distribuição de latências.
+Os itens (a), (b), (c), (d) e (e) da Figura 74 mostram as distribuições de latência para as cargas oferecidas a partir de o ponto de saturação, nas situações onde ocorre redimensionamento dos buffers.
+Para a carga oferecida de 10% não se observam diferenças significativas de valores de latência entre as duas formas de redimensionamento.
+Os destaques da Figura 74 indicam que, mesmo quando ocorre redimensionamento, a latência média aumenta com a carga oferecida, assim como o espalhamento dos valores da distribuição.
+Comparando o redimensionamento nas bordas com o realizado na bisecção XY, observa- se que a latência média sempre é menor para o caso em que são redimensionados os buffers da bisecção XY.
+No entanto, o ganho de desempenho para esta configuração é cada vez menor com o aumento da carga oferecida.
+Quando se redimensiona a bisecção XY, a latência média dos pacotes é 23% menor em relação a o redimensionamento nas bordas para a carga oferecida de 15%, enquanto que para a carga de 60%, a latência média da rede sofre redução de apenas 6%.
+A avaliação interna de desempenho para este Estudo de Caso considera a contenção de flits nos buffers.
+A Figura 75 mostra avcpf para cada enlace, para uma carga oferecida de 20%.
+Escolheu- se esta carga porque ela já está acima de o ponto de saturação da rede.
+Observa- se que o avcpf no caso onde foram redimensionados os buffers das bordas apresenta os maiores valores em relação a os cenários onde foram redimensionados os buffers dos roteadores da bisecção XY.
+Tal fato comprova que é necessário considerar quais enlaces possuem as maiores taxas de ocupação (abw) para realizar o redimensionamento de buffers.
+Os menores valores de avcpf nos enlaces da rede com buffers redimensionados na bisecção causam as menores latências apresentadas nos gráficos da Figura 74.
+Este experimento tem sua importância no fato de mostrar um parâmetro estrutural que, se ajustado adequadamente, oferece melhorias no desempenho a rede.
+Os resultados obtidos para o parâmetro de desempenho escolhido (abw) podem servir de entrada, por exemplo, para uma ferramenta que avalie compromissos de acréscimo de desempenho com o aumento da área consumida em-chip.
+Tal ferramenta pode ainda otimizar a quantidade/ profundidade de buffers por roteador, verificando as regiões da rede onde localizam- se roteadores onde é mais adequado o acréscimo de fits em seus buffers.
+Avalia o desempenho da rede avalia o desempenho da rede verificando sobras (slacks) na utilização de buffers e realiza o ajuste na rede através da eliminação de slots ociosos, diminuindo a área utilizada, mantendo os mesmos resultados de vazão e latência obtidos sem otimização.
+A avaliação de desempenho utilizando simulação apresenta dois problemas:
+Tempo de simulação, e por conseqüência reduzido número de pacotes transferidos durante a simulação.
+O quarto Estudo de Caso trata de um experimento realizado através de emulação, onde a geração de tráfego, o processamento dos núcleos e a coleta de dados para avaliação é integralmente realizada em FPGA.
+A placa utilizada nos experimentos foi uma VIRTEX XC2 V4000, da Xilinx.
+A aplicação em questão é um comparador de seqüências de caracteres, sendo esta aplicação normalmente utilizada em bioinformática para verificação de similaridade em seqüências de DNA.
+O Capítulo 9 contém um anexo que descreve como é o processamento realizado por os núcleos para comparação de seqüências e quais são as primitivas de comunicação utilizadas.
+O objetivo deste experimento é executar em FPGA um cenário de tráfego utilizando alguns dos conceitos sobre geração de tráfego e avaliação de desempenho mostrados nos Capítulos 4 e 5.
+A arquitetura de NoC utilizada é uma malha 3x3, onde são dispostos 8 roteadores conectados a processadores que executam o algoritmo de Smith-Waterman e um roteador conectado a um módulo de comunicação serial, onde são enviados dados de tráfego dos pacotes.
+A profundidade dos buffers é de 4 flits e a largura cada flit é de 8 bits.
+Não são utilizados canais virtuais.
+Duas distribuições espaciais de tráfego são utilizadas.
+Uma ideal (Figura 76 (a)), onde os roteadores estão dispostos de modo que a distância entre todos os pares origem-destino seja de 1 hop.
+Em a segunda configuração (Figura 76 (b)) procurou- se estabelecer maiores distâncias entre determinados pares origem-destino (situação denominada como Cenario2).
+Em ambos os cenários descritos as setas sólidas indicam os fluxos gerados.
+Foi realizada a comparação de uma seqüência com 96 caracteres.
+Ambas seqüências estão dispostas na matriz segundo mostrado na Figura 77.
+São gerados em cada processador 1200 pacotes de 6 flits.
+Estes flits contém a origem, o tamanho, 3 flits de controle e o flit com o resultado da comparação.
+Cada processador processa 12 colunas da matriz, porque temos 96 colunas distribuídas entre 8 processadores.
+O processador P8 gera 1100 pacotes porque ele processa a última coluna (que possui o resultado da comparação) e não envia resultados desta coluna para o processador P1.
+Os dados coletados para análise de como o tráfego é gerado e verificação de desempenho são mostrados na Figura 78.
+Os dados obtidos para verificação da geração de tráfego são coletados por um sniffer no enlace que conecta o gerador de tráfego ao núcleo ao qual ele está associado.
+Esta coleta é empregada quando se deseja conhecer o comportamento de um tráfego real no momento em que a aplicação que gera este tráfego executa sobre a rede.
+Desta forma, é possível utilizar este trace para auxiliar na caracterização deste tipo de aplicação, quando se deseja simular este tipo de tráfego.
+O parâmetro a ser medido com os dados desta coleta é a carga oferecida.
+Os dados medidos para avaliação de desempenho são coletados tanto no enlace que interliga um núcleo gerador à rede quanto no enlace que interliga a rede a um núcleo receptor.
+As métricas de avaliação de desempenho adotadas neste experimento são o tráfego aceito e latência da rede.
+A latência de rede é o intervalo de tempo entre a inserção do primeiro flit de um dado pacote na rede e a chegada do último flit do mesmo pacote no núcleo destino.
+A Figura 78 mostra dados coletados para avaliação de desempenho neste Estudo de Caso.
+Onde: Tpfini:
+Com relação a a geração de tráfego, a carga oferecida por um pacote i (offeredloadi) considera o seu tamanho (pcksizei), o momento em seu primeiro flit é disponibilizado para transmissão (tpfini) e o momento em que o primeiro flit de seu subseqüente é disponibilizado para transmissão.
+A carga oferecida de um pacote i é definido por a Equação 29: Equação 29 O tráfego aceito de um pacote i (acceptedtraffici) considera o seu tamanho (pcksizei), o momento de saída da rede do primeiro flit (tpfouti) e o momento em que o primeiro flit de seu subseqüente sai da rede.
+O tráfego aceito de um pacote i é definido por a Equação 30 (similar à Equação 23):
+Equação 30 O cálculo da latência de rede é similar ao mostrado na Equação 19.
+Para calcular a latência de um pacote i é necessário o conhecimento do momento em que o pacote está disponível para transmissão (tpfini) e do momento em que o último flit do pacote chega ao destino (tplouti).
+A latência de rede para um pacote i (latencyi) é dado por a Equação 31: Equação 31 A Tabela 17 resume os resultados obtidos, tanto para as medições da carga oferecida ao sistema, quanto para os parâmetros de avaliação de desempenho adotados.
+É importante ressaltar que o objetivo desta Seção é mostrar, através de um exemplo simples, a possibilidade de se inserir módulos de captura de informações de carga oferecida por uma aplicação real, bem como de informações a respeito de a recepção dos dados por os núcleos-destino, num experimento com reduzida duração de tempo, em comparação com a simulação (o tempo total de simulação para ambos os cenários foi 65.7ms).
+Através da análise da Tabela 17 é possível perceber dois fatos.
+O primeiro fato diz respeito à manutenção das taxas de injeção serem mantidas nos destinos.
+Observa- se que tanto as taxas de injeção quanto as de recepção tiveram praticamente os mesmos valores em termos de média e desvio padrão.
+Estes baixos valores são justificados por dois fatores:
+Tamanho reduzido do pacote (6 flits) e (ii) elevado intervalo entre pacotes.
+Tais fatores indicam que não houve concorrência por recursos em nenhum dos dois cenários estabelecidos.
+A Figura 79 mostra as curvas de distribuição de carga oferecida (em (a)) e tráfego aceito (em (b)) ocorreram de maneira similar em todos os fluxos, tanto em Cenario1 quanto em Cenario2.
+A reduzida carga na rede explica- se por o fato da aplicação gastar a maior parte do tempo realizando processamento do algoritmo Smith-Waterman e gastando um reduzido tempo na comunicação entre os núcleos.
+Figura 79 ­ Curvas de distribuições de carga oferecida e tráfego aceito similarmente geradas por os fluxos do estudo de Caso 4.
+Outro fato percebido diz respeito às latências obtidas para o fluxo com origem em P1.
+Verifica- se- se que a latência média para os pacotes pertencentes a este fluxo possuem valores de média e desvio padrão diferentes do restante dos fluxos, em ambos os cenários.
+A Figura 80 mostra as duas distribuições de latência para o fluxo gerado por P1, em Cenario1 (a) e Cenario2 (b).
+A Figura 80 (a) mostra que, em torno de 1130 pacotes possuem a latência de 19 ciclos, enquanto que em torno de 60 pacotes tiveram latência de 1185 ciclos.
+Em (b) observa- se que 1130 pacotes possuem a latência de 33 ciclos, enquanto que em torno de 50 pacotes tiveram latência de 1180 ciclos.
+Os valores elevados de latência ocorrem no início da execução da aplicação, quando P1 não possui dados a receber de P8.
+Por o fato de P1 possuir armazenado os escores iniciais da matriz, ele tem condições de enviar dados de seu processamento imediatamente.
+O problema é que P2 não consegue processar os dados que recebe na mesma velocidade em que P1 os produz, o que leva os pacotes com resultados da primeira coluna serem aceitos por P2 muito tempo após eles serem disponibilizados, o que gera um alto valor de latência para estes pacotes.
+Quando P1 é reutilizado (começa a processar outra coluna), ele depende do processamento de P8.
+Durante a espera de P8 por P1, o processador P2 consegue computar os dados anteriormente gerados por P1.
+Quando P1 voltar a gerar dados, P2 poderá consumir os pacotes no mesmo ritmo em que o processador P1 produz, porque agora os processadores demandam a mesma quantidade de tempo para processar uma comparação, pois devem esperar um processamento anterior para realizar o seu próprio processamento.
+Este Capítulo mostrou estudos de caso que serviram para validar os conceitos sobre geração de tráfego e avaliação de desempenho vistos nos capítulos anteriores.
+Através desta validação foi possível visualizar com maior detalhe os eventos que ocorrem na rede.
+Em o primeiro estudo de caso foram gerados pacotes com taxas fixas utilizando o padrão de tráfego complemento.
+Verificou- se o efeito causado por a adoção de algoritmos de roteamento com diferentes naturezas.
+Observou- se que a taxa de utilização dos canais é diretamente afetada por a maneira como os roteadores decidem encaminhar os pacotes.
+Outra constatação está relacionada à utilização de canais virtuais, através de os quais é possível reduzir a contenção de.
+A adoção de canais virtuais também permitiu a redução no espalhamento de latências no cenário de tráfego proposto.
+Outro conceito abordado foi o de ponto de saturação de uma rede, que é uma taxa a partir de a qual não se observa acréscimo no tráfego aceito, além de acarretar um rápido crescimento na latência média dos pacotes.
+O segundo estudo de caso envolveu a geração de tráfego com taxas de injeção variáveis, concorrendo com taxas de injeção fixas.
+Foi discutido o problema da flutuação de carga, que são desvios verificados no tráfego aceito em relação a a carga oferecida.
+Observou- se que não basta somente a adoção de canais virtuais para evitar queda no desempenho.
+Torna- se necessário também políticas adotadas para tratamento de fluxos como priorização, gerenciamemto de tráfego, escalonamento e gerenciamento de filas.
+O terceiro estudo de caso mostrou que o correto dimensionamento de buffers pode levar a um melhor desempenho da rede.
+A análise de utilização dos canais pode servir como entrada para uma ferramenta de dimensionamento de buffers nas diversas regiões na rede, alcançando com isto acréscimo de desempenho com reduzido gasto em área.
+Finalmente, o quarto estudo de caso abordou a geração de tráfego e coleta de dados para avaliação de desempenho realizados através de emulação.
+Foi mostrado um método para coleta de traces de aplicações executando diretamente num FPGA, o que pode traz aos experimentos a possibilidade de se trabalhar com dados reais num reduzido intervalo de tempo.
+Com os experimentos realizados, foi mostrado como é possível estabelecer diferentes cenários através do método de geração de tráfego proposto e como testar a rede através dos parâmetros de avaliação de desempenho apresentados.
+Em este Capítulo são resumidas as contribuições desta Dissertação na geração de tráfego e avaliação de desempenho em NoCs, as considerações finais e os trabalhos futuros que poderão ser desenvolvidos.
+O Estado da Arte mostrou que, em relação a a geração de tráfego, a maior parte dos trabalhos utiliza a distribuição espacial uniforme, onde todos os núcleos possuem a mesma probabilidade de serem destinos.
+Desenvolveu- se no período da elaboração desta dissertação um gerador de tráfego, onde podem ser estabelecidos cenários de distribuição espacial empregados em aplicações paralelas, como uniforme, não-uniforme, matrix transpose e complemento, bem como a especificação do destino para um determinado núcleo origem.
+Em os experimentos foi utilizada a distribuição complemento.
+A utilização de tal distribuição se justifica por possibilitar a análise do que ocorre nas bisecções de uma NoC.
+O Estado da Arte ainda mostrou que a maior parte dos trabalhos adotou taxas variáveis de injeção de pacotes.
+Foi proposto neste trabalho um método para geração de tráfego com taxas de injeção, onde considera- se o tamanho dos pacotes, o intervalo entre saídas de pacotes e a quantidade de pacotes a serem gerados.
+Também foi proposto um método para modelagem de tráfego, onde são atribuídas propriedades probabilísticas ao processo de geração, de modo a se aproximar da caracterização de aplicações reais.
+Tal método utiliza uma referência temporal (pcktmp ­ momento de criação de um pacote), onde o gerador de tráfego monitora um relógio global para saber o momento ideal em que um pacote deve ser enviado.
+A adoção de uma referência temporal foi inspirada na proposta de.
+A avaliação de desempenho foi realizada de maneira externa na maioria dos trabalhos revisados.
+Foi o único a realizar análise interna, com a verificação da carga relativa dos enlaces.
+As propostas estudadas serviram como referência para as definições de métricas para avaliação externa de desempenho (tráfego aceito e latência) e sua visualização (gráficos CNF e de distribuição de latências) propostas nesta Dissertação.
+Foi proposto nesta Dissertação um método para análise interna, o que possibilita a verificação do tráfego nos canais que interligam os roteadores.
+As métricas propostas para este tipo de análise avaliam a contenção (avcpf ­ número médio de ciclos para transmissão de flits) e o encaminhamento (abw ­ largura de banda média utilizada) de pacotes.
+A visualização de dados relacionados a estas métricas é oferecida por gráficos de superfície e mapas textuais de tráfego.
+Também foi considerada para avaliação interna a distribuição de tráfego aceito, onde se verifica em cada canal percorrido por um fluxo, se as propriedades do tráfego de origem são mantidas ao longo de o caminho percorrido por o fluxo até chegar em seu destino.
+Um fenômeno que pode ocorrer devido a o congestionamento da rede é a flutuação de carga, onde os pacotes podem demorar a ser liberados (antes da saturação), causando queda na em sua taxa de encaminhamento e também liberação em rajada (a partir de o ponto de saturação), aumentando sua taxa de encaminhamento em relação a a sua geração.
+Para avaliação externa, foram mostrados métodos para geração de gráficos CNF (para avaliação de latência média e tráfego aceito), bem como de distribuição de latências e de tráfego aceito.
+Os gráficos CNF possibilitam a verificação do ponto de saturação da rede, que é taxa máxima em que a rede encaminha os pacotes para os núcleos de destino.
+A distribuição de latências permite verificar o espalhamento de valores desta medida para um determinado fluxo, onde se avalia se a transmissão de pacotes obedece às restrições temporais especificadas em sua geração.
+A distribuição de tráfego aceito auxilia na verificação de flutuação de carga, a exemplo do que ocorre na avaliação interna.
+Esta Dissertação teve como enfoque a geração de tráfego e avaliação de desempenho para a NoC Hermes, onde até então era gerado tráfego sem qualquer caracterização e a avaliação de desempenho era baseada apenas em termos de valores de latência.
+Os métodos apresentados auxiliarão para a verificação de cumprimento ou não de requisitos de QoS que futuramente serão atribuídos aos pacotes da NoC Hermes, que atualmente oferece serviços apenas de acordo com a categoria best-effort.
+Entre as atividades previstas relacionam- se:
+Em a geração de tráfego:
+Desenvolvimento de um método de geração de tráfego auto-similar (propriedade observada em aplicações multimídia);
+Introdução de descritores de tráfego nos pacotes da NoC Hermes, como PCR, SCR e Modelagem de tráfego espacial envolvendo aplicações complexas (como decodificadores MPEG e centrais PABX, utilizadas em telefonia).
+Em a avaliação de desempenho Desenvolvimento de ferramentas para análise de tráfego em tempo real (quando forem realizados experimentos envolvendo emulação).
+Devido a a grande quantidade de pacotes que podem trafegar na rede, é necessário um mecanismo de coleta de amostras para análise;
+Desenvolvimento de métodos para verificação de auto-similaridade, para verificação do cumprimento ou não às restrições de QoS para esse tipo de aplicação;
+Verificação da influência de parâmetros de avaliação interna de desempenho (como abw e cpf) no consumo de energia e utilização de buffers de roteadores e desenvolvimento de algoritmos para otimização de rede que recebem como entrada estes parâmetros;
+Estender os métodos de avaliação de desempenho (interna e externa) apresentados para redes com suporte a QoS, introduzindo métodos para interpretar descritores de tráfego, especificados nos pacotes.

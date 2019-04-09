@@ -1,0 +1,594 @@
+Este trabalho descreve um novo algoritmo para diagramação (layout) automática de documentos de conteúdo variável.
+O objetivo é mostrar que é possível obter documentos de alta qualidade eficientemente a partir de conteúdos dinâmicos e variáveis (por exemplo, notícias obtidas da internet, catálogos de produtos, contas, entre outros), que é uma tendência atual na produção de documentos personalizados.
+A abordagem aqui descrita, ao contrário de a maioria dos trabalhos publicados nesta área, não utiliza métodos aproximativos (por exemplo, algoritmos genéticos) para associar regiões de uma página com os elementos de um documento.
+A escolha de um algoritmo determinístico foi feita devido a as necessidades de desempenho e confiabilidade exigidas no contexto de Variable Data Printing, que é uma das aplicações deste trabalho.
+O método funciona através da realização de divisões sucessivas numa página, alocando regiões de acordo com a área exigida para cada elemento (conteúdo), ao invés de utilizar geometrias fixas para os mesmos como em outros trabalhos nesta área.
+A escolha de como dividir a página é baseada numa heurística simples, capaz de obedecer alguns critérios estéticos importantes em design de documentos como alinhamento, regularidade, etc..
+Bem como a ordem de leitura definida por os elementos do documento e a possibilidade de agrupar elementos relacionados entre si.
+Além disso, o algoritmo também é capaz de distribuir conteúdo em documentos compostos por várias páginas.
+Como estudo de caso, o algoritmo foi desenvolvido para produzir diagramações de documentos similares a capas de jornal, tanto no formato quanto no estilo.
+Finalmente, este trabalho apresenta conceitos relacionados a documentos adaptativos, uma revisão rápida dos principais trabalhos publicados nesta área, o algoritmo desenvolvido em detalhes, assim como uma avaliação empírica dos resultados, considerando aspectos qualitativos dos documentos produzidos e, em menor extensão, o desempenho do algoritmo proposto.
+Palavras-chave: Engenharia de Documentos.
+Documentos de Conteúdo Variável.
+Diagramação Automática de Documentos.
+VDP. Algoritmos de Divisão e Conquista.
+Algoritmos Gulosos. Com a convergência dos meios de comunicação digitais (computadores pessoais, PDAs, telefones celulares, entre outros), surge uma demanda por novos mecanismos para composição e intercâmbio de documentos eletrônicos.
+Documentos são os elementos básicos para troca de informações entre indivíduos e empresas, e existem sob diversas formas:
+Folhetos com ofertas de produtos e serviços, panfletos turísticos, livros, jornais, álbuns de fotografias e extratos bancários, entre outros.
+As ferramentas para composição de documentos exigidas atualmente devem ser capazes de separar a forma de um documento de seu conteúdo e manipular esta forma, adaptando um mesmo documento para diversos dispositivos diferentes, fazendo com que seu conteúdo possa ser lido e entendido com facilidade.
+1 Este tipo de documento é chamado de Documento Dinâmico ou Documento de Conteúdo Variável.
+Em paralelo a esta necessidade de adaptação para dispositivos diversos, há uma crescente tendência nas empresas no que diz respeito à personalização do conteúdo que é entregue aos clientes em forma de documentos.
+Em a Subseção 1.1.1 será descrito o processo de personalização de documentos.
+O termo Variable Data Printing (VDP) é usado para designar o processo automático de criação de documentos com conteúdo personalizado.
+A personalização de documentos permite transmitir ao destinatário documentos únicos, contendo somente as informações relevantes para o mesmo.
+Este processo também é conhecido como personalização em massa, porque ocorre normalmente em cenários onde devem ser enviados documentos para um grande número de clientes, por exemplo, cartas-padrão (mala direta) de um banco enviadas para cada cliente (com o nome e outras informações do cliente variando de carta para carta) ou folhetos com ofertas de produtos similares aos interesses do destinatário.
+Este tipo de personalização é bastante usado por empresas em campanhas de marketing, visto que um documento personalizado para um determinado cliente (contendo informações a respeito deste cliente em particular) pode ser mais atrativo para que este se interesse por o anúncio.
+Os métodos atuais da indústria de impressão para personalização de documentos envolvem o Isto é, considerando as limitações de tamanho, forma e cores do dispositivo em questão.
+Por isso é também necessária uma forma de adaptar automaticamente a forma de um documento para que este apresente conteúdo de forma flexível, isto é, que o modelo do documento possa ser modificado automaticamente de acordo com a informação que é inserida, sem prejudicar a sua qualidade visual e apresentando todo o conteúdo desejado, garantindo a independência de dispositivos de saída e adaptando- se às necessidades de quem recebe o documento.
+Adaptar um documento significa criar e/ ou organizar os componentes do mesmo (regiões de texto e/ ou figuras), de forma que o conteúdo(, informação) do documento final esteja disposto de uma maneira visualmente compreensível e esteticamente agradável para o destinatário deste documento.
+A Seção 1.2 apresenta a proposta deste trabalho para o problema de diagramação automática de documentos.
+Em este trabalho, será apresentado um algoritmo capaz de fazer automaticamente a diagramação de um documento, tendo como entrada um conjunto mínimo de informações, como o conteúdo que deve ser inserido e as dimensões da página(, as dimensões do dispositivo de apresentação do documento).
+2 Como justificativa para este trabalho, é válido dizer que recentemente tem havido um grande interesse por parte de empresas e pesquisadores em desenvolver soluções de diagramação automática de documentos, visto a sua importância, em especial para empresas que trabalham na área de impressão e imagens (por exemplo Kodak, Xerox e Hp).
+Muitas destas soluções, como será visto no Capítulo 3, utilizam algoritmos aproximativos (no caso, algoritmos genéticos) para realizar a adaptação automática, na tentativa de obter uma página visualmente agradável através da maximização de qualidades visuais do documento.
+Um dos problemas desta abordagem é que, no contexto de VDP, o seu uso para produção em massa de documentos se torna inviável devido a o tempo exigido por um algoritmo genético para encontrar uma solução razoável e a imprevisibilidade dos resultados gerados (não-determinismo).
+Alguns autores tentam simplificar os parâmetros do problema, limitando o espaço de busca através do uso de grids e templates, ou simplificando os parâmetros do documento para o uso de algoritmos determinísticos, como os de programação linear, o Em este trabalho será usado o termo diagramação ou layout tanto para descrever o processo de construção de um documento quanto para denotar a organização visual dos elementos de um documento.
+Tendo em vista estes obstáculos, é importante ressaltar que o trabalho aqui proposto ainda não é uma solução genérica para adaptar documentos de qualquer tipo.
+Em o Capítulo 4 são apresentadas as características de um problema de layout e as diferentes metodologias para se construir uma página.
+Será visto que a geração de layouts completamente livres é um problema complexo em termos computacionais, pois deve ser procurado um layout esteticamente agradável num espaço de busca possivelmente muito grande.
+Por isso, neste trabalho foi adotada uma estratégia mais simples e eficiente para se construir páginas, seguindo os guias de estilo utilizados em design de jornais, por ser um modelo de documento familiar e de fácil leitura para a grande maioria das pessoas.
+Com isto, foi obtido um algoritmo que é capaz de obedecer a diversas restrições impostas por muitas formas de documento, como a preservação da ordem de leitura dos conteúdos, do agrupamento entre elementos relacionados, e de critérios estéticos que afetam significativamente o impacto visual do documento (alinhamento, regularidade, entre outros).
+3 Mais detalhes sobre o algoritmo desenvolvido são discutidos no decorrer deste texto, em especial no Capítulo 4.
+As áreas de aplicação para este trabalho são diversas, visto que a distribuição de conteúdo personalizado está se tornando cada vez mais importante.
+Além de complementar o processo de Variable Data Printing tornando os documentos mais flexíveis em relação a o layout, a construção automática de documentos permite a produção de documentos a partir de dados que estão em constante atualização, como o caso de notícias RSS discutido na Subseção 1.1.1, onde um designer gráfico humano não teria tempo suficiente para produzir páginas feitas para muitas formas diferentes de contéudo.
+Isto cria novos modelos de negócio para empresas especializadas em distribuição de conteúdo e/ ou notícias, por exemplo.
+Até o momento, foram identificados os seguintes serviços ­ a título de exemplo ­ que podem fazer uso de tecnologias de layout automático, citados a seguir:·
+Construção automática de álbuns de fotos;·
+Montagem de jornais diários com notícias selecionadas por o leitor;·
+Formatação de documentos com conteúdo agregado da internet(, RSS);·
+Geração de outros conteúdos, como catálogos e panfletos personalizados, ou seja, atuando na mesma área que os processos de VDP;
+Em este trabalho a ordem de leitura será assumida como sendo a ordem normalmente aplicada em culturas ocidentais, lendo o documento de cima para baixo, e da esquerda para a direita.·
+Readaptação de um mesmo documento para mídias de tamanhos diferentes.
+Este trabalho está organizado como segue:
+Em o Capítulo 2 são apresentados conceitos em relação a o contexto onde este trabalho está inserido, como documentos em Variable Data Printing, medidas estéticas de documentos e layout de documentos.
+O Capítulo 3 descreve alguns trabalhos relacionados na área, fazendo um breve comparativo dos objetivos e abordagens utilizadas em relação a o algoritmo aqui apresentado.
+Após isto, são descritos no Capítulo 4 a modelagem e o funcionamento da nova solução.
+Os resultados dos testes realizados para a avaliação deste trabalho são apresentados no Capítulo 5.
+Finalmente, as considerações finais e trabalhos futuros são apresentados no Capítulo 6.
+Em a indústria de impressão denomina- se o processo de personalização em massa de documentos como Variable Data Printing (VDP).
+Os documentos utilizados nestes processos, conhecidos também como Variable Information Documents (VID), Documentos Adaptativos ou Documentos de Conteúdo Variável normalmente contêm áreas comuns entre todas as instâncias geradas a partir de um modelo (chamado de template, explicado na Seção 2.2) de documento, assim como áreas que são variáveis.
+Contas de telefone, malas-diretas destinadas a diversos destinatários são exemplos simplificados de documentos adaptativos.
+Estes possuem informações variáveis que são relativas a cada destinatário (por exemplo, número da conta, nome, endereço, entre outros), assim como informações que permanecem iguais em todas as instâncias do documento (por exemplo, logotipo da empresa).
+Desta forma, a indústria de impressão evoluiu de um modelo em que eram impressas muitas cópias de um único documento para um novo paradigma em que cada documento é único, possui uma única cópia, e é impresso sob demanda.
+VDP permite que cada instância de um documento seja personalizada de forma que uma campanha de marketing direto possa usar dados coletados de várias fontes, a fim de sugerir produtos que são atrativos para o destinatário (isto é, o cliente).
+A tendência atual nesta área é que através da personalização em massa de documentos seja contornado o desinteresse do cliente, capturando sua atenção com uma propaganda personalizada, impressa unicamente para ele.
+Este capítulo está estruturado como segue.
+Em a Seção 2.2 será visto como as tecnologias de VDP evoluíram para permitir uma maior flexibilização no layout de documentos adaptativos e os desafios atuais.
+A seguir, na Seção 2.3 serão discutidos brevemente os requisitos necessários para que seja possível automatizar o layout de documentos adaptativos para os processos (workflow) de VDP.
+Em a Seção 2.4, é introduzido o conceito de estética de documentos, que servirá como base para a construção e análise do método proposto neste trabalho, descrito no em a Seção 2.5.
+Em aplicações tradicionais de VDP a criação de documentos é feita manualmente por um artista (designer) gráfico.
+O designer cria ­ além de o estilo ­ a diagramação (layout) geral do documento, que é preparado para ser apresentado apenas com dimensões fixas.
+Este layout inclui regiões estáticas como texto e imagens, e regiões vazias, conhecidas como copy-- holes, onde os dados variáveis são inseridos em tempo de impressão.
+Este modelo de layout com regiões vazias é chamado de template no contexto de VDP.
+Com o template do documento construído por o designer, são definidas regras sobre como associar o conteúdo ­ originado de uma base de dados ou outra fonte ­ com os copy-- holes.
+Então, durante a impressão dos documentos, a aplicação de VDP produz automaticamente ­ através de um processo de renderização ­ instâncias deste template através da inserção dos dados variáveis nas respectivas regiões no documento, resultando no documento impresso com dados variáveis.
+A Figura 1 ilustra este processo (workflow) tradicional de VDP.
+Os documentos resultantes deste processo são tipicamente bastante similares.
+Cada copyhole do documento possui um conteúdo associado, que possui um tamanho fixo para ser colocado, e o layout geral é o mesmo para todas as instâncias do documento, independente do conteúdo.
+Este processo tradicional de produção de documentos de conteúdo variável além de exigir o trabalho manual elaborado do designer gráfico, também não é capaz de ajustar o documento em função de a quantidade ou tamanho do conteúdo relacionado com os copy-- holes, ou ainda, em função de o dispositivo que irá apresentar o documento.
+Esta forma de Variable Data Printing, onde é feito um preenchimento simples dos dados variáveis em cada copy-hole num template estático de documento, pode ser considerada como a forma mais simples de se trabalhar com documentos adaptativos.
+A Figura 2 mostra um exemplo de documentos de conteúdo variável.
+O template utilizado nos panfletos permanece o mesmo, enquanto que a imagem do carro, as cores, e o texto descritivo variam.
+É importante salientar que, como a impressão de documentos em VDP é feita sob demanda, o processo de geração de uma instância do documento a partir de um template e de dados variáveis é executado juntamente com a impressão dos documentos, ou seja, a composição de documentos deve ser um processo eficiente, a fim de criar um grande número de documentos únicos para alimentar a impressão num tempo viável.
+Para isto, existem diversas tecnologias para especificação de templates de documentos de conteúdo variável.
+Uma destas tecnologias é a linguagem PPML, implementada por impressoras de porte industrial, tais como a Hp Indigo, capaz de especificar documentos de conteúdo variável separando seus componentes estáticos e variáveis.
+PPML é uma das tecnologias mais completas na área de VDP, mas ainda assim continua limitada porque os templates usados para especificar o layout dos documentos são rígidos em relação a os conteúdos variáveis.
+Os problemas gerados por essa inflexibilidade serão vistos na Subseção 2.2.2 a seguir.
+Documentos de conteúdo variável estão começando a ser utilizados em situações mais complexas, onde o conteúdo tende a diferir bastante de uma instância do documento para outra.
+Algumas aplicações exigem uma flexibilidade maior do template do documento, como por exemplo:·
+uma conta telefônica que possui o número de páginas variável para apresentar a lista de ligações feitas por o usuário;·
+catálogos personalizados de produtos, que podem possuir um número variado de conteúdos para inserção no documento;·
+relatórios onde os textos e imagens têm tamanhos variados, além de o tamanho pré-definido no template para os copy-- holes.
+Estas aplicações requerem que o layout do documento resultante não seja um template rígido, mas sim que seja capaz de se adaptar ao conteúdo, seja em formato, seja em número de páginas.
+Em a Seção 2.3 será apresentado o conceito de construção automática de layouts e os problemas envolvidos neste processo.
+A tecnologia atualmente exigida por aplicações de VDP é um mecanismo de layout automático, cuja função é ajustar o layout original ou criar um layout novo para apresentar os conteúdos variáveis.
+Porém, construção automática de layouts é um problema complexo, porque envolve otimização de posições e áreas na geometria da página.
+A intenção do trabalho aqui proposto é o de flexibilizar o layout dos documentos, observando os seguintes aspectos:·
+O layout do documento deve ser adaptado ao conteúdo variável, e não fixado por um template rígido, garantindo que o documento possa atender a conteúdos mais diversificados.
+O uso de templates, apesar de ser um mecanismo controlado e eficiente, adiciona complexidade no processo de impressão e não podem ser generalizados para conteúdos variados;·
+Deve ser permitido que um mesmo conjunto de conteúdos variáveis possam ser impressos em páginas de tamanhos diferentes, garantindo assim a adaptação de um mesmo documento para mídias diversas;·
+O layout deve ser construído rapidamente, a fim de não congestionar o processo de VDP;·
+A intervenção humana no processo (como a necessidade de um designer gráfico para readaptar um template para conteúdos variados) deve ser reduzida ao máximo, já que a produção de documentos em VDP deve ser feita em massa e com conteúdos dinâmicos.
+Em a Figura 3 são mostrados dois documentos simulando capas de jornal, cujo layout foi gerado de forma automática por o algoritmo desenvolvido neste trabalho, a partir de o conteúdo informado.
+O documento à direita, na Figura 3 (b), mostra como o layout foi readaptado após a inserção de uma imagem no documento à esquerda, na Figura 3 (a).
+BC eleva projeção de inflação de 2008 Ian MacKinnon South-east Asia correspondent Julian Borger Diplomatic editor O Banco Central elevou a projeção para o Índice de Preços ao Consumidor Amplo (IPCA) no Relatório Trimestral de Inflação divulgado nesta quinta-feira.
+Em o documento, o cenário de referência sinaliza alta de 4,6% para o IPCA em 2008.
+Em o relatório anterior, de dezembro de 2007, a expectativa era de uma inflação de 4,3%.
+A elevação também foi registrada na expectativa para a inflação em 20.1, que passou de 4,2% para O cenário de referência utilizado por o BC para o Relatório de Inflação considera a taxa de juros básica da economia (Selic) em 11,25% ao ano e a taxa de câmbio em R$ 1,70 por dólar.
+O centro da meta de inflação definido por o Conselho Monetário Nacional (CMN) é de 4,5% tanto para 2008 como para 20.1.
+Há uma margem de tolerância nessa meta, de dois pontos percentuais, para cima ou para baixo.
+Portanto, apesar de estar um pouco acima de o centro da meta, a projeção de inflação do BC este ano e o próximo permanece dentro de a meta determinada por o CMN.
+5 Ian MacKinnon South-east Asia correspondent Julian Borger Diplomatic editor O Banco Central elevou a projeção para o Índice de Preços ao Consumidor Amplo (IPCA) no Relatório Trimestral de Inflação divulgado nesta quinta-feira.
+Em o documento, o cenário de referência sinaliza alta de 4,6% para o IPCA em Grêmio aguarda resposta Mesmo que o técnico Muricy Ramalho e o presidente Juvenal Juvêncio já tenham afirmado que Souza não deixará o São Paulo, o diretor do Grêmio Paulo Pelaipe não se dá por vencido e espera para esta terça-feira uma resposta oficial do clube paulista sobre a proposta apresentada para a contratação do apoiador.
+O Grêmio não está desistindo de nenhum jogador.
+O São Paulo recebeu uma proposta nossa e ficou de dar a resposta até a terça-feira.
+O São Paulo não nos respondeu nem que aceita, nem que não aceita o que nós oferecemos», afirmou.
+Temos outras alternativas bem encaminha-O Grêmio enfrentará nas quartasde-final o clássico contra o Juventude, que se classificou na quarta colocação do Grupo 2 do Gauchão.
+Logo depois da vitória sobre o 15 de Novembro, nesta quarta, o treinador Celso Roth exaltou a dificuldade de enfrentar o adversário de Caxias do Sul.
+Mudou a concepção e temos que se dante gremista.
+Roth elogiou a equipe que jogou contra o time de Campo Bom.
+Para o treinador, os jogadores mostraram que têm qualidade para adicionar ao time principal.
+6 das, além de o Souza.
+&quot;Basta apenas uma definição deste caso para que o Grêmio decida por qual lado vai», completou Pelaipe.
+Renato, do Al Nasr, dos Emirados Árabes, é uma possibilidade caso se confirme o fracasso na negociação com Souza.
+Além de ele, o Grêmio deverá buscar mais um meiocampista no exterior e ainda um zagueiro experiente para formar dupla com Léo.
+O atacante Vitor Hugo, artilheiro do Gaúcho 2007 por o Veranópolis, esteve no Estádio Olímpico com o seu empresário, Sérgio Baisi, mas a direção do Grêmio garante que não está interessada no jogador.
+6 (a) Uma capa de jornal gerada automaticamente.
+5 Roth:
+&quot;Vamos a Caxias respeitando o Juventude «Roth:
+&quot;Vamos a Caxias respeitando o Juventude «O Grêmio enfrentará nas quartasde-final o clássico contra o Juventude, que se classificou na quarta colocação do Grupo 2 do Gauchão.
+Logo depois da vitória sobre o 15 de Novembro, nesta quarta, o treinador Celso Roth exaltou a dificuldade de enfrentar o adversário de Caxias do Sul.
+Mudou a concepção e temos que se inflação de 4,3%.
+A elevação também foi registrada na expectativa para a inflação em 20.1, que passou de 4,2% para O cenário de referência utilizado por o BC para o Relatório de Inflação considera a taxa de juros básica da economia (Selic) em 11,25% ao ano e a taxa de câmbio em R$ 1,70 por dólar.
+O centro da meta de inflação defi-dante gremista.
+Roth elogiou a equipe que jogou contra o time de Campo Bom.
+Para o treinador, os jogadores mostraram que têm qualidade para adicionar ao time principal.
+6 Grêmio aguarda resposta Mesmo que o técnico Muricy Ramalho e o presidente Juvenal Juvêncio já tenham afirmado que Souza não deixará o São Paulo, o diretor do Grêmio Paulo Pelaipe não se dá por vencido e espera para esta terça-feira uma resposta oficial do clube paulista sobre a proposta apresentada para a contratação do apoiador.
+O Grêmio não está desistindo de nenhum jogador.
+O São Paulo recebeu uma proposta nossa e ficou de dar a resposta até a terça-feira.
+São Paulo não nos respondeu nem que aceita, nem que não aceita o que nós oferecemos», afirmou.
+Temos outras alternativas bem en-caminhadas, além de o Souza.
+&quot;Basta apenas uma definição deste caso para que o Grêmio decida por qual lado vai», completou Pelaipe.
+Renato, do Al Nasr, dos Emirados Árabes, é uma possibilidade caso se confirme o fracasso na negociação com Souza.
+Além de ele, o Grêmio deverá buscar mais um meio-campista no exterior e ainda um zagueiro experiente para formar dupla com Léo.
+O atacante Vitor Hugo, artilheiro do Gaúcho 2007 por o Veranópolis, esteve no Estádio Olímpico com o seu empresário, Sérgio Baisi, mas a direção do Grêmio garante que não está interessada no jogador.
+6 (b) Readaptação da capa gerada na Figura 3 (a).
+O uso de um processo de construção automática de documentos ­ descrito em detalhes no Capítulo 4 ­, apesar de compensar a inflexibilidade do uso de templates, possui algumas desvantagens:·
+O usuário tem pouco controle sobre o layout gerado;·
+Um layout gerado para um conjunto de dados não pode ser reaproveitado para conteúdos diferentes, sendo necessário portanto a reconstrução do layout quando o conteúdo varia;·
+Devem ser observados um conjunto de critérios estéticos para a produção do layout.
+Para que um sistema seja capaz de produzir layouts automaticamente, é necessário que este saiba como dispor os conteúdos na página de uma forma coerente para o leitor do documento final.
+Para isso, na Seção 2.4 a seguir serão vistas algumas medidas estéticas para documentos, que servem como guia para o processo de construção de layouts de páginas.
+Estética é considerado um dos atributos mais importantes na organização de um documento.
+Guias para se produzir documentos com uma aparência agradável geralmente são encontradas em livros de design gráfico, que normalmente transmitem técnicas para construção de documentos através de exemplos, mostrando práticas boas e ruins para a manutenção estética de um documento.
+Estas métricas permitem um grau razoável de flexibilidade de estilo e opções de layout que podem auxiliar na classificação de um documento.
+Critérios para se medir estética de documentos adaptativos são importantes por diversos motivos na área de VDP.
+Primeiro, documentos de conteúdo variável são produzidos em grandes quantidades, e com isso podem sofrer diversas transformações durante o seu processo de construção.
+Por isso, é necessária uma maneira de se medir o quão distante uma instância de documento está em relação a o modelo original, em termos de estética.
+Segundo porque com as necessidades de um layout gerado de forma automática, estes critérios servem como guia para que o algoritmo de diagramação automática construa layouts que obedeçam às noções de qualidade conhecidas em design gráfico.
+Existem esforços por parte de pesquisadores em quantificar estas qualidades de um documento, através de funções matemáticas que medem características de um documento associadas às qualidades sugeridas por artistas gráficos.
+Em o trabalho de Harrington et al.
+São descritos diversos critérios estéticos para avaliar um documento.
+No que diz respeito a design gráfico, as noções de estética tendem a ser subjetivas, mas Harrington et al.
+Propuseram medidas de qualidade de um documento através de modelos matemáticos que tentam mapear as noções de estética de documentos encontradas em livros de design e projeto gráfico.
+A seguir são descritos alguns destes critérios, considerados mais relevantes para este trabalho:·
+Critério de alinhamento:
+Indica que as regiões de um documento devem estar num padrão alinhado, ou seja, as bordas das regiões de texto ou figuras interceptam uma mesma linha ou coluna, sejam elas centralizadas, na esquerda ou na direita;·
+Critério de regularidade:
+Indica que as regiões tendem a repetir em certos pontos de forma mais previsível, garantindo que estas tenham alturas e larguras parecidas.
+Isto também é conhecido como Repetição, um objetivo estético mais geral;·
+Critério de uniformidade:
+Indica que as regiões são distribuídas de forma homogênea por a página, ou seja, a área da página é bem distribuída para as regiões que a ocupam;·
+Critério de fluxo de espaço em branco:
+Indica que todo o espaço em branco contido na página está conectado às margens da página, ou seja, não há nenhuma região vazia &quot;presa «dentro de a página do documento;·
+Critério de proporção:
+Indica que o aspecto (a razão entre largura e altura) de cada região tende a ser parecido com um aspecto pré-determinado, considerado &quot;agradável «para leitura.
+Outros trabalhos propuseram critérios similares para a classificação do layout gerado por os algoritmos, e é mostrado no Capítulo 4 de que forma os critérios citados anteriormente são preservados ou aproximados por o algoritmo proposto neste trabalho.
+Apesar de não ser obtido sempre o melhor layout possível (este conceito é definido no Capítulo 4) para um dado conteúdo de entrada, por razões de decisão de projeto, optou- se por manter o algoritmo simples, que, ainda assim é capaz de gerar documentos que mantém um bom equilíbrio entre os critérios estéticos citados.
+Um outro critério que pode ser considerado importante na avaliação de qualidade de um documento, é a preservação da ordem cronológica de leitura dos elementos que compõem o documento ou a proximidade entre elementos que possuem relações entre si (isto é, se os conteúdos são relacionados).
+Este capítulo dedicou- se a apresentar conceitos gerais que estão no contexto do trabalho proposto.
+A seguir, no Capítulo 3, são descritos os principais trabalhos na área que propuseram soluções para o problema de layout de documentos.
+Os requisitos impostos por a área de VDP descritos neste capítulo servirão como guia para a análise crítica dos trabalhos relacionados no Capítulo 3 e usados como objetivos para o algoritmo proposto no Capítulo 4.
+Este capítulo apresenta os trabalhos relacionados já publicados na área de layout de documentos.
+O foco deste capítulo será apenas nos trabalhos mais relevantes que tratam o problema específico de produção automática de documentos, deixando de lado a discussão de técnicas de layout geométrico em geral, tais como Tree Maps, Bin Packing, ou layout de grafos.
+Esta decisão foi tomada tendo em vista que estes algoritmos não consideram restrições necessárias em layout de documentos, como preservação de ordem de leitura, produção em massa(, eficiência), entre outros.
+Em as seções a seguir é apresentado resumidamente o estado da arte na área de layout de documentos, organizado por a estratégia utilizada por o autor para abordar o problema.
+A Seção 3.1 descreve trabalhos que fazem uso de métodos estocásticos de otimização, tais como algoritmos genéticos e simulated annealing.
+Já na Seção 3.2 é descrito um método em que o problema de layout é tratado como um sistema de restrições e é resolvido através de programação linear.
+Algumas estratégias determinísticas para layout são descritas na Seção 3.3, envolvendo o uso de programação dinâmica e busca local.
+Finalmente, na Seção 3.4 são apresentadas algumas considerações sobre os trabalhos relacionados aqui descritos.
+Goldenberg propôs um algoritmo genético para resolver o problema através de recortes sucessivos numa página.
+Porém, além de os problemas inerentes a algoritmos genéticos (não-determinismo, baixa performance), os layouts gerados não eram necessariamente agradáveis, pois, da forma como o algoritmo foi projetado, critérios estéticos como alinhamento e homogeneidade eram dificilmente preservados por a função de fitness utilizada.
+Purvis et al.
+Propuseram uma solução diferente utilizando algoritmos genéticos, em que os conteúdos (texto, imagens, entre outros) podiam assumir formas livres, e o espaço de busca era construído variando- se as dimensões e posição de cada conteúdo.
+A função de fitness era definida como uma composição de critérios estéticos, como propostos por Harrington et al.,
+que funcionavam como um conjunto de restrições para as qualidades desejadas para a página.
+Porém, como apontado por a autora, o algoritmo genético dificilmente convergia para uma solução satisfatória, o que exigia execuções múltiplas do algoritmo a fim de obter um resultado agradável, o que não era garantido sempre.
+Geigel e Loui propuseram um algoritmo genético similar (com critérios estéticos também similares) para gerar álbuns de fotografia, porém introduziram conceitos como ordenação de conteúdo (cronologia, apesar de não ser garantida sempre) e criação do documento possuindo mais de uma página.
+Johari et al.
+Propuseram um algoritmo de layout específico para construir páginas amarelas de listas telefônicas, utilizando métodos aproximativos, no caso Simulated Annealing.
+Em páginas amarelas devem ser colocados anúncios, que são retângulos de aspecto e área fixas, e textos, que podem sofrer quebras de linha e percorrer a área livre da página.
+Esta combinação de formas rígidas e flexíveis torna o espaço de busca do problema bastante complexo, pois dois aspectos devem ser otimizados simultaneamente:
+A colocação dos anúncios, similar a um problema de bin packing, e a inserção de textos na área livre da página, que deve ser aproveitada da melhor maneira possível.
+Lin descreve uma abordagem que foge do uso de algoritmos genéticos, transformando os critérios desejados (como posicionamento e aspecto) do conteúdo em restrições lineares, transformando o problema num problema de programação linear, podendo ser resolvido por algoritmos determinísticos, como o simplex.
+O problema desta abordagem é que, além de o seu baixo desempenho, proibitivo para aplicações de VDP, um template também deve ser especificado, através de restrições lineares com um nível de abstração muito baixo (ex..
+A abordagem descrita aqui tenta exigir o mínimo de entrada do usuário (o conteúdo a ser alocado, e parâmetros relacionados com a página onde serão alocados os conteúdos), mesmo que isso signifique uma menor liberdade na forma do documento.
+Atkins propôs um algoritmo determinístico para produzir layouts rápidos de pôsteres de fotografia.
+Porém, além de trabalhar apenas com imagens, que possuem aspecto fixo (ao contrário de texto, cujo aspecto permite variações), o algoritmo não é capaz de manter as fotografias na ordem em que elas são dadas por o usuário, o que não garante a ordem de leitura da página.
+Recentemente, de Oliveira propôs dois algoritmos determinísticos capazes de produzir layouts de documentos, cada um destes voltado para uma aplicação específica.
+Um dos algo- ritmos recebia o conteúdo em forma de retângulos com geometria fixa (largura e altura) para serem dispostos numa página de documento sem sofrer alterações de aspecto e área, e outro permitia formas livres para os elementos, que possuiam apenas a informação de área associada.
+O algoritmo então, através do uso de programação dinâmica encontrava soluções ótimas baseado numa função de medida de erro numa página.
+Porém, apesar de os bons resultados gerados, do tempo de execução dos algoritmos, como apontado por o autor, é proibitivo para processos em Variable Data Printing.
+Após um estudo sobre os principais trabalhos existentes em diagramação de documentos até o momento deste texto, chega- se à conclusão de que um algoritmo que gere layouts mais simplificados, mas que seja capaz de gerar um documento bem estruturado (também em termos estéticos) e com um grau maior de previsibilidade ­ tanto no tempo de execução quanto nos documentos gerados ­ pode ser mais interessante para aplicações em VDP, que exigem justamente este tipo de confiabilidade na hora de produzir documentos personalizados em massa.&amp;&amp;&amp;
+Além disso, é também de interesse que a interação entre o algoritmo de layout e o usuário seja mínima, o que facilita a produção automatizada de documentos.
+Isto pode ser útil em cenários além de VDP, onde conteúdos são atualizados constantemente, e um layout para adaptar este novo conteúdo deve ser gerado dinamicamente, à medida em que os conteúdos são alterados.
+Um exemplo de aplicação para isto seria a geração de documentos contendo notícias obtidas através de web feeds.
+Schrier et al.
+Propuseram uma solução para esta aplicação, mas ainda exige o uso de templates construídos manualmente, o que não é desejado neste trabalho.
+A solução proposta neste trabalho será discutida a seguir, de maneira detalhada, no Capítulo 4.
+4 Solução proposta Este capítulo apresenta a solução proposta neste trabalho para diagramação automática de documentos.
+O roteiro deste capítulo é dado como segue:
+Em a Seção 4.1 o algoritmo proposto neste trabalho é categorizado em relação a o problema mais geral de layout, que é um problema de otimização.
+Em a Seção 4.2 é apresentado o modelo utilizado para validação deste trabalho para o qual este algoritmo produz layouts, que são documentos similares a capas de jornal.
+Em este modelo também são apresentadas as ferramentas utilizadas no processo de geração de páginas, que fazem a interface entre a entrada de dados e a saída final do documento.
+Em a Seção 4.3 o algoritmo básico é descrito de forma detalhada.
+A seguir, na Seção 4.4 é apresentado o algoritmo complementar capaz de dividir os elementos de um documento num layout composto por duas ou mais páginas.
+Em a Seção 4.5 são mostradas técnicas e medidas para melhorar o algoritmo básico descrito na Seção 4.3.
+Finalmente, na Seção 4.6 são resumidos os objetivos atingidos sobre o método proposto.
+Como discutido na Seção 1.2, o método aqui proposto não é uma solução genérica para distribuir conteúdos num documento.
+Isto porque o espaço de possibilidades para se construir um layout livre de restrições é muito grande, visto que parte do problema de distribuir elementos numa página pode ser reduzido ­ a grosso modo ­ a um dos seguintes problemas:·
+Empacotamento, ou Bin Packing, caso os elementos sejam retângulos fixos;·
+Cutting Stock ou Tree Maps, caso os elementos tenham aspecto livre.
+Em este caso deve ser buscada a melhor maneira de se dividir uma página em diversas partes para cada elemento.
+A redução do problema de layout automático para um destes dois problemas caracteriza o problema de layout automático como um problema de otimização combinatória, cuja solução ótima possuiria a mesma complexidade assintótica destes dois problemas, conhecidos por pertencerem à classe de complexidade Np-Difícil.
+Como visto no Capítulo 3, a maioria dos autores tentou compensar a complexidade do problema limitando o seu espaço de busca, seja com o uso de templates de documentos ou impedindo a explosão combinatória do problema, através da fixação de ordem dos elementos por exemplo.
+Em este trabalho esta redução de problema também ocorreu, mas foram escolhidas restrições que beneficiam o layout do documento, como será visto no decorrer deste capítulo.
+Além disso, o algoritmo apresentado neste trabalho não encontra soluções ótimas para o modelo proposto, ou seja, as páginas produzidas por o algoritmo não são necessariamente as melhores soluções considerando critérios de ocupação da página por o conteúdo e critérios estéticos.
+Porém, será visto no decorrer deste capítulo que a heurística desenvolvida neste trabalho produz resultados bastante satisfatórios, levando em consideração os requisitos da área de VDP, discutidos no Capítulo 2, ao contrário de métodos aproximativos para otimização como proposto em outros trabalhos.
+Esta seção descreve o modelo que servirá como embasamento para o algoritmo desenvolvido neste trabalho, definindo a classe de diagramações produzidas, e também utilizado para a construção dos casos de teste utilizados na avaliação qualitativa, como descrito no Capítulo 5.
+Este modelo é descrito a seguir na Subseção 4.2.1.
+O trabalho desenvolvido foca em documentos que possuem um layout modular (hierárquico), dividido em regiões retangulares e alinhadas em colunas, como é feito em documentos como páginas de revistas e/ ou jornais.
+Um modelo de documento como jornais é interessante para se trabalhar, pois os critérios estéticos são simples de definir, e produz layouts de fácil leitura, e que a grande maioria de pessoas já está familiarizada, evitando surpresas ou dificuldades de leitura.
+Mais especificamente, os principais componentes necessários para compor o layout de um jornal são de razoável interesse para os processos utilizados em VDP (Capítulo 2), descritos a seguir:·
+Paginação: É o mecanismo capaz de distribuir uma série de elementos como texto ou imagens num documento composto por diversas páginas.
+No caso de jornais, o número de páginas é normalmente um múltiplo de 4, pois cada folha no estilo Broadsheet contém textos (matérias) para 4 páginas.
+O algoritmo para distribuir elementos em páginas é descrito na Seção 4.4;·
+Mistura de regiões de imagem e texto:
+Imagens em jornais são por natureza elementos retangulares e rígidos, que não podem mudar de aspecto.
+Textos, em contrapartida, podem fluir por o espaço livre da página.
+Um mecanismo automático que combine estes dois tipos de elementos num único documento ainda é difícil de se obter.
+Porém, no decorrer deste capítulo (em especial na Seção 4.3) será descrito como o método contorna este problema parcialmente;·
+Ordem de leitura, proximidade e alinhamento de textos:
+São três critérios essenciais em jornais.
+A ordem de leitura garante que os textos mais &quot;importantes «da página serão lidos primeiro (a Seção 4.3 mostra como a ordem de leitura é preservada por o algoritmo desenvolvido).
+O alinhamento em colunas existente nos jornais ajuda os olhos do leitor a separar textos diferentes.
+Já a proximidade especifica que elementos relacionados entre si devem aparecer próximos na página, a fim de não confundir o leitor, tais como textos associados com imagens num jornal;·
+Homogeneidade da página:
+É um critério essencial em várias formas de documentos, que especifica que os elementos devem aproveitar a área da página de forma equilibrada, ou homogênea, preenchendo a página por inteiro, como é o caso em jornais.
+O modelo de página utilizado neste modelo é mostrado na Figura 4.
+Note que isto difere do conceito de template apresentado no Capítulo 2 porque não há especificação de regiões para conteúdo variável neste modelo, mas sim uma região onde o layout da página será construído.
+Os parâmetros de um página de documento ilustrados na Figura 4 são os seguintes:·
+W, H:
+A largura e altura respectivamente da região da página onde o conteúdo é distribuído, especificados por o usuário como entrada para o algoritmo;·
+Wm, Hm:
+Os tamanhos das margens horizontais e verticais, respectivamente.
+Para fins de simplificação, será assumido neste trabalho que ambas as margens à esquerda e à direita na página possuem a mesma dimensão Wm, assim como as margens superiores e inferiores possuem a mesma dimensão Hm.
+Também não é reservado nenhum espaço para cabeçalhos e rodapés;
+Wc $= Novamente, é importante ressaltar o fato de que a existência de margens e colunas nas páginas de um documento gerado por o algoritmo aqui proposto não é o mesmo que um template produzido por um designer gráfico, e sim apenas uma restrição e simplificação no funcionamento do algoritmo para que este sempre produza páginas alinhadas verticalmente.
+A seguir serão descritas brevemente algumas ferramentas e o processo utilizado na implementação deste trabalho.
+Durante o desenvolvimento do protótipo da ferramenta para este trabalho, o algoritmo de layout foi inserido num processo (ou workflow) similar ao de VDP (Capítulo 2), mas para fins de validação do trabalho, foi permitido ao usuário selecionar o conteúdo através de alguma interface gráfica (não definida neste trabalho, ver Figura 5), capaz de produzir um arquivo XML.
+Este arquivo especifica o conteúdo que será usado por o algoritmo de adaptação para TEX para produzir o layout, e por sua vez, o algoritmo de adaptação produz um arquivo L ser então processado (descrito a seguir) e transformado num documento PDF.
+1 O uso de um formato XML como entrada foi escolhido devido a a facilidade de se intercambiar este tipo de TEX foi escolhido para que não formato atualmente.
+Já o uso do processador de textos L houvesse preocupação com problemas de formatação de baixo nível durante o desenvolvimento deste trabalho, tais como quebras de linhas, hifenização, etc..
+Como feito em outros trabalhos TEX é capaz de produzir documentos mais abrangentes.
+Mais especificamente, o L divididos em colunas, e ajustar automaticamente o texto nas regiões produzidas por o algoritmo de layout caso não haja um ajuste exato, como será explicado no decorrer deste capítulo, na Seção 4.3.
+A Figura 5 ilustra em alto nível o processo de geração de documentos com o algoritmo proposto, e a Figura 6 mostra um exemplo dos arquivos gerados e de como a entrada é transformada num documento final no workflow descrito.
+Imagem da Boa Mãe visita a FACIN A Direção do Centro de Pastoral e Solidariedade, juntamente com a equipe de Agentes de Pastoral, está iniciando os preparativos para as comemorações que celebram o mês de Maria.
+Entre as atividades propostas, está a circulação, nas Unidades Acadêmicas, de uma imagem da Boa Mãe durante o mês de maio, mês das Mães.
+A intenção com esta iniciativa é que, ao visitar a Unidade, Maria derrame suas bênçãos sobre cada um, despertando o sentimento de amor, de compaixão, doação e espírito de.
+Junto à imagem, haverá uma caixinha para que sejam colocadas intenções que serão levadas ao altar com intenções na última missa do mês, dia 30 de maio.
+A imagem da Boa Mãe chegará na 3 PUCRS e FACIN disponibilizam programa Mauricio Klein Bolsista Hp Está disponível para acesso aos alunos regularmente matriculados e professores da Faculdade de Informática o programa MSDNAA.
+Este programa consiste no fornecimento gratuito de grande parte das ferramentas de desenvolvimento existentes no MSDN (Microsoft Developers Network), através de um convênio educacional entre a Microsoft e (a) Arquivo XML de entrada.
+FACIN na próxima quinta-feira, dia 15 de maio, às 18h30m.
+Em a sua chegada, está previsto que um grupo de pessoas (alunos, professores e funcionários) possa se reunir num momento de oração e que, a partir desse momento, surja um compromisso de fé e partilha.
+Portanto, convidamos a todos para participarem deste momento!
+A imagem da boa mãe.
+O Centro de Inovação PUCRS.
+O MSDNAA objetiva também facilitar o acesso e a avaliação dos produtos Microsoft a um público potencial formado por os usuários de faculdades de informática.
+As tratativas para que o programa seja disponibilizado também à Faculdade de Engenharia já foram iniciadas.
+Para obter instruções de acesso aos softwares e demais informações, acesse &quot;Convênio Educacional Microsoft «na área do aluno no site da FACIN.
+5 Palestra de lançamento Especialização em Informática na Educação da SPIN Poa Em o dia 04 de abril houve a pri-pal que foram contempladas com Ricardo Piccoli Bolsista Hp Alexandre Seki Bolsista Hp A qualidade de software é um conjunto de propriedades a serem satisfeitas em determinado grau, de modo que o software satisfaça as necessidades de seus usuários.
+Esta qualidade não surge espontaneamente nas organizações, mas através do uso de padrões, processos, e procedimentos desenvolvidos e aplicados, visando não só a qualidade do produto, mas também a qualidade do processo utilizado para o desenvolvimento de tal produto.
+Para tanto, modelos apropriados para controle e avaliação da qualidade acabam meira defesa da 9a edição do Curso tornando- se fun-de Especialização em Informática damentais nas organizações.
+Con- na Educação, da Faculdade de Incomitante ao de-formática.
+A aluna Manuela Olisenvolvimento da veira Peixoto, orientada por a proqualidade, cresce a fessora Milene Silveira, defendeu preocupação com sua monografia intitulada «Incluos custos envol- são Digital na Rede Pública Muvidos nesse pro-nicipal de Santo Antônio de Pacesso.
+Muitas or-trulha, em a qual fez um relato hisganizações têm encontrado difi- tórico sobre os projetos de incluculdades em ava- são digital do município, além de liar de forma ob-discutir as L conquistas atuais de jetiva os custos laboratórios de informática.
+Em o oriundos do inves-âmbito destas novas conquistas, a timento em ativi-aluna fez um estudo de caso com dades que garan- as quatro escolas da rede municitam a qualidade do software, e a maneira como tais custos relacionamse com ciclo de vida dos projetos.
+7 Beiler laboratórios, entrevistando, além de as direções/ coordenações da escola, 453 alunos que serão beneficiados por os mesmos.
+A abrangência e qualidade do trabalho foi parabenizada por a banca, e a aluna obteve grau máximo em sua monografia.
+Esta defesa marca, também, o retorno do oferecimento de Cursos de Especialização por a Faculdade de Informática, que no momento, disponibiliza a comunidade, dois cursos de especialização:
+Informática na Educação e Gerenciamento de Projetos com Ênfase em Tecnologia da Informação.
+15 Aluna Manuela Oliveira Peixoto (b) Arquivo L TEX produzido por o processo de (c) Arquivo final PDF produzido por o processador de layout.
+Uso de outras ferramentas Cabe ressaltar que de nenhuma forma o algoritmo proposto neste trabalho está atrelado a estas tecnologias, tendo estas sido escolhidos apenas por a sua conveniência e para fins de desenvolvimento do protótipo da ferramenta utilizada para validação e testes deste trabalho.
+Porém, a ferramenta que realiza a etapa de renderização (descrita na Subseção 4.3.7) deve atender às seguintes capacidades mínimas:·
+Ser capaz de manipular imagens e textos;·
+Ser capaz de distribuir e formatar texto automaticamente numa região retangular;·
+Ser capaz de adaptar os atributos do texto de forma a preencher plenamente a região que o contém;·
+Ser capaz de dividir uma página em duas ou mais colunas verticais.
+Até o momento de publicação deste trabalho, apenas três ferramentas são conhecidas por o autor capazes de atender a estes requisitos:
+O processador de textos L TEX, o sistema de editoração eletrônica Scribus e a linguagem de formatação XSL:
+FO, sendo esta última até o momento incapaz de trabalhar com uma página com textos que ocupam diversas colunas.
+O algoritmo desenvolvido resolve o problema de alocação de elementos (conteúdo) numa página através de uma estratégia de divisão e conquista.
+A página do documento passa por um processo denominado de bissecção, ou partições recursivas, que divide a página em duas regiões retangulares distintas, através de uma linha horizontal ou vertical que passa de uma borda da página para outra, sempre paralela a um dos eixos da página.
+Cada região resultante da bissecção é então recursivamente particionada, e este processo termina quando o número de regiões na página é igual ao número de elementos que devem ser alocados no documento.
+A decisão de onde estas partições ocorrem na página são decididas segundo os critérios do algoritmo de bissecção, que será descrito na Subseção 4.3.6.
+Ainda, as seguintes restrições se aplicam:·
+As bissecções feitas em regiões da página do documento são linhas horizontais ou verticais apenas, paralelas ao retângulo que define a página;·
+Como a página de um documento é organizada num número NC de colunas verticais de tamanhos iguais, isto significa que uma bissecção vertical só poderá ser feita em pontos discretos na linha horizontal da página, garantindo assim o critério de alinhamento (vertical) entre todos os elementos no documento final;·
+Em decorrência disto, todos os elementos da página ocupam um número inteiro de colunas, e não podem sobrepor- se uns aos outros.
+A seguir será vista a modelagem do problema para a definição do algoritmo.
+Estas etapas serão descritas a seguir, nas Subseções 4.3.3, 4.3.4, 4.3.5, 4.3.6 e 4.3.7, e podem ser resumidas da seguinte forma:
+O arquivo de entrada é processado, e são extraídas a seqüência de elementos, sendo estes texto e/ ou imagens, e as dimensões e número de colunas de a (s) página (s) do documento;
+Para cada elemento da seqüência recebida é calculada a área estimada correspondente ao tipo de elemento (texto ou imagem);
+Estas áreas são normalizadas a fim de representar sua quantidade através de proporções do tamanho da página do documento;
+A região principal (a página) do documento é dividida recursivamente por o algoritmo de bissecção, alocando cada elemento da seqüência para uma região exclusiva, de acordo com a sua área requisitada.
+A o final do processo, o número de subregiões na página é igual ao número de elementos;
+O processo de bissecção produz uma estrutura de dados como saída, que provê informações sobre as dimensões e posições de cada região produzida e associa cada região com um elemento;
+O processo de renderização é realizado sobre esta estrutura de dados para um formato de saída específico (no modelo proposto neste trabalho, o L O processador de textos específico lê o arquivo de saída produzido por a etapa de renderização e produz o documento final.
+O arquivo de entrada para o algoritmo deve conter as seguintes informações:·
+As dimensões W (largura), H (altura) e o número NC de colunas verticais relativos a a (s) página (s) do documento.
+Todas as colunas possuirão largura Wc (Equação (4.1));·
+A entrada do algoritmo é uma seqüência ordenada de elementos, que podem ser ou textos(, strings, uma seqüência de caracteres), ou imagens (o endereço de uma imagem no sistema de arquivos).
+A ordem da seqüência de entrada determina a ordem de leitura dos elementos no documento.
+Junto com cada imagem, deve ser fornecido também o número desejado de colunas que esta imagem deseja ocupar.
+Isto será discutido na Subseção 4.3.4 a seguir.
+Para que o algoritmo produza resultados satisfatórios, é necessário que textos compridos exijam áreas maiores da página do documento e textos curtos exijam áreas menores, assim como imagens.
+Com uma informação quantitativa de quanto espaço um determinado elemento requer num página, o algoritmo de bissecção é capaz de decidir posições boas para particionar a página.
+Para que o usuário não fique encarregado de fornecer estes dados juntamente com a seqüência de elementos, é descrita aqui uma maneira de estimar as áreas requisitadas por textos e imagens.
+Estimando a área de textos Um texto é um tipo de elemento que não possui aspecto (ou geometria) fixo, e portanto é definido apenas por a sua área estimada QAi.
+A área ocupada por um texto i pode ser calculada de forma aproximada como QAi $= × W × H × strlength.
+Em a Equação (4.2), strlength (i) é o número de caracteres contido no texto i e é uma constante que estima o tamanho médio e um único caractere no documento final, relativo à área da página em questão.
+Estimando a área de imagens Uma imagem, diferentemente de um texto, é uma região retangular que possui sua geometria fixa.
+Para cada imagem i da seqüência de elementos, deve existir um número de colunas Ci fornecido como entrada.
+Este número define quantas colunas inteiras da página serão ocupadas por a imagem.
+Além disso, uma imagem também possui uma razão de aspecto, que define a geometria da mesma, definida por a razão ARi $= GWi/ GHi, onde GWi e GHi representam as dimensões originais da imagem.
+Então, se temos o aspecto ARi da imagem, a largura e altura ocupadas por a mesma na página são Wi $= W × (Ci/ Nc) Hi $= Wi/ ARi e a área ocupada por a imagem i é definida como QAi $= Wi2/ ARi.
+Normalização Para que estas áreas estimadas para os elementos de um documento sejam úteis para o algoritmo, é necessário que as mesmas sejam normalizadas em relação a a área da página deste documento.
+O processo de normalização transforma as áreas requisitadas em frações de uma unidade de página, tornando- as áreas relativas às dimensões da página, ou seja, a soma das áreas relativas Ai de cada elemento i representa 100% da área da página, garantindo assim a homogeneidade e ocupação total da página:
+Ai $= 1.
+I $= 1 A área relativa de uma imagem i, devido a a necessidade de receber uma área que corresponda exatamente ao número de colunas requerido, pode ser calculada como descreve a Equação (4.7):
+Ai $= QAi/ (W ×H).
+Ou seja, como uma imagem possui geometria fixa e ocupa um número inteiro de colunas da página, basta que esta consuma a área da página de forma proporcional.
+No caso de textos, que podem fluir livremente por a página, com áreas menores ou maiores que sua área requisitada, devem distribuir a área restante da página (descontando as áreas requisitas por imagens) entre si.
+Assim sendo, a área normalizada de um texto é calculada como Aimg $= QAi imagem Atxt $= QAi -- Aimg texto Ai $= (W ×H-Aimg)/ Atxt × QAi, onde imagem indica que o elemento i é uma imagem e texto indica que i é um texto.
+Após a etapa de cálculo de áreas e normalização, o algoritmo é capaz de particionar a página respeitando as áreas requisitadas por cada elemento.
+A seguir, na Subseção 4.3.5 será apresentada a estrutura de dados utilizada por o algoritmo.
+Como ilustrado na Figura 7, a execução do algoritmo produz uma estrutura de dados como saída para o renderizador, que deve ser descrita antes de apresentar o algoritmo em si.
+Sendo um algoritmo de natureza recursiva, é necessário que haja uma maneira de representar e armazenar as diversas regiões produzidas por o processo de bissecção.
+Para isso, a estrutura de dados mais apropriada é uma árvore binária, onde:·
+a raiz representa a região &quot;principal», ou uma página inteira do documento;·
+os nós internos representam sub-regiões que são recursivamente divididas em duas;·
+as folhas, que são regiões indivisíveis, onde cada uma contém um elemento do documento.
+Para representar uma região r, é necessário que cada nó possua os seguintes atributos:·
+r. C:
+Número de colunas contidas na região;·
+r. X e r.
+Y: Posição absoluta da região;·
+r. W e r.
+H: Largura (pode ser deduzida a partir de r.
+C e a largura W da página) e altura da região, respectivamente;·
+r. I e r.
+J: Intervalo da seqüência de elementos contida dentro de esta região.
+Se· r.
+Esq e r.
+Dir: Apontadores para as regiões filhas, resultantes de uma subdivisão.
+A Figura 8 ilustra como esta estrutura representa as bissecções feitas numa página e um intervalo de elementos.
+Lista de elementos 'Ei (area)':
+Pagina: Primeiro nivel de bissecção Segundo nivel de bissecção Terceiro nivel de bissecção Quarto nivel de bissecção (a) Um exemplo do algoritmo de bissecção numa página de documento.
+Em este caso, quatro níveis de corte são mostrados.
+A lista acima é a seqüência de elementos, e também é mostrado como ela é particionada entre as regiões.
+Como visto no início desta seção, a entrada do algoritmo é uma seqüência de elementos.
+Para cada elemento E1in, é associada a área Ai, obtida na etapa de cálculo de áreas e normalização (Subseção 4.3.4).
+Inicialmente, a página (a região raiz, como descrito na Subseção 4.3.5) contém todo o intervalo de elementos.
+Ou seja, para cada região é associado um intervalo, que representa a subseqüência de elementos que está contida naquela região.
+A cada bissecção, é escolhido um ponto de corte k no intervalo, que divide a seqüência de elementos em duas seqüências, e.
+O critério de escolha do ponto de corte k na seqüência é determinado por o ponto mediano, ou seja, a área total dos elementos j l $= i Al é dividida no ponto em que a soma das áreas k l $= i Al é o mais próximo de a soma l $= k+ 1 Al.
+O efeito desta escolha é a preservação da medida estética de uniformidade (Seção 2.4), pois a área da página é dividida de forma propor-cional a cada bissecção para as áreas de cada lado do corte, mantendo homogênea a distribuição de áreas na página.
+Quanto a a decisão de qual eixo escolher para particionar uma região (horizontal ou vertical), o algoritmo opta por o eixo mais longo, exceto quando não há colunas disponíveis para uma par-Algoritmo 1 Procedimento para localizar o índice de partição de uma região.
+Algoritmo achaMediana (i, j) minerro para kn $= i a j -- 1 faça kn err max l $= i Al, l $= kn+ 1 Al se (err minerro) então minerro err minkn kn fim se fim para retorne minkn tição vertical.
+Em este caso, o algoritmo particiona horizontalmente.
+A tendência neste processo de particionar o eixo mais longo é que a razão de aspecto de todas as regiões tendem a ser mais uniformes entre si, e se aproximar de uma forma quadrada, isto é, AR $= 1.
+No caso de uma partição horizontal, a altura da região acima de o elemento k onde i k j, numa região de altura Hr, é calculada como Hacima $= Hr × Pk l $= i Al/ Pj l $= i Al, ou seja, é a altura proporcional às áreas na esquerda de k.
+Conseqüentemente, a área abaixo de Hacima é o complemento Habaixo $= Hr -- Hacima.
+Já numa partição vertical, escolhe- se o número de colunas mais próximo de a mediana, calculada anteriormente.
+O Algoritmo 2 descreve este procedimento.
+Algoritmo 2 Procedimento para selecionar o número de colunas para uma partição vertical. Algoritmo achaNumColunas (c, cesq, cdir, proporcao) minErro&amp; Encontra o corte vertical mais próximo de a proporção calculada para kc $= cesq a c -- cdir faça err| kc/ c -- proporcao| se (err minErro) então minErro err minkc kc fim se fim para retorne minkc Visto que imagens possuem um número fixo de colunas, o algoritmo também leva em consideração um corte possivelmente longe da mediana, mas que atende o número de colunas desejado para uma imagem.
+Isto é feito selecionando-se os maiores números de colunas cesq m j, e aceitando uma partição vertical somente quando o número de colunas c da região for maior ou igual à cesq+ cdir, garantindo o número mínimo de colunas pedido por as imagens no intervalo O algoritmo principal de bissecção é descrito em detalhes no Algoritmo 3 e a Figura 9 ilustra o resultado do processo de bissecção dividido numa série de passos.
+A chamada inicial para o algoritmo é Bissecção.
+Vale observar que algumas das etapas do algoritmo ainda serão descritas no decorrer deste capítulo, como a medida de erro por exemplo Algoritmo 3 O algoritmo de bissecção principal.
+Algoritmo Bissecção (ptr, i, j, c, w, h, x, y)&amp; armazena os atributos da região em ptr&amp; Se i $= j, então ptr é uma região terminal.
+Após a execução do algoritmo de bissecção, a estrutura de regiões produzida pode ser processada e convertida em comandos para um formatador de texto externo, no caso deste trabalho, oL Para produzir documentos com aparência similar a uma página de jornal, foram desenA TEX, tais como correções tipográficas e definições volvidas algumas funcionalidades para o L estilísticas para o modelo de um jornal (por exemplo, emprego de títulos, autores, números de página, etc).
+As principais funcionalidades são descritas a seguir.
+Colunas lógicas versus colunas visuais Segundo Harrower, o impacto visual de um jornal é bastante influenciado por a divisão do texto em colunas.
+Como o algoritmo desenvolvido neste trabalho divide o documento num número fixo de colunas de mesma largura, um texto que ocupe muitas colunas apresentado na impressão final do documento pode ser difícil de ler ou ser aparentemente desagradável, devido a o excesso de regularidade na página.
+Por esta razão, uma das correções feitas na etapa de renderização neste trabalho é a redução &quot;visual «do número de colunas de um texto.
+Isto é, criase uma distinção entre colunas lógicas (reais) e colunas visuais (aparentes), ou seja, a região que contém um texto com muitas colunas logicamente ocupa a mesma largura na página, porém, o texto é apresentado com um número menor de colunas.
+Mais especificamente, o número de colunas visuais de um texto é a metade do número de colunas lógicas, quando um texto ocupa mais de duas colunas.
+A Figura 10 ilustra este efeito.
+Encaixe de regiões de texto Em a produção do documento final, as áreas calculadas para os textos podem ser maiores ou menores do que as áreas requisitadas por estes, fazendo com que os textos ocupem menos espaço na página, ou atravessando a região que o contém, por serem maiores.
+Sendo um algoritmo heurístico, o preenchimento exato de um texto numa região não é garantido, apenas aproximado.
+Logo, com este sistema, é necessário que o formatador de textos se encarregue de fazer com que os textos ocupem suas regiões de forma precisa, a fim de garantir a homogeneidade da página.
+Para resolver este problema, uma solução similar à proposta por Hurst et al.
+Foi adotada:
+Assumindo uma região retangular fixa, o espaçamento entre linhas e tamanho de fonte do texto contido nesta região é alterado repetidamente de forma a aumentar ou diminuir a densidade de texto contida na região, até que o texto ocupe toda a região que o contém, sem exceder o seu TEX, e é ilustrada na Figura 11.
+Em este caso, o tamanho da fonte e espaçamento entre linhas é aumentado até que o texto ocupe toda a região.
+Para documentos provenientes de culturas ocidentais ­ que é o modelo seguido neste trabalho ­ a ordem de leitura num documento é dada de cima para baixo, e da esquerda para a direita.
+Porém, como discutido por Meunier, esta descrição descreve uma ordem parcial apenas, pois, para um dado elemento da página, o elemento lido anteriormente pode estar tanto acima quanto a a esquerda deste.
+Apesar de esta ambigüidade, um leitor humano normalmente é capaz de identificar a ordem correta de leitura, auxiliado por o conteúdo do texto.
+Seguindo esta definição, o algoritmo proposto neste trabalho garante sempre a preservação da ordem de leitura de entrada num layout de documento, pois como uma determinada região é particionada em duas regiões num ponto k da seqüência ordenada de elementos, os Quando o algoritmo termina, produzindo uma região por elemento numa página, é garantido que para cada elemento Ek seus predecessores estão acima ou à esquerda em relação a a página do documento, o que obedece à definição de ordem de leitura utilizada neste trabalho.&amp;&amp;&amp;
+A Figura 12 (a) mostra um documento gerado com 15 elementos de texto e o mesmo documento é mostrado na Figura 12 (b), porém, uma linha azul cruzando o documento indica a ordem de leitura, assim como a intensidade de cada região da página, ou seja, quanto mais es-cura uma região, mais para o fim da seqüência estará o elemento contido nesta região.
+Note que esta ordem respeita a regra descrita nesta seção.
+Para distribuir a seqüência de elementos em diversas páginas, foi adaptado o método descrito por Skiena, que é capaz de particionar uma seqüência de j elementos em k grupos, de forma que as seqüências resultantes dos grupos tenham as áreas mais similares quanto possível.
+A recorrência que descreve o algoritmo é dada como Mj, k $= j l $= 0 Al min 0 ij-1 max Mi, k-1, j $= 0 k $= 1.
+Al Esta recorrência) produz divisões com áreas mais similares o possível, porque através da minimização da área do maior grupo em cada divisão as áreas dos grupos menores devem ser menores do que esta maior área, produzindo grupos com áreas o mais similares quanto possível.
+Para fins de simplificação, a idéia proposta neste trabalho é a de tratar a paginação como um processo independente do algoritmo de layout, ou seja, dado um número k desejado de páginas, a seqüência de elementos é dividida em k seqüências menores, através do método descrito na Equação.
+As seqüências resultantes possuem suas áreas totais o mais similares entre si quanto possível, e para cada uma é executado o algoritmo de bissecção de forma independente.
+Esta estratégia, apesar de não-ótima, garante a divisão homogênea de elementos através das páginas resultantes.
+Em as Figuras 13, 14, 15 e 16 é apresentado um exemplo, em que uma página com uma seqüência de 10 elementos é dividida em 1, 2, 3, e 4 páginas, respectivamente.
+Em cada caso, é mostrada a seqüência de elementos e a área total em cada grupo, nas Tabelas 1, 2, 3 e 4.
+Figura 16: Um documento gerado com 10 elementos dividido em quatro páginas.
+Como o algoritmo apresentado testa apenas uma forma de realizar bissecções na página, o layout gerado pode não ser esteticamente agradável.
+Para determinar a qualidade do layout gerado para um documento, introduz- se uma função de erro, descrita a seguir na Subseção 4.5.1.
+Através da variação de alguns parâmetros na entrada do documento, é possível executar o algoritmo de bissecção diversas vezes, e escolher os parâmetros que foram responsáveis por o menor erro gerado na página.
+A seguir é apresentada a medida de erro para os layouts gerados por o algoritmo.
+O método ilustrado no Algoritmo 3 utiliza uma função de erro como retorno do procedimento de particionamento recursivo.
+Este valor pode ser utilizado por novas etapas que coordenem a execução do algoritmo múltiplas vezes, a fim de buscar soluções melhores.
+Para medir o erro de um layout gerado para um documento com n elementos, pode- se realizar uma soma dos erros gerados em cada elemento, como apresentado no Algoritmo 3.
+O erro de um texto com área normalizada Ai que foi alocado para uma região R com área AR $= R. W × R. H e razão de aspecto ARR $= R. W / R. H é definido como max Ai Ai ou seja, o tamanho da proporção entre as áreas Ai e AR, relativas à área da página W × H (Seção 4.2).
+Para medir o erro gerado em imagens, que possuem geometria fixa, pode- se usar o tamanho da proporção entre as razões de aspecto da imagem ARi e da região, ou seja max ARR ARi ARi ARR Note que as Equações e medem a proporção de diferença entre as áreas/ aspectos requisitados por um elemento e as áreas/ aspectos fornecidos no layout final para os mesmos, sendo 1 o valor ideal (ausência de erro).
+Para uma medida mais precisa, observe que o erro deve aumentar à medida que a área do elemento aumenta na página, ou seja, o erro deve ser proporcional à área da região calculada.
+Ainda, a ausência de erro deve ser medida como 0, por isso subtrai- se 1 do valor medido.
+Portanto, a medida de erro err deve ser mapeada como × w × h, onde w e h são a largura e a altura da região, respectivamente (Seção 4.3.5).
+O Algoritmo 4 descreve a função de erro utilizada por o Algoritmo 3.
+Algoritmo 4 Função para medida de erro de uma página para o algoritmo.
+Algoritmo erro (i, c, w, h) area w × h se imagem então ARregião w/ h err max (ARregiao/ ARi, ARi/ ARregião) senão err area/ W ×H err max (err/ Ai, Ai/ err) fim se retorne × area Se for permitida a variação do número de colunas Cj informado como entrada para a imagem j (Subseção 4.3.3), é possível testar diversos layouts diferentes, um para cada largura diferente para cada imagem.
+Para explorar todas as possibilidades, é executado um algoritmo que provê o menor erro de layout gerado.
+No caso de a Figura 17, a imagem no canto esquerdo superior da página deveria aparecer causa uma descontinuidade visual entre os dois elementos, fazendo com que o leitor acredite que não há conexão lógica entre os mesmos.
+Para resolver este problema, é possível transformar a seqüência de elementos da entrada do algoritmo numa estrutura hierárquica, onde nós não-terminais representam grupos em que os componentes de um determinado grupo são os nós filhos deste.
+Um nó terminal representa Imagem da Boa Mãe visita a FACIN A Direção do Centro de Pastoral e Solidariedade, juntamente com a equipe de Agentes de Pastoral, está iniciando os preparativos para as comemorações que celebram o mês de Maria.
+Entre as atividades propostas, está a circulação, nas Unidades Acadêmicas, de uma imagem da Boa Mãe durante o mês de maio, mês das Mães.
+A intenção com esta iniciativa é que, ao visitar a Unidade, Maria derrame suas bênçãos sobre cada um, despertando o sentimento de amor, de compaixão, doação e espírito de.
+Junto à imagem, haverá uma caixinha para que sejam colocadas intenções que serão levadas ao altar com intenções na última missa do mês, dia 30 de maio.
+A imagem da Boa Mãe chegará na FACIN na próxima quinta-feira, dia 15 de maio, às 18h30m.
+Em a sua chegada, está previsto que um grupo de pessoas (alunos, professores e funcionários) possa se reunir num momento de oração e que, a partir desse momento, surja um compromisso de fé e partilha.
+Portanto, convidamos a todos para participarem deste momento!
+3 PUCRS e FACIN disponibilizam programa Mauricio Klein Bolsista Hp Está disponível para acesso aos alunos regularmente matriculados e professores da Faculdade de Informática o programa MSDNAA.
+Este programa consiste no fornecimento gratuito de grande parte das ferramentas de desenvolvimento existentes no MSDN (Microsoft Developers Network), através de um convênio educacional entre a Microsoft e A imagem da boa mãe.
+As tratativas para que o programa seja disponibilizado também à Faculdade de Engenharia já foram iniciadas.
+Para obter instruções de acesso aos softwares e demais informações, acesse &quot;Convênio Educacional Microsoft «na área do aluno no site da FACIN.
+5 Palestra de lançamento Especialização em Informática na Educação da SPIN Poa Em o dia 04 de abril houve a pri-pal que foram contempladas com Ricardo Piccoli Bolsista Hp Alexandre Seki Bolsista Hp A qualidade de software é um conjunto de propriedades a serem satisfeitas em determinado grau, de modo que o software satisfaça as necessidades de seus usuários.
+Esta qualidade não surge espontaneamente nas organizações, mas através do uso de padrões, processos, e procedimentos desenvolvidos e aplicados, visando não só a qualidade do produto, mas também a qualidade do processo utilizado para o desenvolvimento de tal produto.
+Para tanto, modelos apropriados para controle e avaliação de a (a) Representação da lista de elementos de um documento.
+7 meira defesa da 9a edição do Curso de Especialização em Informática na Educação, da Faculdade de Informática.
+A aluna Manuela Oliveira Peixoto, orientada por a professora Milene Silveira, defendeu sua monografia intitulada &quot;Inclusão Digital na Rede Pública Municipal de Santo Antônio de Patrulha», em a qual fez um relato histórico sobre os projetos de inclusão digital do município, além de discutir as L conquistas atuais de laboratórios de informática.
+Em o âmbito destas novas conquistas, a aluna fez um estudo de caso com as quatro escolas da rede munici-Aluna Manuela Oliveira Peixoto laboratórios, entrevistando, além de as direções/ coordenações da escola, 453 alunos que serão beneficiados por os mesmos.
+A abrangência e qualidade do trabalho foi parabenizada por a banca, e a aluna obteve grau máximo em sua monografia.
+Esta defesa marca, também, o retorno do oferecimento de Cursos de Especialização por a Faculdade de Informática, que no momento, disponibiliza a comunidade, dois cursos de especialização:
+Informática na Educação e Gerenciamento de Projetos com Ênfase em Tecnologia da Informação.
+15 Profa..
+Milene Selbach Silveira, Aluna Manuela Oliveira Peixoto e a Profa..
+Adriana Beiler (b) Um documento produzido automaticamente, sem agrupamento lógico entre elementos.
+Para tornar essa hierarquização possível, é necessário adaptar o algoritmo de bissecção des-crito na Seção 4.3.6 para que este processe elementos agrupados.
+A idéia é que cada grupo na hierarquia seja considerado um elemento indivisível e o algoritmo seja aplicado recursivamente para cada grupo toda vez que completar a execução para uma lista de elementos.
+Resolvendo o problema apresentado na Figura 17 com agrupamento produz os resultados desejados, como pode ser visto na Figura 19.
+Imagem da Boa Mãe visita a FACIN A Direção do Centro de Pastoral e Solidariedade, juntamente com a equipe de Agentes de Pastoral, está iniciando os preparativos para as comemorações que celebram o mês de Maria.
+Entre as atividades propostas, está a circulação, nas Unidades Acadêmicas, de uma imagem da Boa Mãe durante o mês de maio, mês das Mães.
+A intenção com esta iniciativa é que, ao visitar a Unidade, Maria derrame suas bênçãos sobre cada um, despertando o sentimento de amor, de compaixão, doação e espírito de.
+Junto à imagem, haverá uma caixi-nha para que sejam colocadas intenções que serão levadas ao altar com intenções na última missa do mês, dia 30 de maio.
+A imagem da Boa Mãe chegará na FACIN na próxima quinta-feira, dia 15 de maio, às 18h30m.
+Em a sua chegada, está previsto que um grupo de pessoas (alunos, professores e funcionários) possa se reunir num momento de oração e que, a partir desse momento, surja um compromisso de fé e partilha.
+Portanto, convidamos a todos para A imagem da boa mãe.
+3 PUCRS e FACIN disponibilizam programa Mauricio Klein Bolsista Hp Está disponível para acesso aos alunos regularmente matriculados e professores da Faculdade de Informática o programa MSDNAA.
+Este programa consiste no fornecimento gratuito de grande parte das ferramentas de desenvolvimento existentes no MSDN (Microsoft Developers Network), através de um convênio educacional entre a Microsoft e o Centro de Inovação PUCRS.
+O MSDNAA objetiva também facilitar o acesso e a avaliação dos produtos Microsoft a um público potencial formado por os usuários de faculdades de informática.
+As tratati- vas para que o programa seja disponibilizado também à Faculdade de Engenharia já foram iniciadas.
+Para obter instruções de acesso aos softwares e demais informações, acesse &quot;Convênio Educacional Microsoft «na área do aluno no site da FACIN.
+5 Palestra de lançamento Especialização em Informática na Educação da SPIN Poa Em o dia 04 de abril houve a pri-pal que foram contempladas com Ricardo Piccoli Bolsista Hp Alexandre Seki Bolsista Hp A qualidade de software é um conjunto de propriedades a serem satisfeitas em determinado grau, de modo que o software satisfaça as necessidades de seus usuários.
+Esta qualidade não surge espontaneamente nas organizações, mas através do uso de padrões, processos, e procedimentos desenvolvidos e aplicados, visando não só a qualidade do produto, mas também a qualidade do processo utilizado para o desenvolvimento de tal produto.
+Para tanto, modelos apropriados para controle e avaliação da qualidade acabam tornando- se fundamentais nas organizações.
+Concomitante ao desenvolvimento da qualidade, cresce a preocupação com os custos envolvidos nesse processo.
+Muitas organizações têm encontrado dificuldades em avaliar de forma objetiva os custos oriundos do investimento em atividades que garantam a qualidade do software, e a maneira como tais custos relacionamse com ciclo de vida dos projetos.
+7 meira defesa da 9a edição do Curso de Especialização em Informática na Educação, da Faculdade de Informática.
+A aluna Manuela Oliveira Peixoto, orientada por a professora Milene Silveira, defendeu sua monografia intitulada &quot;Inclusão Digital na Rede Pública Municipal de Santo Antônio de Patrulha», em a qual fez um relato histórico sobre os projetos de inclusão digital do município, além de discutir as L conquistas atuais de laboratórios de informática.
+Em o âmbito destas novas conquistas, a aluna fez um estudo de caso com as quatro escolas da rede munici-Aluna Manuela Oliveira Peixoto laboratórios, entrevistando, além de as direções/ coordenações da escola, 453 alunos que serão beneficiados por os mesmos.
+A abrangência e qualidade do trabalho foi parabenizada por a banca, e a aluna obteve grau máximo em sua monografia.
+Esta defesa marca, também, o retorno do oferecimento de Cursos de Especialização por a Faculdade de Informática, que no momento, disponibiliza a comunidade, dois cursos de especialização:
+Informática na Educação e Gerenciamento de Projetos com Ênfase em Tecnologia da Informação.
+15 Profa Milene Selbach Silveira, Aluna Manuela Oliveira Peixoto e a Profa..
+Adriana Beiler (a) Representando grupos através da hierar- (b) Um documento produzido automaticaquização da lista de elementos.
+O método desenvolvido, graças às restrições quanto a o formato do documento é razoavelmente simples, mas ainda é possível identificar algumas contribuições para problemas gerais na área de VDP (Capítulo 2), que puderam ser realizadas com o método descrito neste capítulo:·
+Obtenção de um algoritmo determinístico e com boa performance (através do algoritmo de divisão e conquista obtém- se o limite superior O (n × log2 (n)) no caso médio, não explicado neste trabalho) para realizar a alocação de elementos numa página de documento;·
+O algoritmo é capaz de preservar critérios estéticos importantes, como alinhamento (vertical) dos elementos e uniformidade (ver Capítulo 2);·
+A ordem de leitura da seqüência de entrada é preservada;·
+Elementos podem ser agrupados, como descrito na Subseção 4.5.3;·
+Através da especificação do número de páginas desejado, é possível dividir um documento numa ou mais páginas, como descrito na Subseção 4.4;·
+O método descrito neste trabalho pode ser estendido para soluções mais sofisticadas, que explorem um espaço de soluções maior, guiados por heurísticas como a medida de erro/ custo e o método para redimensionar imagens descritos na Seção 4.5;·
+É possível misturar elementos com aspecto fixo (imagens) com texto, que possui forma livre (podendo possuir qualquer aspecto para preencher uma área da página), ao contrário de a maioria dos trabalhos existentes (ver Capítulo 3) até o momento da publicação deste trabalho;&amp;&amp;&amp;
+Em o Capítulo 5 a seguir serão apresentados alguns resultados deste trabalho, que foram produzidos através de uma avaliação empírica sobre a qualidade e performance dos resultados gerados.
+Um sistema capaz de produzir diagramações automaticamente é passível de produção de maus resultados, devido a a dificuldade de se quantificar ou abstrair o que constitui uma &quot;boa «diagramação de forma computacional.
+Ainda, como discutido na Seção 2.3, o processo de impressão VDP exige que as soluções de diagramação automática executem num curto período de tempo, a fim de não congestionar o fluxo contínuo de impressão de documentos.
+A fim de avaliar os resultados e a performance do algoritmo proposto neste trabalho (Capítulo 4), foram definidos dois experimentos para avaliar a qualidade e, em menor extensão, a performance do algoritmo descrito neste trabalho.
+Desta forma, a avaliação será dividida em duas etapas:·
+Avaliação qualitativa:
+Foi definido um experimento onde uma amostra de pessoas especializadas em design gráfico deveria avaliar uma série de documentos produzidos automaticamente por o algoritmo proposto neste trabalho;·
+Testes de performance:
+O algoritmo desenvolvido foi executado para um determinado número de documentos gerados de forma aleatória como descritos na Seção 5.2, porém contendo uma quantidade incremental de elementos, colunas e figuras a fim de avaliar o tempo de execução do algoritmo para documentos mais sofisticados e identificar possíveis problemas de performance no algoritmo ou nas tarefas complementares (Capítulo 4);
+Este capítulo portanto descreve os experimentos realizados e os resultados obtidos desta avaliação.
+A Seção 5.1 descreve o experimento para a avaliação qualitativa, em seguida apresentando os resultados obtidos e a interpretação dos mesmos.
+A Seção 5.2, de maneira similar, apresenta os testes de performance realizados sobre o algoritmo.
+Como apresentado no Apêndice A, o teste é composto por 20 casos de teste.
+Cada caso de teste é um documento produzido automaticamente por o algoritmo proposto neste trabalho, simulando capas de jornal (conforme descrito na Seção 4.2) e uma avaliação por nota (descrita no decorrer de esta seção) num único critério em cada documento, que é o seu aspecto geral em termos de qualidade (diagramação, distribuição de áreas na página, etc).
+Os textos e imagens para cada caso foram obtidos de uma base de dados contendo 5841 elementos igualmente distribuídos no total, constituindo 4866 textos e 975 imagens.
+1 Os textos contidos nesta base possuem aproximadamente entre 10 e 3000 caracteres de tamanho, distribuídos de maneira aproximadamente uniforme neste intervalo.
+A geração de casos de teste foi feita a partir de uma seleção aleatória de elementos desta base, distribuídos de maneira uniforme e obedecendo aos seguintes critérios, considerados valores típicos para publicações de jornais tradicionais:·
+O número de elementos varia de 5 a 12;·
+O número de colunas varia entre 5 e 7;·
+O percentual de elementos que são figuras é de 25%, sendo que pelo menos dois casos devem conter apenas texto.
+Os casos de teste gerados podem ser visualizados no Apêndice A e são descritos a seguir, na Tabela 5.
+A fim de facilitar a identificação posterior de problemas na diagramação, foi levantada uma hipótese quanto a a ordem dos elementos de uma página.
+Como a ordem de entrada dos elementos se mantém fixa durante a execução do algoritmo, sabe- se por a descrição na Seção 4.3.6 que uma ordem de entrada diferente produzirá uma diagramação diferente para o mesmo documento, com uma qualidade possivelmente melhor ou pior do que a original.
+Portanto, para cada um dos 10 casos de teste da Tabela 5 foi gerada uma variação a partir de a mudança de ordem de alguns elementos da seqüência do documento, consideradas aqui como melhorias sobre o caso de teste original correspondente.
+Desta forma, a avaliação é constituída por 20 casos de teste Os textos e imagens foram obtidos na internet, através dos serviços RSS Terra e Folha de São Paulo.
+Os volunários escolhidos como amostra foram alunos da Famecos da Pontifícia Universidade Católica do Rio Grande do Sul.
+Inicialmente, a amostra era composta por cerca de 42 alunos com experiência em pelo menos uma disciplina de projeto gráfico de documentos.
+Porém, apenas 13 voluntários responderam ao teste, prejudicando a avaliação de certa forma, como será discutido ao final desta seção.
+O teste aplicado para cada voluntário é dividido nas seguintes etapas:
+Um texto explicativo, ilustrado na Figura 42 instrui o voluntário para o teste que será realizado, que envolve a classificação quanto a a qualidade de uma série de documentos produzidos automaticamente;
+Antes de avaliar as páginas, o voluntário deve responder a um questionário pré-teste (ilustrado na Figura 43), contendo perguntas relacionadas a experiência do mesmo com o projeto gráfico de documentos e outras informações demográficas, como idade e sexo, a fim de facilitar a classificação posterior da amostra;
+Após o questionário, são apresentados os vinte casos de teste ao voluntário, que avaliará cada um e preencherá uma grade (Figura 44) com uma nota na escala Likert de 1 a 5 (&quot;muito ruim «a &quot;muito bom&quot;), com o valor que este achar adequado à qualidade da diagramação do caso de teste respectivo.
+Com o experimento descrito, a seguir será apresentado o resumo dos dados da amostra escolhida para a avaliação qualitativa, para então apresentar os resultados obtidos da avaliação.
+A Tabela 6 apresenta os dados da amostrada coletados do questionário pré-teste.
+Note que, devido a o tamanho pequeno da amostra, decidiu- se por não resumir estes dados, sendo estes apresentados de forma integral.
+Os resultados da avaliação por parte de os voluntários estão resumidos no gráfico da Figura 20 e a Tabela 7 apresenta as médias e os valores mais freqüentes (modas) das respostas dadas para cada caso de teste.
+Em a Figura 20 há 20 gráficos de barra.
+Os gráficos na parte positiva do eixo representam os 10 primeiros casos de teste gerados aleatoriamente, e os da parte negativa representam os últimos 10 casos de teste, que são versões cuja ordem dos elementos foi modificada artificialmente na tentativa de obter um melhor resultado qualitativo.
+A seguir será realizada uma interpretação dos resultados obtidos com esta avaliação.
+Devido a o baixo número de pessoas que fizeram o teste, não foi possível obter resultados conclusivos, mas é possível identificar por a Tabela 7 que a simples mudança de ordem nos elementos feita em cada caso de teste colaborou para a melhoria dos resultados obtidos.
+Isto indica que a ordem de entrada dos elementos de um documento afeta a qualidade do resultado gerado.
+Isto pode sugerir que, se a ordem de leitura não for um requisito obrigatório, a construção de um mecanismo que calcule novas ordens para os elementos sobre o algoritmo original seria uma melhoria possível para o algoritmo.
+Analisando os comentários e observações preenchidos por os voluntários, percebeu- se que estes foram muito críticos em relação a critérios além de o escopo da diagramação do documento, como tamanhos de fontes, parágrafos justificados, etc..
+Que estão além de o controle do algoritmo, pois são parâmetros controlados por o formatador de texto utilizado (Seção 4.3.7).
+Uma possível causa deste desvio de foco nas críticas foi o escopo demasiado geral da pergunta proposta aos voluntários (ver Figura 42), sem questionar a diagramação de cada página de forma explícita.
+Estes fatores certamente colaboraram para os resultados em sua maioria ruins.
+Apesar de isto, as observações feitas por os voluntários quanto a a diagramação do documento foram positivas em geral, contribuindo para o número de respostas positivas nos resultados.
+Apesar de a qualidade dos documentos gerados por o algoritmo proposto neste trabalho não ser garantida todo o tempo, é possível aplicar- lo para a construção de documentos de vida curta, tais como jornais diários e newsletters, onde a qualidade superior de um projeto gráfico manual não é tão importante quanto publicar o conteúdo no tempo devido.
+Isto é, os resultados produzidos por o algoritmo desenvolvido neste trabalho são passíveis de problemas estéticos, tais como muita variação no tamanho de fontes entre dois elementos distintos.
+Porém, com um conteúdo selecionado apropriadamente este tipo de problema não acontece com freqüência e o layout gerado pode ser considerado &quot;bom o bastante», se contrastado com o baixo custo de produção, comparado ao custo de um documento produzido manualmente.
+Em este experimento o algoritmo desenvolvido neste trabalho será executado para um número de documentos gerados de forma aleatória, em duas breves etapas:
+Instâncias de entradas para os algoritmos serão geradas com a mesma base descrita na Seção 5.1, porém com um número incremental de elementos variando entre 1 e 150 elementos num documento com 6 colunas, sendo 10% dos elementos imagens, em média;
+Cinquenta casos são gerados, porém, com cada instância de documento contendo 8 colunas e sendo 20% dos elementos imagens, em média.
+A Figura 21 apresenta os resultados obtidos com o tempo de execução, em segundos.
+Instancias de 1 a 150 elementos, sendo 10% imagens e pagina de 6 colunas Instancias de 1 a 50 elementos, sendo 20% imagens e pagina de 8 colunas Tempo de execucão do algoritmo de layout Tempo (seg).
+Tempo (seg).
+Numero de elementos (a) Primeiro teste de performance.
+Numero de elementos (b) Segundo teste de performance.
+Analisando os gráficos na Figura 21, observa- se a manutenção de um tempo de execução curto (abaixo de um minuto) nas instâncias geradas até 120 elementos no primeiro teste e até 45 elementos no segundo teste.
+Verificando os algoritmos implementados, é possível identificar que o aumento repentino e as flutuações observadas ocorrem devido a o algoritmo de redimensionamento de imagens (Seção 4.5), que possui um desempenho baixo quando o número de imagens e colunas é grande.
+Porém, para casos mais realistas, com um número de até 20 elementos, o algoritmo de diagramação automática demonstra ser razoavelmente eficiente.
+O teste realizado não leva em consideração outras fases um ambiente de impressão de VDP, como ilustrado na Figura 1 (Capítulo 2), que visa aumentar a quantidade de páginas produzidas numa quantidade de tempo determinada.
+Portanto, uma avaliação mais realista ainda é necessária, visto que o teste realizado aqui fornece apenas um indicador empírico do desempenho do algoritmo, independente do processo de impressão.
+Foi proposto neste trabalho um novo algoritmo para diagramação automática de documentos adaptativos.
+O algoritmo segue o paradigma de divisão e conquista, realizando bissecções de forma recursiva numa página.
+O ponto de bissecção e sua direção (horizontal ou vertical) são decididos através de heurísticas, que tentam distribuir as áreas de forma equilibrada por a página, assim como os aspectos de cada região.
+Além disso, diversas etapas adicionais e complementares ao algoritmo foram descritas nas Seções 4.5 e 4.4, como a paginação de um documento, o redimensionamento automático de imagens e agrupamento de elementos inter-relacionados, mostrando que o método proposto pode ser estendido para a produção de documentos mais sofisticados.
+Com o método aqui desenvolvido foi feita uma tentativa de resolver problemas em métodos já existentes que, entre outros, são:
+A alocação de elementos considerando a ordem em que eles serão lidos no documento final, a preservação de critérios estéticos importantes para a qualidade visual do documento, e o desempenho (ex..
+Aumentar a quantidade de páginas produzidas por minuto) exigido em aplicações de VDP (Capítulo 2).
+Apesar de o layout dos documentos gerados por o algoritmo aqui proposto possuir uma forma simplificada (sendo dividido apenas em regiões retangulares, colunas e cobrindo a página inteira), consideramos os resultados como sendo bastante satisfatórios e encorajadores para um algoritmo determinístico ­ e baseado em heurísticas ­ e com performance(, redução do tempo de execução) superior.
+Como o método desenvolvido aqui é um algoritmo guloso, este sofre das mesmas limitações que outros algoritmos semelhantes, que é a produção de resultados não-ótimos devido a o conjunto pobre de escolhas feitas por o algoritmo.
+Porém, se o alto desempenho não é um requisito em algum ambiente de aplicação deste algoritmo, uma melhoria que poderia trazer resultados significativamente melhores, seria tornar o algoritmo iterativo, realimentando a entrada com novas áreas toda vez que um layout fosse gerado, utilizando para isso a função de erro descrita na Seção 4.5.1.
+Porém, esta solução não foi experimentada, devido a preocupações quanto a o desempenho do algoritmo, e poderá ser investigada em trabalhos futuros.
+Quanto a a validação deste trabalho, visto que os resultados apresentados no Capítulo 5 foram prejudicados devido a o pequeno tamanho da amostra que participou da avaliação e às respostas influenciadas por fatores de formatação de texto nos casos de teste, torna- se necessária uma reavaliação qualitativa deste trabalho no futuro, considerando estratégias diferentes para selecionar e questionar as amostras.
+Uma avaliação quantitativa mais aprofundada também seria mais interessante, se aplicada num ambiente de produção em massa de documentos, com impressoras de grande porte encarregadas da renderização do documento, visto que o maior gargalo da solução aqui proposta seria durante a fase de renderização e formatação de texto, visto que foi observado um bom desempenho do algoritmo para casos mais realistas (Seção 5.2).
+Outra possibilidade de validação seria utilizar os modelos descritos por Harrington et al.
+E Cabeda e de Oliveira.
+Em este trabalho isto não foi feito, devido a as diferenças estéticas entre os documentos aqui produzidos e os documentos gerados em outros trabalhos.
+Ainda, design e critérios estéticos são passíveis de interpretação subjetiva, o que impediria conclusões definitivas quanto a os resultados deste trabalho.
+Entre outras extensões possíveis para trabalhos futuros, pode- se citar:·
+Realizar redimensionamento ou recorte automático nas imagens do documento, a fim de permitir a variação no aspecto destas, o que anula o erro de posicionamento de uma imagem numa região por diferenças de aspecto;·
+Estender o algoritmo para um método de otimização combinatória, a fim de garantir a melhor alocação de elementos no documento.
+Porém, deve ser levada em consideração a performance de tal método;·
+Produzir interfaces para autoria de documentos adaptativos, em que o algoritmo de adaptação fornece visualizações em tempo real do documento para o usuário;·
+Fazer reordenação iterativa de elementos, a fim de melhorar os resultados, como observado no Capítulo 5;·
+Propor um método mais eficiente ­ possivelmente heurístico ­ para a reordenação de imagens, que atualmente é baseado numa busca exaustiva por todas as maneiras possíveis de se definir o tamanho das imagens de um documento (Seção 4.5);·
+Produzir variações do mesmo algoritmo, desconsiderando limitações como divisão em colunas, a fim de melhorar a alocação de elementos na página;·
+Utilizar a geometria das regiões gerada por o algoritmo de bissecção como templates iniciais para um método não-determinístico, como os citados neste trabalho, afim de melhorar o desempenho dos mesmos, com regiões pré-calculadas mais próximas de uma solução ótima.

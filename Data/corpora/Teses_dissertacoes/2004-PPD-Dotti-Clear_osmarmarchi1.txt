@@ -1,0 +1,1013 @@
+A presente dissertação tem como objetivo definir um método para a verificação formal de sistemas distribuídos modelados na Gramática de Grafos Baseada em Objetos (GGBO).
+GGBO é uma linguagem com sintaxe e semântica formais, baseada em objetos, gráfica e declarativa, sendo apropriada para a modelagem de sistemas distribuídos.
+Em o método desenvolvido neste trabalho, modelos na GGBO são traduzidos para a linguagem de entrada de uma ferramenta de verificação de modelos (verificador de modelos).
+A o traduzir modelos para verificação, algumas considerações devem ser feitas, como:
+definir uma tradução que preserva as características do modelo original (na GGBO);
+possibilitar que as especificações de propriedades sejam realizadas sobre o modelo original (na GGBO), ao contrário de o modelo traduzido; (
+iii) desenvolver uma forma de visualizar contra-exemplos, para especificações de propriedades consideradas falsas no processo de verificação, em termos de a linguagem utilizada no modelo original (na GGBO), ao invés de a linguagem de entrada do verificador de modelos.
+Os três pontos identificados são desenvolvidos no decorrer deste trabalho, sendo exemplificados através de um algoritmo de eleição em anel modelado na GGBO.
+Também são realizados dois estudos de casos, sobre o problema dos filósofos glutões e dos leitores e escritores, que apresentam certas propriedades especificadas e verificadas através do método desenvolvido.
+Devido a a evolução rápida e contínua das capacidades de comunicação e processamento, assiste- se, nos últimos anos, o surgimento de diferentes plataformas para computação distribuída.
+Ambientes para computação distribuída estão se tornando cada vez mais comuns e atingindo um número maior de pessoas e organizações.
+Em esse sentido, assiste- se o uso de redes de longa distância como plataforma para processamento distribuído.
+Tais ambientes, como, por exemplo, a Internet, permitem formas variadas de cooperação e integração entre organizações e sistemas, sendo caracterizados por alta distribuição geográfica que ultrapassa fronteiras administrativas, dinamismo (oferta e retirada de serviços e nós computacionais), inexistência de controle global, falhas, falta de segurança, heterogeneidade tanto de nós computacionais (capacidade de processamento) como de enlaces de comunicação (atraso, vazão e perda de pacotes), e falta de qualidade na comunicação.&amp;&amp;&amp;
+Ambientes reunindo tais características são também chamados &quot;ambientes abertos».
+O desenvolvimento de sistemas distribuídos (sistemas em que dois ou mais processos cooperam, por a troca de mensagens, para realizar alguma tarefa) não é considerado uma tarefa trivial.
+Independente do ambiente computacional alvo para o sistema em questão, um dos requisitos importantes que se coloca durante a fase de construção é a garantia de propriedades, i.
+e, garantir que o sistema apresenta certas características necessárias para o seu correto funcionamento.
+Em esse sentido, o uso de testes para garantir o correto funcionamento de sistemas distribuídos pode ser inviável.
+Tome- se o teste de sistemas para ambientes abertos.
+Por um lado, pode ser extremamente caro e/ ou tecnicamente impossível remontar o ambiente esperado numa situação de teste.
+Por outro lado, mesmo que isso seja feito, o resultado inesperado num teste do sistema pode ser tanto devido a um erro no mesmo ou devido a algum outro mecanismo do ambiente onde o sistema se insere, invalidando em grande parte o uso de testes.
+Em outras situações, o ambiente alvo para o sistema pode ainda não existir para testes, ou seu uso ser bastante oneroso para que seja alocado para esta tarefa.
+Para garantir que o sistema apresente certas propriedades necessárias para seu funcionamento, há um grande interesse na área de verificação formal para tais sistemas.
+Para realizar a verificação formal de propriedades sobre um sistema, é necessário que o comportamento do mesmo seja descrito por um modelo matemático.
+Por isso, é recomendável que já na fase de especificação seja usada uma linguagem com sintaxe e semântica formais.
+Em esse sentido, este trabalho apresenta um método para a verificação formal de sistemas distribuídos, onde os sistemas são modelados numa linguagem baseada em objetos, que apresenta sintaxe e semântica formais.
+Basicamente, na literatura são encontradas duas técnicas bem estabelecidas na área de verificação formal:
+Verificação de modelos e prova de teoremas.
+Em a verificação de modelos, constrói- se um modelo contendo o comportamento do sistema e especificam- se propriedades que o modelo deve satisfazer, então este modelo é analisado.
+A o final da análise, caso a propriedade for falsa, um contra-exemplo, i.
+e, uma seqüência da execução do modelo até o ponto onde a propriedade é dada como falsa, é fornecido ao usuário.
+Em a prova de teoremas o comportamento do sistema deve ser descrito através de axiomas e regras, onde se usa lógica para deduzir propriedades das computações do sistema.
+Com algumas restrições, ambas as técnicas podem ser automatizadas, dando origem a duas ferramentas de apoio chamadas, respectivamente, de verificadores de modelos e provadores de teoremas.
+Para utilizar um verificador de modelos, o modelo que descreve o comportamento do sistema deve ser finito (o número de estados alcançáveis deve ser finito, o que não implica que não possa haver computações infinitas).
+Essa restrição não ocorre no uso de provadores de teoremas, mas estes requerem grande conhecimento de técnicas de prova por parte de o usuário, que normalmente precisa auxiliar a ferramenta a completar as provas (ou seja, a verificação não é totalmente automática).
+É importante salientar que as técnicas de verificação formal apresentadas são complementares, onde:
+Verificadores de modelos são preferencialmente usados na verificação de sistemas em que a complexidade reside no controle de processamento;
+E provadores de teoremas são adequados para situações onde a manipulação de dados é mais importante.
+Este trabalho tem seu foco na verificação formal de sistemas distribuídos, em os quais as principais propriedades a serem garantidas estão relacionadas ao controle de processamento, como, por exemplo, algoritmos distribuídos.
+Devido a essa característica inerente ao tipo de aplicação de interesse, a técnica de verificação de modelos foi escolhida para ser utilizada como base para o método desenvolvido.
+Motivações e objetivos Considerando que o desenvolvimento de um verificador de modelos não constitui uma tarefa fácil, uma vez que se deve tratar adequadamente problemas que podem ocorrer no processo de verificação, inúmeras linguagens tem sido traduzidas para lin-guagens de entrada de verificadores existentes (vide Capítulo 3).
+Em esse contexto, o presente trabalho tem como objetivo específico proporcionar a verificação formal de sistemas distribuídos, utilizando como suporte um verificador de modelos existente, modelados na Gramática de Grafos Baseada em Objetos (GGBO).
+GGBO caracterizase por ser uma linguagem com sintaxe e semântica formais, baseada em objetos, gráfica e declarativa, sendo apropriada para a modelagem de sistemas distribuídos.
+Em o escopo dos projetos ForMOS e Casco (Centro de Análise de Sistemas COncorrentes2), inúmeros esforços têm sido investidos no sentido de construir um conjunto de métodos e ferramentas para o desenvolvimento de sistemas distribuídos, tendo como formalismo unificador a GGBO.
+Entre os métodos e ferramentas já desenvolvidos estão:·
+Base de dados:
+Um banco de dados foi concebido com o propósito de armazenar especificações na GGBO.
+A estrutura dessa base de dados é fundamentada no trabalho desenvolvido em;·
+Interface gráfica:
+O projeto conta com a primeira versão3 de uma interface que possibilita editar graficamente especificações na GGBO, assim como salvar e/ ou recuperar especificações a partir de a base de dados;·
+Representação de falhas:
+Em foram apresentadas e utilizadas formas de representar modelos de falhas clássicos para sistemas distribuídos na GGBO.
+Essas representações foram definidas em conjunto de uma metodologia que possibilita introduzir, automaticamente, uma representação de falha selecionada num modelo existente.
+Isso dá ao usuário a possibilidade de analisar o seu modelo (que não contém um comportamento falho) na presença de falhas específicas;·
+Ambiente de simulação:
+Modelos de simulação são gerados através da tradução de modelos na GGBO para código Java.
+O código Java gerado utiliza um conjunto de classes (uma biblioteca) do ambiente de simulação para executar.
+A simulação de modelos na GGBO é usada para a análise de desempenho e teste de comportamento.
+Atualmente, os resultados da simulação de modelos na GGBO são apresentados de forma textual;
+Financiamento FAPERGS e CNPq.
+Financiamento Hp Brasil -- PUCRS 24o Termo Aditivo.
+Desenvolvida por Lucio Mauro Duarte e não apresenta um documento de referência.·
+Gerador de código:
+Em foi definido um método que provê a geração de código Java para execução num ambiente real.
+Isso possibilita especificar uma aplicação distribuída na GGBO, simular essa aplicação através de um modelo de simulação (usando o ambiente de simulação), e executar essa aplicação num ambiente real;·
+Verificador de modelos:
+Em foi apresentada uma forma de traduzir modelos na GGBO para o formalismo Cálculo-, com o intuito de verificar modelos na GGBO.
+Porém, os modelos na GGBO utilizados na verificação são bastante restritos, uma vez que os objetos que compõem o modelo não podem possuir atributos internos.
+A tradução de GGBO para Cálculo- foi provada formalmente e as mesmas idéias de prova puderam ser aplicadas ao trabalho desenvolvido nessa dissertação.
+O trabalho realizado nessa dissertação contribui com um método menos restritivo, em o qual atributos internos de objetos podem ser considerados, para verificar modelos na Como foi apresentado, esse trabalho insere- se no escopo dos projetos ForMOS e Casco definindo um método para a verificação formal de sistemas distribuídos modelados na GGBO.
+Integrando- se aos resultados anteriormente citados com o objetivo de definir um ambiente para o desenvolvimento de sistemas distribuídos.
+Todavia, o trabalho encontra grande motivação no atual estado da arte, na área de verificação de modelos, onde se objetiva a verificação de modelos sobre linguagens visuais que sejam baseadas em objetos ou orientadas a objetos (vide A idéia central deste trabalho consiste na tradução de modelos na GGBO para a linguagem de entrada de um verificador de modelos existente.
+Com isso, tenta- se utilizar ao máximo a infra-estrutura de verificação já existente (e otimizada).
+Mais especificamente, para conseguir verificar modelos na GGBO, são definidas neste trabalho:
+Uma tradução de modelos na GGBO, que preserva a semântica desses modelos, para a linguagem de entrada de um verificador de modelos existente;
+Uma forma de especificar propriedades a serem verificadas sobre o modelo GGBO, ao invés de o modelo traduzido;
+Uma maneira de apresentar graficamente contra-exemplos, para propriedades verificadas e que são consideradas falsas, em termos de a Em o desenvolver do trabalho, foi implementada (a partir de um modelo armazenado na base de dados) a tradução automática de modelos na GGBO, assim como a geração de contraexemplos, para propriedades verificadas que são falsas, em termos de a GGBO proposta nesse trabalho.
+Essas implementações consistem no primeiro passo para o desenvolvimento de uma ferramenta específica para a verificação de modelos na GGBO.
+Também foram realizados dois estudos de caso, que possibilitaram analisar aspectos práticos do método e planejar trabalhos futuros.
+Estrutura do texto A presente dissertação é composta por 7 Capítulos.
+Em o próximo capítulo é apresentado o referencial teórico, contemplando os assuntos:
+Verificação de modelos;
+Classificação de propriedades;
+A Gramática de Grafos Baseada em Objetos;
+E o verificador de modelos usado como suporte.
+O Capítulo 3 é composto por trabalhos relacionados, encontrados na literatura, que objetivam a verificação de modelos definidos em linguagens baseadas em objetos ou orientadas a objetos.
+O Capítulo 4 tem como meta explicar a tradução de modelos na GGBO para a linguagem de entrada do verificador de modelos usado como suporte.
+Em o Também é apresentada, neste capítulo, uma maneira de gerar graficamente contra-exemplos, para propriedades verificadas e que são falsas, de modelos na GGBO.
+O Capítulo 6 descreve os problemas dos filósofos glutões e dos leitores e escritores modelados na GGBO, assim como as especificações e verificações de certas propriedades sobre os mesmos.
+Em o Capítulo 7 são apresentadas as conclusões sobre o trabalho desenvolvido nesta dissertação.
+Referencial Teórico Esse capítulo contém o referencial teórico, apresentando conceitos gerais sobre a técnica de verificação de modelos, classificação de propriedades, a Gramática de Grafos Baseada em Objetos, e o verificador de modelos usado como suporte.
+Verificação de modelos A técnica de verificação de modelos consiste na construção de um modelo finito do sistema, e na conseqüente verificação de que certa propriedade é verdadeira para o mesmo.
+A verificação consiste numa procura exaustiva sobre o espaço de estados do modelo.
+O processo de verificação de modelos sobre um sistema consiste de algumas etapas:·
+Modelagem: Especificar o sistema de acordo com a linguagem de entrada do verificador de modelos.
+Devido a o problema de explosão de estados, estas linguagens são muitas vezes restritas a aspectos essenciais, sendo necessário empregar um processo de abstração durante a modelagem, para que seja possível representar o sistema desejado na linguagem de entrada do verificador;·
+Especificação de propriedades:
+É necessário definir quais as propriedades que o sistema deve satisfazer.
+Normalmente, a especificação ocorre através de um formalismo lógico, como a lógica temporal.
+As propriedades são tipicamente classificadas em propriedades de &quot;safety «e &quot;liveness».
+O primeiro tipo de propriedade expressa algo que não deve acontecer no sistema e o segundo algo que deve acontecer no sistema;·
+Verificação: Idealmente a verificação é automática.
+O verificador de modelos explora exaustivamente o espaço de estados do modelo para provar ou não as propriedades especificadas sobre o mesmo.
+A análise dos resultados da verificação é feita por o usuário.
+Caso a propriedade seja falsa, o usuário é provido de um contra-exemplo, a partir de o qual pode- se analisar e corrigir o modelo.
+Em outros casos, a verificação pode vir a não funcionar devido a o tamanho do modelo.
+Existem duas formas (gerais) para verificação de modelos.
+A verificação de modelos usando lógica temporal foi proposta ao mesmo tempo e independentemente por Clarke &amp; Emerson e Queille &amp; Sifakis.
+Em essa primeira técnica as especificações são feitas em lógica temporal e o sistema é modelado como um sistema de transição de estados finito.
+O processo consiste em verificar se o modelo satisfaz a especificação.
+A segunda técnica consiste em modelar a especificação e o sistema como autômatos.
+Compara- se o autômato do sistema com o autômato da especificação a fim de determinar se o comportamento do sistema corresponde ao da especificação.
+Em o ano de 1986, Vardi &amp; Wolper conseguiram reformular a verificação de modelos usando lógica temporal em termos de autômatos, relacionando as duas técnicas.
+Em este trabalho, utilizará- se- como suporte para a verificação de modelos na GGBO uma ferramenta de verificação (vide Seção 2.4) baseada na técnica de autômatos.
+Porém, essa ferramenta usa as idéias propostas por Vardi &amp; Wolper, onde autômatos especificando propriedades podem ser representados através de fórmulas em lógica temporal.
+Em a literatura, o problema da verificação de modelos é descrito a partir de uma estrutura de Kripke (um sistema de transição de estados).
+Seja P um conjunto de proposições atômicas.
+Proposições atômicas são afirmações elementares que, em dado estado, tem o seu M $ , onde:
+Um caminho na estrutura M, a partir de um estado s, é uma seqüência infinita de estados estrutura de Kripke M $= representando um sistema concorrente de estados finitos, e uma especificação f (representando uma propriedade sobre o sistema, expressa como uma fórmula em lógica temporal).
+O problema da verificação de modelos consiste em localizar igual(\&gt; $ ), menor (e menor ou igual (são as mesmas da linguagem de programação C.
+Lógica temporal Um ponto chave nos verificadores de modelos é a escolha da lógica temporal utilizada para a especificação de propriedades.
+Em o ano de 1977, Pnueli introduziu a lógica temporal como base lógica para a prova de propriedades sobre sistemas reativos, i.
+e, sistemas que interagem com o seu ambiente ao invés de produzir (ao seu término) um valor final (e.
+g Duas possibilidades de interpretação do tempo, referentes à própria natureza do tempo, induziram a dois tipos de lógicas temporais:
+Lógica de tempo linear e lógica de tempo ramificado.
+Em a lógica de tempo linear, apenas uma única possibilidade futura é considerada, i.
+e, a cada instante no tempo existe apenas um único futuro que realmente ocorrerá (um sistema gera um conjunto de computações).
+Diferentemente, na lógica de tempo ramificado todas as possibilidades futuras são igualmente reais e devem ser consideradas, i.
+e, cada momento no tempo pode se dividir em vários futuros possíveis (um sistema gera uma árvore de computação).
+Em este trabalho, a ferramenta usada como suporte para a verificação de modelos na GGBO utiliza, para a especificação de propriedades, a lógica de tempo linear LTL (Linear Temporal Logic).
+As especificações de propriedades na LTL ocorrem a partir de a combinação de apresentam a sintaxe&quot;&amp; «(e),&quot;| «(ou), «(implicação) e&quot;! «(
+negação). A sintaxe e o significado dos operadores temporais da LTL são apresentados:·
+s (always):
+Indica que a proposição s será verdadeira em todos os estados gerados por o conjunto de computações do modelo;·
+s (eventually):
+Informa que a proposição s irá obrigatoriamente ocorrer no futuro, sendo verdadeira em ao menos um estado de cada uma das computações geradas por o modelo;·
+X s (next):
+Indica que a proposição s será verdadeira no próximo estado de cada uma das computações geradas por o modelo.·
+s U s (strong until):
+Afirma que a proposição s será verdadeira em todos os estados das computações do modelo, até que a proposição s ocorra.
+A proposição s deve (obrigatoriamente) ocorrer em cada uma das computações geradas por o modelo.
+Outra lógica temporal bastante utilizada por ferramentas de verificação é a lógica de tempo ramificado CTL (Computation Tree Logic).
+Uma das grandes motivações que levaram ao uso da LTL, ao invés de a CTL, está na verificação composicional, na maior simplicidade para especificação de propriedades, e por ser utilizada por o verificador de modelos usado como suporte para a verificação de modelos na GGBO.
+A semântica formal da LTL é definida sobre uma estrutura de Kripke, e pode ser encontrada em.
+O leitor também pode encontrar comparações entre as lógicas temporais LTL e CTL em.
+Explosão de estados Um dos maiores desafios na área de verificação de modelos diz respeito ao problema de explosão de estados.
+Quando de a verificação de um modelo, inúmeras vezes o espaço de estados do modelo pode se tornar muito grande, especialmente a partir de a adição de variáveis e processos executando concorrentemente.
+Isso pode tornar o grafo de transição de estados global do sistema demasiadamente grande, de forma que fica impraticável analisar o modelo (verificar- lo).
+Com o objetivo de atenuar o problema de explosão de estados, algumas técnicas foram desenvolvidas:·
+Algoritmos simbólicos:
+Técnica proposta por McMillan, consiste em representar simbolicamente os grafos de transição de estados do sistema.
+A representação simbólica é baseada em Ordered Binary Decision Diagrams (OBDDs).
+Isso possibilita que sistemas relativamente grandes possam ser verificados, sendo que através de refinamentos da técnica baseada em OBDDs consegue- se verificar modelos com até 10120 estados;·
+Redução de ordem parcial (partial order reduction):
+Tira proveito da independência entre eventos concorrentes.
+Dois eventos são ditos independentes se a execução alternada de eles resulta no mesmo estado global.
+O modelo intercalado (interleaving), em o qual os eventos de uma execução são organizados linearmente (chamada seqüência intercalada), é comumente usado para representar sistemas concorrentes.
+Grande parte das lógicas utilizadas para a especificação de propriedades consegue distinguir entre seqüências intercaladas em que dois eventos independentes são executados em ordens diferentes.
+Isso significa que todas as intercalações possíveis de tais eventos são consideradas na verificação.
+Técnicas para a redução de ordem parcial reduzem o espaço de estados (na verificação), selecionando apenas um sub-conjunto das possíveis intercalações para transições que são executadas independentemente;·
+Raciocínio composicional:
+Explora a estrutura modular dos sistemas.
+Consiste na verificação isolada de cada componente do sistema, possibilitando que propriedades globais possam ser concluídas sobre todo o sistema.
+Uma técnica de raciocínio composicional bastante difundida na literatura chama- se assume-guarantee.
+Em o paradigma assume-guarantee a especificação de um componente do sistema deve ser composta por duas partes.
+A primeira descreve o comportamento assumido por o ambiente com o qual o componente interage (assume), e a segunda descreve o comportamento desejável do componente (guarantee).
+Como pode ser visto em, na LTL uma especificação usando o paradigma assume-guarantee é um par,\&gt;, onde tanto (assume) como (guarantee) são fórmulas na LTL.
+Todas as computações do componente devem garantir a especificação, enquanto todas as computações do ambiente satisfazem.
+Assim, o par,\&gt; pode ser combinado numa única fórmula LTL:().
+Contrariamente, como é apresentado em, a CTL não é uma lógica temporal adequada para a verificação composicional.
+A ferramenta usada como suporte para a verificação de modelos na GGBO tem implementada, como opções de verificação, ambas as técnicas de algoritmos simbólicos e redução de ordem parcial.
+Além disso, um dos fatores que influenciaram na escolha da ferramenta está no uso da LTL para a especificação de propriedades.
+Classificação de propriedades A verificação de modelos requer certas habilidades, por parte de o usuário, na especificação de propriedades e interpretação dos resultados obtidos.
+O uso de uma classificação de propriedades ajuda o usuário a reduzir o número de omissões (de propriedades especificadas) e ter especificações melhor estruturadas.
+Além disso, o uso de certas classificações facilita a tarefa de especificar propriedades, provendo padrões que podem ser facilmente modificados e utilizados em diferentes situações.
+Em este trabalho, as especificações de propriedades serão relacionadas às duas classificações de propriedades apresentadas a seguir.
+Safety--liveness em 1977, a classificação safety-- liveness é uma das classificações mais importantes encontradas na literatura, especialmente para sistemas distribuídos.
+Segundo essa classificação, as propriedades de um sistema podem ser classificadas como:·
+Safety: Expressa que algo &quot;ruim «nunca irá ocorrer em todas as execuções de um sistema2;·
+Liveness: Expressa que algo &quot;bom «deve ocorrer em cada uma das execuções de um sistema.
+A execução de um sistema pode ser vista como um caminho numa estrutura de Kripke, onde todas as execuções são todos os caminhos possíveis da estrutura.
+As definições formais dessas propriedades podem ser encontradas em.
+Alguns exemplos de propriedades de safety são:
+Exclusão mútua (nunca dois processos podem estar na seção crítica ao mesmo tempo) e deadlock freedom (o sistema nunca pode entrar numa situação de deadlock).
+Para propriedades de liveness exemplos são:
+Terminação (um sistema deve chegar ao término em algum momento) e starvation freedom (infinitamente deve ocorrer progresso num processo).
+Padrões para a especificação de propriedades Em é definida uma forma baseada em padrões para a apresentação, codificação e reutilização de especificações de propriedades para a verificação de sistemas de estado finito (e.
+g verificadores de modelos).
+Essa classificação consiste de padrões que descrevem a estrutura essencial de algum aspecto do comportamento do sistema e provêem expressões desse comportamento em alguns formalismos de especificação de propriedades (incluindo a LTL, utilizada nesse trabalho).
+Mais especificamente, um padrão compreende um nome ou nomes, uma descrição sobre a estrutura do comportamento representado por o padrão, o mapeamento do padrão para alguns formalismos de especificação (como a LTL), exemplos de uso, e relações com outros padrões.
+Atualmente, os padrões identificados e catalogados podem ser encontrados em, sendo classificados segundo uma hierarquia de padrões.
+Como pode ser visto na Figura 2.1, a hierarquia de padrões distingüe entre propriedades que lidam sobre a ocorrência (Occurrence) e ordenação (Order) de proposições durante a execução de um sistema, sendo dividida em:·
+Absence: A proposição não ocorre dentro de as execuções;·
+Universality: A proposição ocorre durante as execuções;·
+Existence: A proposição deve ocorrer dentro de cada uma das execuções;·
+Bounded existence: A proposição deve ocorrer K vezes em cada uma das execuções;·
+Precedence: A proposição P sempre deve ser precedida por a proposição Q em cada uma das execuções;·
+Response: A proposição P sempre deve ser seguida por a proposição Q em cada uma das execuções;
+Além disso, cada um dos padrões apresentados estão associados a certos escopos (Figura visto na Figura 2.2, existem cinco tipos de escopos para cada um dos padrões:
+Em este trabalho, quando propriedades forem especificadas, a seguinte notação para a classificação de propriedades, usando os padrões apresentados, será utilizada:
+NomeHierarquia NomePadrão NomeEscopo. Assim, quando uma propriedade for classificada como Universality, num escopo Global, essa será denotada por:.
+Occurrence Universality Global. Apesar de os padrões para a especificação de propriedades serem adequados para especificações na LTL, neste trabalho utilizará- se- uma modificação destes padrões originais para a LTL (vide Capítulo 5).
+Em esta modificação, proposta em, os padrões para LTL são definidos sobre eventos, i.
+e, mudanças de valores de variáveis, ao invés de estados (como nos padrões originais para a LTL).
+A definição de edges é importante porque habilita ao usuário especificar propriedades usando o operador temporal X (next).
+Isso ocorre porque ao utilizar o operador X, numa especificação na LTL, o usuário tem que garantir que a fórmula é closed under stuttering para que possa utilizar a técnica de redução parcial na verificação.
+Por closed under stuttering entende- se uma fórmula cuja interpretação não é modificada por transições que deixam o sistema no mesmo estado.
+Como será visto em maiores detalhes no Capítulo 5, um modelo na GGBO traduzido (para a linguagem de entrada do verificador usado como suporte) gera repetições de estados (stut-tering).
+Devido a essa característica inerente a tradução, a forma de especificar propriedades sobre eventos (usando edges) é especialmente importante para este trabalho, pois permite definir uma forma de especificar propriedades sobre modelos na GGBO, ao invés de modelos traduzidos.
+Gramática de Grafos Baseada em Objetos Uma gramática de grafos é composta por um grafo de tipos (representa os tipos dos vértices e arestas permitidas no sistema), um grafo inicial (representa o estado inicial do sistema), e um conjunto de regras (descrevem as possíveis mudanças de estado que podem ocorrer num sistema).
+A noção básica de gramática de grafos é de que a partir de o grafo do sistema (representando o estado atual do sistema), a aplicação sucessiva de regras modifica o estado do mesmo.
+Uma regra (Figura 2.4) é composta por um nome (NomeRegra), um lado esquerdo (E), um lado direito (D), e (caso necessário) uma condição (Condição).
+Uma regra pode ser aplicada quando o lado esquerdo é um sub-grafo do sistema e sua condição for satisfeita, isso é chamado uma ocorrência da regra.
+Quando aplicada, uma regra deixa o sistema num novo estado em que:
+Itens do lado esquerdo não presentes no lado direito são apagados;
+Itens do lado direito não presentes no lado esquerdo são criados;
+Itens presentes em ambos os lados são preservados.
+Múltiplas regras podem ser aplicadas em paralelo, caso não exista conflito entre elas, i.
+e, duas ou mais regras não modificam o (s) mesmo (s) item (ns).
+Quando numa situação de conflito, uma das regras candidatas à aplicação é escolhida de forma não-determinística.
+A linguagem utilizada neste trabalho é uma restrição de gramática de grafos, chamada Gramática de Grafos Baseada em Objetos (GGBO), com respeito a os tipos de vértices e configurações de regras usadas para representar conceitos de linguagens baseadas em objetos.
+Essas restrições são utilizadas na representação de entidades (classes em linguagens baseadas em objetos) que agregam atributos e reagem a mensagens (vide Figura 2.5).
+As mensagens na GGBO podem conter atributos, chamados parâmetros.
+O comportamento de uma entidade quando de a recepção de uma mensagem é definido por um conjunto de regras (vide Figura uma única mensagem por uma entidade.
+A o lado direito de uma regra na GGBO tem- se o efeito da aplicação da regra:
+Modificação de atributos;
+Criação de objetos (instâncias de entidades); (
+iii) geração de novas mensagens.
+O leitor pode encontrar a semântica formal da GGBO em.
+É importante destacar que a semântica da GGBO pode ser dada por um Sistema de Transição Rotulado (STR ou LTS -- Labelled Transition System) (uma estrutura de Kripke), como definido em, onde a GGBO acaba assumindo uma semântica intercalada.
+Essa semântica intercalada (em termos de um STR) é muito importante, pois é a partir de ela que ocorre a prova da compatibilidade semântica entre um modelo na GGBO e seu modelo traduzido.
+De maneira análoga a um sistema baseado em objetos (composto por classes e objetos), um sistema na GGBO é composto por a especificação de diferentes entidades e suas instâncias (objetos).
+Cada entidade é definida separadamente, tendo um grafo de tipos (especifica os atributos da entidade e as mensagens que pode receber), e um conjunto de regras que especificam o comportamento através da recepção de mensagens.
+Os objetos são especificados num grafo inicial (vide Figura 2.7), que apresenta um cenário para o sistema, onde são definidos valores iniciais para os atributos dos objetos e mensagens (endereçadas a esses objetos) usadas para iniciar a execução do sistema.
+Um sistema na GGBO pode ter inúmeros grafos iniciais.
+Diferentemente, como convencionado neste trabalho, um modelo na GGBO é um sub-conjunto do sistema na GGBO sendo especificado, onde existe apenas um grafo inicial.
+É sobre um modelo na GGBO que:
+Ocorre a tradução para a linguagem alvo da ferramenta usada como suporte para verificação (vide Capítulo 4); (
+ii) o usuário especifica e verifica propriedades (vide Capítulo 5).
+Algoritmo de eleição em anel AsynchLCR Para exemplificar o uso da GGBO, nessa seção é modelado o algoritmo de eleição em anel AsynchLCR, cujas idéias são extraídas de.
+Este exemplo é utilizado no decorrer deste trabalho para ilustrar o método desenvolvido.
+Em o algoritmo de eleição em anel AsynchLCR, o nodo que tiver o maior número de identificação deve ser eleito o líder.
+Devido a a simplicidade do algoritmo, uma vez que o líder é escolhido, a informação de liderança (quem é o líder) não é propagada para o resto dos nodos do anel, i.
+e, somente o nodo que se declara líder sabe quem é o líder.
+Inicialmente, cada nodo do anel envia seu número de identificação (identificador) para o seu vizinho.
+A o receber uma mensagem, um nodo pode realizar uma de três diferentes operações:
+Encaminhar a mensagem para o seu vizinho (caso o identificador da mensagem for maior que o identificador do nodo);
+tornar- se líder (caso o identificador da mensagem for igual ao identificador do nodo); (
+iii) descartar a mensagem (caso o identificador da mensagem for menor que o identificador do nodo).
+Para a modelagem do algoritmo na GGBO, foi definida uma entidade Node.
+A Figura composta por três atributos:
+Next (uma referência ao seu vizinho no anel), id (o número de identificação), e leader (indica se o nodo é líder ou não).
+Uma instância (objeto) da entidade Node pode receber dois tipos de mensagens3:
+Start (não contém parâmetros) e Election (contém o parâmetro id).
+As regras que definem o comportamento da entidade Node são ilustradas na Figura 2.6.
+É importante identificar que os objetos que participam das regras são todos instâncias da entidade Node, isso é visualizado por o número no canto direito superior do objeto, que informa de qual entidade o objeto é instância (vide Figura 2.5).
+A o receber uma mensagem Start (regra SendId), um objeto envia uma mensagem Election (carregando seu identificador) para o seu vizinho no anel.
+A reação de um objeto, ao receber uma mensagem Election, pode ser:
+Encaminhar a mensagem ao seu vizinho no anel (regra GreaterId);
+simplesmente consumir a mensagem (regra LowerId); (
+iii) declarar- se líder (regra LeaderId).
+Um grafo inicial, para o algoritmo de eleição em anel AsynchLCR é apresentado na Figura os objetos iniciam sua execução após receber uma mensagem Start (definida para cada um dos objetos).
+A o final da execução desse cenário, espera- se que o objeto Node3 torne- se líder, devido a o seu maior número de identificação.
+Uma vez que esse exemplo é utilizado no restante do trabalho, para a exemplificação da tradução de modelos e a especificação e verificação de propriedades, agora são identificadas e classificadas certas propriedades que devem ser satisfeitas por o mesmo:·
+Propriedade 1.
+O nodo com maior identificador irá se tornar líder.
+Comentário: Essa propriedade é utilizada para provar que o modelo realmente cumpre, corretamente, o seu objetivo (encontrar um líder).
+Classificação: Propriedade do tipo liveness e Occurrence Existence Globally;·
+Propriedade 2.
+Os nodos com menores números de identificação nunca tornam- se líderes.
+Comentário: Essa propriedade é utilizada para provar que não ocorrem desvios de comportamento no modelo, ou seja, um nodo que não deve ser líder é erroneamente escolhido.
+Classificação: Propriedade do tipo safety e Occurrence Absence Globally.
+Além de estas duas propriedades que devem ser satisfeitas para o algoritmo de eleição em anel modelado, agora é apresentada outra propriedade que, quando verificada, deve ser falsa para o modelo:·
+Propriedade 3.
+O nodo com menor número de identificação irá se tornar líder.
+Comentário: Essa propriedade afirma que o modelo deve apresentar o comportamento contrário do definido, ou seja, um nodo diferente do nodo com maior número de identificação deve ser líder.
+Classificação: Propriedade do tipo liveness e Occurrence Existence Globally;
+Essa última propriedade é definida com o intuito de exemplificar, no Capítulo 5, a geração de contra-exemplos (em termos gráficos da GGBO) para propriedades verificadas, sobre modelos na GGBO, que são falsas.
+Verificação de modelos na Gramática de Grafos Baseada em Objetos O método de verificação definido neste trabalho tem como ponto principal a tradução de modelos na GGBO para a linguagem de entrada de um verificador de modelos existente.
+Porém, antes de apresentar qual o verificador de modelos escolhido para ser usado como suporte, alguns requisitos referentes a tradução de modelos são vistos:·
+Semântica: Um modelo na GGBO traduzido deve manter sua semântica, onde todos os comportamentos representados no modelo GGBO devem ser preservados no modelo traduzido, assim como novos comportamentos (não existentes no modelo GGBO) não devem ser introduzidos;·
+Expressão: Em o melhor caso, a tradução não deve impor restrições a modelos na GGBO.
+Caso restrições sejam necessárias, as limitações provenientes devem ser avaliadas;·
+Automático: A tradução deve ser passível de automatização, viabilizando o desenvolvimento de uma ferramenta que, a partir de um modelo na GGBO, gera automaticamente um modelo traduzido.
+Basicamente, durante o desenvolvimento deste trabalho, dois verificadores de modelos foram extensivamente estudados:
+SMV (Symbolic Model Verifier) e SPIN (Simple Promela INterpreter).
+Com os conhecimentos adquiridos nos estudos realizados, optou- se por traduzir modelos na GGBO para PROMELA (PROcess Meta LAnguage), a linguagem de entrada do verificador de modelos SPIN.
+Os motivos que conduziram a essa escolha são:·
+Verificador de modelos:
+O SPIN está entre os verificadores mais utilizados e otimizados da atualidade, uma vez que algumas técnicas para redução de estados estão implementadas na ferramenta, como redução de ordem parcial e algoritmos simbólicos.
+Além de isto, a ferramenta é comumente usada por a comunidade científica como base de desenvolvimento;·
+Linguagem de modelagem:
+As estruturas oferecidas por PROMELA proporcionam uma forma de traduzir, corretamente, modelos na GGBO;·
+Raciocínio composicional:
+Como evidenciado na Seção 2.1.2, a composicionalidade é mais simples de ser aplicada quando a especificação de propriedades ocorre na LTL, a mesma lógica temporal usada para a especificação de propriedades no SPIN.
+Em as próximas seções será apresentado, respectivamente, a linguagem de modelagem Pro-Mela e o verificador de modelos SPIN.
+PROcess Meta LAnguage PROMELA caracteriza- se por possuir uma sintaxe similar a linguagem de programação C e usar construções para o envio e recepção de mensagens como as encontradas na linguagem de especificação formal CSP (Communication Sequential Processes).
+O leitor pode encontrar na definição semântica para PROMELA em termos de um STR.
+As construções apresentadas a seguir são exemplificadas no Capítulo 4, com a explicação da tradução de modelos na GGBO para PROMELA.
+Processos são definidos com a palavra-chave proctype, e podem ser criados estaticamente ou dinamicamente num modelo.
+Existe um processo especial, chamado init, usado para iniciar um modelo (análogo a um grafo inicial na GGBO).
+Processos podem comunicar- se através de canais de mensagens (palavra-chave chan) ou variáveis globais (variáveis declaradas fora de o escopo da definição de processos do modelo).
+Um canal de mensagens pode ser síncrono (o buffer do canal não suporta mensagens) ou assíncrono (o buffer do canal suporta N mensagens, sendo N\&gt; 0).
+Além de isto, canais de mensagens são tipados, sendo necessário declarar explicitamente os tipos de variáveis que um canal pode receber.
+Os tipos de dados existentes usadas para checar, por exemplo, se um canal não está cheio (nfull (NomeCanal) retornando valor verdadeiro se o canal não estiver cheio e, caso contrário, falso), quantas mensagens existem no buffer do canal (len (NomeCanal)), entre outras.
+As entradas de estruturas de condição e repetição são compostas por comandos guardados.
+Uma vez que a condição do comando guardado não é satisfeita, a entrada é bloqueada.
+Esse bloqueio continua até que a condição seja satisfeita.
+Dentro de uma estrutura de condição e repetição, o não-determinismo ocorre quando várias entradas têm suas condições satisfeitas.
+Em esse caso, uma das possíveis entradas é escolhida de forma não-determinística.
+Uma seqüência de declarações que é executada sem a intercalação com declarações de outros processos.
+Caso existam comandos guardados dentro de uma estrutura atômica e alguma de suas condições não for satisfeita, a estrutura irá perder a sua atomicidade.
+Ou seja, as declarações contidas dentro de a estrutura atômica irão ser intercaladas com as de outros processos.
+Em a linguagem pode- se definir nomes simbólicos para valores constantes, através da palavrachave mtype.
+Uma declaração mtype é uma abreviatura para a definição de constantes(&amp; define NomeConstante ValorConstante).
+PROMELA também possibilita ao usuário pular entre trechos do código de um processo, com o uso da palavra-chave goto.
+Outra importante característica da linguagem é a palavra-chave timeout.
+Essa é uma variável global de leitura que possui o valor falso quando existem processos ativos no sistema, e o valor verdadeiro quando nenhuma declaração é executável, i.
+e, o sistema não pode proceder.
+A linguagem também provê duas outras palavras-chave importantes,_ pid e_ last, que possuem, em tempo de execução, respectivamente, o identificador do processo e o valor do último processo que executou.
+Também é possível introduzir asserções dentro de um modelo.
+Asserção é uma declaração que avalia uma expressão (com sintaxe assert (Expressão)), para verdadeiro ou falso, cada vez que a declaração é executada.
+Se a expressão for avaliada para falso, um erro é gerado em tempo de execução (tanto na simulação quanto na verificação) no verificador de modelos SPIN.
+Então a execução pára, mostrando a execução parcial do modelo até a ocorrência do erro (violação da asserção).
+Simple Promela INterpreter O verificador de modelos SPIN é utilizado neste trabalho como ferramenta de suporte para a verificação de modelos na GGBO.
+Isso significa que, após a tradução de modelos na GGBO para a linguagem de entrada do SPIN (PROMELA), a verificação de modelos na GGBO ocorre no SPIN.
+Em especial, o SPIN tem no seu desenvolvimento uma atenção voltada à verificação de sistemas de software.
+Essa característica afeta importantes aspectos do desenvolvimento da ferramenta, tais como:
+A escolha da linguagem de modelagem, a linguagem de especificação utilizada, os procedimentos usados na verificação, as técnicas de redução de estados, e os métodos para a codificação de estados.
+É importante evidenciar que o SPIN é considerado um dos verificadores de modelos mais utilizados e eficientes da atualidade, tendo ganhado o prêmio de sistema de software 2001 por a ACM (Association for Computing Machinery), e apresentar mais de uma década de desenvolvimento.
+Essas características, além de a atenção voltada para a verificação de sistemas de software, reforçam o uso do SPIN como ferramenta alvo para verificação de modelos na GGBO.
+Como já foi dito, a linguagem de modelagem usada por o SPIN é PROMELA, sendo que para a especificação de propriedades o SPIN dispõe da LTL.
+Além de a verificação de modelos, o SPIN permite simular modelos em PROMELA tanto de forma textual como gráfica (a partir de a organização gráfica da simulação textual).
+A simulação é bastante útil para que o usuário tenha uma noção do comportamento do modelo sendo desenvolvido (antes de verificar- lo).
+Em a verificação de propriedades, a simulação é utilizada na visualização de contra-exemplos para propriedades que são falsas.
+Tendo o modelo PROMELA desenvolvido, para a verificação de propriedades o usuário precisa definir proposições sobre o modelo (usando a palavra-chave&amp; define NomeProposição (DefiniçãoProposição)), e especificar propriedades na LTL com essas proposições, em conjunto na Seção 2.1.1).
+Mais especificamente, as proposições podem ser definidas sobre:
+variáveis globais;
+Etiquetas dentro de um processo (através do uso de referências remotas, vide).
+Assim, o usuário deve inserir variáveis ou etiquetas em pontos estratégicos do modelo, com o objetivo de refletir nessas variáveis ou etiquetas o comportamento que deseja analisar.
+Em o Capítulo 5 é brevemente discutida a conveniência dessas possibilidades para a especificação e verificação de modelos na GGBO.
+Trabalhos relacionados Em este capítulo são comentados alguns dos trabalhos relacionados ao método desenvolvido nessa dissertação.
+São considerados como relacionados os trabalhos encontrados na literatura que têm como objeto verificar sistemas baseados em objetos ou orientados a objetos, e foram classificados de acordo com a linguagem utilizada para modelagem de sistemas.
+A característica usada na classificação está relacionada a linguagem de modelagem ser visual ou não-visual.
+Linguagens visuais Em essa seção são apresentados trabalhos encontrados na literatura que objetivam verificar sistemas baseados em objetos ou orientados a objetos, modelados em linguagens visuais.
+Em é definida a linguagem v-Promela, um formalismo visual e orientado a objetos, utilizado como interface visual para o verificador de modelos SPIN.
+Um modelo em v-Promela é composto por cápsulas (classes numa linguagem orientada a objetos).
+Uma cápsula descreve um objeto ativo que contém uma thread de controle independente, sendo o comportamento de uma cápsula definido por um diagrama de estados.
+Cápsulas podem ser compostas (contêm outras cápsulas dentro) ou elementares (não podem ser decompostas em outras cápsulas).
+A comunicação entre cápsulas ocorre através de conectores, que utilizam portas (interfaces) para a troca de mensagens.
+As cápsulas conseguem trocar mensagens de forma bi-direcional.
+Associado a uma porta existe um protocolo, que consiste de uma lista de mensagens que podem ser recebidas e enviadas por determinada porta.
+Um protótipo de ferramenta, chamada Vip (Visual Interface to Promela), apresentado em, permite editar e verificar (através da tradução de modelos v-Promela para Pro-Mela) modelos em v-Promela.
+É possível especificar e verificar propriedades na LTL sobre o modelo v-Promela definido, ao invés de o modelo PROMELA traduzido.
+Porém, os contraexemplos gerados, têm de ser visualizados por o usuário sobre o modelo PROMELA traduzido.
+É importante salientar que, no trabalho, nada é mencionado sobre a compatibilidade semântica da tradução.
+VUML A ferramenta vUML tem como objetivo verificar de forma transparente sistemas distribuídos e concorrentes orientados a objetos, definidos num sub-conjunto da linguagem UML (Unified Modelling Language).
+Após o usuário modelar o sistema através do sub-conjunto UML suportado, a ferramenta traduz o modelo para PROMELA.
+A partir de isso é possível verificar modelos descritos em UML.
+Para modelar o sistema em UML, a unidade básica de computação utilizada são objetos ativos.
+Um objeto ativo mantêm sua própria thread de controle e executa concorrentemente com outros objetos ativos.
+Utilizam- se diagramas de classes UML para definir as classes do modelo.
+Para definir o comportamento dos objetos do modelo são usadas máquinas de estados UML.
+Uma máquina de estados descreve o comportamento do objeto resultante de eventos externos.
+O comportamento definido por a máquina de estados não apresenta nenhuma despachados um a um, sendo que apenas um evento pode estar presente em determinado momento.
+Para a definição dos objetos (instâncias de classes), um diagrama de colaboração UML é usado.
+Os principais elementos do diagrama de colaboração UML são os objetos e os canais entre os objetos (instâncias de classes associadas).
+Para a especificação e verificação de propriedades, a ferramenta vUML não possibilita que propriedades sejam definidas na LTL.
+Porém, é possível realizar outras verificações de propriedades sobre o modelo UML, disponíveis no SPIN, como localizar estados inválidos ou estados de progresso no modelo.
+A geração de contra-exemplos é tratada por a ferramenta, com isso o usuário pode observar em termos de UML, ao invés de o modelo PROMELA traduzido e verificado, o contra-exemplo gerado para verificações que são falsas.
+Em o trabalho, nada é mencionado sobre a compatibilidade semântica da tradução.
+Análise simbólica de linguagens visuais Em, um framework para a verificação de linguagens visuais é apresentado.
+A consiste em definir um método para a verificação de gramáticas de grafos.
+Como é possível modelar linguagens visuais através da transformação de grafos, torna- se possível verificar linguagens visuais de forma automática, usando o framework, a partir de a modelagem da linguagem visual de interesse na gramática de grafos.
+Em o método, modelos na gramática de grafos gerada, para representar a linguagem, são traduzidos para um sistema de transição, e verificados no ambiente Sal (Symbolic Analysis Laboratory).
+O trabalho apresenta uma maneira de especificar propriedades sobre modelos na gramática de grafos representando a linguagem visual.
+Porém, não foi encontrada uma forma de gerar contra-exemplos para propriedades verificadas e que são falsas.
+Além de isto, nada é mencionado sobre a compatibilidade semântica da tradução.
+Linguagens não-visuais Em essa seção são apresentados trabalhos encontrados na literatura que objetivam verificar sistemas baseados em objetos ou orientados a objetos, modelados em linguagens não-visuais.
+O trabalho em apresenta o ambiente JCAT (Java Concurrency Analysis Tool), usado para verificar programas orientados a objetos modelados na linguagem de programação Java.
+Para verificar programas Java, o método desenvolvido requer que os programas sejam restritos em algumas funcionalidades providas por a linguagem.
+Basicamente, programas Java restritos são traduzidos para PROMELA.
+Porém, antes da tradução, algumas técnicas, como análise estática, são empregadas sobre o programa Java para eliminar, por exemplo, declarações de recursos que são redundantes, otimizando o modelo PROMELA gerado na tradução.
+Programas Java podem ser verificados com relação a detecções de deadlock.
+Não existe uma forma de especificar propriedades na LTL.
+Quando situações de deadlock são detectadas, existe uma forma de gerar contra-exemplos em termos de a linguagem de programação Java, ao invés de o modelo PROMELA traduzido.
+A prova sobre a compatibilidade semântica da tradução do programa Java para PROMELA não é apresentada.
+Java PathFinder O trabalho tem como objetivo descrever o funcionamento da ferramenta Java PathFinder.
+A ferramenta Java PathFinder tem como objetivo traduzir programas restritos na linguagem Java para PROMELA.
+Programas Java, que podem ser traduzidos usando a ferramenta, devem apresentar um espaço de estado finito, pois a ferramenta não utiliza nenhum tipo de análise para reduzir o espaço de estados do programa Java na tradução.
+Um ponto positivo do método é a possibilidade dos programas Java restritos utilizarem um grande conjunto de construções disponíveis da linguagem Java.
+O Java PathFinder possibilita a especificação e verificação de propriedades através de uma classe Java, chamada Verify, especialmente definida com este propósito.
+Para especificar propriedades, o usuário executa métodos da classe que representam palavras-chave de verificação em PROMELA.
+Um exemplo é o método assert, que é traduzido para uma asserção no SPIN.
+Apesar de não existir uma forma de especificar propriedades na LTL, trabalhos estão sendo desenvolvidos no sentido de expandir as funções da classe Verify para a especificação de propriedades na LTL.
+O trabalho não conta com uma forma de gerar contra-exemplos em termos de o programa Java, e a prova sobre a compatibilidade semântica da tradução não é mencionada.
+Bandera O trabalho em apresenta o ambiente de verificação Bandera.
+Programas, restritos, na linguagem de programação Java são traduzidos para a linguagem de entrada de verificadores de modelos existentes, como SPIN e SMV.
+Porém, antes de gerar o modelo traduzido para verificação, vários métodos são aplicados, sobre o programa Java, com o objetivo de reduzir o tamanho do modelo gerado e aumentar a eficiência da verificação.
+As análises realizadas por o ambiente Bandera, com o objetivo de reduzir o programa na tradução, são as principais inovações da metodologia.
+Em o trabalho é apresentada uma forma de especificar e verificar propriedades na LTL, usando o verificador de modelos SPIN como verificador alvo para a tradução de programas Java.
+Além de isto, o ambiente provê uma interface em a qual o usuário pode visualizar contraexemplos de propriedades verificadas e que são falsas.
+A prova sobre a compatibilidade semântica da tradução não é apresentada no desenvolver do trabalho.
+APromela (Actor-based Promela) é uma extensão da linguagem PROMELA, que suporta a abstração de sistemas concorrentes, segundo o modelo de concorrência actors.
+A extensão é composta por certas primitivas, definidas em PROMELA, que são usadas por o usuário para modelar o sistema.
+Um modelo em APromela consiste de um cenário inicial (responsável por iniciar a execução do modelo) e definições do tipo actor (corresponde a classes numa linguagem orientada a objetos).
+Em o modelo de concorrência actors, a troca de mensagens ocorre de forma assíncrona.
+O comportamento é modelado através da recepção de mensagens, onde uma mensagem dispara um procedimento dentro de o tipo actor que pode:
+Criar novos tipos actor, enviar mensagem (ns) a outro (s) tipo actor (s) e/ ou modificar seu estado atual.
+Por ser uma extensão de PROMELA, APromela possibilita a verificação de modelos no próprio SPIN, devido a construções definidas em PROMELA que são usadas por APromela.
+Object-Z ASM O trabalho descrito em integra a linguagem de especificação formal Object-Z com ASM (Abstract State Machine), criando uma nova notação chamada OZ-ASM.
+Os modelos na notação OZ-ASM podem ser verificados através da tradução para a linguagem ASM-SL (ASM-Specification Language) utilizada por o verificador de modelos ASMWorkbench.
+Porém, a proposta do trabalho é a de realizar um segundo mapeamento, de um modelo em ASM-SL para a linguagem de entrada do verificador de modelos SMV.
+Esta segunda tradução (para o SMV) é automática, visto que a ferramenta ASM--Workbench fornece tal funcionalidade.
+A linguagem OZ-ASM suporta orientação a objetos, segundo a linguagem Object-Z. Modelos em OZ-ASM são compostos por componentes, modelados como classes que apresentam nas suas definições locais:
+Um estado, uma inicialização, e operações.
+Objetos (instâncias de classes) são acessados através de referências.
+Em a linguagem OZ-ASM, ao integrar Object-Z com ASM, os construtores de regras de transição usados são da linguagem ASM, facilitando a tradução para a linguagem ASM-SL (utilizada para verificação através da ferramenta ASMWorkbench).
+As especificações de propriedades são feitas diretamente no modelo OZ-ASM, pois utilizam a notação da linguagem Object-Z, ao invés de utilizar a LTL ou CTL.
+Porém, os contraexemplos gerados para propriedades que são falsas devem ser visualizados sobre o modelo traduzido, ao invés de o modelo em OZ-ASM.
+Considerações sobre trabalhos relacionados Como pode ser visto, os trabalhos relacionados apresentados utilizam, basicamente, três maneiras de verificar sistemas baseados em objetos ou orientados a objetos, sejam as linguagens visuais ou não-visuais:·
+Extensão: Diferentemente do trabalho desenvolvido nesta dissertação, APromela é uma extensão da linguagem PROMELA.
+Por ser uma extensão, APromela possibilita verificar modelos diretamente no SPIN (usando as primitivas definidas em PROMELA para APromela), sem ter de mudar (no SPIN) a maneira de especificar propriedades e gerar contra-exemplos.
+Tendo- se a extensão definida em termos de PROMELA, a mesma já está definida formalmente.
+Além disso, uma prova da compatibilidade semântica não é necessária;·
+Tradução: De forma muito parecida com o trabalho desenvolvido nessa dissertação, os trabalhos v-Promela e vUML tentam tornar o processo de verificação de modelos transparente a partir de linguagens visuais.
+Como pode ser visto, o trabalho v-Promela possibilita ao usuário verificar propriedades definidas na LTL sobre o modelo v-Promela (ao invés de o modelo traduzido), não sendo isso possível no trabalho vUML.
+A geração de contra-exemplos para verificações de modelos traduzidos no SPIN, não foi desenvolvida para a linguagem v-Promela.
+Ao contrário, a ferramenta vUML possibilita gerar contra-exemplos num sub-conjunto de UML para verificações no SPIN que são falsas.
+O trabalho sobre a análise simbólica de linguagens visuais define um método de verificação diferente, onde é criado um framework para a verificação de linguagens visuais.
+É visto no trabalho uma forma de especificar propriedades sobre o framework, mas não foram encontradas informações relativas a geração de contra-exemplos e a prova da compatibilidade semântica das traduções.
+Além de os trabalhos objetivando a verificação de linguagens visuais, os trabalhos JCAT, Java PathFinder e Bandera possibilitam a verificação de programas, que restringem um pouco os tipos de construções possíveis da linguagem, desenvolvidos na linguagem de programação Java.
+Todos os trabalhos possibilitam, de alguma forma, especificar e verificar propriedades sobre programas Java.
+A geração de contra-exemplos, em termos de a linguagem Java, também é tratada nos trabalhos JCAT e Bandera.
+Porém, em nenhum dos trabalhos é apresentado a compatibilidade semântica das traduções que possibilitam verificar programas Java.
+Em o trabalho desenvolvido nessa dissertação, tanto os assuntos especificação de propriedades como geração de contra-exemplos são abordados, sendo a prova formal da compatibilidade semântica da tradução realizada num trabalho conjunto;·
+Integração: Ao contrário de as duas formas anteriores e do método definido nessa dissertação, o trabalho Object-Z ASM utiliza a integração entre duas linguagens, dando origem a linguagem OZ-ASM, com o objetivo de restringir modelos em Object-Z. Essa restrição através da integração entre linguagens tem por objetivo facilitar a tradução de modelos em OZ-ASM para a linguagem ASM-SL.
+A partir de um modelo OZ-ASM traduzido para ASM-SL, ocorre uma nova tradução para verificação (sendo essa tradução automática).
+Em o trabalho, a especificação de propriedades ocorre de forma transparente (devido a as construções de OZ-ASM), porém a geração de contra-exemplos não chegou a ser abordada.
+A compatibilidade semântica sobre a tradução também não é comentada.
+Tradução de Modelos Em este capítulo é apresentada a tradução de modelos na GGBO para PROMELA.
+É importante evidenciar que os tipos de atributos e parâmetros possíveis em modelos na GGBO estão restritos aos tipos de dados suportados em PROMELA, como pode ser visto na modelagem do algoritmo de eleição em anel AsynchLCR desenvolvida na Seção Esse capítulo é organizado da seguinte forma:
+Em a próxima seção é feita uma discussão comparativa entre as linguagens GGBO e PROMELA;
+Em a Seção 4.2 é apresentada a primeira tradução de modelos na GGBO para PROMELA;
+Em a Seção 4.3 é definida uma nova tradução, com o objetivo de eliminar restrições e limitações da primeira tradução;
+Em a Seção 4.4 são realizadas análises comparativas entre ambas as traduções apresentadas;
+Em a Seção 4.5 são feitas considerações finais sobre o método de traduzir modelos na GGBO.
+Discussão sobre as linguagens Com o objetivo de facilitar a tradução de modelos, nesta seção são comparadas as principais características das linguagens GGBO e PROMELA.
+A comparação serve como referência para a tradução de modelos, desenvolvida nas seções subseqüentes.
+As principais características usadas para a comparação entre as linguagens são divididas em:·
+Unidade básica de computação:
+É a abstração básica oferecida por a linguagem.
+Está relacionada a conceitos, como orientação a objetos e orientação a processos;·
+Criação de unidades básicas:
+É importante identificar quais as construções disponíveis, para a criação de unidades básicas, por a linguagem;·
+Inicialização de modelos:
+A linguagem dispõe de alguma (s) construção (ões) específica (s) para criar cenários iniciais;·
+Forma de comunicação: Quais são as construções que a linguagem disponibiliza para a interação entre unidades básicas de computação;·
+Não-determinismo: Através de quais construções é representado o não-determinismo na linguagem;·
+Seqüências atômicas:
+A linguagem apresenta alguma forma de criar seqüências atômicas, i.
+e, seqüências que ocorrem de forma indivisível;·
+Concorrência: Em quais elementos da linguagem é modelado a concorrência.
+A Tabela 4.1 apresenta de forma comparativa cada uma das características identificadas.
+Apesar de a unidade básica de computação ser diferente entre as linguagens, pois GGBO é orientada a objetos e PROMELA é orientada a processos, as características da GGBO relativas à criação de unidades básicas de computação, inicialização de modelos, e forma de comunicação apresentam construções correspondentes em PROMELA.
+Essas relações podem sugerir que a tradução de modelos na GGBO para PROMELA possa ocorrer de forma bastante direta.
+Porém, algumas dessas construções apresentam semânticas diferentes, esse é o caso da forma de comunicação, onde a GGBO modela o consumo de mensagens de forma não-determinística, e PROMELA de forma First-In First-Out (FIFO).
+Com relação a a construção de seqüências atômicas, regras na GGBO sempre são aplicadas de forma atômica num modelo.
+Já em PROMELA é possível definir trechos de código que são executados de forma atômica.
+Visto que a construção de PROMELA é mais abrangente que a da GGBO, pois o usuário pode definir o escopo da seqüência, uma idéia para a tradução de modelos é de traduzir a aplicação de uma regra na GGBO para uma seqüência de passos em PROMELA, que ocorrem de forma atômica.
+A concorrência num modelo na GGBO pode ser entre objetos e/ ou dentro de um objeto Apesar de a primeira forma de concorrência ter uma representação correspondente em PROMELA, a segunda linguagem não o tem.
+Em a tradução de modelos é necessário definir alguma forma ou construção para representar essa característica da GGBO.
+Primeira tradução A Tabela 4.2 apresenta como as principais abstrações na GGBO (divididas neste trabalho em entidades/ objetos, mensagens, regras e grafo inicial) são traduzidas, neste primeiro mapeamento, para PROMELA.
+Como é ilustrado na Tabela 4.2, entidades/ objetos e mensagens na GGBO são mapeadas para processos em PROMELA.
+As regras definidas para uma entidade são agrupadas e mapeadas para uma estrutura de condição em PROMELA.
+O grafo inicial de um modelo na GGBO é traduzido para um processo inicial em PROMELA.
+A seguir, é discutida em detalhes a tradução de cada uma dessas abstrações, sendo as mesmas exemplificadas com o algoritmo de eleição em anel AsynchLCR, modelado na Seção 2.3.1.
+A exemplificação serve para entrar em maiores detalhes da tradução, como conversão de nomes de entidades, objetos, atributos e parâmetros, além de explicar os canais de comunicação e sincronização necessários no modelo PROMELA traduzido.·
+Entidades/ Objetos Entidades na GGBO são mapeadas para processos em PROMELA, chamados processos objeto.
+Atributos de uma entidade são mapeados para variáveis, passadas como parâmetro na definição de um processo objeto.
+A recepção de mensagens é realizada por um canal síncrono, chamado canal do processo objeto, que também é passado como parâmetro na definição de um processo objeto.
+O canal do processo objeto é tipado com:
+O nome da mensagem (uma definição mtype em PROMELA, composta por todos os nomes de mensagens especificadas no Como explicado na Seção 2.3, duas ou mais regras são ditas não-conflitantes se não modificam o (s) mesmo (s) item (ns).
+A concorrência entre objetos na GGBO fica naturalmente preservada por a concorrência entre processos objeto.
+Porém, na GGBO é possível existir concorrência interna em objetos.
+Ou seja, quando um objeto tem inúmeras mensagens, a serem processadas, que disparam regras não-conflitantes, pode- se ter o processamento concorrente dessas mensagens.
+Assim, regras que não modificam o estado de um objeto podem ser executadas concorrentemente, e regras que modificam o objeto devem executar de maneira exclusiva.
+As únicas operações possíveis para regras que não modificam o estado de um objeto são gerar novas mensagens e/ ou criar novos objetos.
+De acordo com essa primeira tradução, ambas operações são traduzidas na criação de novos processos, respectivamente representando mensagens e objetos.
+Como não se pode assumir nada sobre o progresso de processos criados em PROMELA, a execução de regras não-conflitantes pode ocorrer em qualquer ordem, modelando com fidelidade a semântica de Um processo objeto apresenta um comportamento cíclico:
+Receber uma mensagem por o canal do processo objeto;
+Procurar uma regra que esteja habilitada e seja disparada por a mensagem recebida;
+Voltar para.
+A procura de uma regra para tratar uma mensagem deve respeitar o não-determinismo na escolha de regras para aplicação existente na GGBO, i.
+e, se existe mais de uma regra habilitada para tratar uma mensagem então uma dessas regras é escolhida de forma não-determinística.
+Como será visto no mapeamento de Regras, esta procura é feita corretamente devido a o uso de uma estrutura de condição em PROMELA.
+Mapeamento da entidade Node O processo objeto que representa o mapeamento da entidade Node é apresentado na Figura objeto conserva o seu nome.
+Os parâmetros de criação do processo objeto são:
+O canal do processo objeto usado para a recepção de mensagens (com a sintaxe opc_ NomeEntidade) e os atributos da entidade mapeados, apresentando o prefixo atr . Atributos e parâmetros na GGBO que são referências tornam- se canais em PROMELA.
+Em a linha 2 é declarada a variável msg_ received que contém, após a recepção de uma mensagem, o nome da mensagem recebida por o canal.
+O canal msg_ confirm declarado na linha 3, após a recepção de uma mensagem, irá conter a referência para um canal de confirmação (vide mapeamento de Mensagens).
+Os parâmetros de todas as mensagens que uma entidade pode receber são mapeados para variáveis (linha 4), e apresentam o prefixo par_ NomeEntidade_ NomeMensagem .
+Após essas declarações, o processo objeto entra numa estrutura de repetição, onde:
+Recebe uma mensagem por o canal do processo objeto (linha 7); (
+ii) tenta processar a mensagem macro que tenta processar a mensagem pode ser vista na Figura 4.3, onde tenta- se encontrar uma regra habilitada por a mensagem e verificar se o lado esquerdo da regra é satisfeito (vide mapeamento de Regras).·
+Mensagens Em o grafo de estado de um modelo GGBO, um objeto pode ter várias mensagens endereçadas a ele.
+Essas mensagens são consumidas de forma não-determinística, sendo que mensagens para as quais não existe uma regra habilitada permanecem no grafo de estado do modelo.
+Em PROMELA, mensagens enviadas por um canal de mensagens são recebidas na ordem de chegada (FIFO).
+Assim, para mapear a semântica de consumo de mensagens na GGBO, não é suficiente traduzir mensagens endereçadas a um objeto para mensagens enviadas ao canal do processo objeto.
+Este mapeamento não suportaria o não-determinismo na escolha de a (s) mensagem (ns) a tratar num instante.
+Em a primeira tradução definida neste trabalho, mensagens na GGBO são mapeadas para processos em PROMELA, chamados processos mensagem.
+Com isso, o ato de enviar uma mensagem traduz- se na criação de um processo que tem como parâmetros o canal do processo objeto (representando o objeto destino) e os parâmetros da mensagem GGBO correspondente.
+Ou seja, para cada mensagem enviada num modelo GGBO, deve ser instanciado, no modelo traduzido, um processo mensagem que representa a mensagem GGBO enviada.
+O processo mensagem fica bloqueado tentando enviar uma mensagem (em PROMELA) ao canal do processo objeto destino.
+Uma vez que esse canal é síncrono, no momento que o processo objeto lê uma mensagem ocorre uma sincronização com um processo mensagem.
+Como podem existir vários processos mensagem tentando sincronizar (enviar uma mensagem em PROMELA) com o mesmo processo objeto, a escolha de qual processo irá sincronizar ocorre de forma não-determinística em PROMELA, modelando a semântica existente na GGBO.
+Quando um processo mensagem envia uma mensagem (em PROMELA), ele espera por a confirmação de que a mensagem foi processada.
+Se existir uma regra em PROMELA ha-bilitada para tratar a mensagem, essa regra (em PROMELA) envia uma confirmação para o processo mensagem, informando que a mensagem foi processada.
+Isso culmina na finalização do processo mensagem que enviou a mensagem em PROMELA.
+Caso nenhuma regra em PROMELA esteja habilitada, o processo objeto volta a ler uma mensagem do canal do processo objeto.
+Desta forma, um time-out irá ocorrer no processo mensagem, culminando no reenvio da mensagem (em PROMELA) ao canal do processo objeto destino.
+Mapeamento de mensagens para a entidade Node As mensagens Election e Start traduzidas da GGBO para PROMELA podem ser vistas na Figura 4.2.
+Os nomes de processos mensagem têm o prefixo NomeEntidade_ adicionado ao nome da mensagem (na GGBO) correspondente (linhas 5 e 19).
+Em a linha 1 são definidos nomes simbólicos, usando a sintaxe msg_ NomeEntidade_ NomeMensagem, para todas as mensagens que compõem o modelo GGBO.
+Em a linha 3 é declarada uma variável global que contém, a cada instante, o número de mensagens presentes no modelo.
+Essa informação é usada no reenvio de mensagens (em PROMELA).
+Os processos mensagem (linhas 5 a 17 e 19 a 31) têm como parâmetros de criação uma referência de canal para o seu objeto destino (msg_ send) e os parâmetros da mensagem na GGBO correspondente (com o prefixo NomeMensagem_ adicionado).
+Cria- se dentro de um processo mensagem um canal síncrono usado para confirmar se a mensagem foi processada no destino.
+O envio da mensagem (em PROMELA), uma referência para o canal síncrono criado, e os parâmetros mapeados da mensagem (onde os tipos não usados do canal em PROMELA são substituídos por o valor 0, linha 22).
+Após o envio da mensagem, o processo mensagem fica a espera da confirmação de que a mensagem foi processada, decrementando em 1 o número de mensagens atuais no modelo e terminando sua execução.
+Caso a mensagem não tenha sido consumida, o processo tenta reenviar a mensagem em PROMELA· Regras A escolha de regras a serem aplicadas na GGBO se dá a partir de uma ocorrência da regra, que é um mapeamento do lado esquerdo da regra para o grafo de estado do modelo.
+Caso mais de uma regra esteja habilitada para o tratamento de uma mesma mensagem de entrada, uma destas regras é escolhida de forma não-determinística para aplicação.
+A forma definida para mapear a escolha de regras, seguindo a semântica na GGBO, foi de criar uma estrutura de condição em PROMELA.
+Assim, as entradas de uma estrutura de condição em PROMELA são compostas por as ocorrências das regras na GGBO.
+Caso mais de uma entrada byte messages;
+Mapeamento de regras para a entidade Node A macro representando as regras SendId (linhas 3 a 6), GreaterId (linhas 8 a 11), LowerId (linhas 13 a 14) e LeaderId (linhas 16 a 18) traduzidas de GGBO para PROMELA são apresentadas na Figura 4.3.
+Como pode ser visto, a escolha de regras a serem aplicadas é feita segunda uma estrutura de condição.
+Observa- se que, logo após a aplicação de uma regra, é enviada uma confirmação ao processo mensagem, indicando que a mensagem (na GGBO) foi consumida e a regra aplicada (linhas 6, 11, 14 e 18).
+Caso a regra gere novas mensagens, o número de mensagens atuais no modelo deve ser incrementado de acordo com esse número, refletindo o número correto de mensagens atuais no modelo.
+Caso uma mensagem (em PROMELA) seja recebida e não exista nenhuma regra habilitada para a mesma, o processo objeto que tentou consumir a mensagem retorna para receber uma nova mensagem.·
+Grafo inicial Um grafo inicial na GGBO é composto por as instâncias de entidades (objetos) que representam o modelo e as mensagens iniciais definidas.
+Os objetos têm os seus atributos internos inicializados.
+Em o mapeamento para PROMELA, um grafo inicial na GGBO torna- se um processo inicial em PROMELA.
+Esse processo é composto por a:
+Criação dos canais dos processos objeto;
+Criação dos processos objeto que representam os objetos definidos no grafo inicial, passando como parâmetros o canal do processo objeto correspondente e os valores iniciais dos atributos;
+Criação dos processos mensagem que representam as mensagens definidas no grafo inicial.
+Mapeamento do grafo inicial A Figura 4.4 apresenta o mapeamento do grafo inicial definido para o algoritmo de eleição em anel AsynchLCR.
+Como dito anteriormente, o grafo inicial é traduzido para um processo inicial em PROMELA.
+De as linhas 3 a 5 se dá a criação dos canais dos processos objeto.
+Esses canais apresentam o mesmo nome dos objetos definidos no grafo inicial.
+Os processos objeto que representam os objetos do grafo inicial são criados das linhas 7 a 9.
+De as linhas 11 a 13 são criados os processos que representam as mensagens do grafo inicial.
+Por fim, na linha 15 é atribuído o valor de mensagens atuais no modelo (de acordo com o número de mensagens definidas no grafo inicial).
+Principais características Essa tradução teve sua compatibilidade semântica provada formalmente, num trabalho conjunto no projeto ForMOS.
+Com a existência dessa prova, pode- se afirmar que um modelo na GGBO traduzido, segundo essa primeira tradução, para PROMELA conserva sua semântica.
+Apesar disso, na tentativa de provar propriedades (no SPIN) usando essa tradução, algumas restrições e limitações foram observadas:·
+Modelos com execução finita:
+O verificador de modelos SPIN tem como base a técnica teórica baseada em autômatos.
+O SPIN consegue lidar com execuções infinitas através da detecção de ciclos.
+A detecção de ciclos é útil para provar várias propriedades.
+Porém, para a tradução apresentada o SPIN não conseguiu detectar os ciclos do modelo e, conseqüentemente, lidar com execuções infinitas.
+Esse problema não é uma falha da ferramenta, mas sim uma característica da tradução com a qual a ferramenta não foi criada para lidar.
+Ou seja, no momento em que mensagens na GGBO são mapeadas para processos mensagem na tradução, que são criados de forma dinâmica, os estados do modelo PROMELA que definem um ciclo não conseguem se repetir, devido a dinamicidade do modelo traduzido (criação dinâmica de processos), e a ferramenta não consegue detectar os ciclos.
+Apesar de ser uma forte restrição sobre o mapeamento, é possível utilizar essa tradução para verificar modelos na GGBO.
+Porém, as seguintes restrições são impostas sobre modelos na GGBO:
+O modelo deve gerar apenas execuções finitas (como no algoritmo de eleição em anel AsynchLCR), sendo que o especificador deve garantir isso na modelagem do problema;
+O número máximo de objetos e mensagens gerados para cada uma das execuções de um modelo não pode exceder o valor 256.
+A restrição acontece porque 256 é o número máximo de processos permitidos, em tempo de execução, no SPIN;·
+Combinação de operadores temporais:
+Uma limitação, advinda da impossibilidade de encontrar ciclos numa execução infinita, é a combinação de operadores na LTL.
+Por exemplo, considere a fórmula p, essa fórmula nunca será verdadeira para um modelo mapeado segunda essa primeira tradução.
+Isso ocorre porque o SPIN não consegue detectar que alguma asserção irá sempre acontecer no futuro (noção de execução infinita).
+Logo, é necessário restringir a combinação de certos operadores na LTL (e.
+g Devido a essas restrições, foi avaliado no desenvolver do trabalho que a tradução não era suficientemente expressiva para provar propriedades importantes, presentes em modelos que apresentam execuções infinitas.
+Segunda tradução Com o objetivo de eliminar as restrições presentes na primeira tradução, uma nova tradução foi projetada.
+Como pode ser visto na Tabela 4.3, a principal diferença dessa tradução para a anterior consiste no mapeamento de mensagens na GGBO diretamente para mensagens em PROMELA, ao invés de processos mensagem.
+De essa forma, possibilita- se que o SPIN detecte ciclos na execução de modelos traduzidos.
+Entretanto, ao fazer essa modificação, outras alterações são necessárias:·
+Canais assíncronos:
+Como mensagens na GGBO são mapeadas diretamente para mensagens em PROMELA, os canais dos processos objeto deixam de ser síncronos e viram canais assíncronos;·
+Armazenamento de mensagens:
+É necessário armazenar mensagens não consumidas por um processo objeto.
+Além disso, em momentos apropriados, deve- se testar se essas mensagens armazenadas podem ser consumidas por o processo objeto;·
+Processamento não-determinístico:
+Visto que canais em PROMELA recebem mensagens na ordem de chegada (FIFO), deve- se definir uma estrutura no modelo traduzido que recebe mensagens (em PROMELA) de forma não-determinística.
+Como será visto, o comportamento definido para os processos objeto torna- se mais complexo nessa segunda tradução.
+A seguir é discutida em detalhes essa segunda tradução, sendo que ela é exemplificada com o algoritmo de eleição em anel AsynchLCR, modelado na Seção tradução, como conversão de nomes de entidades, objetos, atributos e parâmetros, além de explicar os canais de comunicação e sincronização necessários no modelo PROMELA traduzido.·
+Entidades/ Objetos e Mensagens Como na primeira tradução, entidades são mapeadas para processos objeto.
+A diferença fundamental para a tradução anterior está no mapeamento de mensagens na GGBO para mensagens em PROMELA, ao invés de processos mensagem.
+Isso acarreta na definição de um comportamento mais complexo para os processos objeto, que tem de lidar com o armazenamento de mensagens não consumidas.
+Os atributos de uma entidade são mapeados para variáveis, passados como argumentos na definição de processos objeto.
+A recepção de mensagens ocorre através de um canal assíncrono em PROMELA, chamado de canal do processo objeto (que, ao contrário de a primeira tradução, agora possue um buffer).
+Esse canal também é passado como argumento na definição do processo objeto, onde os tipos de parâmetros que podem ser recebidos são:
+O nome da mensagem (um conjunto de constantes simbólicas, composto por todos os nomes de mensagens disponíveis no grafo de tipos do modelo), e os parâmetros de todas as mensagens que uma entidade pode receber.
+Esses parâmetros tornam- se variáveis declaradas dentro de um processo objeto.
+A concorrência entre objetos é naturalmente preservada por a concorrência entre processos objeto.
+Entretanto, como explicado para a primeira tradução, na GGBO pode existir concorrência interna em objetos.
+Caso um objeto apresente inúmeras mensagens, a serem processadas, que disparam regras não-conflitantes, pode- se ter o processamento concorrente dessas mensagens.
+Para representar esse comportamento, após receber mensagem (ns) por o canal do processo objeto, o objeto envia essa (s) mensagem (ns) para o buffer do processo objeto, uma estrutura (definida na tradução) que permite escolher de forma não-determinística uma mensagem (em PROMELA) do buffer.
+Essa estrutura é composta por uma estrutura de condição em PROMELA, em a qual a escolha das entradas ocorre de forma não-determinística.
+A partir de a inclusão desse buffer do processo objeto é possível representar corretamente a concorrência interna em objetos existente na GGBO.
+O comportamento genérico de um processo objeto é definido a seguir:
+Receber nova (s) mensagem (ns) por o canal do processo objeto;
+enviar essa (s) mensagem (ns) para o buffer do processo objeto;
+Escolher não-deterministicamente uma mensagem do buffer do processo objeto;
+Procurar uma regra que esteja habilitada e seja disparada por a mensagem escolhida, se a mensagem não for consumida, enviar de volta para o buffer do processo objeto;
+Caso todas as mensagens do buffer do processo objeto tenham sido testadas ou nova (s) mensagem (ns) seja (m) recebida (s) por o canal do processo objeto, voltar para (i).
+Mapeamento da entidade Node O processo objeto representando o mapeamento da entidade Node é apresentado na Figura 4.5 (linhas 5 a 54).
+Em a linha 1 é definido o tamanho dos canais dos processos objeto e buffers dos processos objeto, essa definição é feita por o usuário (vide Seção 4.3.2).
+Já na linha 3 são apresentados os nomes das mensagens do modelo GGBO mapeado (tendo o prefixo msg_ NomeEntidade_ adicionado).
+Como pode ser visto (linha 5), uma entidade mapeada para um processo objeto conserva o seu nome.
+Os parâmetros de criação do processo objeto são (linha 5) o canal do processo objeto usado para a recepção de mensagens (com a sintaxe opc_ NomeEntidade) e os atributos da entidade mapeados, apresentando o prefixo atr . Atributos e parâmetros na GGBO que são referências, tornam- se canais em PROMELA.
+Os parâmetros de todas as mensagens que uma entidade pode receber são mapeados para variáveis (linha 6), e apresentam o prefixo par_ NomeEntidade_ NomeMensagem .
+Em a linha 7 é declarada a variável msg_ received que contém, após a recepção de uma mensagem, o nome da mensagem recebida por o canal.
+De as linhas 8 a 11 são declaradas variáveis usadas para o armazenamento e controle do buffer do processo objeto.
+Após essas declarações, o processo objeto fica aguardando mensagem (ns) nova (s) do canal do processo objeto.
+Uma vez que nova (s) mensagem (ns) são recebidas, o processo objeto envia as mensagens ao buffer do processo objeto.
+Uma vez que mensagens são enviadas para o buffer do processo objeto, o processo objeto inicia um comportamento cíclico, onde:
+Caso nova (s) mensagem (ns) não tenham sido recebidas por o canal do processo objeto, uma mensagem do buffer do processo objeto é retirada (linha 22 e 27);
+tenta- se processar a mensagem escolhida, mensagem tiver chego do canal do processo objeto, o processo objeto retorna para a linha 14.
+A macro que tenta processar a mensagem pode ser vista na Figura 4.7, onde tenta- se encontrar uma regra disparada por a mensagem e, ao mesmo tempo, verificar se o lado esquerdo da regra é satisfeito (vide mapeamento de Regras).
+A Figura 4.6 ilustra as macros usadas para incluir/ retirar mensagens do buffer do processo objeto.
+Essas macros apresentam a sintaxe mbw_ NomeEntidade (para incluir mensagens no buffer do processo objeto) e ndr_ NomeEntidade (para retirar mensagens do buffer do processo objeto).·
+Regras A escolha de regras a serem aplicadas na GGBO se dá a partir de uma ocorrência da regra, que é um mapeamento do lado esquerdo da regra para o grafo de estado do modelo.
+Caso mais de uma regra esteja habilitada, uma destas regras é escolhida de forma não-determinística para aplicação.
+Assim como para a primeira tradução, a forma definida para mapear a escolha de regras, seguindo a semântica na GGBO, foi de criar uma estrutura de condição em PROMELA.
+Assim, as entradas de uma estrutura de condição em PROMELA são compostas por as ocorrências das regras na GGBO.
+Caso mais de uma entrada estiver habilitada, uma de elas é escolhida de forma não-determinística para executar, seguindo a semântica de GGBO.
+Mapeamento de regras para a entidade Node A macro representando as regras SendId (linhas 3 a 5), GreaterId (linhas 7 a 9), LowerId (linhas 11) e LeaderId (linhas 13 a 14) traduzidas de GGBO para PROMELA são apresentadas na Figura 4.7.
+Essa macro apresenta a sintaxe rules_ NomeEntidade.
+Como pode ser visto, a escolha de regras a serem aplicadas é feita segunda uma estrutura de condição, caso a mensagem não for consumida, a mesma é reenviada para o buffer do processo objeto.
+É importante salientar que na geração de novas mensagens (linhas 5 e 9), antes da mensagem ser enviada por o canal, uma asserção em PROMELA é executada, garantindo que o canal do processo objeto destino não está cheio e pode receber a mensagem (vide Seção 4.3.2).·
+Grafo inicial Um grafo inicial na GGBO é composto por as instâncias de entidades (objetos) que representam o modelo e as mensagens iniciais definidas.
+Os objetos têm os seus atributos internos inicializados.
+Assim como na primeira tradução, um grafo inicial na GGBO torna- se um processo inicial em PROMELA.
+Esse processo é composto por a:
+Criação dos canais dos processos objeto;
+Criação dos processos objeto que representam os objetos definidos no grafo inicial, passando como parâmetros o canal do processo objeto correspondente e os valores iniciais dos atributos;
+Envio de mensagens definidas no grafo inicial.
+Mapeamento do grafo inicial A Figura 4.8 apresenta o mapeamento do grafo inicial definido para o algoritmo de eleição em anel AsynchLCR.
+Como dito anteriormente, o grafo inicial é traduzido para um processo inicial em PROMELA.
+De as linhas 3 a 5 são criados os canais dos processos objeto.
+Esses canais apresentam o mesmo nome dos objetos definidos no grafo inicial.
+Os processos objeto que representam os objetos do grafo inicial são criados das linhas 7 a 9.
+De as linhas 11 a 16 são enviadas as mensagens definidas no grafo inicial.
+Compatibilidade semântica Em esta seção é realizada uma discussão sobre a prova da compatibilidade semântica, entre modelos na GGBO traduzidos para PROMELA (de acordo com a segunda tradução).
+Como foi dito nas Seções 2.3 e 2.4.1, que apresentaram, respectivamente, as linguagens GGBO e PROMELA, ambas as linguagens podem ter sua semântica definida através de um STR.
+Com isso, para garantir que a segunda tradução preserva a semântica da GGBO, é necessário provar que:
+Todos os comportamentos do STR-GGBO (Sistema de Transição Rotulado GGBO) são encontrados no STR-PROMELA (Sistema de Transição Rotulado PROMELA) obtido por a tradução;
+nenhum comportamento novo é adicionado no STR-PROMELA.
+Para realizar a prova, os caminhos do STR-GGBO são traduzidos para os caminhos do STR-PROMELA, onde é definida uma correspondência entre grafos e estados.
+Também é necessário traduzir os caminhos do STR-PROMELA para o STR-GGBO.
+Visto que o STR-PROMELA contém estados que não tem correspondência no STR-GGBO, pois o tratamento de mensagens no modelo PROMELA ocorre em vários passos, e no modelo GGBO ocorre em apenas um passo, um estado no STR-PROMELA que corresponde a algum estado no STR-GGBO é chamado de estado completo.
+Além de a tradução dos estados, devem- se traduzir as transições dos Sistemas de Transição Rotulados.
+Em esse sentido, o STR-GGBO apresenta somente uma transição para cada aplicação de regra, mas o STR-PROMELA tem várias transições para representar a aplicação de uma regra.
+Ou seja, o comportamento de um processo objeto, de acordo com a segunda tradução, resulta em dois tipos de transições:
+Seqüência de teste (testa- se se a regra pode ser aplicada e não aplica a regra), e seqüência de aplicação (testa- se se a regra pode ser aplicada e aplica a regra).
+As Figuras 4.9 e 4.10 representam a aplicação concorrente das regras R1 e R2, onde R1 e R2 são regras independentes.
+Como pode ser visto no STR-GGBO, cada uma das regras é aplicada em apenas um passo e em qualquer ordem, resultando no estado (grafo) G4.
+Já no STR-PROMELA, tem- se para cada aplicação de regra uma seqüência de passos a regra for verdadeira, isso significa que a regra foi aplicada (seqüência de aplicação), caso contrário a regra não foi aplicada (seqüência de teste).
+As aplicações concorrentes das regras R1 e R2 resultam em dois estados (4 e 5) que diferem no valor da variável local rule_ applied do processo objeto que aplicou a regra.
+A diferença entre os estados 4 e 5 está no valor da variável rule_ applied.
+Uma vez que a variável rule_ applied não interfere no estado do processo objeto (do ponto de vista do STR-GGBO), os estados 4 e 5 são equivalentes e completos em relação a o estado G4 do STR-GGBO.
+Em as Figuras 4.11 e 4.12 são apresentadas a aplicação seqüencial das regras R1 e R2, onde R2 depende de R1.
+Em o STR-GGBO, apenas dois passos são necessários para atingir o estado (grafo) G3 resultante da aplicação das regras.
+Para o STR-PROMELA ilustrado na Figura 4.12, dois caminhos possíveis no modelo PROMELA traduzido são vistos.
+O primeiro apresenta uma seqüência em que as regras R1 e R2 puderam ser aplicadas (seqüências de aplicação).
+Em o segundo caminho, inicialmente tenta- se aplicar a regra R2, mas ela não pode ser aplicada (seqüência de teste).
+Entretanto, após a aplicação da regra R1 (4) é possível aplicar a regra R2 (6).
+Assim como no caso de aplicação concorrente de regras, os estados 5 e 6 do STR-PROMELA são equivalentes entre si e completos em relação a o estado G4 do STR-GGBO.
+É importante salientar que a prova, brevemente discutida, foi realizada num trabalho conjunto, e o leitor pode encontrar maiores detalhes sobre a prova da compatibilidade semântica entre modelos na GGBO e os modelos PROMELA traduzidos (de acordo com a segunda tradução), no mesmo artigo.
+Principais características Além de a compatibilidade semântica, discutida na seção anterior, agora são discutidas em maiores detalhes as principais características dessa segunda tradução:·
+Resolução das limitações da primeira tradução:
+Como evidenciado na primeira tradução, algumas restrições acabavam limitando as possibilidades de verificação de propriedades.
+O primeiro passo para resolver essas limitações foi a eliminação de processos mensagem.
+Como explicado na Seção 4.2.1, a criação dinâmica de processos mensagem constituía a base para as limitações da primeira tradução.
+A o traduzir mensagens na GGBO para mensagem em PROMELA (enviadas diretamente por canais), as limitações da primeira tradução foram resolvidas, possibilitando a verificação de modelos na GGBO que possuem execuções infinitas.
+Entretanto, o comportamento dos processos objeto tornou- se mais complexo, pois têm de lidar com um buffer de mensagens que ainda não foram consumidas;·
+Definindo o tamanho dos canais dos processos objeto e buffers dos processos objetos:
+Em a GGBO não existe a noção de guardar mensagens (que não foram consumidas) num buffer.
+Mensagens não consumidas ficam no grafo atual do sistema, ou seja, na GGBO pode- se dizer que existe um buffer de capacidade infinita.
+Em esta segunda tradução, as mensagens na GGBO são mapeadas para mensagens em PROMELA que são recebidas por uma canal de mensagens que apresenta um tamanho de buffer finito.
+Um problema que pode ocorrer são pontos de sincronia no modelo traduzido.
+Quer dizer, quando o tamanho do buffer for pequeno, pode- se ter o bloqueio de um processo objeto tentando enviar uma mensagem a um canal que está cheio.
+Algumas conseqüências podem ser a criação de comportamentos (no modelo traduzido) que não são presentes no modelo na GGBO, incluindo a geração de deadlocks que nunca deveriam ocorrer.
+A solução encontrada foi de inserir asserções no modelo PROMELA traduzido, antes de enviar uma mensagem mapeada.
+Essas asserções verificam a possibilidade de enviar uma mensagem ao canal do processo objeto destino, i.
+e, verificam se o canal não está cheio.
+Caso a asserção seja falsa, o modelo pára de executar e gera um erro.
+Para o usuário, isso significa que o tamanho de buffer escolhido é pequeno e deve ser aumentado.
+É importante notar que o uso de asserções não aumenta o número de estados para a verificação de especificações de propriedades na LTL.
+Análise das traduções Em esta seção são analisadas, em termos de desempenho, ambas as traduções apresentadas.
+Os requisitos utilizados para essa análise são os encontrados no Capítulo 4 de.
+Em este trabalho, o autor identifica pontos que causam maior impacto no uso de verificadores de modelos, em especial, a pesquisa concentra- se no verificador de modelos SPIN.
+Isso possibilita que os pontos identificados no trabalho sejam utilizados para a análise das traduções desenvolvidas nessa dissertação.
+Os pontos que causam maior impacto na verificação de modelos usando o SPIN são:·
+Número de estados:
+Corresponde ao número de estados ocupado por o modelo na verificação.
+Por estar diretamente relacionado ao problema de explosão de estados, é o ponto de maior impacto para a verificação;·
+Tamanho do vetor de estados:
+O vetor de estados corresponde ao tamanho de memória necessário para codificar um estado do modelo.
+Um estado do modelo contém o valor de todas as variáveis, assim como os contadores de programas (guardando a posição de execução corrente) para cada um dos processos;·
+Tamanho da pilha de procura:
+Apresenta o tamanho máximo utilizada por a pilha de procura de estados, depth-- first usada por o SPIN, na verificação.
+Quanto menor o tamanho utilizado por a pilha melhor;·
+Tempo de verificação:
+Diz respeito ao tempo total utilizado para verificar um modelo no SPIN.
+De entre os pontos apresentados, o tempo usado para verificação é o último fator que deve ser levado em conta para ser minimizado.
+Além de os fatores apresentados, optou- se para incluir na análise das traduções o tamanho total de memória necessário para a verificação de um modelo.
+Quando uma verificação é feita sobre um modelo no SPIN (seja utilizando fórmulas na LTL ou outras formas de verificação oferecidas), após a verificação, a ferramenta apresenta uma série de estatísticas sobre a verificação, incluindo os valores para os pontos de maior impacto vistos.
+Para realizar os testes, utilizou- se o exemplo de algoritmo de eleição em anel AsynchLCR mapeado de acordo com ambas as traduções.
+Porém, para obter os valores de comparação necessários é preciso definir uma forma de verificação que seja compatível para ambas às traduções, ou seja, que resulte em estatísticas sobre a verificação que possa ser utilizada para a comparação.
+A maneira encontrada foi de utilizar o SPIN para fazer verificações sobre asserções num modelo (ao invés de fórmula na LTL).
+Esse tipo de verificação força o SPIN a construir todo o espaço de estados do modelo e verificar, em todos os caminhos possíveis, se as asserções definidas no modelo são verdadeiras ou não, parando a verificação quando as asserções são falsas (violadas).
+Para fazer esse tipo de análise sobre os modelos traduzidos, foi inserida uma asserção que sempre é falsa (sintaxe assertion (false)) no final da entidade Node traduzida.
+Para a primeira tradução essa asserção é colocada após a linha 10 da Figura 4.1, sendo que na segunda tradução a asserção é inserida após a linha 43 da Figura 4.5.
+Caso a ferramenta chegue a executar essa asserção, a verificação irá parar de executar e não funcionará.
+Porém, devido a o código PROMELA dos processo objeto, nunca as asserções introduzidas devem ser executadas, sendo que a ferramenta irá criar todo o espaço de estados para o modelo (obtendo os dados estatísticos necessários para a comparação) e retornar o valor verdade para a verificação (nenhuma asserção é violada).
+Os testes foram feitos numa máquina Xeon de 2.2 GHz, executando o sistema operacional RedHat Linux 9.
+O verificador de modelos SPIN usado foi o de versão 4.0.6.
+Como opções de verificação no SPIN utilizaram- se 500 Mb de memória disponível, o algoritmo de redução de ordem parcial, e o tamanho máximo de 500 passos para a pilha de procura.
+Os testes levam em consideração o aumento no número de objetos para o grafo inicial do modelo definido para o algoritmo de eleição em anel AsynchLCR.
+As Tabelas 4.4, 4.5 e 4.6 apresentam os valores obtidos com os testes realizados para ambas as traduções.
+De acordo com os valores obtidos para as Tabelas 4.4, 4.5, e 4.6 nota- se que o desempenho em relação a o número de estados, vetor de estados, tempo de verificação e tamanho de memória é mais eficiente na segunda tradução.
+Em a primeira tradução o exemplo contendo seis objetos não executou até o final, pois estourou o limite de memória.
+Isso também aconteceu para a segunda tradução, porém quando se estava executando o exemplo com dez objetos, um desempenho bastante superior comparado ao da primeira tradução.
+Essa grande diferença entre número total de estados e conseqüentemente de memória usada, deve- se a primeira tradução ter processos mensagem representando mensagens na GGBO.
+Como também pode ser visto, o valor da pilha de procura é menor para a primeira tradução que a segunda.
+Isso acontece porque na segunda tradução são definidos os buffers dos processos objeto, e a inclusão e retirada de mensagens destes canais aumenta o tamanho da pilha de procura necessária para verificação.
+Esse capítulo apresentou uma forma de traduzir modelos na GGBO para PROMELA, a linguagem de entrada do verificador de modelos SPIN.
+Foram vistas duas traduções, sendo a segunda desenvolvida para resolver as restrições e limitações impostas por a primeira.
+Também foram avaliadas essas traduções, onde se percebe que a segunda tradução tem um desempenho superior (em certas características fundamentais) em relação a a primeira.
+Especialmente porque a segunda tradução possibilita a análise de sistemas que apresentam execuções infinitas, uma característica muito comum em sistemas distribuídos.
+A partir de a definição da segunda tradução e das análises realizadas sobre desempenho, optou- se por implementar uma ferramenta que, a partir de um modelo GGBO armazenado numa base de dados, consiga gerar código PROMELA (de acordo com a segunda tradução).
+Atualmente, para o armazenamento de modelos na GGBO, utiliza- se o banco de dados MySQL.
+Uma vez que a primeira versão de uma interface gráfica para edição de modelos na GGBO foi construída com a linguagem de programação Java e o banco de dados MySQL, a ferramenta de tradução de modelos na GGBO para PROMELA também foi desenvolvida na linguagem de programação Java, visando, futuramente, a integração destas ferramentas.
+É importante salientar que o método de traduzir modelos, com o objetivo de verificar sistemas baseados em objetos ou orientados a objetos, tem sido empregada para inúmeras linguagens.
+Um ponto positivo das traduções aqui apresentadas estão relacionadas a existência de uma prova formal sobre a compatibilidade semântica das traduções, feita num trabalho conjunto.
+Essa compatibilidade semântica garante que os modelos na GGBO traduzidos para o SPIN e verificados são os mesmos definidos na GGBO.
+Especificação de Propriedades Em este capítulo é apresentada e exemplificada uma forma de especificar propriedades sobre um modelo na GGBO, ao invés de o modelo traduzido para PROMELA.
+De essa forma, o usuário pode especificar propriedades na LTL, a serem verificadas no SPIN, usando elementos encontrados na GGBO (como aplicação de regras) sem ter de conhecer a estrutura do modelo PROMELA traduzido.
+Como foi dito na Seção 2.4.2, na especificação e verificação de propriedades usando a LTL, o SPIN suporta que as proposições (utilizadas nas fórmulas) sejam definidas sobre:·
+Variáveis globais:
+Em que o usuário deve inserir a atribuição dessas variáveis em partes específicas do modelo.
+Isso acontece com o objetivo de representar (tornar observável para o processo de verificação) partes do comportamento, que se deseja verificar, do modelo;·
+Etiquetas dentro de um processo:
+O usuário precisa conhecer o nome do processo e, antecipadamente, o identificador do processo PROMELA que contém a etiqueta.
+Além disso, o usuário deve inserir as etiquetas em partes específicas dos processos (para captar o comportamento desejado para verificação).
+Quando etiquetas são inseridas para a verificação de propriedades usando fórmulas na LTL, o verificador de modelos SPIN avalia para verdadeiro cada vez que o processo (cujo nome e identificador o usuário deve oferecer) executa o trecho de código que contém a etiqueta desejada.
+Em o desenvolver do trabalho, considerou- se que ambas as técnicas apresentadas não eram apropriadas para especificar e verificar propriedades de modelos na GGBO traduzidos para PROMELA, uma vez que as técnicas:
+Não podem ser usadas em modelos que criam, dinamicamente, novos processos (em PROMELA) porque variáveis globais não podem ser criadas em tempo de execução no SPIN e para utilizar etiquetas é necessário conhecer, antecipadamente, o identificador do processo;
+Necessitam que o usuário conheça a tradução (e a linguagem PROMELA) para conseguir inserir etiquetas ou atribuições à variáveis globais em partes específicas do modelo traduzido.
+Com o objetivo de eliminar o problema, e possibilitar a verificação de modelos na GGBO que envolvem a criação dinâmica de objetos (processos em PROMELA), a solução encontrada foi de utilizar eventos para a especificação de propriedades.
+Como foi apresentado na Seção 2.2.2, eventos dizem respeito a troca de valores sobre variáveis e podem ser representados usando o conceito de edges na LTL.
+Entretanto, o problema não é solucionado, pois o usuário ainda precisa conhecer o modelo PROMELA traduzido para introduzir atribuições à variáveis globais em partes específicas do modelo.
+É sobre essas atribuições que os eventos são gerados.
+A partir desses resultados, uma alternativa encontrada foi de definir uma maneira de gerar eventos sobre o modelo GGBO e, após essas definições, mapear esses eventos para o modelo PROMELA traduzido.
+Este capítulo é dividido da seguinte forma:
+Em a próxima seção é apresentada a forma definida para gerar eventos sobre um modelo na GGBO, e como mapear esses eventos definidos na GGBO para o modelo PROMELA traduzido;
+Em a Seção 5.2 é considerado o uso de eventos para a especificação e verificação de propriedades de modelos na GGBO, assim como a geração de contra-exemplos de propriedades que, quando verificadas, resultam em falsidade;
+E na Seção 5.3 são feitas considerações finais sobre a técnica de especificar e verificar propriedades de modelos na GGBO (usando eventos).
+Geração de eventos A GGBO é uma linguagem baseada em regras, que especificam o comportamento de objetos e representam transições entre estados no modelo.
+Em esse sentido, encontram- se na literatura algumas linguagens que utilizam eventos, transições entre estados, como base para a análise formal de propriedades, como I/ O Automata, Cálculo, FSP (Finite State Processes), entre outras.
+Visto que linguagens aprovadas por a comunidade acadêmica, como as citadas, utilizam a noção de eventos para a análise formal de propriedades sobre um modelo, parece correto imaginar para a GGBO que regras sobre um modelo (representando eventos) possam ser utilizadas para a especificação e verificação de propriedades.
+Seguindo esse raciocínio, a geração de eventos sobre um modelo na GGBO tem como base os nomes das regras sendo aplicadas.
+A Figura 5.1 ilustra essa idéia, onde a aplicação da regra RY modifica o estado do sistema (grafo) de GN para GN+ 1, e o nome da regra que foi aplicada (regra RY) torna- se observável no novo estado do sistema (grafo).
+Essa falta de expressividade, ao utilizar apenas nomes de regras para a especificação de propriedades, pode ser resolvida agregando atributos do objeto ao nome da regra sendo aplicada.
+Isso permite gerar eventos que contém maiores informações sobre o modelo.
+De essa forma, após a aplicação de uma regra, observa- se o nome da regra aplicada e certos atributos internos (após a aplicação da regra) do objeto cuja regra foi aplicada.
+A Figura 5.2 apresenta a geração de um evento, que consiste na observação do nome da regra RY e no valor do atributo id do objeto (em que a regra foi aplicada).
+Uma vez que estes eventos são traduzidos para eventos gerados no modelo PROMELA, a possibilidade de observar atributos de objetos, para a especificação de propriedades, deve ser controlada devido a o problema de explosão de estados.
+Isso significa que os atributos que serão agregados aos nomes das regras (na geração de eventos) devem tornar- se observáveis apenas quando necessários, i.
+e, quando a propriedade a ser verificada necessita dos atributos para a sua especificação.
+Por isso, a escolha de quais atributos serão agregados aos eventos gerados fica a cargo de o usuário, que deve selecionar, segundo os atributos de uma entidade, quais atributos da entidade deseja observar.
+Assim, cada vez que o objeto daquela entidade, cujos atributos foram tornados observáveis, tiver uma regra aplicada, os valores dos atributos selecionados irão tornar- se observáveis, em conjunto dos nomes das regras aplicadas, como eventos.
+Tradução de eventos Para refletir a geração de eventos num modelo na GGBO, com respeito a o nome da regra sendo aplicada, uma variável global chamada event_ rule é criada no modelo PROMELA traduzido.
+Quando uma regra é aplicada no modelo PROMELA traduzido, o valor da variável event_ rule é modificado (após a aplicação da regra) para conter o nome da regra que foi aplicada.
+Como PROMELA não possui um tipo de dados que suporte seqüência de caracteres, é preciso codificar os nomes das regras, do modelo na GGBO, como nomes simbólicos para valores constantes (através da palavra-chave mtype).
+O leitor deve- se lembrar que a palavra-chave mtype já é utilizada (vide Seções 4.2 e 4.3) para codificar o nome de mensagens na GGBO traduzidas para PROMELA.
+Porém, não há problemas em acrescentar às declarações existentes, de mensagens na GGBO traduzidas, os nomes das regras de um modelo GGBO.
+A codificação usada para os nomes de regras segue a sintaxe NomeEntidade_ NomeRegra, onde NomeEntidade é o nome da entidade a qual a regra foi definida.
+A Figura 5.3 ilustra estes conceitos, onde a regra RY, pertencente à entidade Entity, é aplicada no modelo PROMELA traduzido.
+Até o momento, apresentou- se uma forma de traduzir a aplicação de nomes de regras na GGBO como sendo eventos (troca no valor de variáveis).
+Com o intuito de traduzir eventos que agregam atributos de entidades, selecionados por o usuário, criam- se variáveis globais no modelo PROMELA.
+Essas variáveis possuem os mesmos tipos de dados dos atributos definidos para a entidade na GGBO, e seguem a sintaxe:
+Event_ NomeEntidade_ NomeAtributo.
+Assim, quando uma regra é aplicada no modelo PROMELA traduzido, logo após a aplicação da regra e a atribuição do nome da regra à variável event_ rule, tem- se atribuído à variável global (que representa o atributo a ser observado) o valor corrente do atributo do objeto.
+Em a Figura 5.4 é visualizada a aplicação de uma regra RY, por um objeto do tipo Entity, onde o atributo id do objeto (a instância sendo executada) torna- se observável.
+Como foi dito anteriormente, a inserção de variáveis globais tem impacto direto, com relação a a verificação, no tamanho do espaço de estados do modelo PROMELA traduzido.
+Por isso foi convencionado que o usuário deve identificar quais atributos, de uma entidade, deseja tornar observável.
+Assim, o usuário pode escolher quais atributos necessita observar para provar certas propriedades e realizar, de forma progressiva, a especificação e verificação (modificando quais atributos deseja observar) de um modelo na GGBO.
+Especificação e verificação de propriedades A partir de a geração de eventos num modelo GGBO, incluindo a escolha de quais atributos o usuário deseja tornar observável no modelo, o usuário pode definir proposições para especificar propriedades na LTL.
+Essas proposições serão comparadas, na verificação, aos eventos sendo gerados no modelo PROMELA traduzido.
+Para a definição de proposições sobre um modelo na GGBO, foi convencionada a seguinte sintaxe:
+NomeProposição $= (NomeRegra:
+NomeAtributo1 ValorComparadoN). Como a verificação de propriedades ocorre no SPIN (usando o modelo PROMELA traduzido), devem- se traduzir as proposições na GGBO para o SPIN.
+Isso ocorre de forma bastante Uma vez que eventos e proposições foram definidos para um modelo na GGBO, o usuário pode especificar sua propriedade usando a LTL em conjunto com as proposições.
+Por exemplo, uma propriedade do tipo liveness como &quot;sempre irá ocorrer que a regra RY da entidade Entity será aplicada», pode ser definida como1:
+Pode- se imaginar que a tradução dessa fórmula na LTL para o SPIN pode ser direta, porque se utiliza a mesma sintaxe do SPIN e as proposições, anteriormente definidas, já foram mapeadas para o SPIN.
+Porém, para representar a proposição e, da fórmula anteriormente vista, no SPIN utiliza- se o conceito de edges (vide Seção 2.2.2).
+Seguindo todo o exemplo, a fórmula e (para um modelo na GGBO) torna- se a fórmula(!
+E&amp; X e), ou seja, e é traduzido para um edge.
+Essa forma é usada porque a tradução de GGBO para PROMELA apresenta repetições de estados (stuttering), como pode ser visto na discussão sobre a compatibilidade semântica de modelos na GGBO e PROMELA traduzidos, onde o modelo PROMELA pode realizar seqüências de testes.
+Relembrando, uma fórmula é considerada closed under stuttering se a sua interpretação não é modificada por transições que deixam o sistema no mesmo estado.
+Fórmulas na LTL que não utilizam o operador X (next) são todas apresentada na Seção 2.1.1.
+PROMELA pode estar procurando uma mensagem buffer do processo objeto para aplicação e não encontrar nenhuma mensagem que possa ser aplicada.
+Apesar disso, o sistema continua executando (eventualmente uma regra será aplicada futuramente), trocando de estado, mas como nenhuma regra foi executada o valor que estava na variável event_ rule continua o mesmo.
+A o utilizar os conceitos apresentados na Seção 2.2.2, as especificações de propriedades para modelos na GGBO podem usar o operador X, garantindo que as repetições de estados introduzidas por a própria tradução não irão interferir na verificação.
+Geração de contra-exemplos Uma das grandes vantagens da verificação de modelos reside na geração de contra-exemplos (que permite analisar melhor o modelo), para especificações de propriedades que são falsas.
+Visto que o método de verificação definido nessa dissertação usa a tradução entre linguagens, os contra-exemplos gerados, na verificação de propriedades que são falsas, no SPIN na verificação de modelos traduzidos não são compatíveis com a GGBO, no sentido que grande parte das trocas de mensagens (do buffers dos processos objeto) e transições (seqüências de teste), não tem significado na GGBO.
+Isso é um problema, uma vez que o usuário precisa conhecer o modelo traduzido para entender o contra-exemplo gerado por o SPIN.
+Até o momento, nenhum dos trabalhos desenvolvidos nos projetos ForMOS e Casco levaram em consideração a visualização gráfica de execuções de modelos na GGBO.
+Apesar de o foco desta dissertação não ser a definição de uma técnica para a visualização gráfica de execuções na GGBO, agora é brevemente apresentada uma forma simples de visualizar graficamente execuções de modelos na GGBO.
+Basicamente, na literatura de sistemas distribuídos, uma forma bastante difundida de visualizar a execução de sistemas distribuídos tem como base a troca de mensagens entre os processos que compõem o mesmo.
+Essa forma de visualização consiste em definir uma linha de tempo para cada processo que compõem o sistema.
+O tempo aumenta de cima para baixo, onde as mensagens (arcos rotulados) trocadas entre os processos vão sendo apresentadas a medida que a execução do sistema evolui.
+Uma vez que a GGBO tem o seu foco na especificação de sistemas distribuídos, o uso de uma representação gráfica similar a descrita apresenta a vantagem de ser intuitiva para usuários que trabalham com a abstração de troca de mensagens.
+Entretanto, mostrar apenas a troca de mensagens entre os objetos que compõem o modelo, não apresenta outra importante abstração da GGBO, que é a aplicação de regras.
+Com o objetivo de considerar a aplicação de regras numa execução gráfica de modelos GGBO, é necessário adicionar informações sobre as regras sendo aplicadas no modelo.
+Para realizar isso, deve- se incluir o nome da regra sendo aplicada, no objeto em questão, a linha de tempo que representa o objeto.
+Um exemplo de visualização gráfica, para a verificação de uma propriedade que é falsa para o algoritmo de eleição AsynchLCR é visto na Figura 5.6.
+Como pode ser visto, cada objeto do modelo apresenta uma linha de tempo identificada por o nome do objeto (canto superior direito).
+O tempo aumenta de cima para baixo, onde as mensagens são apresentadas via arcos rotulados.
+Regras executadas por um objeto são apresentadas ao lado direito da linha de tempo do objeto que executou a regra.
+Quando situações de ciclo são detectadas por o SPIN, a frase START Of CYCLE é adicionada ao gráfico onde o ciclo inicia.
+Deve ser notado que em nenhum momento o estado interno dos objetos é apresentado.
+Essa simplicidade para a visualização gráfica facilita a implementação de uma transformação automática de contra-exemplos (execuções de modelos GGBO traduzidos) para propriedades que são falsas no SPIN.
+Isso ocorre porque os nomes das regras sendo aplicadas no modelo PROMELA são sempre atribuídos a variável event_ rule, e podem ser facilmente obtidos da execução textual gerada por o SPIN2.
+Mais especificamente, para transformar uma execução de contra-exemplo do SPIN, sobre um modelo GGBO traduzido, para a forma gráfica apresentada, os seguintes pontos devem ser tratados:·
+Criação de processos:
+Quando um processo é criado, um objeto gráfico, e sua correspondente linha de tempo, deve ser criado;·
+Aplicação de regras:
+Sempre que uma regra for aplicada, o nome da regra deve ser apresentada na linha de tempo que representa a execução do objeto em questão;·
+Envio de mensagens:
+As mensagens geradas por uma regra devem aparecer no gráfico gerado, a partir de o nome da regra aplicada, sendo uma seta do objeto origem ao objeto destino, com o nome da mensagem;
+O contra-exemplo fornecido por o SPIN é composto por a seqüência de declarações dos processos que compõem o modelo até onde a propriedade é falsa.·
+Supressão de mensagens:
+Todas as mensagens que são enviadas e recebidas por os buffer dos processos objeto devem ser suprimidas, pois não fazem parte de um modelo na GGBO, são construções criadas para manter a semântica da GGBO no modelo PROMELA traduzido;·
+Início de ciclo:
+Quando um ciclo é detectado por o SPIN, a frase START Of CYCLE deve ser adicionada ao gráfico.
+É importante salientar que o contra-exemplo apresentado foi gerado automaticamente a partir de um contra-exemplo, sobre um modelo GGBO traduzido, obtido por o SPIN.
+Para tanto, os pontos identificados acima foram tratados, sendo possível realizar uma filtragem sobre o contra-exemplo e gerar um gráfico de acordo com a visualização gráfica para GGBO definida.
+Algoritmo de eleição em anel AsynchLCR Para exemplificar o uso de eventos na especificação e verificação de propriedades de modelos na GGBO, as propriedades definidas na Seção 2.3.1, para o algoritmo de eleição em anel AsynchLCR, são especificadas e verificadas:
+Sobre essa proposição especifica- se a fórmula temporal e, indicando que o objeto de tipo Node com (maior) identificador id (igual a 3) irá se tornar líder (executar a regra LeaderId).
+Em a verificação, essa propriedade teve como resultado o valor verdade, gerando um modelo com 98 estados e ocupando 2.302 Mb de memória;
+Usando esses eventos, definem- se as proposições e1 $= e e2 $= nunca vai ocorrer que os objetos com identificador um ou dois irão se tornar líderes.
+Essa propriedade também tem seu valor verdade quando verificada no SPIN, gerando um modelo com 292 estados e ocupando 2.302 Mb de memória;
+Considerações finais Esse capítulo apresentou uma técnica para especificar propriedades, usando a LTL, sobre um modelo na GGBO, ao invés de o modelo PROMELA traduzido.
+Como pode ser visto, ter a noção de eventos como base para a especificação de propriedades em modelos na GGBO parece bastante intuitiva, uma vez que o desenvolvimento de uma execução é composto por uma seqüência de aplicação de regras.
+Além de isto, essas idéias podem ser mapeadas para o modelo PROMELA traduzido, possibilitando a verificação de propriedades usando o SPIN.
+Até o momento, a técnica de especificação de propriedades proposta não foi implementada, quer dizer, após a tradução de modelos, o usuário precisa definir seus eventos e especificar as propriedades que deseja verificar no SPIN.
+Um ponto a ser trabalhado é o desenvolvimento de uma aplicação gráfica que traduza especificações de propriedades, no formato descrito nesse capítulo, para especificações usando eventos no SPIN e, a partir de isso, acione automaticamente a verificação de modelos GGBO traduzidos considerando essas especificações.
+Outro ponto de discussão futuro é a geração gráfica de contra-exemplos para execuções na GGBO.
+A forma apresentada parece resolver de forma simples esse problema, especialmente porque a tradução de contra-exemplos no SPIN pode ser facilmente adaptada para o formato gráfico convencionado.
+Uma consideração a ser realizada sobre a geração de contra-exemplos diz respeito a aplicabilidade da técnica.
+Por exemplo, é suficiente apresentar apenas os nomes de regras sendo aplicadas num contra-exemplo, ou não.
+Uma análise mais estruturada sobre o assunto representa um importante trabalho futuro.
+Estudos de Casos Este capítulo apresenta dois estudos de casos modelados na GGBO, que são utilizados para avaliar o uso do método de verificação formal, para modelos na GGBO, definido nessa dissertação. Como
+estudos de casos são modelados os problemas dos filósofos glutões e dos leitores e escritores.
+Este capítulo é dividido da seguinte forma:
+Em a Seção 6.1 é modelado o problema dos filósofos glutões na GGBO, onde são especificadas e verificadas algumas propriedades;
+Em a Seção 6.2 o problema dos leitores e escritores é modelado na GGBO, que apresenta certas propriedades especificadas e verificadas;
+Em a Seção 6.3 são feitas algumas considerações finais sobre a utilização do método de verificar modelos na GGBO.
+Problema dos filósofos glutões Tradicionalmente, o problema dos filósofos glutões é descrito no seguinte cenário.
+Em uma mesa existem N filósofos e N garfos (um garfo entre cada dois filósofos).
+Os filósofos passam certo tempo pensando, sendo que em algum momento ficam com fome.
+Para comer, um filósofo precisa, exclusivamente, adquirir seu garfo esquerdo e direito.
+Após comer, um filósofo libera o garfo esquerdo e direito e volta a pensar novamente.
+Para a modelagem do problema dos filósofos glutões na GGBO, duas entidades são definidas:
+Fork (representando os garfos) e Phil (representando os filósofos).
+Após a apresentação dos grafos de tipos e as regras para as entidades Fork e Phil, são vistos dois modelos (representados por dois grafos iniciais), descrevendo uma solução simétrica (onde a situação de deadlock ocorre no sistema) e outra assimétrica (a situação de deadlock não deve ocorrer) para o problema.
+A entidade Fork representa os garfos do problema, e é composta por dois atributos (Figura ou não, valor falso).
+Como pode ser visto na Figura 6.1, um objeto do tipo Fork pode receber duas mensagens:
+Acq (usada por o filósofo para adquirir o garfo), e Rel (usada por o filósofo para liberar o garfo).
+As regras que definem o comportamento de objetos do tipo Fork é apresentada na Figura respectivamente, adquirir o garfo (regra AcqFork) e liberar o garfo (regra RelFork).
+A entidade Phil representa os filósofos do problema, sendo composta por seis atributos (Figura 6.3):
+Leftfork e rightfork (representam, respectivamente, o garfo esquerdo e direito do filósofo);
+Id (identificador do filósofo);
+Acquire (informa que o filósofo está com fome, tentando adquirir o primeiro garfo);
+Eat (falta ao filósofo obter o segundo garfo para conseguir comer);
+Phil pode receber três mensagens:
+HasFork (informa que o garfo requisitado foi adquirido);
+RelForks (usado para liberar os garfos adquiridos);
+GetFork (o filósofo está tentando adquirir o seu primeiro garfo).
+Right). Uma vez que o filósofo adquire os dois garfos, ele pode comer (regra Eat).
+Após comer, o filósofo libera seus garfos (regra Release).
+Em a Figura 6.6 é apresentado um grafo inicial, para o problema dos filósofos glutões, contendo a solução simétrica.
+Essa solução é simétrica porque todos os filosófos do modelo irão tentar adquirir, inicialmente, o garfo a sua esquerda (leftfirst é verdadeiro).
+Especificação e verificação de propriedades Agora são identificadas e classificadas algumas propriedades para o problema dos filósofos glutões:·
+Propriedade 2.
+Nunca um filósofo N -- 1 ou N+ 1 pode comer se o filósofo N estiver comendo.
+Comentário: Com essa propriedade tenta- se provar que a exclusão mútua para comer é preservada, com isso, apenas um filósofo pode estar comendo em determinado momento com relação a os seus filósofo vizinhos.
+Classificação: Propriedade do tipo safety e Occurrence Absence Between Q and R.· Propriedade 3.
+Sempre, em algum lugar no futuro, o filósofo N vai conseguir comer.
+Comentário: Essa propriedade é utilizada para verificar se existe postergação infinita para os filósofos do modelo, ou seja, se apenas um determinado filósofo (em relação a o modelo) irá ter a oportunidade de comer futuramente.
+Classificação: Propriedade do tipo liveness e Occurrence Existence Globally;
+Em seguida são especificadas e verificadas as propriedades definidas acima, para os modelos simétrico e assimétrico.
+Todas as fórmulas, representando propriedades, verificadas a seguir foram executadas numa máquina Xeon 2.2 GHz, com 500 Mb de memória disponível para o SPIN.
+Em o SPIN utilizou- se a compressão de estados, o algoritmo de redução de ordem parcial disponível e o tamanho máximo de 1.000.000 passos para a pilha de procura.·
+Propriedade 1 -- modelo simétrico Para a especificação dessa propriedade, apenas observar os nomes das regras sendo aplicadas é o suficiente.
+Sobre os eventos, define- se a seguinte proposição:·
+e $= (Eat) A partir de essa proposição é possível especificar a propriedade e, ou seja, &quot;sempre, em algum momento no futuro, um dos filósofos do modelo irá comer, executar a regra Eat».
+A o verificar essa propriedade para o modelo simétrico, o resultado obtido foi que a propriedade é falsa.
+Resultado esse esperado, por tratar- se de uma solução simétrica.
+A Figura convencionado na Seção 5.2.1).
+Como pode ser visto no contra-exemplo gerado, todos os filósofos que compõem o modelo conseguem adquirir seus garfos esquerdos, mas acabam entrando numa situação de deadlock, pois tentam adquirir seus garfos direitos e não conseguem (os garfos já estão em uso).
+Com a verificação dessa propriedade é possível afirmar que o modelo simétrico apresenta deadlock.
+Em a verificação o modelo gerou 5.586 estados, consumindo· Propriedade 1 -- modelo assimétrico Como para o modelo simétrico, para a especificação dessa propriedade, apenas observar os nomes de regras sendo aplicadas é o suficiente.
+Sobre esses eventos, define- se a proposição:·
+e $= (Eat) Com essa proposição especifica- se a propriedade e, ou seja, &quot;sempre, em algum momento no futuro, um dos filósofos do modelo irá comer, executar a regra Eat».
+A o verificar a propriedade no modelo assimétrico, o resultado foi verdadeiro.
+Ou seja, a solução assimétrica realmente resolve o problema dos filósofos glutões.
+Com a verificação dessa propriedade é possível afirmar que o modelo assimétrico não apresenta deadlock.
+Em a verificação o modelo gerou 796.271 estados, tendo consumido 62.257 Mb de memória.
+O tempo total para verificação foi de 01:00 min:
+Seg.· Propriedade 2 -- modelo simétrico Para a especificação dessa propriedade, é necessário tornar observável o atributo id (identificador) da entidade Phil.
+A partir de os eventos gerados, definem- se as seguintes proposições:
+Com essas proposições é possível especificar a propriedade, ou seja, &quot;sempre que o filósofo dois conseguir comer e liberar os garfos, entre o período que ele estiver comendo, tanto o filósofo um como três nunca podem conseguir comer».
+A o verificar a propriedade no modelo simétrico, o resultado foi verdadeiro.
+Com a verificação dessa propriedade é possível afirmar que o modelo simétrico apresenta exclusão mútua entre os filósofos.
+Em a verificação o modelo gerou 3.62644 e+ 06, tendo consumido 153.598 Mb de memória.
+O tempo total da verificação foi de 02:10 min:
+Seg.· Propriedade 2 -- modelo assimétrico Como para o modelo simétrico, para a especificação dessa propriedade, é necessário tornar observável o atributo id (identificador) da entidade Phil.
+A partir de os eventos gerados, definem- se as seguintes proposições:·
+e1 $= Com essas proposições especifica- se a propriedade, ou seja, &quot;sempre que o filósofo dois conseguir comer e liberar os garfos, entre o período que ele estiver comendo, tanto o filósofo um como três nunca podem conseguir comer».
+A o verificar a propriedade no modelo assimétrico, assim como para o modelo simétrico, o resultado foi verdadeiro.
+Com a verificação dessa propriedade é possível afirmar que o modelo assimétrico apresenta exclusão mútua entre os filósofos.
+Em a verificação o modelo gerou 3.65029 e+ 06, tendo consumido 154.520 Mb de memória.
+O tempo total da verificação foi de 02:10 min:
+Seg.· Propriedade 3 -- modelo simétrico Para a especificação dessa propriedade, é necessário tornar observável o atributo id (identificador) da entidade Phil.
+Sobre esses eventos, define- se a seguinte proposição:
+Com essa proposição especifica- se a propriedade e, ou seja, &quot;sempre, em algum momento no futuro, o filósofo dois irá comer, executar a regra Eat».
+A o verificar a propriedade no modelo simétrico, o resultado obtido foi falso, quer dizer, existe postergação infinita no modelo (um filósofo pode ficar sem comer em pelo menos uma das execuções possíveis).
+O contra-exemplo gerado é apresentado na Figura 6.9, e consiste de uma seqüência de estados onde apenas o filósofo três consegue comer, e o filósofo dois nunca tem a oportunidade de comer.
+Em a verificação o modelo gerou 19.886 estados, tendo consumido 34.916 Mb de memória.
+O tempo total da verificação foi de 00:01 min:
+Seg.· Propriedade 3 -- modelo assimétrico Como para o modelo simétrico, para a especificação dessa propriedade, é necessário tornar observável o atributo id (identificador) da entidade Phil.
+Sobre esses eventos, define- se a seguinte proposição:
+Com essa proposição especifica- se a propriedade e, ou seja, &quot;sempre, em algum momento no futuro, o filósofo dois irá comer, executar a regra Eat».
+A o verificar a propriedade no modelo assimétrico, o resultado obtido foi falso, quer dizer, existe postergação infinita no modelo (um filósofo pode ficar sem comer em pelo menos uma das execuções possíveis).
+O contra-exemplo gerado é apresentado na Figura 6.10, e consiste de uma seqüência de estados onde apenas o filósofo três consegue comer, e o filósofo dois nunca tem a oportunidade de comer.
+Em a verificação o modelo gerou 60.768 estados, tendo consumido 36.350 Mb de memória.
+O tempo total da verificação foi de 00:03 min:
+Seg. Problema dos leitores e escritores Basicamente, o problema dos leitores e escritores é composto por um recurso compartilhado que pode ser acessado por dois tipos de clientes, leitores ou escritores.
+Leitores somente podem ler dados do recurso compartilhado.
+Os escritores, por sua vez, podem modificar dados do recurso.
+O recurso deve garantir que, quando um escritor estiver ativo (modificando dados do recurso), nenhum leitor pode estar ativo (lendo dados do recurso).
+Podem existir vários leitores ativos no recurso quando nenhum escritor estiver ativo.
+Para a modelagem do problema dos leitores e escritores na GGBO, duas entidades são definidas:
+Resource (representando o recurso compartilhado) e Proc (representando o comportamento de ambos leitores e escritores).
+Após a apresentação dos grafos de tipos e regras para as entidades Resource e Proc, é visto um modelo (representado por um grafo inicial) usado para provar certas propriedades do problema.
+A entidade Resource representa um recurso no problema, sendo composta por os atributos:
+Nr (número de leitores que estão, no momento, acessando o recurso) e nw (número de escritores que estão, no momento, acessando o recurso).
+Como pode ser visto na Figura 6.11, um objeto do tipo Resource pode receber quatro tipos de mensagens:
+RRead (um leitor está iniciando o processo de leitura no recurso), RWrite (um escritor está iniciando o processo de escrita no recurso), ERead (um leitor está terminando o processo de leitura), e EWrite (um leitor está terminando o processo de escrita).
+ERead (a operação de leitura foi realizada no recurso compartilhado), e EWrite (a operação de escrita foi realizada no recurso compartilhado).
+As regras que especificam o comportamento de objetos do tipo Proc podem ser visualizadas na Figura 6.14.
+O comportamento de um leitor é cíclico, onde ele tenta executar uma operação de leitura no recurso (regra StartRead) e, caso a operação tenha ocorrido com sucesso, ele repete o procedimento (regra EndRead).
+Um escritor apresenta o mesmo comportamento (regras StartWrite e EndWrite), porém realizando operações de escrita no recurso.
+Em a Figura 6.15 é apresentado um grafo inicial para o problema dos leitores e escritores, contendo um recurso, dois leitores e dois escritores.
+Especificação e verificação de propriedades Agora são identificadas e classificadas algumas propriedades para o problema dos leitores e escritores:·
+Propriedade 1.
+Sempre que uma operação de escrita é iniciada e terminada no recurso, nenhuma outra operação de escrita ou leitura pode ocorrer no recurso.
+Comentário: Com essa propriedade tenta- se provar que a exclusão mútua para executar operações de escrita é preservada, com isso, apenas um escritor pode estar acessando o recurso em determinado momento.
+Classificação: Propriedade do tipo safety e Occurrence Absence Between Q and R;·
+Propriedade 2.
+Sempre, em algum lugar no momento, o escritor N vai conseguir executar uma operação de escrita no recurso.
+Comentário: Essa propriedade é utilizada para verificar se existe postergação infinita para os escritores do modelo, ou seja, se apenas um determinado escritor (em relação a o modelo) irá ter a oportunidade de executar operações de escrita futuramente.
+Classificação: Propriedade do tipo liveness e Occurrence Existence Globally.
+Em seguida são especificadas e verificadas as propriedades definidas acima, para o modelo (grafo inicial) apresentado na seção anterior.
+Todas as fórmulas, representando propriedades, verificadas a seguir foram executadas numa máquina Xeon 2.2 GHz, com 500 Mb de memória disponível para o SPIN.
+Em o SPIN utilizou- se a compressão de estados, o algoritmo de redução de ordem parcial disponível e o tamanho máximo de 1.000.000 passos para a pilha de procura.·
+Propriedade 1.
+Para a especificação dessa propriedade, apenas observar os nomes das regras sendo aplicadas é o suficiente.
+Sobre os eventos, definem- se as seguintes proposições:
+Com essas proposições é possível especificar a propriedade (rw&amp; f w) X(! (
+rw| rr) U f w), ou seja, &quot;sempre que iniciar uma operação de escrita no recurso e terminar essa operação, nesse período, a partir de o próximo estado em que a regra ReqWrite ocorre, nunca serão iniciadas novas operações de escrita ou leitura».
+A o verificar a propriedade, o resultado foi verdadeiro.
+Com a verificação dessa propriedade é possível afirmar que o modelo apresenta exclusão mútua para operações de escrita.
+Em a verificação o modelo gerou 1.00101 e+ 06 estados, tendo consumido 71.883 Mb de memória.
+O tempo total da verificação foi de 00:45 min:
+Seg.· Propriedade 2.
+Para a especificação dessa propriedade é necessário tornar observável o atributo id (identificador) da entidade Proc..
+Sobre esses eventos, definem- se as seguintes proposições:
+Com essa proposição especifica- se a propriedade (sw3 ew3), ou seja, &quot;sempre que o escritor com identificador três requisitar uma operação de escrita (regra StartWrite), em algum momento no futuro, a operação de escrita será executada no recurso, enviando uma confirmação ao escritor (execução da regra EndWrite)».
+Para o problema dos leitores e escritores, um único cenário foi definido.
+Com base neste modelo, foi possível especificar duas propriedades importantes para o problema dos leitores e escritores, como provar que o modelo conserva exclusão mútua.
+Também foi provado que o modelo apresenta postergação infinita.
+Como explicado para o problema dos filósofos glutões, uma forma de resolver o problema de postergação infinita seria de incluir algum tipo de ordenação no consumo de mensagens.
+Os estudos de casos possibilitaram analisar, de forma mais elaborada (visto que todas as propriedades verificadas dizem respeito a execuções infinitas), o método desenvolvido nesta dissertação.
+Em esse sentido, apesar de os resultados terem sido bastante elevados (tamanho de espaço de memória e pilha de procura), o método pode ser utilizado sem maiores dificuldades.
+Isso é importante, pois motiva ainda mais o desenvolvimento de uma ferramenta específica para a verificação de modelos na GGBO, usando o método definido.
+Considerações Finais O trabalho apresentado nessa dissertação teve como objetivo definir um método para a verificação formal de sistemas distribuídos modelados na GGBO.
+Para tanto, foi definida uma tradução de modelos na GGBO para a linguagem de entrada de um verificador de modelos existente.
+Tentando tornar o método o mais transparente possível para o usuário, foi definida uma forma de especificar propriedades sobre um modelo GGBO, e traduzir essas propriedades para o verificador de modelos utilizado.
+Além de isto, uma definição de como execuções na GGBO podem ser apresentadas graficamente foi realizada, onde foi explicada uma maneira de gerar contra-exemplos, obtidos da ferramenta de verificação usada, para essa definição.
+O verificador de modelo usado no método foi o SPIN.
+É importante salientar que, além de o SPIN, também foi avaliada a possibilidade de utilizar o verificador de modelos SMV.
+Entretanto, as estruturas oferecidas por a linguagem PROMELA (que possibilitaram mapear modelos na GGBO), sua lógica temporal LTL (facilitando a especificação e verificação composicional de propriedades), e sua ênfase na verificação de sistemas de software, motivaram a escolha da ferramenta.
+Este trabalho justifica- se tanto por a sua contribuição ao projeto ForMOS e Casco, onde tem- se investido grande esforço para criar um ambiente de desenvolvimento usando a GGBO como formalismo base, como por os atuais trabalhos relacionados encontrados na literatura, onde tenta- se verificar sistemas baseados em objetos ou orientados a objetos.
+O principal objetivo dessa dissertação, que consiste na definição de um método para a verificação formal de modelos na GGBO, foi atingido.
+Porém, como pode ser visto no decorrer de o trabalho, alguns pontos de pesquisa estão em aberto e necessitam de análise futura.
+De entre os pontos em aberto está o desenvolvimento de uma ferramenta específica para a verificação de modelos na GGBO, usando o método desenvolvido nesse trabalho.
+Essa ferramenta pode utilizar a interface gráfica existente (para a edição de modelos na GGBO) e a tradução desenvolvida nesse trabalho.
+Pode- se implementar uma extensão da interface gráfica em a qual o usuário pode definir parâmetros para a verificação (que serão usados no SPIN, e.
+g tamanho do número de passos) e as propriedades em lógica temporal sobre o modelo GGBO (usando o método definido nesse trabalho), conseguindo verificar o modelo através dessa interface.
+Além de isto, pode- se encapsular os resultados da verificação para apresentação gráfica nesta extensão do editor.
+Outro ponto a ser desenvolvido é o uso do raciocínio composicional, que motivou em grande parte a escolha do verificador de modelos, mas não se chegou a pesquisar em maiores detalhes devido a restrições de tempo.
+Futuramente, usando o raciocínio composicional, espera- se conseguir provar propriedades para objetos em separado, usando o paradigma assume-guarantee, de forma que propriedades a serem satisfeitas por o modelo possam ser garantidas por a composição de propriedades provadas em separado (por os objetos que compõem o modelo).
+Além disso, espera- se integrar o método de verificação de modelos na GGBO, desenvolvido nessa dissertação, com o trabalho realizado em, onde foram definidas formas de representar modelos de falha para sistemas distribuídos e, automaticamente, introduzir essas falhas em modelos na GGBO que não contenham falhas.
+Isso irá possibilitar ao usuário analisar seus modelos na GGBO, via verificação de modelos, na presença de falhas específicas (e.
+g modelo de falha crash).

@@ -1,0 +1,400 @@
+Este trabalho apresenta duas novas técnicas de compartilhamento de banda para servidores de vídeo com interatividade, Patching Interativo Eficiente, PIE e Patching Interativo Completo, PIC.
+
+Obtemos ainda uma aproximação para um limiar de tempo usado em decisões de união e abertura de fluxos, discutimos sobre outros limiares de tempo relacionados, e investigamos a importância do uso de buffer local no cliente.
+
+Através de simulações e análises competitivas mostramos que a otimização de banda é bastante satisfatória e que a aproximação proposta para o limiar de tempo é adequada para certos cenários.
+
+Também quantificamos a influência do buffer local na otimização da banda e na complexidade do sistema.
+
+Técnicas de compartilhamento de banda são indispensáveis para prover maior escalabilidade para sistemas de vídeo sob demanda (VoD).
+
+Como principal contribuição deste trabalho propomos então duas novas técnicas de compartilhamento de banda admitindo o serviço com interatividade, Patching Interativo Eficiente, PIE e Patching Interativo Completo, PIC.
+
+Além disso, obtemos uma aproximação analítica para um limiar de tempo usado em decisões de união de fluxos e abertura de novos fluxos, e ainda discutimos sobre outros limiares de tempo relacionados.
+
+Também analisamos a importância da utilização de buffer local no cliente para fins de evitar que unidades do objeto já transmitidas pelo servidor precisem ser requisitadas novamente pelo cliente.
+
+Por fim, avaliamos a complexidade do sistema.
+
+Através de simulações e análises competitivas - em cenários baseados em servidores reais - com técnicas já apresentadas na literatura, mostramos por exemplo que a otimização de banda conseguida pelo emprego das novas técnicas é bastante satisfatória.
+
+Constatamos também que a aproximação do limiar de tempo obtida é bem próxima do valor ideal experimental para certos cenários, e que o uso de buffer local no cliente pode ter influência significativa na otimização da banda do servidor, na banda agregada dos clientes e na complexidade do sistema.
+
+O restante deste trabalho está organizado conforme explicado a seguir.
+
+Inicialmente, na Seção 2, comentamos sobre os principais trabalhos relacionados.
+
+Em seguida, a Seção 3 introduz alguns conceitos preliminares e apresenta as novas técnicas de compartilhamento de banda aqui propostas.
+
+A derivação de um limiar de tempo usado nas decisões de abertura e união de fluxos e também a discussão sobre outros limiares de tempo relacionados estão na Seção 4.
+
+A Seção 5 é dedicada à apresentação dos mais importantes resultados de simulação obtidos nos diferentes cenários considerados.
+
+Por último, as conclusões e as propostas para trabalhos futuros constituem a Seção 6.
+
+Foram os primeiros a introduzir o conceito de sintonia nos servidores de VoD então existentes, os quais simplesmente realizavam a difusão (broadcast) de cópias do mesmo objeto em canais distintos e defasados no tempo entre si.
+
+A sintonia consistia em eficientemente determinar qual dos canais existentes estava transmitindo a unidade de dados desejada (ou mais próxima) pelo cliente.
+
+Tiveram especial atenção com as ações VCR (ações de interatividade praticadas pelo cliente) do tipo Pause/Resume, mas não discutiram claramente outros tipos de interatividade e a união de fluxos no sistema.
+
+Almeroth e Ammar tiveram como principal idéia a utilização do buffer local do cliente para garantir um serviço contínuo.
+
+Liao e Li em 1997 propuseram uma técnica chamada Split and Merge (SAM) protocol.
+
+Esta proposta implementa todos os tipos de ações VCR e é a primeira a formalmente discutir a união de fluxos em andamento.
+
+A idéia básica é alocar um fluxo exclusivo de interação tão logo o cliente execute uma ação VCR.
+
+Como característica principal desta técnica, tem-se o fato de que o buffer utilizado para prover a união de fluxos localiza-se nos nós de acesso da rede.
+
+Em seguida, Abram-Profeta e Shin melhoram a proposta do SAM protocol com a idéia de utilizar um buffer local e exclusivo no cliente.
+
+Por volta de 1999, Poon e Lo propuseram a técnica conhecida por Single-Rate Multicast Double-Rate Unicast (SRMDRU).
+
+Esta técnica também admite todos os tipos de ações VCR.
+
+A idéia base é a utilização de fluxos exclusivos de interação, como na proposta de Liao e Li, só que, após a ação VCR ter sido completada, o cliente passa a receber em uma taxa duas vezes maior que a taxa de exibição do objeto para o mais rapidamente possível alcançar um fluxo em andamento e então ser unido a ele.
+
+Ma e Shin em 2001 apresentaram a técnica conhecida como Best-Effort Patching (BEP).
+
+Sua idéia básica segue a concepção da técnica original de acesso seqüencial Patching com a diferença de que a estrutura de união de fluxos é uma floresta de árvores de até três níveis de profundidade.
+
+Além desta proposta, existem outras pesquisas sobre modificações do esquema original de Patching para admitir florestas de árvores de três ou mais níveis.
+
+Entretanto, os resultados sugerem que o nível de complexidade para a implementação e a gerência do sistema não justificam a sua implementação em face dos resultados observados de otimização de banda.
+
+Netto e Gorza apresentaram a técnica chamada Patching Interativo.
+
+A principal diferença desta técnica em relação à proposta de Ma e Shin é que a estrutura de união de fluxos mantém-se em dois níveis (conforme a da técnica original Patching).
+
+Outra característica desta técnica é a possibilidade de atender uma requisição com um fluxo transmitindo uma unidade anterior à unidade solicitada.
+
+Apesar de originalmente propostas para o acesso seqüencial, as técnicas baseadas em união hierárquica de fluxos, em geral podem ser modificadas ou servir de base para o desenvolvimento de técnicas para emprego em cenários com interatividade.
+
+No entanto, o custo de implementação e de gerência do sistema (complexidade) para estas técnicas pode ser bem maior que aqueles das técnicas baseadas em Patching, haja visto que a estrutura de união de fluxos passa a ser potencialmente uma floresta de árvores sem limites de profundidade e largura.
+
+Considere um servidor de vídeo e um grupo de clientes recebendo objetos multimídia (filmes, video clips, etc) através da Internet.
+
+Os clientes sempre requisitam o início do objeto e assistem ao mesmo até o final sem interrupções.
+
+O cliente possui buffer local capaz de armazenar pelo menos metade do objeto requisitado e sua banda corresponde a duas vezes a taxa de exibição deste objeto.
+
+Por fim, os fluxos iniciados (multicast ou unicast) transmitem individualmente na mesma taxa de exibição do objeto requisitado.
+
+A técnica Patching opera conforme explicado a seguir.
+
+O servidor escalona um fluxo multicast do objeto inteiro no momento da chegada do primeiro cliente.
+
+Os clientes seguintes, que requisitam o mesmo objeto e chegam dentro de um limiar de tempo, denominado janela, escutam o fluxo multicast (armazenando em buffer local para posterior exibição) e simultaneamente recebem a parte inicial do objeto, denominada patch, através de fluxos unicast individuais.
+
+Os clientes que chegam após o término da janela iniciam uma nova janela e o processo é reiniciado.
+
+Note que o buffer local do cliente é usado para fins de sincronismo, garantindo uma exibição contínua dos dados (unidades do objeto) recebidos a partir dos fluxos multicast e unicast.
+
+Foram propostos modelos semelhantes para estimativa da banda média para Patching.
+
+Nestes modelos foi suposto que as chegadas de requisições obedecem a um processo de Poisson para o objeto.
+
+A banda média do servidor para transmissão do objeto, medida em unidades da taxa de exibição do objeto.
+
+Em um cenário com interatividade temos as mesmas considerações do início desta subseção, adicionando apenas a característica do cliente possuir interatividade, ou seja, poder iniciar a exibição em qualquer posição do objeto e durante a exibição executar ações de pausa, retrocesso e avanço.
+
+O cenário básico descrito a seguir nos ajuda a entender a forma atual mais comum de atendimento das requisições para um objeto armazenado no servidor.
+
+Assuma que o objeto está dividido em unidades de mesmo tamanho e existem fluxos multicast em andamento.
+
+Seja a unidade do objeto solicitada por esta requisição e, sem perda de generalidade, admita que todos os fluxos estão transmitindo unidades de dados posteriores.
+
+O atendimento da solicitação de pode ser realizado de duas formas, serviço descontínuo ou serviço contínuo.
+
+No caso de serviço descontínuo, a solução consiste em simplesmente identificar o fluxo que tenha associado o menor valor.
+
+Seja então este fluxo e o valor de distância associado.
+
+Note que se então o cliente que fez a solicitação, receberá na realidade uma unidade posterior àquela solicitada e distante, caracterizando o serviço descontínuo por não estar recebendo exatamente aquilo que foi solicitado.
+
+No caso do serviço contínuo, o valor é determinado e então é verificado se ele está ou não dentro de um limiar de tempo permitido, aqui denominado Delta Posterior.
+
+Caso esteja, o cliente é atendido pelo fluxo correspondente e as unidades do objeto que faltam são enviadas através de um canal unicast.
+
+Caso seja superior ao Delta Posterior, um novo fluxo multicast é então aberto para atender a nova requisição.
+
+Atualmente a determinação do Delta Posterior é feita de forma empírica.
+
+Posteriormente obtemos uma expressão para obtenção deste parâmetro.
+
+Uma opção para evitar a criação de um fluxo é a união do cliente com um outro fluxo que esteja transmitindo uma unidade de dados anterior mas suficientemente próxima.
+
+A estimativa de quão suficientemente próxima é bastante subjetiva e está atrelada ao grau de tolerância do cliente.
+
+Seja Delta Anterior o limiar de tempo utilizado para mensurar esta proximidade, e seja o fluxo identificado nesta situação.
+
+Estimulando a utilização do Delta Anterior, Almeroth e Ammar inclusive sugerem que clientes de sistemas interativos podem não se importar com pequenas descontinuidades em relação ao serviço oferecido.
+
+Na subseção anterior apresentamos critérios que usualmente são utilizados para realizar a união de fluxos em cenários com interatividade.
+
+A seguir, apresentamos três novos critérios que usamos parcial ou integralmente nas propostas de PIE e PIC.
+
+Para entendimento do primeiro critério, considere o seguinte cenário.
+
+Um novo fluxo é criado para atender a requisição da unidade feita por um cliente.
+
+Admita a existência de um outro fluxo em andamento, que esteja suficientemente próximo e não tenha clientes realizando patch, de tal sorte que seja eficiente, em termos de otimização de banda do servidor, unir estes dois fluxos, isto é, tornar alvo.
+
+A escuta simultânea desses dois fluxos tem sua duração determinada pela diferença inicial entre as unidades sendo transmitidas, respectivamente, que denotamos por Delta Perto.
+
+Note que nenhuma solicitação adicional em termos de unidades de dados é feita ao servidor para que esta operação possa ser conduzida.
+
+Ao final do tempo denotado por Delta Perto, os clientes têm a mesma quantidade de dados armazenada que os clientes e, portanto, podem passar a escutar exclusivamente o fluxo.
+
+O fluxo é então extinto.
+
+Note que é necessário estabelecer um valor máximo para Delta Perto tal que essa união seja de fato eficiente.
+
+Em relação ao segundo critério, admita o cenário em que um fluxo recém iniciado, então escalonado como alvo do fluxo já em andamento no sistema, é extinto por não ter mais clientes associados antes que o próprio consiga alcançá-lo.
+
+Nesta situação, a união não mais acontecerá.
+
+Os clientes passam portanto a serem clientes órfãos.
+
+Para contornar esta situação, no momento da extinção do fluxo, o servidor realiza uma busca no sistema para identificar um outro fluxo em andamento que possa ser o substituto.
+
+Seja este fluxo.
+
+Assim, a economia de banda passa a ocorrer em função da união.
+
+Os clientes deixam então de ser órfãos.
+
+Caso seja extinto antes que consiga alcançá-lo, um novo procedimento de busca por um substituto é realizado recursivamente.
+
+O limiar de tempo considerado para identificação do fluxo.
+
+Por último, o terceiro critério diz respeito ao que chamamos de ação espontânea do servidor para realizar a união de fluxos multicast em andamento.
+
+A idéia é localizar um fluxo em andamento no sistema que possa ser o alvo de um fluxo que acabou de ter todos os patches associados terminados, ou seja, que a partir deste instante pode tentar se unir a um fluxo que esteja transmitindo uma unidade de dados posterior a do mesmo.
+
+Naturalmente também é necessário estabelecermos um limiar de tempo para que essa união seja eficiente.
+
+Aqui denotamos este limiar por Delta Destino.
+
+Nesta técnica fazemos uso apenas do primeiro critério definido na subseção anterior e a premissa básica é a manutenção de uma estrutura de união de fluxos de mesma complexidade que a técnica Patching.
+
+O Algoritmo 1 traz a operação simplificada desta técnica quando do recebimento de uma requisição para unidade.
+
+Note que a primeira pesquisa por fluxo ocorre considerando o conceito de Delta Anterior pois esta é a menos onerosa por evitar que qualquer unidade do objeto tenha de ser transmitida.
+
+A pesquisa seguinte utiliza o conceito de Delta Posterior, e neste caso é necessário utilizar um patch para suprir a parte inicialmente perdida.
+
+Caso não sejam identificados fluxos capazes de atender a requisição é então aberto um novo fluxo e verificado se existe algum outro fluxo que pode ser unido a ele no limite de Delta Perto.
+
+Como observação final, é importante dizer que a união de clientes com fluxos em andamento e a união de fluxos não necessariamente se dão com sucesso.
+
+Isto porque, devido à aleatoriedade do comportamento dos clientes, os fluxos podem ser extintos antes de serem alcançados e o próprio cliente também pode desistir de alcançar um determinado fluxo.
+
+As técnicas PIE e PIC são bem semelhantes.
+
+O que difere uma da outra é que para PIC usamos uma extensão do primeiro critério e também os segundo e terceiro critérios conforme sucintamente relembramos a seguir.
+
+Quando um novo fluxo é criado, busca-se a identificação de um conjunto de fluxos, em vez de apenas um fluxo como em PIE, caracterizando uma extensão do primeiro critério.
+
+No insucesso da união de dois fluxos multicast devido ao término precoce do fluxo a ser alcançado (fluxo alvo), existe a imediata tentativa de se buscar no sistema algum outro fluxo em andamento (no limite de Delta Perto) que possa substituir este, impedindo assim, quando possível, que os clientes tornem-se permanentemente órfãos.
+
+Isto corresponde ao segundo critério.
+
+E o terceiro critério é a tentativa de união de fluxos em andamento.
+
+Ela é iniciada no momento em que um fluxo multicast qualquer deixa de ter patches associados, dado que este fluxo não tenha ainda um fluxo alvo a ser alcançado.
+
+As seguintes suposições são consideradas no modelo para obtenção de uma aproximação para Delta Posterior, as chegadas de requisições são representadas por um processo de Poisson.
+
+Ao dividirmos o objeto em um número inteiro de unidades, temos que a probabilidade de acesso a cada uma destas unidades é exatamente a mesma, o padrão de acesso é tal que cada chegada de requisição requisita sempre um tamanho médio do objeto, e apenas as requisições que solicitam a mesma unidade do objeto podem compartilhar o fluxo inicialmente disparado por uma delas.
+
+Com estas suposições, é possível então mostrar que uma aproximação para Delta Posterior, onde é a taxa do processo de Poisson que representa as chegadas de requisições por novas unidades, denotam o tamanho médio solicitado pelas requisições e o tamanho do objeto armazenado no servidor, respectivamente, medidos em número de unidades.
+
+O valor é tão mais preciso quanto maior a proximidade entre o modelo analítico e o modelo da carga real.
+
+Esta proximidade pode ser medida a partir da localidade de acesso às unidades do objeto e do desvio padrão.
+
+Caso esta proximidade seja julgada insatisfatória, deve ser feito igual ao número de unidades diferentes solicitadas no início da requisição.
+
+Esta redefinição empírica reflete a tentativa de adequação do modelo analítico, que admite uma distribuição de acesso uniforme, à verdadeira distribuição de acesso presente na carga real.
+
+A obtenção analítica de Delta Anterior, Delta Perto e Delta Destino não é trivial de ser realizada devido a complexidade do modelo de interatividade do cliente.
+
+Alternativamente, procedemos então como indicado a seguir.
+
+Fixamos Delta Anterior em 10 segundos por ser um valor aparentemente bem tolerável para a maioria das aplicações de VoD.
+
+Os parâmetros Delta Perto e Delta Destino assemelham-se por estabelecerem a distânciamáxima permitida entre fluxos multicast para que os mesmos possam ser unidos.
+
+Daí, assumimos Delta Perto sempre igual a Delta Destino e testamos experimentalmente diversos valores na tentativa da identificação de valores ideais.
+
+Considerando diferentes cenários de interatividade, os experimentos têm os seguintes objetivos analisar a distribuição da banda do servidor, quantificar a importância da utilização, por parte do cliente, de buffer local de tamanho igual ao do objeto para fins de armazenamento permanente das unidades do objeto transmitidas pelo servidor e conseqüentemente evitar que unidades já transmitidas necessitem ser requisitadas novamente.
+
+Determinar valores ideais para os parâmetros Delta Posterior, Delta Perto e Delta Destino, analisar o número de clientes ativos (clientes realizando streaming), realizar análises competitivas das novas técnicas com a técnica Patching Interativo e com uma versão modificada para acesso não-seqüencial que implementamos a partir da técnica Closest Target.
+
+Em relação ao objetivo cabe ainda acrescentar o seguinte.
+
+As técnicas PIE e PIC, assim como também Patching Interativo, Closest Target e Patching fazem uso em sua concepção de um buffer local no cliente de tamanho igual a pelo menos metade do tamanho do objeto, sendo este usado estritamente para fins de sincronismo da escuta, permitindo assim exibição contínua das unidades do objeto.
+
+Ressaltamos que, com a utilização da idéia de buffer de tamanho do objeto e armazenamento de todas as unidades recebidas, a função de sincronismo continua existindo, o que ocorre é a adição da possibilidade de armazenar permanentemente as unidades do objeto com fins de evitar, como já explicado, que unidades já armazenadas tenham de ser novamente requisitadas ao servidor.
+
+Por simplicidade de referência e clareza de discussão, nos experimentos comparativos utilizamos então o sufixo SB (Simple Buffer) para indicar que a técnica faz uso apenas do buffer simples convencional, de tamanho igual a pelo menos metade do objeto.
+
+E com fins exclusivos de sincronismo, e o sufixo CB (Complete Buffer) para indicar que a técnica relacionada faz uso de buffer completo de mesmo tamanho do objeto e utilizado para prover sincronismo e armazenar permanentemente todas as unidades do objeto enviadas pelo servidor.
+
+Escolhemos as técnicas Patching Interativo e Closest Target para fins de comparação competitiva com nossas propostas pelos seguintes motivos.
+
+A técnica Patching Interativo, doravante referenciada por PI, é bem recente e tem como uma das principais premissas a estrutura de união de fluxos como uma floresta de árvores de no máximo dois níveis, garantindo significativa simplicidade de gerência do sistema.
+
+Para compararmos PIE (ou PIC) com PI, empregamos então a conceituação de raz ão competitiva diretamente nas distribuições de banda obtidas.
+
+Esclarecemos que estas razões consideram ou PI e PIE (ou PIC) com o uso de buffer simples ou PI e PIE (ou PIC) com a utilização de buffer completo e, devido à precisão dos resultados de simulação.
+
+Com isto desprezamos as caudas das distribuições.
+
+Já a técnica Closest Target, por ser baseada em união hierárquica de fluxos, tem como principal atrativo a sua eficiência em potencial.
+
+Esta eficiência esperada se dá pela característica de pesquisa exaustiva e irrestrita por fluxos no intuito de compartilhamento de dados, e também pelo fato de todos os fluxos abertos serem multicast e daí potencialmente fluxos alvos.
+
+Neste caso a discussão se volta, não somente para a comparação da otimização de banda conseguida, mas também para a quantificação do nível de complexidade introduzido no sistema.
+
+Avaliamos esta complexidade pelo cálculo do trabalho realizado pelo servidor como explicado no parágrafo seguinte.
+
+A versão modificada para acesso não-seqüencial de Closest Target que implementamos é doravante referenciada simplesmente por CT.
+
+O trabalho realizado pelo servidor é proporcional ao número de mensagens recebidas e às operações realizadas na ocorrência das mensagens.
+
+A operação de maior custo é a busca por um fluxo no sistema.
+
+Fazemos a análise de pior caso e admitimos a busca por um fluxo para as técnicas PIC, PIE e PI, onde representam o número de fluxos multicast abertos no sistema devido ao emprego da técnica.
+
+Onde é um fator de aglutinação de fluxos proporcional ao valor de Delta Posterior.
+
+Notadamente a determinação analítica não é simples de ser realizada.
+
+De forma alternativa, obtemos os valores experimentalmente através da análise das curvas de banda do próprio servidor.
+
+Com estes valores e o valor das taxas de mensagens também obtidas experimentalmente, quantificamos o trabalho realizado pelo servidor.
+
+Sumariza as complexidades de tempo devido ao recebimento de cada tipo de mensagem a depender da técnica utilizada, onde corresponde a uma complexidade de tempo constante.
+
+Os detalhes destas complexidades podem ser encontrados.
+
+Podemos então quantificar o trabalho médio para as técnicas PI, PIE, PIC e CT por meio das formulações.
+
+Em nossos experimentos utilizamos cargas sintéticas provenientes dos servidores de ensino à distância eTeach e MANIC, e do provedor Universo Online, ou simplesmente UOL, um dos maiores provedores de conteúdo da América Latina.
+
+As principais características destas cargas estão apresentadas.
+
+Examinamos três diferentes cenários no total, onde cada cenário refere-se a carga de um destes servidores.
+
+Para efeito de análise, consideramos o atendimento de um único objeto constitu ído de unidades (indivisíveis) de 1 seg cada.
+
+As ações VCR consideradas são Play, Stop, Pause/Resume, Jump Forwards e Jump Backwards.
+
+Salvo mencionado diferentemente, fizemos Delta Perto e Delta Destino iguais a Delta Posterior, e fixamos Delta Anterior em 10 segundos.
+
+Devido às restrições de espaço, não ilustramos e detalhamos todos os experimentos referenciados neste texto.
+
+Resultados e figuras completas, além de outros experimentos pertinentes.
+
+A seguir descrevemos os experimentos realizados em cada um dos cenários para Delta Posterior igual a 50% do valor da janela ótima de Patching, comparamos a distribuição da banda do servidor para as técnicas PIE, PIC e PI, e ainda calculamos as razões competitivas relacionadas.
+
+Estimativas diferentes de 50% para Delta Posterior redundam qualitativamente nos mesmos resultados comparativos.
+
+Este experimento nos fornece condições de analisar competitivamente as técnicas mencionadas, para Delta Posterior igual a 50% do valor da janela ótima de Patching e considerando a técnica PIE ou PIC (a de melhor performance), comparamos as distribuições da banda do servidor, como também as curvas de clientes ativos (clientes realizando streaming), com buffer simples (SB) e com buffer completo (CB).
+
+A curva de clientes ativos aqui chamamos de banda agregada dos clientes.
+
+Estimativas diferentes de 50% para Delta Posterior redundam qualitativamente nos mesmos resultados comparativos.
+
+Este experimento nos dá condições então de quantificar a importância do emprego de buffer completo através da otimização conseguida na banda do servidor e na banda agregada dos clientes, para Delta Posterior variando aproximadamente no intervalo de 0, 300% do valor do tamanho médio solicitado por requisição, observamos a distribuição da banda do servidor obtida para PIE ou PIC (a de melhor performance).
+
+Este experimento nos dá condições de determinar o valor ideal de Delta Posterior e avaliar a acurácia da aproximação analítica que fizemos.
+
+Valores fora do intervalo mencionado se mostram ineficientes para fins de otimização, mais precisamente, o valor médio tende a ser o limite superior do intervalo pois corresponde ao tamanho médio de fluxo a ser compartilhado, para Delta Perto variando aproximadamente no intervalo de 0, 300% do valor ideal de Delta Posterior, observamos a distribuição da banda do servidor obtida para PIE ou PIC (a de melhor performance).
+
+Este experimento nos dá condições de determinar o valor ideal de Delta Perto.
+
+Valores fora do intervalo mencionado se mostram ineficientes para fins de otimização.
+
+Lembramos que sempre fazemos Delta Destino igual ao valor de Delta Perto, e Delta Anterior fixo e igual a 10 seg, considerando valores ideais dos parâmetros Delta, comparamos a distribuição da banda do servidor para as técnicas PIE ou PIC (a de melhor performance) e CT, e ainda calculamos o trabalho médio realizado pelo servidor.
+
+Este experimento permite análises competitivas das técnicas mencionadas.
+
+Para o Cenário 1, Carga eTeach, mencionamos o seguinte.
+
+As técnicas PIE e PIC têm melhor desempenho que a técnica PI.
+
+PIE e PIC têm desempenhos semelhantes com tênue vantagem para PIC.
+
+O uso de buffer local completo traz significativa otimização da banda do servidor e da banda agregada dos clientes, redução de 3108% no pico.
+
+O valor ideal experimental de Delta Posterior é 30, 40% da janela ótima e sua aproximação analítica é satisfatória (3989% da janela ótima).
+
+O valor ideal experimental obtido para Delta Perto é o valor ideal experimental de Delta Posterior.
+
+CT tem melhor desempenho que PIC à custa de maior complexidade.
+
+Para o Cenário 2, Carga UOL, temos o seguinte.
+
+As técnicas PIE e PIC têm melhor desempenho que a técnica PI.
+
+PIE e PIC têm desempenhos bem semelhantes, com vantagem para PIE pela sua maior simplicidade de implementação.
+
+O uso de buffer local completo traz significativa otimização da banda do servidor e da banda agregada dos clientes (redução de 1885% no pico).
+
+O valor ideal experimental de Delta Posterior é 100, 110% da janela ótima e sua aproximação analítica não é satisfatória (244% da janela ótima).
+
+O valor ideal experimental obtido para Delta Perto é o valor ideal experimental de Delta Posterior.
+
+CT tem melhor desempenho que PIE à custa de maior complexidade.
+
+De forma interessante, a utilização de buffer completo neste cenário faz com que o número máximo de fluxos multicast da técnica CT aumente.
+
+Isto porque o uso de buffer completo leva à redução do número de fluxos multicast e esta redução pode diminuir a probabilidade de compartilhamento e a união de fluxos, provocando extraordinariamente um aumento momentâneo do número de fluxos em relação àquele do cenário com buffer simples.
+
+Já no Cenário 3 - Carga MANIC - temos o seguinte.
+
+As técnicas PIE e PIC têm melhor desempenho que a técnica PI.
+
+PIE e PIC têm desempenhos semelhantes, com vantagem para PIE pela sua maior simplicidade de implementação.
+
+O uso de buffer local completo traz otimização discreta da banda do servidor e da banda agregada dos clientes (redução de 222% no pico).
+
+O valor ideal experimental de Delta Posterior é 70, 80% da janela ótima e sua aproximação analítica não é satisfatória (146% da janela ótima).
+
+O valor ideal experimental obtido para Delta Perto é o valor ideal experimental de Delta Posterior.
+
+CT tem melhor desempenho que PIE à custa de maior complexidade.
+
+A partir dos resultados observados nos três cenários descritos temos então as seguintes constatações globais.
+
+Primeiro, as técnicas PIE e PIC apresentam níveis de otimização de banda bastante semelhantes e satisfatórios, o que termina favorecendo PIE para aplicação prática devido a sua maior simplicidade de implementação.
+
+Segundo, PIE e PIC têm melhor desempenho - quantificada pelas razões competitivas e distribuição da banda do servidor - que PI.
+
+Terceiro, a técnica CT apresenta melhor desempenho que PIE e PIC à custa de uma maior complexidade do sistema - aproximadamente uma ordem de grandeza - inferida a partir do cálculo do trabalho médio realizado pelo servidor e que se traduz principalmente pelo maior número de mensagens transmitidas, processamento mais complexo, e maior dependência na implementação de roteamento multicast.
+
+Quarto, os resultados advindos da investigação da importância do uso de buffer no cliente indicam que os benefícios trazidos dependem do cenário em questão e se refletem potencialmente na banda do servidor, na banda agregada dos clientes, e na complexidade do sistema.
+
+Quinto e último, para emprego prático de PIE e PIC, podemos admitir a aproximação analítica obtida para Delta Posterior é satisfatória em cenários de interatividade média/alta em cenários de interatividade baixa, devemos utilizar como estimativa inicial para Delta Posterior ou o valor do tamanho médio da requisição ou o valor da janela ótima da técnica Patching (pois os valores ideais de Delta Posterior estiveram sempre confinados a percentuais).
+
+E a partir daí determinarmos dinamicamente o valor ideal, Delta Perto e Delta Destino devem ser iguais ao valor de Delta Posterior, para Delta Anterior, fixamos 10 seg por ser um valor aparentemente tolerável para a maioria das aplicações de serviço de VoD.
+
+Este trabalho apresentou duas novas técnicas de compartilhamento de banda para servidores de vídeo com interatividade, Patching Interativo Eficiente, PIE e Patching Interativo Completo, PIC.
+
+Obtivemos ainda uma aproximação para um limiar de tempo (Delta Posterior) usado em decisões de união e abertura de fluxos, discutimos sobre outros limiares de tempo relacionados (Delta Anterior, Delta Perto e Delta Destino) e, por fim, investigamos a importância do uso de buffer local do cliente para evitar que dados já armazenados sejam novamente requisitados ao servidor.
+
+Através de simulações e análises competitivas mostramos principalmente que a otimização de banda devido ao emprego das novas técnicas é bastante satisfatória e superior ao da recente proposta PI.
+
+Também observamos que CT tem melhor performance que PIE e PIC à custa de uma maior complexidade do sistema.
+
+Ainda constatamos que a aproximação analítica para Delta Posterior é satisfatória para cenários de interatividade média/alta, e mostramos como estimar de forma prática os demais limiares de tempo definidos para PIE e PIC.
+
+Vimos ainda que o uso de buffer no cliente pode influenciar significativamente na complexidade do sistema e também na otimização da banda do servidor e na banda agregada dos clientes.
+
+Como trabalhos futuros e em andamento temos obter fórmulas analíticas para Delta Perto e Delta Destino, avaliar o impacto de Delta Anterior maior igual à 10 seg na banda do servidor e na percepção do cliente, estudar o uso de janela ótima para técnicas de interatividade baseadas em união hierárquica de fluxos.
+

@@ -1,0 +1,430 @@
+A análise comportamental de um processo permite a detecção de deficiências, assim como avaliar o impacto no desempenho do mesmo causado por mudanças no ambiente.
+O uso de modelos analíticos para descrever o processo em observação fornece estes dados através da resolução de sistemas de equações.
+No caso de modelagens feitas com a utilização de formalismos como Rede de Autômatos Estocásticos, a resolução destes sistemas depende da multiplicação de vetores por estruturas definidas através da álgebra tensorial.
+Por ter um alto custo computacional, diversos algoritmos foram propostos para resolver esta multiplicação.
+Recentemente a solução iterativa Split foi proposta, e o objetivo deste trabalho é apresentar alternativas paralelas e otimizações para a mesma, buscando um melhor desempenho da solução.
+Palavras-chave: Avaliação de Desempenho, Álgebra Tensorial, Alto Desempenho, Split.
+Para estudar o comportamento de um sistema, uma possível abordagem é elaborar um modelo que permita simular os cenários e estados em que ele possa se encontrar.
+Estas simulações geralmente são baseadas na geração de números aleatórios que atuam nas decisões de comportamento e interação dos componentes do sistema analisado.
+Após executar a simulação até que um prédeterminado critério de parada seja atingido, os resultados são analisados e, através de métodos estatísticos, conclusões são obtidas.
+Uma outra abordagem capaz de obter estas conclusões é realizada através de uma modelagem distinta.
+Em este caso, identifica- se todos os possíveis estados do sistema, as transições que levam o ambiente de um estado para outro e as taxas em que as mesmas ocorrem.
+Estes dados são apresentados na forma de um autômato, denominado Cadeia de Markov (Cm), que também pode ser representado por uma matriz contendo as taxas destas transições e conhecida como Gerador Infinitesimal (Q).
+Apesar deste mecanismo servir o seu propósito, o mapeamento de sistemas com muitos estados pode se tornar uma tarefa complicada principalmente por a quantidade de memória consumida no processo.
+Estas complicações deram surgimento a outros formalismos, como Rede de Autômatos Estocásticos (SAN, do inglês Stochastic Automata Network), onde procura- se mapear subsistemas do ambiente em autômatos menores.
+Em estes autômatos, as transições são denominadas eventos, que podem ser locais ou sincronizantes, sendo os últimos responsáveis por a integração dos autômatos por promover a ocorrência do evento em mais de um autômato simultaneamente.
+Visto que toda SAN possui uma Cm correspondente, é justo afirmar que uma SAN também pode ser armazenada através de um Gerador Infinitesimal.
+No entanto, uma forma mais econômica de armazenar estes dados é oferecida por o Descritor Markoviano (DM) que, de uma forma geral, trata- se do somatório dos produtos tensoriais das matrizes de transição de cada autômato da rede.
+Assim sendo, pode- se afirmar que o DM é uma descrição compacta de Q. Dando seqüência ao estudo comportamental de um modelo, busca- se então a permanência nos estados do sistema.
+Para isto, procura- se um vetor de probabilidades, denominado auto vetor, cuja multiplicação por Q resulte no próprio.
+A medida que os sistemas analisados crescem, torna- se necessário utilizar o DM ao invés de Q, uma vez que a memória necessária para armazenar todos os dados pertinentes ao processo cresce além de os limites computacionais atuais.
+Por causa de isto, o uso de soluções iterativas também aparece como alternativa aos métodos diretos para obtenção de, uma vez que seu consumo de memória é menor e, desta forma, é possível atingir um equilíbrio entre a quantidade de memória e o tempo de processamento necessário para que uma solução seja atingida.
+Mesmo assim, existem sistemas grandes o suficiente para que a busca de suas soluções demore mais do que o desejado.
+Em estes casos, a paralelização destes algoritmos aparece como uma alternativa para acelerar suas execuções.
+Este trabalho propõem a paralelização de um destes algoritmos iterativos, denominado Split, através de um mecanismo capaz de analisar o problema em questão e realizar este processamento distribuído.
+Ele está organizado da seguinte forma:
+O Capítulo 2 introduz o estado da arte no que diz respeito ao formalismo markoviano, discutindo Cm, SAN e abordando o formato tensorial para a explicação do DM.
+Em o Capítulo 3, o processo de multiplicar um vetor de probabilidades por o DM é explicado, discutindo- se três algoritmos iterativos para realizar- lo.
+Em o Capítulo 4, a paralelização de um destes algoritmos é discutida e um protótipo é apresentado juntamente a otimizações e resultados.
+Por fim, o Capítulo 5 apresenta as conclusões da pesquisa e trabalhos futuros.
+Este capítulo apresenta o estado da arte relacionado ao formalismo markoviano.
+Para isto, inicialmente os conceitos de Cadeia de Markov (Cm) são explicados, seguidos de Redes de Autômatos Estocásticos (SAN) e do Descritor Markoviano (DM).
+Para a compreensão do DM, torna- se necessário introduzir a álgebra de tensores, formalismo matemático que define as operações realizadas entre as matrizes do descritor.
+Os conceitos apresentados neste capítulo foram retirados de.
+Cadeia de Markov De acordo com o que foi introduzido no Capítulo 1, a Cadeia de Markov é um autômato geralmente utilizado na análise estocástica de um dado sistema.
+Este autômato é descrito através de um grafo dirigido, onde cada nodo representa um estado do sistema e onde cada aresta representa uma possível transição de um estado para outro, associada de uma taxa de ocorrência desta transição.
+Para ilustrar o conceito de Cm, imagina- se uma rede hipotética de transmissão de dados composta por mais de um nodo.
+Cada nodo pode estar desligado, ocioso ou em comunicação.
+Não há restrição no que diz respeito aos nodos estarem ligados ou desligados, no entanto, sempre que um nodo entrar em modo de comunicação, os demais integrantes da rede deverão acompanhar- lo para este estado.
+A o encerrar a troca de dados, todos os nodos entram em ociosidade, porém se algum nodo falhar durante a comunicação e se desligar, os demais componentes devem tornar- se ociosos.
+A Figura 2.1 ilustra uma possível modelagem em Cadeia de Markov desta rede, considerando um ambiente composto por dois nodos.
+Para nomear os estados da cadeia, utilizou- se a seguinte convenção:
+O nome de cada estado será definido por duas letras, a primeira representando a situação do primeiro nodo e a segunda representando a situação do segundo.
+Estas letras serão:
+O para desligado (do inglês off);
+I para ocioso (do inglês idle);
+C para comunicando (do inglês communicating).
+Em este modelo, as taxas das transições foram especificadas através de valores simbólicos, sendo:
+Tl a taxa com que um nodo liga, ou seja, passa de desligado (O) para ocioso (I);
+Td a taxa com que um nodo desliga, ou seja, passa de ocioso para desligado (O);
+Tc a taxa com que um nodo comunica, ou seja, passa de ocioso para comunicando (C);
+Te a taxa com que um nodo encerra sua comunicação, ou seja, passa de comunicando (C) para ocioso;
+T f a taxa com que um nodo falha, ou seja, passa de comunicando (C) para desligado (O), enquanto que os demais nodos passam de comunicando (C) para ocioso (I).
+Esta cadeia é representada através de uma Matriz de Transição (MT), também denominada de Gerador Infinitesimal (Q).
+Para o modelo da Figura 2.1, esta matriz se apresenta na Equação 2.1. Em ela, os estados são ordenados com uma regra pré-estabelecida (neste caso, a ordem lexicográfica do nome dos mesmos) e distribuídos de forma que cada célula Ci j indica a taxa de transição do estado i para o estado j.
+No entanto, para que esta matriz seja realmente considerada um Gerador Infinitesimal, por definição é necessário realizar um ajuste para que a soma de cada linha seja igual a zero.
+Este ajuste é realizado adicionando- se o complemento da soma de todos os elementos da linha ao elemento da diagonal principal.
+Para formalizar este conceito tem- se que, se Ci j é a célula da linha i e coluna j da matriz, a Equação 2.2 realiza o ajuste em questão.
+Cxx $= -- Cxy, para todo x de 1 a n y $= 1 Executando este procedimento para a matriz em questão, tem- se um Gerador Infinitesimal como o da Equação 2.3. De posse de Q, torna- se possível calcular a taxa de permanência em cada elemento do espaço de estados descrito, ou seja, a distribuição estacionária do modelo.
+Para o exemplo, este dado permite que se calcule, por exemplo, qual a probabilidade do modelo encontrar- se com todos os nodos ligados (através da interpretação das probabilidades de permanência nos estados II e CC).
+Esta distribuição estacionária é dada por o auto vetor da Matriz de Transição, ou seja, por um vetor que multiplicado por Q resulte no próprio.
+Uma das formas de obtenção deste vetor é dada por um algoritmo iterativo denominado Método da Potência, que consiste na sucessiva multiplicação de um vetor por a MT.
+Para que seja possível realizar tal operação, a dimensão do vetor deve ser igual a ordem da matriz, e a soma de todos os elementos do vetor devem resultar num.
+É importante salientar que, para que o Método da Potência atinja convergência, Q seja antes transformado numa matriz de probabilidades.
+Para que isto aconteça, duas condições precisam ser cumpridas.
+A primeira trata- se da necessidade de que não haja valores negativos na tabela, uma vez que não existem probabilidades negativas.
+A segunda exige que a soma de todos os elementos de uma linha seja igual a um, significando que todas as probabilidades de transição daquele estado estão cobertas.
+Este procedimento de transformação é chamado de normalização e pode ser realizado através de dois passos.
+O primeiro consiste em encontrar o maior elemento em módulo da matriz e dividir toda a matriz por ele.
+Com isto, não haverá nenhum elemento maior do que um na matriz.
+O segundo passo trata- se de somar uma matriz identidade a MT, adicionando- se assim o valor escalar um à diagonal principal da matriz em transformação.
+Como a soma dos elementos de cada linha do Gerador Infinitesimal era zero antes da normalização, agora ela passa a ser um, conforme o exigido.
+Também é interessante observar que após estes procedimentos não é possível haver valores negativos na matriz, uma vez que, se houvessem tais valores na matriz original, eles estariam na diagonal principal.
+Com a execução do primeiro passo, todos os valores passam a ser menores do que um (mesmo que negativos) e, com a execução do segundo passo, todos os valores negativos da diagonal principal passam a ser positivos.
+Apesar de o uso de Cadeias de Markov se mostrar uma abordagem simples, ele começa a se tornar computacionalmente inviável a medida em que o espaço de estados do sistema aumenta.
+Isto ocorre uma vez que a matriz de transição cresce de tamanho ao ponto de exceder os limites computacionais atuais capazes de manter- la de maneira integral em memória primária.
+A necessidade de utilizar sistemas secundários de armazenamento de dados para a realização de operações como o swap para operar todos os dados torna o processo de resolução mais lento que o desejável.
+No caso de o modelo da rede de comunicação de dados apresentado nesta seção, a quantidade de estados da Cm é dada por as possíveis combinações de estados O e I para cada nodo, mais um estado representando todos os nodos em comunicação (CC).
+Sendo m o número de autômatos, este valor é obtido por 2m+ 1. Desta forma, se um modelo semelhante fosse criado para uma rede com oito nodos, a Cm teria 257 estados, mostrando- se assim o crescimento exponencial do modelo.
+Para contornar este problema, novos formalismos foram introduzidos.
+Este trabalho irá utilizar o formalismo denominado Rede de Autômatos Estocásticos.
+Rede de Autômatos Estocásticos Uma Rede de Autômatos Estocásticos (SAN, do inglês Stochastic Automata Network) trata- se de um conjunto de autômatos representando partes de um sistema a ser analisado.
+Seu uso, em contraste ao uso de Cadeias de Markov, além de proporcionar uma maior facilidade na criação de modelos, uma vez que o processo é simplificado por a utilização de diversos autômatos menores, permite que a limitação apresentada na seção anterior seja rompida.
+Isto ocorre uma vez que, ao invés de uma grande matriz de transição, torna- se possível resolver uma SAN através de operações tensoriais num conjunto de matrizes menores, necessitando- se assim de menos memória para manter todos os dados acessíveis.
+Para o entendimento do funcionamento de uma SAN, apresenta- se a rede hipotética de transmissão de dados descrita na seção anterior.
+Em SAN, a rede, também composta por dois nodos, pode ser modelada através de dois autômatos, N e N conforme a Figura 2.2. Cada autômato possui três estados, seguindo a mesma nomenclatura utilizada na representação em Cm.
+Os autômatos trocam de estado através de eventos, que podem ser locais ou sincronizantes.
+Os eventos locais, representados na figura como li, alteram apenas o estado do autômato em questão.
+Já os eventos sincronizantes, representados na figura como si, alteram os estados de dois ou mais autômatos simultaneamente.
+As taxas de ocorrência destes eventos são apresentadas na tabela que acompanha os autômatos.
+Ainda sobre as taxas de ocorrência dos eventos, observa- se que é possível a especificação de taxas baseadas em funções.
+Estas funções, em geral, incluem dependência sobre outros estados do modelo e podem indicar, por exemplo, se um evento pode ou não ocorrer dependendo do número de autômatos da SAN encontrarem- se num certo estado.
+Estas funções podem facilitar a representação de um modelo, mas podem ser substituídas por eventos sincronizantes, não sendo estritamente necessárias.
+Por o objetivo deste trabalho não depender das mesmas, este assunto não será aprofundado.
+Outra importante observação é verificar que todo modelo descrito em SAN também pode ser representado através de uma Cm, uma vez que ambos formalismos são baseados nas mesmas propriedades e conceitos.
+Assim sendo, estado local é como se referência o estado em que um autômato qualquer se encontra, enquanto que estado global se trata de um conjunto de estados, representando aquilo que seria o estado na Cm equivalente ao modelo em estudo.
+Compreendendo estes conceitos, cita- se a existência de uma outra função cujo objetivo não é a determinação de taxas de eventos.
+Trata- se da função de atingibilidade, que representa quais estados globais da SAN são atingíveis.
+O produto cartesiano da dimensão de todos os autômatos de uma SAN representa o espaço de estados do modelo, no entanto, conforme o exemplo da Figura 2.2, nem todos são atingíveis.
+Esta função torna- se importante para a definição inicial do vetor de probabilidades utilizado no Método da Potência e será discutida novamente no Capítulo 4.
+Assim como a matriz de transição apresentada na Seção 2.1 para as Cadeias de Markov, as SANs também possuem uma representação numérica.
+No entanto, conforme já foi discutido, esta representação deve consumir menos memória do que a matriz equivalente para a Cm, uma vez que um dos objetivos do uso de SAN é a redução de memória necessária para a resolução de um problema.
+A próxima seção apresenta o formato tensorial, introduzindo as operações da álgebra de tensores e, em seguida, o Descritor Markoviano, que se trata da denominação do conjunto de matrizes e operações que definem esta representação mais compacta do modelo.
+Formato Tensorial Uma das vantagens de se trabalhar com SAN é a possibilidade de descrever todo o sistema num formato mais compacto, denominado Descritor Markoviano.
+Apesar de outros sistemas poderem ser representados através de DMs, como é o caso das Redes de Petri Estocásticas (SPN, do inglês Stochastic Petri Nets), esta seção irá tratar o caso particular onde o sistema descrito é uma SAN.
+Para que seja possível o entendimento do DM, antes é necessária a apresentação dos dois operadores da Álgebra Tensorial Clássica (ATC):
+O Produto Tensorial (também chamado de Produto de Kronecker) e a Soma Tensorial.
+Estes conceitos foram retirados do estudo realizado em.
+O produto tensorial de duas matrizes A e B de dimensões e, respectivamente, definido por A B, trata- se de uma matriz, ou um tensor, de dimensões.
+Como exemplo, apresenta- se as matrizes A e B:
+Definidas estas matrizes de exemplo, a Equação 2.4 apresenta a matriz C, que se trata do resultado de A B. Conforme pode ser observado neste exemplo, o tensor resultante pode ser visualizado como quadrantes de dimensões, uma vez que o produto é obtido através da multiplicação de cada elemento escalar ai j da matriz A por a matriz B, colocando- se a matriz resultante no quadrante i j.
+Assim sendo, o espaço de estados do produtório em questão (dimensão do tensor resultante) pode ser calculado previamente através da multiplicação das dimensões das matrizes envolvidas na operação.
+Juntamente com este conceito, apresenta- se a definição de nle f ti e nrighti, que se tratam do espaço de estados a esquerda ou a direita, respectivamente, da i-ésima matriz do produtório.
+O cálculo destes valores é realizado através da multiplicação das ordens de todas as matrizes a esquerda (para o nle f t) ou a direita (para o nright) da matriz i, considerando- se dois casos especiais:
+Uma vez compreendido o Produto Tensorial, torna- se possível o entendimento do conceito de Fator Normal, que é utilizado para a apresentação da Seção 2.3.2. O Fator Normal é um caso particular do Produto Tensorial onde os termos envolvidos são uma matriz quadrada e uma matriz identidade de qualquer ordem.
+Tomando a matriz A do exemplo anterior e uma matriz identidade I3 (de ordem 3), torna- se possível combinar dois produtos:
+O resultado destas operações encontra- se nas Equações 2.5 e 2.6, respectivamente.
+O conceito de Fator Normal, além de facilitar a visualização da operação de um Produto Tensorial, é especialmente importante para a compreensão dos algoritmos utilizados neste trabalho para realizar a Multiplicação Vetor Descritor (MVD), apresentada no Capítulo 3.
+Uma vez compreendido este conceito, pode- se apresentar a Soma Tensorial.
+A Soma Tensorial, apesar de fazer uso do Produto Tensorial, que é definido para matrizes de quaisquer dimensões, apresenta- se apenas para matrizes quadradas.
+Esta restrição ocorre por a necessidade do uso de matrizes identidades da mesma ordem dos elementos da soma na operação.
+A Equação 2.7 define como é esta relação, apresentando a soma de duas matrizes X e Y, de ordens m e n, respectivamente.
+Fazendo uso das matrizes A e B definidas na Seção 2.3.1 como exemplo, a operação de soma tensorial pode ser visualizada na Equação 2.10. Como a matriz A é uma matriz quadrada de ordem dois e a matriz B é uma matriz quadrada de ordem três, o processo ocorre através da soma dos tensores resultantes entre o produto tensorial de A por uma matriz identidade de ordem três e de B por uma matriz identidade de ordem dois.
+Os conceitos apresentados nesta seção definem o Formalismo Tensorial necessário para a compreensão do Descritor Markoviano, que será introduzido a seguir.
+No entanto, este formalismo, também conhecido como Álgebra Tensorial Clássica, não é suficiente para tratar SANs que apresentem taxas funcionais.
+Para tal, torna- se necessário o estudo da Álgebra Tensorial Generalizada (ATG).
+Conforme discutido na Seção 2.2, este trabalho não aborda tais casos de SAN, por isso não discute tal formalismo.
+O Descritor Markoviano é apresentado através de operações tensoriais entre matrizes de transições.
+O uso da Álgebra Tensorial para a descrição de SANs foi inicialmente proposto por Plateau.
+Para sua melhor definição e entendimento, o DM pode ser dividido em duas partes:
+Uma local e uma sincronizante.
+A Equação 2.11 introduz este conceito.
+A parte local (DMl) é composta por a soma tensorial de MTs Ql, sendo i um índice para cada autômato, e sendo cada matriz as transições dos eventos locais deste autômato.
+A Equação 2.12 e N como o número total de autômatos.
+DMl $= Ql i $= 1 A parte sincronizante (DMs) do DM é definida através de uma abordagem diferente.
+Para cada autômato, existem dois conjuntos (um positivo e outro negativo) de matrizes para cada evento.
+Sendo assim, se E é o número de eventos sincronizantes e N o número de autômatos, DMs terá 2 × E × N matrizes de transições.
+A Equação 2.13 define como é a interação destas matrizes.
+No que diz respeito aos conjuntos positivos e negativos de matrizes, tem- se que a matriz positiva representa as transições do evento sincronizante e no autômato i, enquanto que a matriz negativa Qe- representa o ajuste relacionado a matriz positiva.
+Um detalhe importante destes conjuntos é que as taxas do evento apenas serão colocadas na matriz relacionada ao autômato que iniciou o evento, utilizando- se o valor 1 nas demais matrizes.
+Este conceito existe para facilitar a compreensão dos eventos sincronizantes, indicando que o evento é do tipo mestre no autômato que o inicia e escravo nos demais.
+Qe+ Uma vez compreendido o fundamento das partes locais e sincronizantes do Descritor Markoviano, a Equação 2.14 é apresentada, unindo os conceitos introduzidos até aqui e representando o Gerador Infinitesimal de uma SAN.
+Conforme discutido na Seção 2.3.1, a álgebra tensorial permite decompor uma série de somas tensoriais em fatores normais.
+Isto permite a eliminação de tais operações do DM, fazendo com que a sua parte local, assim como a parte sincronizante, seja composta apenas de produtos tensoriais.
+A Tabela 2.1 apresenta as operações da Equação 2.14, porém permitindo uma outra visualização do DM.
+De acordo com o observado na Tabela 2.1, a modificação na parte local do DM elimina as somas tensoriais, deixando apenas operações do tipo produto tensorial.
+Esta modificação torna- se fundamental para a multiplicação do DM por um vetor de probabilidades, como será explicado no Para concluir a compreensão de como o DM descreve uma SAN, o modelo hipotético de rede de comunicação utilizado neste capítulo será representado no formato recém discutido.
+Inicialmente, a parte local do Descritor Markoviano é apresentada através das matrizes Ql.
+Em seguida, a parte sincronizante é descrita por as matrizes Qe+ e Qe-.
+No que diz respeito a parte local, é possível observar o modelo na Figura 2.2 e verificar que cada autômato possui dois eventos locais.
+Em o primeiro autômato, os eventos são ld1 e ll1, com taxas Td e Tl, respectivamente.
+Em o segundo autômato, os eventos são ld2 e ll2, com as mesmas taxas que o primeiro.
+Desta forma, a parte local do DM deste modelo é descrita através da definição de Ql (com as taxas dos eventos locais do primeiro autômato), Ql (com as taxas dos eventos locais do segundo autômato) e I3 como uma matriz identidade de ordem três, conforme segue:
+Já para a parte sincronizante, torna- se necessário formar as matrizes a partir de os eventos, em contraste com a parte local, onde as matrizes foram formadas a partir de os autômatos.
+Assim sendo, observa- se novamente a Figura 2.2 e analisa- se os quatro eventos sincronizantes sc, se, s f 1 e s f 2.
+Para cada um de eles, será necessário elaborar dois conjuntos (um positivo e outro negativo) contendo duas matrizes cada (uma para cada autômato).
+Em o primeiro conjunto constam as matrizes sincronizantes positivas.
+Assim sendo, para cada evento, constam duas matrizes indicando as taxas com as quais eles ocorrem em cada autômato.
+Para o evento sc e se, são elas:
+Para o evento s f 1 e s f 2, são elas:
+Outra importante observação sobre a parte sincronizante do DM trata- se da presença do sinal negativo no ajuste das matrizes.
+Como esta parte do DM é formada por produtos tensoriais, apenas é necessário negativar os elementos de ajuste numa matriz de cada evento, visto que o processo de multiplicação irá propagar o sinal negativo para as demais matrizes.
+Considerações Finais Este capítulo apresentou os conceitos básicos do estado da arte relacionado a esta pesquisa.
+Inicialmente, discutiu Cadeia de Markov e Rede de Autômatos Estocásticos.
+Em seguida, o formalismo tensorial foi apresentado, dando base para a discussão da representação numérica de SAN:
+O Descritor Markoviano.
+Estes conceitos completam o fundamento necessário para a discussão da multiplicação de um vetor de probabilidades por o DM.
+Este processo, que leva o nome de Multiplicação Vetor--Descritor, é a base para a solução Split, alvo de paralelização neste trabalho.
+Conforme foi discutido na Seção 2.1, a solução estacionária de uma Cadeia de Markov pode ser obtida através da multiplicação de um vetor de probabilidades por o gerador infinitesimal do modelo.
+Para uma SAN, no entanto, o processo torna- se mais complicado devido a o formato em que o seu gerador infinitesimal (no caso, o Descritor Markoviano) se apresenta.
+Devido a estas diferenças, o processo recebe o nome de Multiplicação Vetor--Descritor (MVD), uma vez que ele consiste na multiplicação de um vetor de probabilidades por o Descritor Markoviano (DM).
+Uma forma de realizar esta operação seria resolver todas as operações tensoriais contidas no DM, formando assim uma única matriz (ou tensor) e multiplicar o vetor de probabilidades por ele, como numa operação normal de multiplicação de matrizes.
+Apesar de estudos terem sido feitos com a utilização de memória virtual para viabilizar esta técnica, este procedimento anula a vantagem principal da utilização do DM, que é exatamente a possibilidade de se trabalhar com matrizes menores.
+Assim sendo, para que seja possível realizar a MVD, algoritmos foram desenvolvidos permitindo que a operação seja executada sem a prévia resolução do DM numa única matriz.
+Estas soluções consideram que o vetor está sendo multiplicado por uma linha do DM, ou seja, por um produtório tensorial ao invés de um somatório de produtos tensoriais.
+A Equação 3.1 mostra como pode ser deslocado para dentro de o somatório, através do uso da propriedade distributiva.
+Para a realização deste trabalho, três algoritmos iterativos foram estudados e serão apresentados na próxima seção.
+Os conceitos discutidos aqui foram retirados de.
+Soluções Iterativas Em o que diz respeito a realização da MVD, o uso de algoritmos iterativos aparece como uma alternativa interessante.
+Por se tratarem de processos que aproximam a solução a cada iteração, é possível controlar o critério de parada tanto por a precisão obtida quanto por o tempo de execução do algoritmo.
+Não importando o critério escolhido, consegue- se calcular o erro existente na solução obtida até o ponto de parada, controlando- se também a qualidade da solução calculada.
+Os algoritmos descritos nesta seção são baseados no Método da Potência, já discutido na Seção 2.1, e que consiste na sucessiva multiplicação de um vetor por uma matriz de probabilidades.
+A cada iteração, o vetor se aproxima da solução estacionária do modelo descrito por a matriz, sendo que o algoritmo considera- se encerrado quando um critério de parada pré-estabelecido é atingido.
+Sendo e P o vetor e a matriz de probabilidades, respectivamente, o método é ilustrado por a Equação 3.2. Em seguida, apresenta- se três soluções para realizar esta multiplicação.
+Cada uma destas soluções possui vantagens no que diz respeito a otimização e ganho de desempenho dependendo de certas características do DM, conforme será discutido.
+A solução Sparse, como o nome sugere, é ideal para a multiplicação de um vetor de probabilidades por um produto tensorial de matrizes esparsas, ou seja, com uma quantidade dominante de elementos nulos.
+Isto ocorre visto que o algoritmo, inicialmente, monta uma tabela representando todos os elementos diferentes de zero que estariam presentes no tensor resultante do produto tensorial envolvido no processo.
+Cada linha desta tabela irá conter três colunas, sendo a primeira o elemento correspondente do tensor resultante e, as outras duas, índices utilizados no processo de multiplicação.
+O primeiro de eles, denominado basein, representa a posição do vetor de probabilidades por a qual o elemento da tabela deverá ser multiplicado.
+O segundo, denominado baseout, representa a posição do vetor resultante em que o resultado da multiplicação deverá ser armazenado.
+Para que o processo seja realizado corretamente, é necessário atribuir o valor zero a todos os elementos do vetor resultante no início de cada iteração.
+Assim sendo, ao se realizar uma multiplicação, o valor resultante deve ser incrementado no vetor de resultados na posição indicada, uma vez que esta posição pode se repetir em diferentes linhas da tabela.
+Esta solução pode ser descrita como no Algoritmo 1. Algoritmo 3.1: Representação algorítmica da solução Sparse -- $= × N i $= 1 Q (k) k fim fim É importante observar que, como as linhas da tabela são utilizadas apenas uma vez por iteração, este algoritmo guarda somente os valores utilizados na iteração em questão (para as variáveis e, basein e baseout).
+Conforme será visto no Capítulo 4, onde o objetivo não é realizar apenas um processo de multiplicação, mas sim uma solução iterativa otimizada, todos os valores são gerados inicialmente e guardados para utilizações futuras.
+Um custo teórico desta solução pode ser dado por a Equação 3.3, que computa o número de multiplicações em ponto flutuante realizadas por o algoritmo.
+No entanto, este valor considera o cálculo de e recém discutido (o cálculo de basein e baseout são operações sobre números inteiros e, por isso, desconsiderados).
+Em a equação, N define o número de matrizes do produto tensorial, enquanto que nzi define o número de elementos diferentes de zero na i-ésima matriz.
+Conforme sugerido, se uma tabela fosse realmente montada com todos os valores de e, basein e baseout, o custo de cada iteração poderia ser calculado sem a inclusão das operações gastas desta etapa inicial.
+O número de multiplicações em ponto flutuante neste novo caso é dado por a Equação 3.4. Nzi i $= 1 Por este algoritmo tratar o produto tensorial como um único tensor, consumindo memória para realizar o mínimo de multiplicações necessárias a cada iteração, ele pode ser considerado como eficiente em processamento.
+Em contrapartida, se o computador utilizado na execução de uma implementação desta solução não possuir memória suficiente para armazenar esta tabela, o sistema operacional necessitará realizar operações de swap, gravando partes desta tabela em disco rígido e degradando o tempo de execução total.
+Outra forma de contornar esta questão é trabalhar com o processo de MVD sem a resolução completa do produtório tensorial, conforme será discutido na apresentação da próxima solução.
+Em contraste com a solução Sparse recém apresentada, a solução Shuffle busca otimizar o processo MVD onde os elementos não-nulos são predominantes nas matrizes do DM.
+Para isto, ela faz uso da propriedade algébrica tensorial apresentada na Seção 2.3.1 que permite a decomposição de um produto tensorial numa multiplicação de fatores normais, conforme o exemplo a seguir.
+Em o exemplo, é possível observar o produto tensorial entre N matrizes quadradas Qn, sendo i o índice da matriz e n a sua ordem.
+Após a decomposição em fatores normais, novos produtos são apresentados, cada um envolvendo apenas uma das matrizes previamente citadas.
+De acordo com estes novos fatores normais, é possível distinguir três categorias em que eles se encaixam.
+A primeira categoria é o caso particular onde a matriz Q encontra- se a esquerda do produtório, tendo apenas matrizes identidades a sua direita Inright1).
+A segunda é o caso onde a matriz encontra- se entre matrizes identidades (Inle f ti Q (i) Inrighti).
+Por fim, a terceira é o outro caso particular onde a matriz encontra- se a direita do produtório (Inle f tN Q (N)).
+Esta divisão em categorias permite identificar onde os elementos da matriz Q irão se encontrar no produto tensorial.
+No caso de o fator normal onde a matriz identidade encontra- se a direita no produto tensorial, cada elemento q (k, l) da matriz Q (1) aparecerá nright1 vezes no tensor resultante.
+Suas localizações serão dadas por+,+), com variando de zero a nright1.
+O exemplo abaixo ilustra este conceito utilizando uma matriz A de ordem dois e uma matriz identidade de ordem três.
+Para o caso do fator normal onde a matriz identidade encontra- se a esquerda no produto tensorial, cada elemento q (k, l) da matriz Q (N) aparecerá nle f tN vezes no tensor resultante, sendo suas localizações dadas por (k+ (nle f tN ×), l+ (nle f tN ×), com variando de zero a nle f tN.
+O exemplo a seguir ilustra este conceito utilizando os mesmos parâmetros do exemplo anterior.
+Em o caso genérico onde existe uma matriz identidade a esquerda e outra a direita da matriz Q, é possível identificar a posição dos elementos q (i, j) através de uma combinação das outras duas categorias apresentadas até agora.
+O Algoritmo 3.2, apresentado a seguir, utiliza estes conceitos para localizar quais elementos de um vetor são necessários para realizar a multiplicação por cada fator normal.
+Observando- se o algoritmo, nota- se a utilização de um vetor zin, preenchido na linha 7, que contém somente os elementos pertinentes de para a multiplicação por cada matriz Q.
+Esta multiplicação ocorre na linha 10, sendo o vetor resultante chamado de zout.
+Em seguida, na linha 13, é atualizado com os valores de zout.
+Algoritmo 3.2: Em suma, este procedimento toma um vetor zin a partir de e o multiplica por cada Q, sempre atualizando a cada iteração com o resultado do processo.
+Isto acaba sendo o mesmo que quebrar o produto tensorial em diversos fatores normais e multiplicar por o primeiro fator normal, utilizando o vetor resultante na multiplicação por o segundo fator normal e assim por diante.
+No entanto, o processo proposto por o algoritmo descarta a necessidade desta quebra em fatores normais, que de outra forma consumiria memória em demasia.
+No que diz respeito ao custo desta solução, tem- se que o processo monta, para o processo de multiplicação, nle f ti ×nrighti vetores de tamanho ni.
+Considerando que as matrizes são armazenadas num formato esparso (somente os elementos diferentes de zero são armazenados), o número de multiplicações realizados por esta solução pode ser dado por nle f ti × nrighti × nzi, sendo nzi o número de elementos diferentes de zero da matriz Q.
+A Equação 3.5 formaliza este conceito.
+Esta solução, em contraste com a solução Sparse apresentada na Seção 3.1.1, realiza um número maior de multiplicações.
+No entanto, por tratar de forma eficiente a separação do produto tensorial em fatores normais (não necessitando armazenar em memória os fatores normais), ela consome menos memória, tornando- se mais eficiente para produtos que contém matrizes mais densas.
+Tendo em vista as soluções apresentadas, uma nova abordagem surgiu para tratar eficientemente casos onde o produto tensorial possa se encontrar numa classificação intermediária entre o esparso e o denso.
+Em estes casos, ambas as soluções Sparse e Shuffle deixam de aproveitar suas particularidades, enquanto que uma proposta híbrida poderia utilizar o que cada uma de elas possui de melhor, inclusive nos casos em que o produto seria melhor tratado por uma destas duas soluções.
+A solução Split surge com esta proposta e, como o nome sugere, consiste em dividir os produtos tensoriais em dois conjuntos de matrizes.
+Mantendo as devidas dependências entre estes conjuntos, um de eles é tratado por a solução Sparse enquanto que o outro é tratado por a solução Shuffle.
+O ponto em que esta divisão é realizada é representado por a letra grega, e exemplos destes cortes podem ser visualizados na Tabela 3.1. Conforme pode ser observado na Tabela 3.1, quando for igual a zero, a solução Split se comporta exatamente igual a solução Shuffle.
+Em o outro caso extremo, quando for igual a N, ou seja, ao número de matrizes no produto tensorial, a solução Split se comporta como a solução Sparse.
+Para todos os casos intermediários, a solução quebra o produto tensorial em duas partes.
+Para a parte da esquerda é gerada uma tabela igual a discutida na Seção 3.1.1, com cada linha contendo um é então montado, contendo as partes pertinentes de (de acordo com basein) e já multiplicado por cada elemento e da tabela esparsa.
+Este vetor é então multiplicado por a parte direita do produto tensorial, utilizando o algoritmo Shuffle, e o vetor solução out é acumulado de volta em de acordo com baseout.
+A solução é apresentada no Algoritmo 3.3. Algoritmo 3.3: Representação algorítmica da solução Split -- $= × N i $= 1 Q (k) k fim fim nle f ti f t -- 1 faça fim fim fim fim Conforme pode ser observado, ambos Algoritmos 1 e 3.3 são iguais até a linha 9, com a diferença que o último irá calcular os valores de e, basein e baseout apenas para as matrizes até, em comparação ao primeiro, que os calcula até N. Isto se deve ao fato da tabela esparsa estar sendo gerada apenas para a parte esquerda do produto tensorial utilizado na MVD.
+Para a parte direita do produto tensorial, pode- se observar as semelhanças entre as linhas de número 10 a 31 do Algoritmo 3.3 com as linhas de 1 a 19 do Algoritmo 3.2. No caso de a solução da parte pertinente de multiplicada por e.
+Outra diferença é o uso de ao invés de zero para os índices referentes ao produto tensorial.
+Em as linhas finais do Algoritmo 3.3 (a partir de a linha 32), ocorre então o acúmulo da partir utilizado para representar na parte Shuffle da solução Split.
+Assim como nas soluções anteriores, o custo desta solução também pode ser teorizado em termos de o número de multiplicações em ponto flutuante.
+Em este caso, o custo é dado por o número de multiplicações realizadas para gerar os elementos não nulos de cada termo da parte Sparse, somado ao custo de multiplicar o vetor de probabilidades por o produto tensorial do conjunto de matrizes da parte Shuffle.
+Este valor, multiplicado por o número de matrizes unitárias, é apresentado na Equação 3.6 e determina o custo computacional do Split.
+Considerações Finais Este capítulo apresentou o que é a Multiplicação Vetor--Descritor e quais são as complicações do processo.
+Também foram apresentados três algoritmos iterativos para a realização da MVD, sendo o Split um de eles e proposta de paralelização neste trabalho.
+O próximo capítulo irá discutir formas de distribuir a MVD e focar esta distribuição no algoritmo Split.
+Para a realização de um protótipo capaz de executar uma versão distribuída da solução Split, foram disponibilizados quatro computadores Hewlett--Packard modelo dx2600, cujas características pertinentes são dois processadores Itanium2 (da família IA64) com clock de 1.5 GHz, 2 GB de memória RAM e uma interface de rede Ethernet Gigabit que interliga os mesmos numa rede dedicada.
+Conforme, configurações com estes processadores são indicadas para aplicações matemáticas.
+Este agregado, classificado por a literatura como Máquinas Agregadas (COW, do inglês (MIMD) conforme a classificação por fluxo de instruções de Flynn, influência diretamente sobre como esta solução será elaborada.
+Por se tratar de um agregado homogêneo, ou seja, de máquinas iguais interligadas por uma rede chaveada onde o custo de comunicação entre qualquer nodo é o mesmo, uma abordagem paralela como Mestre-Escravo pode ser utilizada.
+Esta abordagem consiste em designar a tarefa de Mestre para um processo e as tarefas de escravos para os demais.
+O Mestre fica então encarregado de centralizar as informações do processamento e distribuir trabalhos para os escravos executarem, determinando ainda os critérios de parada.
+Partindo destas premissas, um estudo sobre como paralelizar a MVD foi conduzido, buscando- se formas de dividir o processamento realizado por o algoritmo Split.
+Em seguida, ainda foi necessário realizar a implementação de uma versão seqüencial da solução para que valores de referência fossem obtidos.
+Finalmente, um protótipo paralelo foi elaborado a partir de a implementação seqüencial, fornecendo novos números para comparação.
+Paralelização da MVD Conforme foi discutido no Capítulo 3, as soluções Sparse, Shuffle e Split são baseadas no Método da Potência, que se trata de um método iterativo onde cada iteração i depende do vetor resultante da iteração i -- 1 para que possa ser executada.
+Por causa de esta dependência, não é possível distribuir diferentes iterações em diferentes processos concorrentes.
+Assim sendo, para que seja possível realizar uma versão paralela deste método, primeiro deve- se analisar o processo em si para que os pontos passíveis de paralelização sejam identificados.
+Analisando a solução Split, cuja paralelização é a proposta deste trabalho, pode- se verificar os pontos da mesma que são passíveis de distribuição onde não haja dependência de dados.
+Um destes pontos torna- se evidente se o Descritor Markoviano for revisado.
+Lembrando que uma iteração consiste em tomar um vetor de probabilidades e multiplicar- lo por cada produto tensorial do DM, acumulando o resultado de cada um destes processos em, nota- se que não há dependência de dados entre estes produtos tensoriais.
+Vetor-Descritor. Produtos tensoriais existentes no Descritor Markoviano.
+Esta ilustração também representa a Equação 3.1, apresentada no início do Capítulo 3.
+No que diz respeito a paralelização, isto também mostra que é possível colocar cada processo de multiplicação de por um produto tensorial em fluxos de execução concorrentes, visto que não há dependência de dados.
+Levando esta idéia para a solução particular Split, entra- se no mérito de como paralelizar o processo de multiplicação de por um produto tensorial no algoritmo em questão.
+Conforme foi discutido, o algoritmo consiste em montar uma tabela contendo os elementos escalares e multiplicálos por o produto tensorial a direita de, juntamente com as partes pertinentes de.
+A Figura 4.2 ilustra esta idéia.
+De acordo com os pontos passíveis de paralelização identificados no algoritmo e do agregado de computadores disponíveis para este trabalho, conforme discutido no início deste capítulo, uma possível abordagem de paralelização pode ser feita através da técnica mestre-escravo.
+Para a solução Split, a aplicação da técnica pode ser dada através da designação a um processo mestre da tarefa de organizar quais pedaços de irão para cada escravo.
+Os escravos recebem esta informação, executam a parte Shuffle da solução e enviam seus vetores resultantes de volta ao mestre, antes do acúmulo dos resultados em.
+A Figura 4.3 ilustra como esta separação é realizada através da utilização da técnica MestreEscravo.
+Em a figura, o processo mestre M envia para os escravos E1 e E2.
+Os escravos, por sua escalar e pertinente e, em seguida, por o produtório tensorial através do algoritmo Shuffle.
+O vetor resultante é então enviado de volta ao mestre, que acumula os resultados e prepara um novo para a próxima iteração.
+Um ponto interessante desta abordagem é a obtenção dos dados iniciais, visto que o mestre necessita montar em memória toda a estrutura do DM, o ajustando, normalizando e separando em duas partes conforme um pré-estabelecido para cada produto tensorial.
+Para a parte da esquerda ainda é necessário calcular a tabela Sparse, contendo todos os elementos escalares e seus valores de basein e baseout associados.
+Feito isto, o mestre necessita definir o vetor inicial, de acordo com a função de atingibilidade do modelo.
+Juntando esta observação ao fato de que parte da seção Sparse e toda a parte Shuffle do DM são necessárias por cada escravo, nota- se que é possível reduzir o tempo necessário na inicialização do ambiente.
+Considerando que a solução paralela é arquitetada para um agregado homogêneo, isto é obtido fazendo- se com que todos os nodos do ambiente realizem os cálculos mencionados simultaneamente no momento em que a execução é iniciada.
+Desta forma, poupa- se a etapa em que o mestre distribui esta estrutura para todos os escravos, sendo somente necessário que os vetores e trafeguem por a rede.
+Antes da implementação de um protótipo paralelo capaz de validar o modelo descrito nesta seção, torna- se fundamental a elaboração de um protótipo seqüencial.
+A solução seqüencial previamente elaborada para as medições apresentadas em não pôde ser utilizada uma vez que, no momento em que este trabalho para uma versão paralela foi iniciado, ela ainda se encontrava em constantes alterações para validações de novas teorias.
+Split Seqüencial Para a elaboração de uma solução seqüencial, inicialmente se estudou como gerar os dados de entrada do modelo SAN a ser resolvido.
+Tomando a ferramenta PEPS como modelo, que define uma linguagem para descrição de uma SAN e elabora arquivos de dados contendo as matrizes já ajustadas para a formação do DM, decidiu- se utilizar a linguagem de programação C e o DM gerado por o próprio PEPS.
+É válido ressaltar que a ferramenta PEPS também apresenta implementações paralelas de seus algoritmos de soluções.
+Assim sendo, o protótipo elaborado toma como entrada os arquivos de controle do PEPS que descrevem as matrizes ainda não normalizadas do DM.
+Em seguida, organiza estas matrizes em memória no formato de estruturas produtos tensoriais, já anotando valores como nright e nle f t, ordem das matrizes, etc..
+Como próximo passo, normaliza o Descritor Markoviano e, por fim, toma um valor de e quebra cada produto tensorial em duas partes, gerando a tabela Sparse para a parte da esquerda de cada produto.
+Em a Figura 4.4, este passo está ilustrado como.
+O segundo quadro da figura () indica a inicialização de a partir de a função de atingibilidade da SAN.
+Esta função também é obtida por os arquivos de dados do PEPS, no entanto foi necessária a implementação de um parser para interpretar- la.
+Este passo é fundamental para a inicialização de qualquer vetor utilizado no Método da Potência uma vez que, para o método atingir convergência, a soma de todos os elementos do vetor de probabilidades inicial necessita ser um.
+Além de isto, outro critério para que exista convergência consiste em iniciar com zero todas as posições do vetor referentes aos estados globais não atingíveis da Cadeia de Markov equivalente.
+Como estes produtórios já foram quebrado em duas partes na etapa, resta apenas separar os vetores in e aplicar a solução Shuffle na parte direita de cada produtório remanescente, acumulando os resultados na o final das operações.
+Já a quarta etapa da figura, ilustrada por, representa o acúmulo final dos vetores de cada produto tensorial.
+Isto forma o vetor resultante do processo × DM, caracterizando o final de uma iteração.
+Por causa de isto, une- se a esta etapa o teste referente a o critério de parada da solução, seja ela um número pré-definido de iterações ou a precisão desejada da solução atingida.
+Após concluir esta implementação, os resultados foram validados através de comparações com a ferramenta PEPS.
+Utilizando os modelos propostos em e executando- os no PEPS por um número fixo de iterações, acompanhou- se os vetores em cada iteração e pode- se comprovar que os valores eram idênticos na precisão proposta aos do protótipo descrito nesta seção.
+Para verificar o tempo gasto em cada etapa da Figura 4.4, montou- se um modelo de doze nodos da rede imaginária utilizada como exemplo no Capítulo 2.
+Com esta quantidade de nodos, o modelo gerado apresentou um espaço de 531.441 (3 n) estados globais, sendo 4.097 (2 n+ 1) de eles atingíveis.
+A Tabela 4.1 apresenta o tempo gasto em cada etapa do processamento, medidos em milissegundos.
+Estes dados foram obtidos após a realização de 100 execuções e utilizando- se a média de um intervalo de confiança de 95% para uma iteração.
+A paralelização proposta tem como objetivo reduzir o tempo de, não alterando os demais estágios.
+Por fim, é interessante notar que o estágio, por se tratar de um simples somatório seguido de um conjunto de testes, possui um tempo quase insignificante na execução da solução, dada as diferenças de magnitudes com os demais estágios.
+Para distribuir o processamento conforme estudado na Seção 4.1, foi decidido utilizar a tecnologia Interface de Passagem de Mensagens (MPI, do inglês Message Passing Interface), versão 2.
+A implementação escolhida foi a realizada por o Argonne National Laboratory, nos Estados Unidos, e se chama MPICH-2.
+Esta decisão foi tomada visto que os pontos passíveis de paralelização identificados no algoritmo necessitavam de um mecanismo confiável para troca de mensagens entre processos executando em diferentes processadores de um mesmo computador ou de diferentes computadores.
+De acordo com os pontos de distribuição identificados no algoritmo, a paralelização se dará na etapa do fluxo de execução apresentado para o Split seqüencial.
+Esta etapa deve ser dividida de forma que o mestre envie o vetor pronto para os escravos o processarem.
+Os escravos, por sua Shuffle da solução.
+Por fim, os escravos enviam o vetor resultantes para que o mestre possa acumular- los e testar o vetor resultante final.
+Este esquema está ilustrado na Figura 4.5. Como o número de escravos é pré-fixado, o padrão MPI2 permite que seja calculado, em tempo de execução, o número total de nodos que fazem parte do ambiente.
+Com isto, cada escravo pode por a divisão inteira do número de linhas desta tabela por o número de escravos, sendo o resto desta divisão assinalado aos primeiros escravos, ou seja, se sobrarem dois elementos da tabela, o primeiro e o segundo escravos do ambiente utilizarão um elemento a mais cada.
+É importante salientar que todos os escravos realizam a etapa do processamento, ou seja, cada processo monta toda a estrutura do Descritor Markoviano em sua memória.
+Isto não é um problema do ponto de vista do processamento distribuído, uma vez que o agregado é homogêneo e todas as máquinas levam aproximadamente o mesmo tempo para realizar a tarefa.
+De a mesma forma, como isto precisa ser feito por pelo menos um processo do ambiente, se todos realizarem o cálculo, poupa- se o tempo de comunicar o DM entre os nodos do ambiente.
+Por outro lado, o nodo responsável por a disseminação de no ambiente é o mestre.
+Assim sendo, a etapa fica apenas assinalada a ele.
+De o ponto de vista da abordagem paralela, isto ajuda a reduzir o período de sincronização que existe antes de, pois garante que todos os escravos terão tempo de terminar antes de começarem a receber o vetor para executar o Split.
+Outro ponto relevante que pode ser observado nesta figura é o laço que existe no nodo mestre entre o envio de e o recebimento de.
+Este laço reflete a execução da solução Split em cada linha do DM.
+Para termos práticos de medição, é interessante analisar o tempo total de multiplicar por todas as linhas do DM, uma vez que elas são diferentes umas das outras, conforme já mostrado na Seção 2.3.3. Para verificar a melhoria de tempo proposta por esta nova solução, gerou- se uma tabela comparativa com o estágio da solução seqüencial.
+A Tabela 4.2 apresenta os tempos da solução seqüencial e da versão paralela descrita nesta seção, variando- se o número de escravos de 1 até 7, visto que o ambiente dispõem de 8 processadores (2 por máquina num agregado de 4 máquinas).
+A tabela ainda apresenta uma terceira coluna, denominada SpeedUp, que se trata de uma medida referente a o ganho existente em relação a um parâmetro de comparação.
+Em este caso, o parâmetro de comparação é o tempo da execução seqüencial, fazendo com que o SpeedUp desta linha da tabela receba o valor um.
+Para as demais linhas, calcula- se este valor através da divisão do tempo da solução seqüencial por o tempo em questão.
+A Figura 4.7 coloca estes valores em forma de gráfico, podendo- se visualizar o ganho ou perda de cada configuração.
+O ponto em que continuar dividindo o trabalho em mais processos começa a degradar o tempo de execução é conhecido como trashing.
+Em este modelo, ele pode ser explicado por o fato de coincidir com o momento em que mais de um processo escravo é colocado numa mesma máquina.
+Isto pode ser justificado por o fato da comunicação entre os processos ser onerosa e, visto que cada máquina possui dois processadores porém apenas uma placa de rede, colocar mais de um processo numa máquina pode iniciar a situação de trashing.
+É interessante notar, no entanto, que não ocorre trashing na configuração onde há um mestre e quatro escravos, mesmo havendo dois processos numa mesma máquina.
+Isto é explicado por o fato de toda comunicação ocorrer entre os escravos e o mestre, não havendo caso onde os escravos troquem mensagens entre si.
+Assim sendo, a configuração 1+ 4 coloca o mestre na máquina onde residem dois processos.
+Desta forma, o MPI é capaz de evitar que a comunicação entre o mestre e o escravo que estão na mesma máquina chegue ao controlador de rede, enviando as mensagens diretamente de um processo ao outro.
+Para melhor esclarecer como esta alocação é feita, a Tabela 4.3 apresenta como o MPI foi configurado para designar os processos escravos e o mestre nos processadores disponíveis do ambiente, dependendo do número de nodos alocados.
+Em a tabela, M representa o mestre e Ei representa um escravo de índice i.
+Para cada computador disponível, IA64 j representa uma máquina Itanium2 de índice j e, por fim, Pk representa o processador k da máquina em questão.
+Para confirmar estas observações, as medições de tempo foram refeitas.
+Em estas novas medições, no entanto, descontou- se o tempo gasto com a comunicação entre o mestre e os escravos.
+Analisando novamente a Figura 4.6, esta nova medição conta somente o tempo gasto dentro de o quadro denominado Split.
+Os resultados seguem na Tabela 4.4. Os novos dados de SpeedUp obtidos também podem ser colocados num gráfico.
+A Figura 4.8 apresenta estes resultados, onde é possível observar a quase linearidade existente.
+Isto confirma que a comunicação é um obstáculo apresentado por a paralelização deste algoritmo, devido a o tamanho dos vetores que são transmitidos entre os nodos do ambiente.
+Para tentar reduzir este impacto, um novo modelo foi proposto e é apresentado na próxima seção.
+Modelo Paralelo Otimizado As conclusões da Seção 4.3 mostram que os custos envolvidos na comunicação do ambiente impedem um melhor desempenho da versão paralela.
+Partindo desta premissa, buscou- se uma forma de reduzir este custo através de uma nova análise da versão distribuída proposta.
+Estudando novamente a Figura 4.3, é possível observar que não é estritamente necessário enviar todo o vetor para cada escravo.
+Visto que os escravos utilizam apenas partes deste vetor para a escravo e fazer este envio separadamente.
+A Figura 4.9 ilustra esta nova idéia, estando hachuradas as partes de que não foram recebidas nos escravos e que por eles não serão utilizadas.
+Para implementar este novo conceito, no entanto, é necessário alterar a forma como o vetor detalhamento da etapa nesta nova versão otimizada.
+Este novo conceito também pode ser observado na linha 11 do Algoritmo 3.3, que mostra como in é montado a partir de e basein.
+Esta linha ainda mostra que os pedaços de necessários são contíguos, visto que variam do basein de cada elemento da tabela Sparse até basein+ nright -- 1. Concentrando- se nesta informação, notou- se que era possível reordenar a tabela Sparse, antes de dividir- la entre os escravos, de acordo com os valores de basein.
+Desta forma, é possível reduzir a parte de enviada para cada escravo.
+Para ilustrar como isto afeta a comunicação, a Figura 4.11 apresenta dois cenários.
+O primeiro mostra uma situação onde a tabela Sparse não está ordenada, fazendo com que partes de sejam enviadas em demasia por a rede.
+O segundo cenário mostra como a ordenação da tabela pode reduzir estas comunicações.
+Conforme visto no exemplo proposto na Figura 4.11, a ordenação por basein da tabela Sparse pode reduzir ainda mais o custo de comunicação envolvido no processo.
+Assim sendo, realizou- se novamente as medições de tempo da etapa, buscando- se avaliar se houve ou não uma melhoria em relação a o primeiro modelo paralelo proposto.
+Os resultados destas medições comparados aos tempos obtidos previamente estão colocados na Tabela 4.5. Figura 4.12: Gráfico de SpeedUp para a solução paralela otimizada.
+A Figura 4.12 mostra, através de um gráfico, a comparação entre o modelo paralelo original Conforme pode ser observado, o novo modelo atingiu, para a configuração 1+ 4, um ganho de 56, 11% em relação a solução seqüencial, ou seja, 24, 05% a mais de o que a solução paralela original com o mesmo número de máquinas.
+As medições apresentadas neste capítulo foram realizadas com o intuito de orientar quais pontos da primeira solução deveriam ser melhorados.
+De posse das duas soluções elaboradas, foi possível realizar outras comparações, observando- se como é o comportamento do sistema por a variação de, por exemplo, o número de máquinas ou a distribuição de processos nas mesmas por o MPI.
+Análise Comparativa Com o intuito de aprofundar os resultados obtidos sobre o protótipo desenvolvido, as medições realizadas na Seção 4.4 foram refeitas, porém variando- se o número de máquinas envolvidas no ambiente e o balanceamento de processos feito por o MPI dentro de o agregado.
+Vale ressaltar que, apresentou um ganho superior a 24% no melhor caso em relação a o protótipo original, que faz uso da mais nova.
+Em um primeiro momento, as medições do modelo escolhido foram refeitas utilizando- se apenas uma máquina.
+Desta forma, calculou- se os tempos e os respectivos SpeedUps de cada configuração, sempre fazendo uso de um processo mestre e variando- se o número de escravos até que o desempenho da configuração ficasse inferior ao da implementação seqüencial.
+Os resultados obtidos estão colocados na Tabela 4.6. De acordo com a tabela, observa- se que o uso de um mestre e três processos escravos proporcionou o melhor SpeedUp possível, com um ganho de 51.35% sobre a versão seqüencial.
+O fato sugere que, apesar de a máquina utilizada ter apenas dois processadores, o uso de 1+ 3 processos apresentou o melhor desempenho.
+Este resultado reforça que a comunicação entre o mestre e os escravos é significativa, uma vez que os processos não conseguiram tomar o processador completamente (fez- se uso de quatro processos em dois processadores).
+A Figura 4.13 ilustra o gráfico dessas medições, dando forma aos SpeedUps obtidos.
+Em ela, fica claro que o uso de dois ou três escravos proporciona o melhor ganho possível para o cenário de uma máquina.
+O uso de mais do que três escravos começa a deteriorar o tempo de execução, causando uma queda na linha do SpeedUp.
+Para o uso de duas ou mais máquinas, diferentes combinações são possíveis para a distribuição dos processos.
+Para estudar como estas variações afetam os tempos de execução, inicialmente foi realizada uma distribuição como a da seção anterior.
+Esta distribuição, que é o padrão para a implementação do MPI utilizado (MPICH2), procura ocupar todos os processadores disponíveis de forma equilibrada.
+Para o caso analisado a seguir, com duas máquinas, a Tabela 4.7 mostra como a distribuição é feita.
+Figura 4.14: Gráfico comparativo de SpeedUp para execuções utilizando- se uma e duas máquinas.
+Em a Figura 4.14, os valores medidos são ilustrados através de um gráfico.
+Para fins de comparação, este gráfico foi traçado sobre o cenário onde apenas uma máquina estava sendo utilizada.
+Como resultado, pode- se observar os pontos em que a distribuição de processos feita por o MPI não favorece o uso de dois computadores.
+De a mesma forma que para uma e duas, as medições foram realizadas para três máquinas e os resultados estão expressos na Tabela 4.9. Juntando estes resultados com os SpeedUps obtidos para quatro máquinas na Seção 4.4, a Figura 4.15 apresenta o gráfico sobrepondo as medições.
+Figura 4.15: Gráfico comparativo de SpeedUp para execuções utilizando- se uma, duas, três e quatro máquinas.
+Sobre a Figura 4.15, que engloba os resultados obtidos para todas as configurações possíveis de distribuição de processos com até quatro máquinas, nota- se que o cenário que apresenta o maior SpeedUp foi o 1+ 4 utilizando- se duas máquinas.
+Conforme já foi discutido, as configurações com mais máquinas não conseguiram prover um SpeedUp tão bom por causa de o custo de comunicação entre processos em máquinas diferentes.
+Por causa de isto, o uso de mais máquinas no agregado não garante que o SpeedUp da solução seja melhor.
+Assim sendo, buscou- se uma forma não convencional de distribuição dos processos para que um cenário com mais máquinas seja, no pior dos casos, igual ao cenário com uma máquina a menos.
+Distribuição Alternativa de Processos Para atingir o objetivo de distribuir os processos no ambiente de forma a proporcionar o melhor SpeedUp possível, a solução encontrada foi seguir o caminho oposto ao proposto por a configuração padrão do MPI.
+Conforme discutido, o MPI distribui os processos de forma a nenhuma máquina ter mais processos do que outra quando não for necessário, ou seja, quando o número de processos não for divisível por o número de máquinas.
+Em esta nova proposta, busca- se aumentar o número de processos escravos junto ao mestre para reduzir os custos de comunicação.
+A forma encontrada de realizar esta busca consiste em criar um vetor vmaq, do tamanho do número de máquinas disponíveis no ambiente, e preencher com zero todas as suas posições.
+Cada posição deste vetor indica o número de processos escravos designados para cada máquina, considerandose que o mestre roda na primeira máquina do ambiente, ou seja, os escravos contados em vmaq estarão junto ao mestre.
+Em seguida, incrementa- se a primeira posição deste vetor e mede- se o SpeedUp da configuração por ele proposta, ou seja, o simples cenário 1+ 1 onde os processos mestre e escravo encontram- se na mesma máquina.
+Em seguida, decrementa- se a primeira posição do vetor e incrementa- se a segunda, realizando a medição novamente.
+Este processo se repete até o fim do vetor, comparando- se assim os SpeedUps e obtendo- se a melhor configuração possível para o caso 1+ 1. A partir de a melhor configuração encontrada, o procedimento é repetido, incrementando- se o número de processos utilizados no ambiente.
+Em o momento em que não se encontre uma configuração com SpeedUp superior ao último encontrado, a busca é encerrada.
+Estas idéias são expressadas em forma algorítmica no Algoritmo 4.1. Sobre o algoritmo, vale ressaltar que as linhas 3, 11 e 20 representam a cópia de todas as posições de um vetor para outro, e não simplesmente o uso de ponteiros ou referências.
+De a mesma forma, observa- se que o laço iniciado na linha 4 usa a condição sempre, indicando que o laço continuará acontecendo até que a instrução da linha 18 seja executada.
+Por causa de o formato da curva do SpeedUp, que segue um padrão crescente, atinge um pico e depois decresce, o algoritmo encontra sempre uma distribuição melhor, ou pelo menos igual, do que a distribuição padrão feita por o MPI.
+Isto pode ser afirmado por a forma em a qual ele testa as configurações em questão, partindo sempre do SpeedUp mais alto encontrado até o momento.
+Observando novamente a Figura 4.15, o algoritmo iria, por exemplo, manter- se sempre, no mínimo, na curva formada ao topo do gráfico.
+Para o problema da rede hipotética utilizada neste trabalho, cada iteração do algoritmo encontraria como melhor combinação para vmaq as seguintes configurações:
+Algoritmo 4.1: Representação algorítmica da busca por a distribuição ideal de processos enquanto sempre faça se SpeedU p\&gt; melhor então fim Imprime melhorV;
+Encerra; Fim fim Iteração Iteração Iteração Iteração vmaq vmaq vmaq Tempo $= 18.074 ms Tempo $= 11.672 ms Tempo $= 9.724 ms Tempo $= 10.375 ms SpeedUp SpeedUp SpeedUp A o atingir a quarta iteração, o algoritmo detecta que o SpeedUp obtido foi menor do que o Traçando os SpeedUps obtidos por o algoritmo a cada iteração, inclusive a quarta, sobre o gráfico comparativo da Figura 4.15, elabora- se a Figura 4.16. Em o gráfico ilustrado na figura, pode- se comprovar visualmente o ganho oferecido por a distribuição otimizada dos processos utilizando- se um mestre e três escravos.
+De acordo com o vetor vmaq obtido, esta distribuição foi configurada com dois escravos na mesma máquina que o mestre e um terceiro escravo numa segunda máquina, não se fazendo uso de todo o agregado para este problema.
+Este trabalho apresentou os conceitos básicos sobre Cadeia de Markov e Rede de Autômatos Estocásticos.
+Para poder discutir a representação destes formalismos, o Formato Tensorial também foi apresentado, mostrando- se exemplos de Produtos Tensoriais, Fatores Normais e Somas Tensoriais.
+Com estas bases teóricas, a forma como o Descritor Markoviano é representado numericamente foi então discutida.
+Split. Ainda neste capítulo, mostrou- se a criação de um protótipo e resultados quanto a o tempo de execução desta implementação.
+Dando seqüência a proposta do trabalho, a implementação foi então modifica para incorporar instruções MPI capaz de tornar- la paralela.
+Novas medições foram então realizadas, mostrando que o custo da comunicação sobre o modelo implementado era considerável se comparado ao processamento requerido por o algoritmo.
+Por causa de isto, uma implementação alternativa foi proposta e prototipada, otimizando a comunicação entre os processos.
+As medições sobre estas otimizações comprovaram o ganho sobre a primeira versão paralela.
+Por fim, uma análise comparativa foi realizada e, destas medições, descobriu- se que a distribuição padrão de processos do MPI entre as máquinas do agregado impede a versão paralela de atingir seu total potencial.
+Por causa de isto, um algoritmo capaz de encontrar uma melhor distribuição foi elaborado.
+Utilizando- o mostrou- se, para um problema escolhido como exemplo, que o uso de quatro processos distribuídos em duas máquinas consegue atingir um ganho de 81, 44% sobre a versão seqüencial, não se encontrando uma outra distribuição capaz de melhorar este resultado.
+Concluído este trabalho sobre a distribuição da solução Split, pode- se pensar em trabalhos futuros que ofereceriam continuidade a pesquisa.
+Entre eles, estariam:
+Testes sobre diferentes modelos:
+Conforme visto nas especificações do DM, cada modelo SAN possui tamanhos de matrizes distintos e, dependendo da quantidade de eventos envolvidos em cada autômato, um número variável de elementos diferentes de zero nestas matrizes.
+Estes fatores influenciam diretamente sobre ao menos dois pontos:
+O espaço de estados do DM (por o tamanho das matrizes) e o trabalho necessário para realizar a MVD (por o número de elementos diferentes de zero).
+Por causa de isto, um estudo mais aprofundado sobre como a variação destes fatores influenciaria implementações paralelas do Split torna- se uma alternativa interessante de continuidade.
+Alterações no grão da solução mestre-escravo:
+Uma das vantagens de se utilizar uma abordagem paralela baseada em mestres e escravos trata- se da possibilidade de variação da quantidade de trabalho, ou grão, designado por o mestre para cada escravo.
+Visto que a divisão da tabela esparsa proposta neste trabalho não precisa ser em tamanhos fixos, o tamanho do grão pode ser diferente para cada escravo do ambiente.
+Assim sendo, mesmo durante a execução da implementação paralela, o processo mestre é capaz de observar se algum escravo está demorando mais do que outros e balancear a carga entre eles, seja por causa de a quantidade de trabalho envolvida, por a capacidade de processamento do agregado ou mesmo por o tempo de comunicação gasto no processo.
+Uso de outras técnicas de paralelização:
+Diferentes técnicas de paralelização oferecem diferentes benefícios em relação a os ganhos da versão paralela sobre uma versão seqüencial.
+Apesar deste trabalho ter sido elaborado com o conceito mestre-escravo, permitindo variações no tamanho dos grãos e na mobilidade de processos no ambiente, técnicas como fases paralelas permitem que cada nodo do ambiente, por exemplo, reserve memória para apenas parte do problema, resolvendo outras complicações impostas por modelos maiores.

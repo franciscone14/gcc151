@@ -1,0 +1,1858 @@
+Esta tese introduz os métodos de simulação estocástica, algoritmos seqüenciais e os métodos de Monte Carlo via Cadeias de Markov (MCMC), em modelos cuja estrutura Markoviana é mantida, porém num contexto não linear.
+
+A eficiência computacional dos vários métodos é comparada na classe dos modelos de volatilidade estocástica normal univariada.
+
+Outras especificações de volatilidade univariada são colocadas na forma dos modelos dinâmicos não lineares/não Gaussianos e comparadas usando dados reais.
+
+O modelo bivariado de retornos e volume de negócios é introduzido e estimado usando métodos seqüenciais e MCMC.
+
+Neste contexto, a especificação da log-volatilidade é modificada permitindo diferentes regimes.
+
+A especificação bivariada básica é estendida num contexto multivariado para vários ativos.
+
+Modelos dinâmicos, volatilidade estocástica, volume de negócios, MCMC, métodos de Monte Carlo seqüenciais.
+
+A modelagem de séries temporais, inferência e previsão, baseadas em modelos dinâmicos, é uma das mais importantes áreas que surgiram na estatística ao final da última centúria.
+
+A classe dos modelos dinâmicos é muito flexível e muitos dos mais importantes problemas na estatística podem ser colocados nesta estrutura.
+
+O Filtro de Kalman pode ser usado para calcular previs-oes dos estados e das observações em modelos dinâmicos lineares/ou Gaussianos.
+
+Porém, em muitas aplicações, especificações mais complexas são necessárias fazendo com que os cálculos analíticos sejam complicados.
+
+Recentes desenvolvimentos dos métodos de Monte Carlo com Cadeias de Markov (MCMC) e métodos de Monte Carlo seqüenciais (SMC) têm incrementado a popularidade da inferência Bayesiana em modelos dinâmicos nas mais diversas áreas.
+
+A volatilidade ocupa um papel muito importante nas finanças modernas especialmente nas derivações dos preços de ativos.
+
+O modelo de Black-Scholes o qual serve para se determinar os preços de opções européias é de longe a fórmula mais usada na determinação dos preços das opções.
+
+É muito bem conhecido que a suposição de volatilidade constante usada no modelo de Black-Scholes é violada pelo mercado.
+
+Pesquisas nas mudanças da volatilidade usando séries temporais têm sido bastante ativas nas duas últimas décadas.
+
+Existem duas classes de modelos de volatilidade, os modelos de volatilidade determinística representada pelos modelos ARCH e GARCH, e os modelos de volatilidade estocástica.
+
+Os modelos de volatilidade estocástica têm chamado a atenção dos pesquisadores nas áreas de econometria e finanças desde a década dos anos 70, pelo seu apelo teórico e porque suas propriedades estatísticas são simples de se entender e generalizar.
+
+Infelizmente, a estimação do modelo é muito complicada pela estrutura não linear do modelo.
+
+Esta classe de modelos é um excelente exemplo de modelos não lineares e não Gaussianos.
+
+O foco deste trabalho de tese é a estimação Bayesiana dos modelos de volatilidade estocástica e do modelo bivariado que relaciona os retornos, o volume de negócios à volatilidade.
+
+As principais contribuições do trabalho incluem a comparação de diferentes algoritmos para a estimação dos modelos de volatilidade estocástica normal.
+
+A comparação deste modelo com outras especificações de volatilidade, determinística e estocástica, usando fatores de Bayes e o critério DIC, a implementação Bayesiana do modelo bivariado usando métodos seqüenciais, a modelagem da log-volatilidade como um processo Markoviano de primeira ordem permitindo mudanças de regime na volatilidade, e por último a extensão do modelo num contexto multivariado para vários ativos.
+
+O trabalho está organizado da seguinte forma, no Capítulo 2, são descritos de uma forma geral os conceitos fundamentais da inferência Bayesiana, os métodos computacionais Bayesianos com ênfase aos métodos de simulação de Monte Carlo com Cadeias de Markov (MCMC).
+
+No Capítulo 3, apresenta-se o modelo dinâmico geral e os algoritmos para a determinação das densidades filtradas e suavizadas, e finalmente algoritmos eficientes para a estimação via MCMC e SMC.
+
+No Capítulo 4, serão discutidas as propriedades do modelo de volatilidade estocástica normal.
+
+Aproveitando a estrutura de um modelo dinâmico não linear, algoritmos para a estimação das variáveis latentes, via MCMC e SMC são comparados em dados artificiais e reais.
+
+Introduz-se o modelo dinâmico de primeira ordem como uma alternativa simples da modelagem da volatilidade.
+
+No Capítulo 5, apresentam-se extens-oes ao modelo de volatilidade estocástica básico.
+
+Estas incluem o modelo de volatilidade com erros t-student para as inovações dos retornos, o modelo de volatilidade com a presença do efeito de alavancagem, e o modelo de volatilidade com mudança de regime.
+
+Algoritmos MCMC são desenvolvidos.
+
+Métodos seqüenciais para o cálculo das densidades filtradas e a verossimilhança marginal são apresentados e a comparação Bayesiana de modelos é implementada usando fatores de Bayes e o Deviance Information Criteria (DIC).
+
+Apresenta-se uma aplicação com dados reais.
+
+No Capítulo 6, o modelo que relaciona os retornos e volume de negócios à volatilidade é introduzido.
+
+Neste capítulo estão as principais contribuições da tese.
+
+Os parâmetros do modelo são estimados seqüencialmente e via MCMC.
+
+O modelo é estendido, permitindo que o processo da log-volatilidade seja um processo Markoviano de primeira ordem incluindo regimes.
+
+Exemplos em dados reais e artificiais são apresentados com a aplicação dos métodos estudados.
+
+No Capítulo 7, o modelo de retornos é volume é estendido para vários ativos.
+
+O modelo é estimado usando MCMC.
+
+No Capítulo 8 apresentamos as conclus-oes e recomendações para futuros desenvolvimentos.
+
+Finalizando esta tese, apresenta-se um apêndice com alguns dos conceitos que foram usados neste trabalho.
+
+Neste Capítulo são apresentados alguns conceitos que serão usados nos próximos capítulos no desenvolvimento da presente tese.
+
+Assim, por exemplo, são apresentadas noções básicas da inferência Bayesiana, o método de integração por Monte Carlo.
+
+A seção trata dos métodos de simulação, enquanto que que a seção apresenta uma breve introdução aos métodos de Monte Carlo com Cadeias de Markov (MCMC).
+
+Finalmente são apresentados critérios para a seleção de modelos.
+
+Nesta seção são introduzidas as idéias básicas da inferência Bayesiana.
+
+Diferentemente da inferência clássica, a inferência Bayesiana não faz distinção entre variáveis aleatórias e os parâmetros de um modelo, todos são considerados quantidades aleatórias.
+
+Seja y o vetor de observações.
+
+Suponha que tenhamos uma distribuição a priori p, a qual representa a incerteza inicial acerca do vetor de parâmetros, antes de que y seja observado, e a função de verossimilhança do modelo p.
+
+A especificação de p fornece um modelo probabilístico.
+
+Uma vez que os dados y contêm informação, pode-se usar y para atualizar a informação determinando-se a distribuição condicional dado y.
+
+Na maior parte das aplicações de interesse, a integral do denominador na equação não possui forma analítica fechada e sua avaliação usando métodos numéricos em dimens-oes maiores do que 20 torna-se impraticável.
+
+Para aproximar a distribuição posterior usa-se, freqüentemente, integração pelo método de Monte Carlo ou MCMC.
+
+Estes métodos em geral usam o fato que o denominador na equação não depende.
+
+O método de integração por Monte Carlo é utilizado para aproximar integrais que são difíceis ou impossíveis de serem calculadas analiticamente, particularmente quando a dimensão do problema é grande.
+
+Dado o enfoque Bayesiano da presente tese, considera-se que o interesse centra-se na esperança a posteriori de uma função g.
+
+Esta integral pode ser aproximada gerando amostras da distribuição e calculando a média amostral.
+
+Tem-se que gM converge quase certamente para E pela Lei Forte dos Grandes Números.
+
+Além disso, quando g2 tem esperança finita.
+
+Nesta seção são apresentados três métodos comumente utilizados para extrair amostras de uma densidade que é difícil de se amostrar.
+
+Estes métodos são aceitação-rejeição (AR), amostragem por importância (IS) e reamostragem ponderada (SIR).
+
+Para cada método o objetivo é extrair uma amostra do núcleo da distribuição.
+
+O Método de AR está diretamente ligado ao método SIR.
+
+Entretanto, a diferença entre este e o método SIR, é que A-R produz amostras independentes e identicamente distribuídas da distribuição e não uma amostra aproximada.
+
+Este método requer a especificação de uma densidade q da qual seja simples de se amostrar.
+
+A escolha de q é feita de forma que para todo, onde c > 0 é uma constante conhecida.
+
+Então o método pode ser esquematizado de maneira algorítmica.
+
+Então se distribui com função de densidade.
+
+Para que o método funcione com eficiência é preciso escolher cuidadosamente c tal que garanta o envelopamento total.
+
+O método de amostragem por importância (IS) foi introduzido.
+
+O método IS é principalmente usado no cálculo de integrais da forma quando a amostragem da distribuição não é simples de se fazer.
+
+O método requer que uma densidade de importância q seja usada, a qual se relaciona com a distribuição através do peso w.
+
+A amostra é extraída da distribuição q, adaptando as diferenças entre as duas distribuições através dos pesos.
+
+O método de IS funciona bem quando a função q é uma boa aproximação da função objetivo, isto é quando as ponderações w são próximas de 1.
+
+Nas caudas da distribuição, isto nem sempre pode ser possível.
+
+Este método também chamado de amostragem-reamostragem por importância, foi introduzido e requer a especificação de uma densidade q da qual seja simples de se amostrar.
+
+A densidade q deve estar definida no mesmo espaço.
+
+Na primeira fase, uma amostra de M pontos é obtida a partir de q.
+
+Denote-se a estes valores i=1,M.
+
+Na segunda fase são atribuídos pesos w.
+
+Conseqüentemente, os pesos w i não dependem da constante de normalização.
+
+Finalmente, reamostra-se com reposição R pontos da distribuição discreta.
+
+Supondo que M seja escolhido convenientemente, a amostra de R pontos gerados por este algoritmo será aproximadamente uma amostra da distribuição.
+
+A acurácia deste método depende da escolha de M e se a densidade q aproxima bem.
+
+Se q é completamente diferente, então os pesos terão uma variância grande e a amostra ficará reduzida a uns poucos pontos que terão pesos diferentes de zero.
+
+Isto leva a incrementar a razão M/R para obter uma amostra adequada.
+
+Sugere que M = 10R geralmente deve dar bons resultados.
+
+Esta seção introduz os métodos de simulação estocástica via cadeias de Markov (MCMC) os quais serão usados nos próximos capítulos para obter amostras de densidades posteriores complexas.
+
+Para começar na subseção são descritas as cadeias de Markov e suas propriedade básicas.
+
+Nas subseções o algoritmo de Metropolis-Hastings e o amostrador de Gibbs são descritos.
+
+Uma cadeia de Markov é uma coleção de variáveis aleatórias (vetores aleatórios), onde usualmente M = N.
+
+A evolução da cadeia de Markov no espaço Rp é dada pelo núcleo de transição.
+
+Isto quer dizer que uma cadeia de Markov é um processo estocástico, em que, dado o estado presente, passado e futuro são independentes.
+
+Em geral, o núcleo de transição tem um componente contínuo e um componente discreto para alguma função p.
+
+Do mesmo modo, a transição de x para y ocorre de acordo com p(x, y), e a transição de x para x ocorre com probabilidade r(x).
+
+Da equação segue que o núcleo de transição proporciona a distribuição de Xi+1 dado que Xi = x.
+
+O núcleo de transição n-passos a frente é dado.
+
+Sob certas condições de regularidade que serão mencionadas a seguir a distribui ção dada pela n-ésima iteração do núcleo de transição converge à distribuição invariante.
+
+A condição de invariância estabelece que se Xi tem distribuição, então todos os subseqüentes elementos da cadeia têm distribuição.
+
+Uma cadeia de Markov é reversível se a função p(x, y) na equação satisfaz f(x)p(x, y) = f(y)p(y, x), 8x, y, para uma densidade f.
+
+Se a condição é satisfeita, então f é a densidade da distribuição invariante.
+
+Outro conceito importante é o de uma cadeia irredutível, onde é uma medida de probabilidade.
+
+Este é o requisito de que uma cadeia possa visitar todos os possíveis conjuntos com uma probabilidade positiva sob qualquer que seja o ponto inicial.
+
+Formalmente, uma cadeia de Markov é irredutível.
+
+Uma cadeia de Markov é chamada de aperiódica se não existe uma partição.
+
+Logo, a aperiocidade de uma cadeia de Markov assegura que uma cadeia não cicla em um número finito de conjuntos.
+
+As definições anteriores permitem estabelecer os seguintes resultados, os quais são a base dos métodos MCMC.
+
+O primeiro resultado dá as condições sob as quais a Lei Forte dos Grandes Números é satisfeita.
+
+O segundo resultado estabelece as condições sob as quais a densidade de probabilidade da M-ésima iteração converge à única distribuição invariante.
+
+Suponha que {X} é uma Cadeia de Markov, irredutível, aperiódica com núcleo de transição P e distribuição invariante.
+
+Se P é absolutamente continua com respeito a para todo x, então é a única distribuição invariante de P e para toda função real-valorada h.
+
+Suponha que {X} é uma cadeia de Markov, irredutível, aperiódica com núcleo de transição P e distribuição invariante.
+
+Então para quase todo x, e para todos os conjuntos A tem-se que kPM(x,A)(A)k, onde k denota a distância de total variação.
+
+O algoritmo de Metropolis foi apresentado inicialmente e generalizado resultando no algoritmo de Metropolis-Hastings.
+
+Esse método é usado geralmente quando é difícil gerar amostras da distribuição a posteriori.
+
+Neste caso, são gerados valores do parâmetro a partir de uma distribuição proposta q e esse é aceito ou não com uma certa probabilidade.
+
+De maneira algorítmica, os valores simulados podem ser obtidos a partir do seguinte procedimento recursivo.
+
+Especificar um valor inicial.
+
+Gerar uma proposta.
+
+Gerar u.
+
+Fazer i = i + 1, voltar a 2 e continuar o procedimento até alcançar a convergência.
+
+A cadeia de Markov obtida pelo algoritmo MH é reversível e tem a como sua distribuição estacionária.
+
+O algoritmo M-H é bastante geral, e pode, pelo menos a princípio, ser implementado com qualquer distribuição e para qualquer proposta.
+
+Entretanto, sob o ponto de vista prático, a escolha da proposta é crucial para sua convergência para a distribuição posterior.
+
+Quando a distribuição proposta não depende do valor da iteração anterior, resulta em uma cadeia independente.
+
+Quando a distribuição proposta é simétrica em torno da iteração anterior.
+
+Este é o algoritmo original proposto por Metropolis.
+
+Um caso especial de uma cadeia simétrica e o passeio aleatório no qual q.
+
+O amostrador de Gibbs é um caso especial do algoritmo M-H que permite gerar uma amostra da distribuição posterior desde que as condicionais completas estejam disponíveis para amostragem.
+
+Uma introdução ao amostrador de Gibbs é dado.
+
+Já que o amostrador de Gibbs é simples e amplamente usado, não é necessariamente o procedimento mais eficiente na solução de um problema.
+
+Assim, em casos onde o amostrador de Gibbs não é a única aproximação possível, a simplicidade da implementação é uma vantagem que compensa sua ineficiência.
+
+Para descrever o algoritmo suponha que a distribuição de interesse é a distribuição.
+
+Cada i pode ser um escalar o um vetor.
+
+Considere também que todas as condicionais completas estejam disponíveis e que se sabe gerar amostras de cada uma delas.
+
+Portanto, o esquema de amostragem é dado por especificar um valor inicial.
+
+O próximo valor é obtido por simulação.
+
+Note-se que aqui o processo de atualização segue uma ordem fixa.
+
+Isto não é necessário.
+
+A ordem pode ser aleatóriamente permutada a cada passo.
+
+Fazer i = i + 1, voltar a 2 e continuar o procedimento até alcançar convergência.
+
+Os métodos de MCMC são uma ótima ferramenta para resolução de muitos problemas práticos na análise Bayesiana.
+
+Porém, algumas quest-oes relacionadas à convergência nestes métodos ainda merecem bastante pesquisa.
+
+Entretanto, uma questão que pode surgir é -Quantas iterações deve ter o processo de simulação para garantir que a cadeia convergiu para o estado de equilíbrio?-.
+
+Como a cadeia não é inicializada na distribuição estacionária, uma prática comum é usar um período de aquecimento.
+
+A cadeia é rodada por L +M iterações, sendo as primeiras L iterações iniciais descartadas.
+
+Espera-se que depois deste período de aquecimento a cadeia tenha esquecido os valores iniciais e convergido para a distribuição de equilíbrio, a amostra resultante de tamanho M, será uma amostra da distribuição de equilíbrio.
+
+Para eliminar uma possível auto correlação das cadeias seleciona a partir do aquecimento a cada k iterações, o tamanho de k será chamado de lag.
+
+O grau de correlação da amostra final afetará a acurácia do estimador de Monte Carlo baseado na amostra.
+
+O conceito de tempo de autocorrelação é usado para quantificar este efeito.
+
+Assumindo que a cadeia tenha alcançado o equilíbrio, seja o valor da cadeia no tempo t.
+
+A autocorrelação, no lag k para alguma função g é definida.
+
+A esperança é com relação à densidade.
+
+O tempo de autocorrelação, para a função g é definido.
+
+Se M >> g, o estimador da esperança de g, é V o qual é maior que o estimador baseado em uma amostrade tamanho M de observações independentes e identicamente distribuídas.
+
+Em outras palavras, o número efetivo de amostras independentes em uma cadeia de tamanho M é aproximadamente M/g.
+
+Métodos para estimar g da saída do MCMC podem ser encontrados.
+
+Observe que o tempo de autocorrelação é uma estimativa da eficiência da cadeia de Markov uma vez que alcança o equilíbrio, e portanto a estacionariedade, e não uma estimativa de quantas iterações são necessárias para a cadeia alcançar a distribuição estacionária.
+
+Para avaliar a convergência dos métodos de MCMC faz-se uso de alguns critérios que existem na literatura.
+
+As técnicas mais populares são as que usam resultados baseados em análise espectral, que permite calcular quantas iterações são necessárias para uma cadeia atingir a distribuição estacionária através da estima ção de quantis posteriores com uma precisão previamente fixada e que usa resultados baseados na análise de variância clássica para duas ou mais cadeias simuladas com valores iniciais diferentes.
+
+Estes métodos e outros foram comparados, onde se chegou a conclusão de que não se pode afirmar qual deles é o mais eficiente.
+
+As técnicas de Geweke, Heidelberger-Welch, Raftery-Lewis, Gelman-Rubin e outras estão implementadas no pacote CODA executável no freeware R.
+
+A escolha de modelos é uma atividade fundamental que vem tornando-se cada vez mais importante na análise estatística, uma vez que, devido aos avanços computacionais, é possível construir modelos cada vez mais complexos.
+
+Tal complexidade normalmente aumenta de acordo com a estrutura imposta pelos modelos que requerem especificações em cada um de seus níveis.
+
+Considere que o mecanismo gerador dos dados, y, é dado pelo modelo Mk 2 Me que nosso objetivo é comparar a coleção de modelos M.
+
+Suponha também que cada modelo é caracterizado por um vetor de parâmetros, Rdk de dimensão dk específico para cada modelo e que a função de verossimilhança dado pelo modelo Mk é p.
+
+O paradigma Bayesiano atribui probabilidades a priori ao vetor de parâmetros do modelo p, e a probabilidade a priori p(Mk) a cada modelo.
+
+Intuitivamente esta especificação pode ser entendida como um modelo hierárquico de misturas com três hierarquias, na primeira o modelo Mk é gerado a partir de p(M1), p(MK), na segunda o vetor de parâmetros é gerado de p e na terceira os dados são gerados de p.
+
+Em termos da formulação hierárquica apontada anteriormente, o problema da seleção de modelos consiste em determinar em M o modelo que gera os dados.
+
+A probabilidade a posteriori de queMk foi o modelo que gerou os dados, é dada, onde é a verossimilhança marginal deMk.
+
+Baseados nestas probabilidades a posteriori a comparação de dos modelos.
+
+Esta última expressão mostra como os dados permitem a atualização da -razão de chance a priori- através do Fator de Bayes para obter a -razão de chances a posteriori-.
+
+Quando a razão de chances a priori for 1, indicando indiferença a priori, a razão de chance posterior coincide com o fator de Bayes.
+
+Assim, o fator de Bayes fornece uma medida relativa de avaliação de um modelo.
+
+O fator de Bayes é denotado, ou seja é igual à razão de verossimilhanças dos modelos.
+
+Por outro lado, as verossimilhanças marginais são equivalentes as probabilidades do modelo (já que as probabilidades a priori p(Mk) são conhecidas) e portanto são as quantidades chave para a seleção Bayesiana de modelos.
+
+Uma grande variedade de métodos têm sido propostos na literatura para calcular a verossimilhança marginal definida, já que esta integral, em geral, não possui uma solução analítica fechada.
+
+Alguns deles são específicos à análise baseada nos métodos MCMC para cada modelo de forma individual, e outros são genéricos e baseados em argumentos analíticos e assintóticos.
+
+A seguir alguns dos métodos para calcular a verossimilhança marginal serão apresentados.
+
+A dependência no indicador de modeloMi será omitida da notação, já que todas as computações devem ser feitas para todos os modelos em consideração.
+
+Denote a -p(y) uma estimativa da verossimilhança marginal p(y).
+
+Tem-se a estimativa de Monte Carlo.
+
+Uma desvantagem deste método é que a verossimilhança p é tipicamente diferente se comparada à distribuição a priori p, como resultado será uma estimativa ineficiente de p(y).
+
+Como é discutido, o estimador resultante, -pH(y) é baseado na aproximação da integral usando amostragem por importância e com a densidade a posteriori como densidade de importância.
+
+Logo a aproximação -pH(y) é dada.
+
+Tem documentado as propriedades e a acurácia deste estimador.
+
+Estimador de Gelfand e Dey Uma geralização foi proposta, baseada na identidade onde g é uma densidade arbitrária.
+
+O estimador de Laplace-Metropolis combina a aproximação analítica com a saída do MCMC, para modificar a aproximação assintótica de Laplace.
+
+O estimador resultante tem forma, onde é o valor da amostra da densidade posterior tal que p seja máximo.
+
+É uma aproximação da variância a posteriori, obtida da amostra por MCMC e d é a dimensão.
+
+Uma alternativa deste método consiste em colocar como sendo a média a posterior obtida das saídas do MCMC.
+
+O método Bridge Sampling (BS) foi proposto e foi aplicada a modelos ARCH com mudança de regime.
+
+Seja g uma densidade com o mesmo suporte que a densidade a posteriori e uma função arbitrária.
+
+O método BS é baseado na identidade p.
+
+Se amostras da distribuição a posteriori e g estão disponíveis, então o estimador BS é dado.
+
+O estimador pGD(y) é um caso particular.
+
+Propuseram uma escolha ótima minimizando erro relativo esperado do estimador pBS.
+
+Como depende da posterior normalizada, o seguinte procedimento iterativo pode ser aplicado usando a estimativa previa de -pBS(y)(t1) normaliza-se a distribuição posterior -p e uma nova estimativa pode ser obtida.
+
+Para evitar a especificação da função g, Chib propôs um método indireto para estimar a verossimilhança marginal através da amostra do algoritmo de Gibbs, recentemente estendido para o algoritmo de MH e para algoritmo AR.
+
+O método é baseado na identidade da verossimilhança marginal, onde somente o denominador do lado direito não é conhecido.
+
+Esta identidade é verdadeira para qualquer valor, e somente requer uma estimativa da densidade a posteriori onde é, em geral, a média a posteriori.
+
+No capítulo 5 os estimadores de média harmonica, Gelfand e Dey, e o estimador de Chib serão usados para comparar diferentes especificações dos modelos de volatilidade.
+
+Do ponto de vista freqüentista, a avaliação do modelo é baseado na deviance.
+
+Sugere examinar a distribuição posterior da deviance clássica definida, onde p é a verossimilhança e ln g(y) é um termo que depende unicamente dos dados.
+
+Prop-oe comparar a média a posteriori de D e segue nessa sugestão no desenvolvimento do DIC como um critério de escolha de modelos.
+
+Baseado na distribuição posterior de D, o DIC consiste em duas componentes, um termo que mede a bondade do ajuste e outro termo de penalidade pelo aumento da complexidade do modelo.
+
+O primeiro termo, a medida de bondade de ajuste é definida pela esperança condicional da deviance.
+
+Quanto "mais" o modelo se ajusta aos dados, maiores os valores da verossimilhança, logo valores grandes de D indicam "melhores" modelos.
+
+O segundo componente mede a complexidade através do número efetivo de parâmetros, pD, definido como a diferença entre a média posterior da deviance e a deviance avaliada.
+
+Então, o DIC é definido como a soma de ambos os componentes.
+
+Os Modelos Dinâmicos, também conhecidos como modelos de espaço de estados, são formulados para permitir alterações nos valores dos estados com o passar do tempo e vêm sendo utilizados para a análise e previsão de séries temporais e processos espaço-temporais.
+
+Avanços recentes em computação estocástica aumentaram muito o potencial de utilização desta classe de modelos nas mais diversas áreas.
+
+Os métodos MCMC foram desenvolvidos e estão bem documentados, no entanto a inferência depende fortemente da especificação do modelo.
+
+Os modelos dinâmicos consistem de dois processos, o processo de estados não observáveis e o processo observacional {yt}, onde t é um indicador temporal.
+
+Com a evolução do tempo, toda a informação relevante para prever o futuro é recebida e pode ser usada na revisão e crítica do modelo.
+
+Suponha que o tempo inicial seja t = 0 e que D0 represente a informação relevante e disponível sobre o modelo, a qual será usada pelo modelador para fazer as previs-oes iniciais do futuro.
+
+De forma similar, suponha que para qualquer tempo t > 0, a informação disponível e relevante seja denotada por Dt.
+
+Qualquer afirmação sobre o futuro será condicionada nesta informação.
+
+Uma vez que yt foi observado no tempo t, define-se Dt = {yt,Dt1}.
+
+O restante do Capítulo é organizado da seguinte forma.
+
+Na seção é introduzido o modelo dinâmico geral, na seção são apresentados os algoritmos para filtragem, suavização e previsão do modelo dinâmico geral, enquanto que trata do modelo linear dinâmico.
+
+Finalmente são apresentados os métodos MCMC e Monte Carlo Seqüencial no contexto do modelo dinâmico geral.
+
+Nesta seção é formulado o modelo dinâmico geral (MD) usando-se a terminologia Bayesiana.
+
+Tal formulação é particularmente útil na derivação dos resultados em qualquer sub-classe dos MD.
+
+Para cada t o MD geral e definido por yt, onde yt é o vetor de observações e t é o vetor de estados não observáveis.
+
+Tem distribuição p a qual pode ser interpretada como a distribuição a priori do estado inicial do sistema e é o vetor de parâmetros.
+
+O modelo é completado assumindo que é independente, para i = 0.
+
+Suponha-se, inicialmente, que é conhecido e que será omitido da notação para simplificarla.
+
+Posteriormente se mostrará como incluir na análise.
+
+Para a estimação do vetor de estado no MD geral a distribuição de t condicional nos dados Ds, tem que ser avaliada.
+
+Usando somente as definições de probabilidade condicional, densidade marginal e o Teorema de Bayes, as densidades filtradas, suavizadas e preditivas K passos a frente podem ser obtidas de maneira recursiva.
+
+De acordo com a terminologia adotada, as densidades serão chamadas de densidade filtrada e densidade suavizada respectivamente.
+
+A densidade p será chamada densidade preditiva K-passos-a frente.
+
+Logo, a densidade conjunta suavizada, p, pode ser calculada aplicando de forma recursiva a lei multiplicativa das probabilidades O termo dentro do produtório pode ser calculado usando o teorema de Bayes p.
+
+Se usarmos que t é independente de qualquer observação futura dados.
+
+Então, temos que a densidade conjunta suavizada.
+
+A densidade preditiva K-passos a frente pode ser obtida para cada t, condicional na informação disponível Dt.
+
+Dado o MD definido pelas equações, a densidade preditiva K-passos a frente do vetor de estados t pode ser avaliada iterativamente.
+
+Supondo que a densidade preditiva 1 passo a frente é dada e a densidade preditiva K-passos-a frente p pode ser obtida recursivamente.
+
+Se a quantidade de interesse for (yt+K | Dt), sua densidade pode ser calculada.
+
+Para cada t, o MLD geral é definido, onde yt é o vetor de observações e t é o vetor de estados não observáveis.
+
+São os momentos da distribuição inicial e são supostos conhecidos.
+
+Assume-se que os erros observacionais, e os erros da evolução, {!t}, são mutuamente independentes e também independentes da distribuição inicial.
+
+Os vetores ct, dt e as matrizes Ft, Gt, V t e Wt são consideradas conhecidas para cada t e podem depender de um vetor de parâmetros, o que não é inicialmente incluído na notação.
+
+A inclusão de ct, dt na definição foi motivada pela classe de modelos - modelos de volatilidade estocástica e suas extens-oes - que serão apresentados nos capítulos 4, 5 e 6 desta tese.
+
+Esta definição do MLD foi introduzida no contexto Bayesiano.
+
+Um amplo tratamento usando esta abordagem pode ser encontrado, enquanto que o tratamento clássico do MLD é dado por exemplo.
+
+O Filtro de Kalman é um método para avaliar a distribuição posterior baseado na distribuição a priori.
+
+Essencialmente o filtro de Kalman é um algoritmo que permite atualizar de forma recursiva a distribuição dos estados quando uma nova observação esta disponível.
+
+No MLD da definição, as distribuições um passo a frente e posterior, para cada t, são dados.
+
+Pela hipótese de indução, e da equação de estado tem-se.
+
+Usando-a conjuntamente com a equação observacional e determinam a distribuição conjunta exceto pela covariância, a qual segue.
+
+Logo, da teoria da distribuição Normal tem-se e estabelecendo-se a fórmula recursiva.
+
+Nas fórmulas do filtro de Kalman, foi introduzida a matriz adaptativa At, (também conhecida como ganho de Kalman), a previsão um passo a frente, ft, com suas variâncias associadas, Qt, e o erro de previsão um passo a frente, et.
+
+A distribuição do vetor de estados t, utilizando toda a informação disponível, DT, é chamada de distribuição suavizada.
+
+O algoritmo que permite obter estas distribuições para todo t é chamado de algoritmo suvizador de Kalman.
+
+No MLD da definição, define-se Bt para todo t.
+
+Então a distribuição suavizada t dado DT é dada, onde emT = mT e eC T = CT A dedução das formulas recursivas do algoritmo de suavização de Kalman e baseada no principio de indução para trás em t.
+
+Tem-se as identidades as quais determinam a distribuição condicional conjunta e t dado Dt.
+
+A covariância C é obtida.
+
+Já que t é condicionalmente de DT \Dt dado, a distribuição é idêntica à distribuição.
+
+Desta maneira, o algoritmo suavizador de Kalman é processado depois do Filtro de Kalman e inicializado pela equação.
+
+As demais recurs-oes seguem.
+
+O filtro de perturbações é matemáticamente equivalente ao filtro de Kalman.
+
+A razão para esta terminologia é que a saída do filtro de perturbações fornece os erros de previsão um passo a frente et, a inversa das variâncias destes erros, Q1 t,e as matrizes adaptativas escaladas Kt.
+
+As equações do filtro de perturbações são obtidas a partir do filtro de Kalman e o algoritmo é inicializado usando m0 e C0.
+
+No filtro de Kalman temos que a1 = d1 + G1m0 e R1 = G1C0G0 1 + W1.
+
+Deste modo o filtro de perturbações é equivalente ao filtro de Kalman, exceto pelas saídas.
+
+Somente Kt, Q1 t e et são armazenados, enquanto que o Filtro de Kalman armazena adicionalmente mt e Ct.
+
+Como no caso da filtragem, é possível obter um ganho computacional usando as perturbações ao invés dos estados.
+
+O algoritmo de perturbações suavizadas fornece o estimador do erro quadrático médio do vetor de perturbações dadas todas as observações, a partir das saídas do filtro de perturbações.
+
+Como na derivação de suavizador de Kalman, a obtenção das perturbações suavizadas é uma recursão para trás no tempo.
+
+Seja rt o vetor p dimensional para as perturbações dos estados e "t o vetor d-dimensional de perturbações das observações.
+
+A recursão é inicializada com rT = 0.
+
+Observe-se que comparada ao suavizador de Kalman, não são necessárias inverter matrizes, já que Qt tem sido invertida pelo filtro de perturbações.
+
+Então os valores suavizados -mt são obtidos pela recursão.
+
+As fórmulas de -C t são omitidas já que não tem sido usadas nas aplicações.
+
+Nesta subseção são apresentados as distribuições k-passos a frente das observações e dos estados.
+
+Nesta seção, considera-se o problema da inferência Bayesiana para os parâmetros e estados do MD.
+
+Esta não é uma tarefa simples de se fazer, pois geralmente a distribuição conjunta posterior não tem solução analítica fechada.
+
+Com a aparição dos métodos MCMC este problema tem sido resolvido pois, pelo menos a princípio, podem ser implementados com qualquer distribuição posterior.
+
+A aplicação dos métodos MCMC no MD definido pelas equações é baseada na geração de amostras da distribuição posterior p onde é o vetor de parâmetros.
+
+Para amostrar a distribuição acima procede-se em duas etapas, inicialmente amostra-se e a seguir os estados são simulados condicionais a este valor.
+
+Em geral amostrar esta distribuição não é uma tarefa fácil.
+
+Existem na literatura duas classes de amostradores para os estados que exploram a natureza do MD, o amostrador single-move que atualiza um estado por vez um estado, e o amostrador multi-move que atualiza blocos de estados simultaneamente, sendo este último mais eficiente do ponto de vista computacional, além de acelerar a convergência à distribuição de equilíbrio.
+
+Propuseram o amostrador single move usando o algoritmo de Gibbs.
+
+Mais recentemente incluíram um passo de Metropolis-Hasting dentro do amostrador de Gibbs que pode ser aplicado para qualquer modelo dinâmico seja não Gaussiano ou não linear.
+
+A idéia é amostrar t de p, onde denota o vetor de estados, sem a t ésima componente.
+
+Logo os estados são gerados um a um, aproveitando a estrutura Markoviana de estados vizinhos.
+
+Porém, tem documentado que esta aproximação é extremamente ineficiente computacionalmente em uma ampla gama de modelos de interesse, pois devido a natureza Markoviana do MD, os estados vizinhos são altamente correlacionados, fazendo que a exploração do espaço paramétrico seja lenta, e em alguns casos a convergência à distribuição de equilíbrio não é sempre alcançada.
+
+Diante da ineficiência do amostrador single move, uma solução melhor é amostrar de uma só vez.
+
+A idéia central é usar a decomposição da densidade posterior.
+
+Esta densidade pode ser determinada de maneira aproximada em modelos dinâmicos não gaussianos ou não lineares.
+
+No caso Gaussiano todavia é muito simples obterse esta decomposição, já que todas as quantidades envolvidas são fornecidas pelo filtro e pelo suavizador de Kalman.
+
+Este método por raz-oes obvias é denominado forward filtering, backwards sampling (FFBS) e foi independentemente proposto como alternativa à ineficiência da aproximação usando o amostrador de Gibbs com movimento simple.
+
+Fizeram uma comparação empírica dos dois amostradores.
+
+Baseados em seus exemplos eles concluem, que gerar os estados simultaneamente produz uma rápida convergência.
+
+O algoritmo FFBS foi melhorado, simulando as perturbações em lugar dos estados.
+
+Esta técnica é chamada de algoritmo de simulação de perturbações suavizadas.
+
+A principal razão para que este algoritmo seja mais eficiente é que somente as saídas do filtro de pertubações são necessárias, em lugar das saídas do filtro de Kalman que precisam de maior espaço para armazená-las.
+
+A recursão é iniciada fazendo T = 0, NT = 0.
+
+O algoritmo se reduz ao algoritmo de perturbações suavizadas.
+
+Como foi descrito o amostrador single-move tem seus inconvenientes, embora as taxas de aceitação sejam próximas de 1.
+
+Com a finalidade de evitar estes problemas, consideram a atualização dos estados por blocos.
+
+Suponha que a equação de transição do modelo dinâmico é dada.
+
+Assume-se por simplicidade que Wt = StS0 t é não singular.
+
+Vemos que e esta distribuição é uma distribuição altamente multivariada e possivelmente degenerada, então constrói-se uma proposta de densidade baseada nas perturbações que são não degeneradas.
+
+Então, usa-se uma expansão do logaritmo da distribuição condicional em torno da moda e a proposta de densidade é obtida, as esperanças são tomadas com relação aos yt condicionais.
+
+Usa-se Q porque é necessário que seja positiva definida.
+
+Entretanto, outras matrizes como o negativo da matriz Hessiana pode ser usada para construir a proposta.
+
+Logo, é possível simular da densidade, -y usando o algoritmo de simulação de perturbações suavizadas.
+
+A proposta gerada é aceita usando o algoritmo de Aceitação Rejeição e Metropolis-Hastings (ARMH).
+
+Uma característica que faz atrativo o amostrador por blocos é que para avaliar a razão de aceitação, usada no algoritmo de Metopolis-Hastings só é precisso calcular a diferença entre L e d0.
+
+Conseqüentemente, o algoritmo segue sendo eficiente embora a dimensão do problema cresça.
+
+Há aproximação baseada em encontrar a expansão de segunda ordem ao redor a moda da distribuição, dados os nós.
+
+Então, para obter a moda se expande L ao redor de valores arbitrários para obter as equações.
+
+Logo, usando o algoritmo de pertubações suavizadas se obtém a média destas perturbações e expande-se ao redor desta e assim se procede iterativamente.
+
+Na pratica depois de 4 iterações obtém-se muito próximo da moda.
+
+Considere o modelo dinâmico definido na seção pelas equações.
+
+Suponha por enquanto, que o vetor de parâmetros é conhecido.
+
+Depois, será mostrado como incluí-lo na análise.
+
+No entanto as equações de evolução e de atualização para cada t, são dadas pelas equações.
+
+Somente em alguns casos estas densidades admitem uma forma analítica.
+
+A idéia central nos métodos seqüenciais é usar uma amostra, com pesos associados, para representar a densidade a posteriori.
+
+Desta forma, é possível considerar qualquer problema não linear e não gaussiano de uma maneira sistemática.
+
+Existem diferentes vers-oes do filtro de partículas baseados em aceitação-rejeição, MCMC e amostragem por importância.
+
+Os filtros apresentados neste trabalho serão baseados no princípio de amostragem por importância.
+
+Antes de apresentar os algoritmos se introduz a seguinte notação para facilitar a exposição dos mesmos.
+
+É usada para denotar que a função de densidade de probabilidades, p, de uma variável aleatória contínua, é aproximada por uma variável discreta com suporte discreto.
+
+O objetivo dos métodos seqüenciais é aproximar a integral a cada instante do tempo, através de simulação recursiva.
+
+O algoritmo de amostragem por importância seqüencial (SIS) é um método de Monte Carlo (MC) que é a base para a maior parte dos filtros seqüenciais que tem sido desenvolvidos na década passada.
+
+A aproximação por Monte Carlo Seqüencial (SMC) é conhecida também como filtro bootstrap e filtro de partículas.
+
+É uma técnica para implementar recursivamente o filtro Bayesiano por simulações de Monte Carlo.
+
+Uma alternativa natural para a densidade de importância q, é usar p para amostrar um novo conjunto de partículas.
+
+Esse novo conjunto de partículas representa uma amostra de p.
+
+Os pesos são atualizados, substituindo p por q na equação.
+
+Porém esta aproximação leva à degeneração da amostra, ou seja depois de umas poucas iterações, restam somente algumas partículas com pesos diferentes de zero.
+
+O problema da degeneração pode ser controlado introduzindo-se a reamostragem como proposto.
+
+Este algoritmo, denominado amostragem-reamostragem por importância (SIR), pertence a uma ampla classe de filtros bootstrap, os quais usam um passo de reamostragem para gerar partículas com pesos uniformes.
+
+Este passo introduz uma diferença no conjunto de partículas, evitando a degeneração.
+
+Além disso, devido ao passo de re-amostragem os pesos das partículas se distribuem uniformemente, wt1 = 1/N.
+
+As partículas t são reamostradas, por simplicidade N vezes, com pesos proporcionais a p para produzir um novo conjunto de partículas.
+
+Existem diferentes vers-oes do filtro de partículas básico.
+
+O Filtro Auxiliar de Partículas (APF) é proposto como um método alternativo.
+
+Assumindo uma aproximação natural de Monte Carlo para a distribuição a priori p é dada por -p definida, a qual, segundo a terminologia adotada é chamada de densidade preditiva empírica.
+
+Combinando esta priori com a equação observacional, através do Teorema de Bayes, temos a seguinte aproximação da distribuição a posteriori do vetor de estados no tempo t, a densidade filtrada empírica.
+
+Observe que a equação é uma mistura de distribuições, a qual pode ser re-parametrizada introduzindo uma variável auxiliar k que indica o componente da mistura.
+
+Em outras palavras, se são amostrados da seguinte distribuição p e o indicador k descartado, o t resultante é uma amostra.
+
+A idéia principal do APF é incrementar a influência das partículas que tenham uma grande verossimilhança preditiva.
+
+Desta maneira, o algoritmo gera um novo conjunto de partículas simulando conjuntamente o indicador k (seleção) e o valor partícula t (mutação) da densidade de importância, por exemplo a média, a moda ou um outro valor altamente provável p.
+
+Deste modo, partículas menos informativas são descartadas.
+
+A informação contida em cada partícula é avaliada com relação à variável observável e ao conjunto inicial de partículas.
+
+O modelo de volatilidade estocástica (VE) foi introduzido como uma maneira de descrever as mudanças das volatilidades dos retornos ao longo do tempo.
+
+Esta classe de modelos, uma alternativa aos modelos GARCH, está diretamente ligada aos processos de difusão usados na teoria financeira de precificação de ativos e captura, de uma maneira mais apropriada, as principais propriedades empíricas observadas freqüentemente nas séries de retornos financeiros.
+
+Embora o modelo de VE tenha estes atrativos teóricos, sua estimação não é simples.
+
+O problema central é que o processo latente, a volatilidade, entra no modelo de forma não linear.
+
+Este fato origina que a função de verossimilhança não seja simples de se obter pois depende de integrais que não têm solução analítica fechada e cuja dimensão é a dimensão dos dados.
+
+Uma variedade de métodos têm sido propostos no contexto da inferência clássica, isto inclui o método generalizado dos momentos, quase verossimilhança, o método dos momentos, máxima verossimilhança simulada e, mais recentemente, amostragem por importância eficiente.
+
+Os métodos MCMC tem sido usados para estimar os parâmetros e as logvolatilidades do modelo de VE do ponto de vista Bayesiano.
+
+Assim por exemplo Jacquier, usaram o amostrador de Gibbs singlemove dentro do algoritmo de Metropolis-Hastings para amostrar das log-volatilidades.
+
+Observou que a distribuição condicional completa das log-volatilidades é log-côncava, e conseqüentemente o algoritmo poderia ser usado.
+
+Aproximaram a distribuição do logaritmo do quadrado dos retornos por uma mistura de distribuições normais, permitindo que todo o vetor de log-volatilidades pudesse ser amostrado de uma vez só.
+
+Sugeriram o uso de blocos aleatórios compostos por alguns dos componentes do vetor de log-volatilidades.
+
+Quando uma nova observação torna-se disponível, em princípio poderia-se simplesmente rodar o algoritmo MCMC para estimar o modelo de VE.
+
+Entretanto, quando um analista financeiro necessita fazer previs-oes das log-volatilidades alguns passos a frente para alguns dos ativos que compõem seu portfolio, o custo de rodar novamente as rotinas com os métodos MCMC pode ser proibitivo e os algoritmos seqüenciais em tempo-real jogam um papel central para avaliar a distribuição posterior das log-volatilidades a cada passagem do tempo.
+
+Neste contexto, introduziram o filtro auxiliar de partículas (APF) aplicando-lo ao modelo de VE.
+
+Forneceram o algoritmo denominado Practical Filtering with Parameter Learning que permite avaliar simultaneamente as distribuições filtradas das log-volatilidades e a posteriori dos parâmetros a cada instante do tempo.
+
+Compararam sua aproximação com o algoritmo APF baseado em Storvik.
+
+O objetivo deste capítulo é apresentar uma revisão das propriedades básicas do modelo do VE com erros normais (VEN), das técnicas MCMC usadas na estimação dos parâmetros e das log-volatilidades, comparando a eficiência dos algoritmos usados, e dos métodos de Monte Carlo Seqüenciais (SMC).
+
+O resto do capítulo está organizado da seguinte forma.
+
+A seção explica brevemente o modelo de VEN e algumas das suas propriedades básicas.
+
+A seção descreve os métodos MCMC para o modelo de VEN.
+
+A seção mostra os métodos SMC aplicados ao problema de estimação seqüencial em modelos de VEN.
+
+Finalmente apresenta uma aplicação do modelo VEN a dados sintéticos e à série de retornos diários do índice da Bolsa de Valores de são Paulo (IBOVESPA).
+
+O Modelo de Volatilidade Estocástica Normal (VEN) é especificado, onde yt é o retorno composto no instante t, ht é log-volatilidade de yt, são erros mutuamente independentes com distribuição N são os parâmetros do modelo.
+
+A restrição garante a estacionariedade estrita de yt.
+
+As estimativas tipicamente estão próximas de 1, conseqüentemente é interpretado como parâmetro de -persistência- da volatilidade.
+
+Uma outra parametrização remove da equação, rescrevendo a equação.
+
+As diferentes parametrizações tem correspondência entre si e qualquer parametrização a ser usada, simplesmente é uma questão de conveniência e eficiência numérica nos algoritmos de estimação.
+
+Embora a série yt seja não correlacionada, não é uma seqüencia de variáveis aleatórias independentes.
+
+A dinâmica da série aparece nos quadrados dos retornas e sua função de autocorrelação (acf), é dada.
+
+O comportamento das autocorrelações é o mesmo das autocorrelações de um processo ARMA(1,1).
+
+Não obstante, mostraram que o comportamento teórico das auto correlações e a aproximação podem ser diferentes.
+
+Em qualquer caso, é considerado como uma medida de persistência dos quadrados dos retornos.
+
+A estimação por Máxima Verossimilhança (ML) e, em principio, a estimação Bayesiana requerem do cálculo da função de verossimilhança da amostra observada, a qual e uma tarefa complicada.
+
+Trataram as distribuições dos log como se fossem Gaussianas e usaram o filtro de Kalman para estimar os parâmetros, maximizando a função de quase verossimilhança a qual, ignorando as constantes, é dada, onde ft é o erro de previsão um passo-a-frente de log e Qt e a variância da previsão um passo-a-frente.
+
+Mostrou que o estimador de quase máxima verossimilhança (QML) é consistente e assintoticamente normal, não obstante, o estimador de QML é ineficiente.
+
+Observe-se que a approximação da densidade log pela normal em lugar de usar a verdadeira log pode resultar inadequada.
+
+As propriedades do estimador de QML foram analisadas, quem mostrou que o viés do estimador aumenta quando outro decresce.
+
+Também encontraram que o estimador QML tem propriedades inadequadas quando a persistência é grande e pequena.
+
+O modelo VEN pode ser escrito na forma do MD não linear com as variâncias dependendo dos estados.
+
+O tratamento Bayesiano para a estimação dos parâmetros e log-volatilidade é baseado nos métodos MCMC para amostrar da densidade a posteriori conjunta.
+
+Obtiveram as propriedades dos vários estimadores em amostras finitas através de um estudo de Monte Carlo e encontraram que os métodos MCMC são as ferramentas mais eficientes para a estimação.
+
+Além disso, como produto da estimação de parâmetros, os métodos MCMC proporcionam estimativas das log-volatilidades e as distribuições preditivas.
+
+Usando o princípio de aumento de dados, considere-se agora a distribuição posterior conjunta dos parâmetros e do vetor de log-volatilidades condicionados na informação no tempo T.
+
+Para amostrar da densidade posterior se utiliza o amostrador de Gibbs.
+
+Amostra-se iterativamente primeiro p(simulação dos parâmetros) e logo HT (aumento de dados).
+
+Proporcionam prioris apropriadas e métodos de amostragem eficientes.
+
+A derivação da distribuição de interesse, como a marginal e a média posterior podem ser obtidas a partir das saídas do algoritmo de Gibbs.
+
+Quando as distribuições condicionais não podem ser amostradas diretamente um passo de M-H é realizado.
+
+A seguir serão apresentados os algoritmos introduzidos na seção do Capítulo 3, para amostrar das log volatilidades no contexto do modelo de VEN.
+
+O amostrador de Gibbs single-move (SMGS) tem sido usado para gerar amostras da distribuição posterior dos estados.
+
+Na implementação do SMGS, portanto é necessário obter as densidade condicionais completas, as quais são obtidas da equação e tem a forma p/ exp, onde denota o vetor de estados HT sem a t-ésima componente.
+
+Para t = T a condicional completa é sem o último termo no produto.
+
+Como a condicional completa p não tem forma fechada, ht é simulada usando o algoritmo de MH e o fato que p é log-côncava.
+
+A densidade proposta é obtida por uma expansão em Taylor de segunda ordem do logaritmo do núcleo da condicional completa.
+
+Seja q, o log da condicional completa, então a proposta de densidade é N, onde x é o valor da iteração anterior, q0 e q00 denotam à primeira e segunda derivadas respectivamente.
+
+Logo, os estados são gerados um componente a cada vez usando a estrutura Markoviana que permite condicionar nos estados vizinhos.
+
+Porém, o amostrador de Gibbs single-move é extremamente ineficiente, devido a dependência Markoviana, os estados são correlacionados, e a convergência pode ser muito lenta.
+
+Eles aproximaram a densidade por uma mistura de sete densidades normais, tal que os quatro primeiros momentos de ambas densidades sejam iguais.
+
+Logo a densidade aproximada pode ser escrita, onde denota o vetor com os indicadores da mistura.
+
+Após a transformação do MD não Gaussiano numa mistura de MD Gaussianos, o modelo resultante é um MLD a cada t.
+
+Gerar amostras do vetor HT, a partir da distribuição p, pode ser feita de uma usando o MLD via o filtro de Kalman descrito no Capítulo 3.
+
+A amostragem é a mesma que no caso do amostrador single-move.
+
+A amostragem da variável indicadora s é feita amostrando independentemente cada st usando a massa de probabilidade.
+
+Para amostrar do vetor de estados HT de uma vez só, omite-se a dependência do processo de variáveis indicadoras na derivação de p, já que p tem distribuição normal, é bastante simples obter uma amostra baseado na decomposição já que as quantidades necessárias para estas densidades condicionais são obtidas do filtro de Kalman.
+
+Sugerem que amostrar das perturbações em lugar dos estados é mais eficiente porque evita as possíveis degenerações dos estados.
+
+Logo, o MSGS pode ser melhorado amostrando das perturbações em lugar das logvolatilidades diretamente.
+
+Propuseram o amostrador multi-move para amostrar os estados de MD não gaussianos e não lineares da sua distribuição posterior dados os parâmetros.
+
+Para reduzir a ineficiência do amostrador single-move, dividem o vetor de estados em blocos e amostram cada bloco de uma vez.
+
+Este amostrador será denotado por BSGS.
+
+O amostrador BSGS baseado na aproximação da verdadeira densidade posterior por blocos dos erros dos estados dados os parâmetros e os nós por um MLD Gaussiano.
+
+Denote log f(yr|hr) por l(hr) e sejam l0 e l00 a primeira e segunda derivadas com relação a hr.
+
+Mostrou que este erro pode causar um viés significativo nas estimativas de ambos os parâmetros e as log-volatilidades.
+
+Então, a versão normalizada de g é uma densidade normal k-dimensional, a qual é a densidade exata condicional no MLD gaussiano.
+
+Assim, o simulador pode ser aplicado neste modelo para amostrar da densidade g.
+
+O ponto de expansão para o bloco é obtido aplicando fo seguinte procedimento iterativo.
+
+Uma vez que o ponto arbitrário é selecionado, calcula-se as variáveis artificiais.
+
+Então, aplicando o suavizador de Kalman ao MLD Gaussiano dado com variáveis artificiais, proporcionam a média condicional no MLD Gaussiano, a qual é usada como o seguinte.
+
+Nas aplicações tem-se usado cinco iterações deste procedimento para obter o ponto de expansão do bloco.
+
+Para implementar o amostrador BSGS, escolhem os K nós (K > 2), que equivalem K +1 blocos, aleatóriamente com Ui sendo variáveis aletórias iid com distribuição uniforme, onde int[x] representa o operador que arredonda x ao inteiro mas próximo.
+
+Os nós estocásticos asseguram que o método não fique preso por uma excessiva quantidade de rejeições.
+
+Considere a representação do modelo de VEN como um MD não linear dado pelas equações.
+
+Nesta seção serão apresentados os algoritmos descritos no Capítulo 3.
+
+Para facilitar a exposição dos algoritmos que serão apresentados a seguir considere que é usada para denotar que a densidade de probabilidades, p(ht | Dt), da variável aleatória contínua, ht, é aproximada por uma discreta.
+
+Conseqüentemente, se o interesse é, por exemplo, calcular E(g(ht) | Dt), a aproximação baseada no conjunto de pontos h(1).
+
+Seja h(1) uma amostra de p(ht1 | Dt1) uma escolha natural é usar a equação como densidade de importância para amostrar o novo conjunto de partículas.
+
+O novo conjunto de partículas representa uma amostra de p.
+
+A atualização dos pesos é feita pela recursão.
+
+Descrevem-se os algoritmos SIS e SIR de maneira algorítmica no contexto do modelo VEN.
+
+Com a finalidade de obter a densidade filtrada a cada t, o Filtro auxiliar de partículas, introduzido no Capítulo 3, será aplicado ao modelo VEN.
+
+Para facilitar a exposição será feita de maneira algorítmica.
+
+Nesta seção o algoritmo APF é apresentado.
+
+O procedimento de amostragem por importância seqüencial assume um conjunto inicial de N partículas.
+
+Seja st1 uma estatística suficiente que pode ser atualizada a cada t, o algoritmo amostra de p e ht e pondera (Ht1) proporcionalmente à verossimilhança p.
+
+Para o modelo VEN, implementa-se a versão AFP do algoritmo de Storvik usando o procedimento de Pitt e Shephard.
+
+Dado um conjunto inicial de partículas, o algoritmo APF primeiro seleciona partículas com uma grande verossimilhança e as propaga para o próximo passo.
+
+No modelo VEN, define-se a probabilidade de seleção, onde µ é uma estimativa de ht para a partícula i.
+
+Para cada partícula selecionada ki, logo se re-pondera as partículas pela verossimilhança p(yt | µ t) para obter uma amostra da distribuição a posteriori.
+
+O algorimo APF para a estimação conjunta de parâmetros e estados.
+
+Para ilustrar os métodos descritos na seção, um conjunto de dados artificiais com 500 observações foi gerado.
+
+Estes valores correspondem a valores típicos encontrados em séries de retornos diárias.
+
+Nesta aplicação usamos os amostradores SMGS, MSGS e o BSGS com 10 blocos.
+
+Usaram o amostrador BSGS no contexto de volatilidade estocástica com mudança de regime e volume de negócios.
+
+Iterações são usadas para os algoritmos SMGS e MSGS.
+
+As primeiras 10000 iterações são descartadas.
+
+Para o BSGS, considerou-se uma cadeia com 20000 iterações e as primeiras 10000 foram descartadas.
+
+Todos os resultados são apresentados é importante notar que os valores das estimativas dos parâmetros são bastantes similares.
+
+Mostra as estimativas das médias suavizadas das log-volatilidades, obtidas pelos três métodos.
+
+É claro que praticamente não existem diferenças entre as estimativas.
+
+Reporta o fator de ineficiência da simulação, este é estimado como a variância da amostra MCMC dividida pela variância da média amostral de um amostrador hipotético que obtém amostras independentes da distribuição a posteriori (a variância dividida pelo número de iterações).
+
+O fator de ineficiência indica que o amostrador SMGS converge mais rápido que os outros dois.
+
+Os algoritmos anteriores foram implementados na linguagem C++, usando a biblioteca estatística Scythe 3, num computador AMD Athlon XP 2400+2, 4 GHz com 512 MB de memória RAM.
+
+O tempo de computação das 100000 iterações para o SMGS e o MSGS é necessária ao redor de 40 minutos.
+
+Para o BSGS o tempo foi de 15 minutos para rodar 20000 iterações.
+
+A seguir mostra-se a aplicação dos algoritmos sequenciais SIS, SIR e APF ao conjunto de dados artificiais usados previamente.
+
+Nestes algoritmos considera-se que os parâmetros são fixados nos valores verdadeiros.
+
+O número de partículas usadas foi de 10000.
+
+No algoritmo APF um passo de re-amostragem é incluído.
+
+Mostram as verdadeiras log-volatilidades e as estimativas baseadas nas médias filtradas.
+
+O algorimo SIS segue a verdadeira log-volatilidade até o tempo 280 aproximadamente, isto pode ser causado provavelmente pela degenera ção das partículas.
+
+As médias filtradas obtidas pelos algoritmos SIR e APF fornecem resultados similares e acompanham o comportamento da série de log-volatilidades verdadeiras.
+
+O algoritmo APF com estimação seqüencial dos parâmetros foi usado no contexto de volatilidade estocástica e volume de negócios.
+
+No conjunto de dados simulados este algoritmo é implementado para estimar simultaneamente os parâmetros e log-volatilidades usando 20000 partículas.
+
+Mostram os percentis 2,5, 50 e 97,5 para os parâmetros e log-volatilidades.
+
+Todos os resultados são consistentes com os verdadeiros valores.
+
+O tempo computacional usando 20000 partículas leva quase 1 hora e meia.
+
+Para ilustrar a aplicação em dados reais das metodologias apresentadas, o índice de fechamento diário da Bolsa de Valores de são Paulo (IBOVESPA) é analisado no período compreendido entre 22 de setembro de 1998 até 12 de março de 2004, resultando em 1304 observações.
+
+Este mesmo conjunto de dados foi analisado.
+
+Neste período algumas crises financeiras aconteceram.
+
+Assim por exemplo, em janeiro de 1999 a desvalorização do real, em abril de 2000 a crise do Nasdaq e no último trimestre de 2002 a crise pre-eleitoral.
+
+No que resta se usará o retorno composto corrigido pela média.
+
+Mostra alguns gráficos desta série.
+
+A série histórica yt (painel superior) sugere que há dias com grandes movimentações seguidos por dias com as mesmas características (volatility clustering).
+
+Também é mostrado o histograma de yt (painel do meio) e as funções de auto correlação dos quadrados dos retornos (painel inferior).
+
+Reporta estatísticas resumo para a série do IBOVESPA.
+
+Antes da implementação do modelo VEN, uma primeira tentativa simples para a modelagem dos retornos, considere-se o MLD de primeira ordem para os retornos.
+
+Usualmente a variância Wt, por quest-oes práticas, é especificada via um fator de desconto é a distribuição inicial com m0 e C0 conhecidos.
+
+O estimador da variância é simples de calcular e computacionalmente eficiente.
+
+Aplicando este modelo à série de retornos do IBOVESPA obtemos as estimativas das médias filtradas das volatilidades, as quais seguem o mesmo comportamento dos retornos absolutos.
+
+Agora, considere o modelo VEN.
+
+Assume-se que a priori os parâmetros seguem as seguintes distribuições.
+
+Os resultados reportados correspondem somente aos amostradores SMGS e ao MSGS.
+
+Para ambos rodou-se uma cadeia de 100000 iterações, descartando-se 10000 como período de aquecimento.
+
+As restantes 90000 são usadas para fazer as inferências reportadas na tabela.
+
+É importante notar que ambos métodos fornecem estimativas, média a posteriori, muito próximas para o parâmetro, indicando uma alta persistência na log-volatilidade.
+
+O fator de ineficiência indica que o amostrador MSGS converge mais rápido que o amostrador SMGS.
+
+Este fato é confirmado analisando as funções de autocorrela ção da saída do algoritmo MCMC para os parâmetros.
+
+As funções de autocorrelação dos parâmetros usando o amostrador MSGS decrescem mais rápido se comparado com o amostrador SMGS.
+
+Mostra os retornos absolutos da série do IBOVESPA e a estimativa da média suavizada das volatilidades.
+
+As estimativas acompanham o comportamento da série de retornos absolutos e capturam os períodos de grandes oscilações.
+
+Agora aplica-se ao modelo de VEN a versão do APF à série do IBOVESPA.
+
+O número de partículas usadas foi de 20000.
+
+Reportam os percentis 2,5, 50 e 97,5 dos parâmetros e log-volatilidades.
+
+As estimativas seqüenciais indicam uma alta persistência.
+
+Finalmente, compara as estimativas das médias filtradas usando o algoritmo APF e o MLD de primeira ordem.
+
+Há algumas diferenças na grandeza das mesmas, porém apresentam um comportamento similar.
+
+A estimativas das médias filtradas usando o MLD de primeira ordem podem ser usadas como benchmark para comparar as volatilidades.
+
+Em resumo, neste capítulo revisamos avanços recentes na estimação Bayesiana do modelo VEN dentro da perspectiva da modelagem dinâmica.
+
+Os métodos são computacionalmente intensivos, mas permitem estimar simultaneamente parâmetros e log-volatilidades ou qualquer função destas.
+
+Isto é importante em aplicações com opções e derivativos onde a volatilidade é um input dos modelos existentes.
+
+Uma análise preliminar dos dados usando um modelo dinâmico de primeira ordem provê um interessante benchmark para comparar as volatilidades e mais pesquisa é necessária nesta área.
+
+Neste capítulo outras especificações de volatilidade estocástica são apresentadas.
+
+Algoritmos MCMC e algoritmos SMC são desenvolvidos para estimar as densidades suavizadas, densidades filtradas e a verossimilhança destes modelos.
+
+A estrutura do capítulo é a seguite, na seção o modelo de VE com erros t-Student é estudado, na seção o modelo de VE com efeito de alavancagem e na seção o modelo de VE com mudança de regime.
+
+Apresenta uma aplicação em dados reais onde são implementadas estas especificações.
+
+Finalmente compara esta classe de modelos com os modelos determinísticos.
+
+Uma das características observadas empiricamente em séries financeiras de retornos é a existência de caudas pesadas para a distribuição dos retornos, ou seja, a distribuição dos retornos é leptocúrtica não sendo portanto normal.
+
+No contexto dos modelos de volatilidade estocástica, os estudos realizados, proveram evidência empírica sugerindo caudas pesadas na distribuição condicional da média dos retornos.
+
+Este fato também tem sido documentado na literatura dos modelos GARCH/EGARCH.
+
+Para incorporar as caudas pesadas na distribuição condicional dos retornos, introduziram na equação da média um processo latente, de modo que t segue uma distribuição 2.
+
+A distribuição t-Student é facilmente obtida pela mistura da variável 2 e os erros Gaussianos.
+
+O modelo de volatilidade estocástica com erros t-Student (VEt) é definido, onde são os graus de liberdade.
+
+É importante destacar que as especificações dos modelos VEN e VEt tratam os outliers de forma diferente.
+
+Assim, no modelo VEN, valores grandes de |yt| proporcionam indícios de que exp(ht) é grande.
+
+Entretanto, no modelo VEt, t provê uma fonte adicional de flexibilidade e sua inclusão permite lidar com outliers introduzindo um valor maior de t.
+
+Conseqüentemente, os |yt| podem ter valores grandes, entanto que exp(ht) não.
+
+Assim, o modelo, VEt pode ser considerado como sendo mais resistente a outliers que o modelo VEN.
+
+Consideremos agora o problema da estimação Bayesiana de todas as quantidades desconhecidas no modelo VEt.
+
+Sejam o vetor de parâmetros, o vetor de variáveis latentes de escala e HT vetor das log-volatilidades.
+
+Usando o princípio de aumento de dados, a distribuição a posteriori conjunta dos parâmetros, as variáveis de escala e as log-volatilidades condicionados na informação existente no tempo T, é dada, onde será amostrado da densidade a posteriori usando o amostrador de Gibbs.
+
+A distribuição a posteriori é determinada completamente com a especificação das distribuições a priori para os parâmetros.
+
+Assumimos que as distribuições a priori, são as mesmas que as adotadas no modelo VEN.
+
+Esta priori foi usada no contexto dos modelos GARCH/EGARCH.
+
+Logo, as distribuições condicionais completas dos parâmetros são as mesmas que as obtidas na seção para o modelo VEN.
+
+Amostrar HT da sua condicional completa é uma tarefa simples usando o amostrador por blocos descrito.
+
+O logaritmo da distribuição condicional completa é obtida, substituindo a priori.
+
+Para amostrar desta distribuição usamos o método proposto.
+
+Especificamente usamos uma proposta normal, N para o algoritmo de MH.
+
+O seguinte teorema mostra que a variância da proposta é sempre positiva.
+
+Com a finalidade de obter a densidade filtrada a cada t, o filtro auxiliar de partículas, introduzido no Capítulo 3, será aplicado ao modelo VEt.
+
+Para facilitar o entendimento da metodologia a exposição será feita de maneira algorítmica.
+
+Uma característica importante que apresentam muitas séries financeiras é o chamado efeito de alavancagem, o qual relaciona mudanças na volatilidade, em sinal e grandeza, a mudanças nos retornos de maneira assimétrica.
+
+Isto significa que choques negativos (positivos) na média são associados com o incremento (diminuição) da volatilidade.
+
+Motivados pela evidência empírica, propuseram o modelo de volatilidade estocástica com alavancagem, usando a aproximação de Euler do equivalente contínuo.
+
+Motivados pela mesma evidência empírica, generalizaram o modelo VEN, para incorporar esta caracter ística de assimetria.
+
+Na literatura de precificação de opções, o modelo de volatilidade estocástica com alavancagem VEa é formulado em termos de equações diferenciais estocásticas, onde B1(t) e B2(t) são movimentos Brownianos, e S(t) é o preço do ativo.
+
+Na literatura empírica, o modelo anterior é discretizado para facilitar a estimação.
+
+Por exemplo, a aproximação de Euler-Maruyama, do modelo dado pelas equações, leva a versão discreta, onde yt é o retorno composto.
+
+Logo são variáveis independentes e identicamente distribuídos com uma normal padrão.
+
+Observou uma importante diferença ao assumir corr, o processo resultante não é uma diferença martingale.
+
+Desde que a especificação faz o efeito alavancagem ambíguo, usaremos a proposta de Yu.
+
+A fim de facilitar o processo de simulação usando MCMC, consideremos a transformação.
+
+Obtemos que a seguinte representação para a equação das log-volatilidades.
+
+É evidente que o incremento de uma unidade no retorno no tempo t resulta numa variação unidades no log-volatilidade no tempo t + 1.
+
+Seja o vetor de parâmetros do modelo VEa e HT o vetor de log-volatilidades, então a distribuição a posteriori conjunta de e HT condicional em toda a informação disponível DT é dada.
+
+O algoritmo de Gibbs será usado para gerar amostras da distribuição a posteriori.
+
+Isto é, gera-se iterativamente primeiro p e logo HT.
+
+A distribuição a posteriori é determinada completamente com a especificação das distribuições a priori para os parâmetros.
+
+As distribuições a priori dos outros parâmetros são especificadas, onde p0 e q0, são hiper-parâmetros.
+
+Note que uma vez obtidas as amostras podem-se obter amostras usando as transformações definidas nas equações.
+
+A geração de HT será feita aplicando o algoritmo de simulação por blocos aleatórios descritos no Capítulo 3.
+
+Então, considere-se o problema da geração do bloco de log-volatilidades, hs+1, hs+m, condicional em hs e hs+m+1.
+
+A distribuição condicional de yt dados HT é uma distribuição normal com média µt e variância Vt.
+
+Logo, é possível simular da densidade usando o algoritmo de simulação de perturbações suavizadas.
+
+A proposta gerada é aceita usando o algoritmo de Aceitação Rejeição e Metropolis-Hastings (AR-MH).
+
+Para implementar o filtro de partículas define-se o estado.
+
+Logo, o modelo VE-a pode ser expresso como um modelo dinâmico não linear e não gaussiano com densidade das observações dada, onde µt e Vt são dadas pelas equações.
+
+Alta persistência na variância condicional implica que o impacto de choques externos na variância condicional decai lentamente e que a informação atual demora em ser esquecida.
+
+Mostraram que a alta persistência na volatilidade pode ser causada por mudanças estruturais e que o processo da variância pode exibir uma alta persistência de forma espúria.
+
+Combinaram a especificação do modelo volatilidade estocástica com um processo Markoviano de primeira ordem.
+
+Este modelo foi denominado por volatilidade estocástica com mudança de regime (VE-MR).
+
+No modelo VE-MR, o parâmetro de escala da log-volatilidade muda de acordo com um processo Markoviano de primeira ordem.
+
+O modelo VE-MR, captura simultaneamente as mudanças de comportamente da volatilidade devido à forças economicas, como também à mudanças súbitas devido a eventos inesperados.
+
+A especificação do modelo VE-MR adotada nesta seção é a usada, onde são variáveis aleatórias independentes com distribuição normal com média zero e variância 1 e Iit é uma variável indicadora que assume valor 1 quando st é maior ou igual que i.
+
+A dinâmica da mudança de regime é governada por um processo Markoviano de primeira ordem com K estados onde pij = Pr(st = j | st1 = i), com PK j=1 pij = 1, indica a probabilidade de transição de um regime a outro e st é uma variável indicadora que define um particular regime.
+
+Como a distribuição a posteriori p é analiticamente intratável, amostraremos os parâmetros e as variáveis latentes ST,HT das condicionais completas usando MCMC.
+
+É relativamente simples obter as distribuições condicionais completas dos parâmetros.
+
+Amostras de ST são obtidas usando o procedimento descrito.
+
+HT será amostrado usando o amostrador por blocos e a versão corrigida.
+
+Logo, a distribuição condicional do bloco de perturbações t+k r=t dado ht1 e ht+1 é expressado, onde log f(yr|hr) é dada pela equação, a qual será denotada por l(hr).
+
+Sejam l0 e l00 a primeira e segunda derivadas com relação a hr.
+
+De maneira similar ao modelo VEN, define-se as variáveis auxiliares -yr e dr.
+
+Assim, o simulador pode ser aplicado neste modelo para amostrar r=t.
+
+A proposta gerada é aceita usando o algoritmo de Aceitação Rejeição e Metropolis-Hastings (AR-MH).
+
+Os métodos SMC foram usados para estimar os parâmetros e log-volatilidades do modelo VE-MR, usando uma adaptação dos métodos propostos.
+
+A seguir apresenta-se o algoritmo APF-VE-MR considerando que os parâmetros do modelo são conhecidos.
+
+Apresenta-se uma aplicação empírica aos modelos descritos nas seções previas deste capítulo, os modelos VEt, VE-a e o VE-MR.
+
+O conjunto de dados correspondem aos retornos do IVOBESPA que foram previamente analisados no Capítulo 4.
+
+A seguir, com fins ilustrativos, a análise Bayesiana dos modelos de volatilidade determinística comumente usados na literatura financeira é apresentada.
+
+A análise inclui o modelo GARCH(1,1) com erros normais (GARCH(1,1)N), erros t-Student (GARCH(1,1)t) e o modelo EGARCH(1,1) com erros normais (EGARCH(1,1)N).
+
+A implementação destes modelos é feita usando o algoritmo M-H.
+
+A restrição nesta região é equivalente a assumir que o processo é estacionário.
+
+Então, será considerado como um parâmetro desconhecido com distribuição a priori.
+
+A escolha das médias destas distribuições foi feita centradas nas estimativas de máxima verossimilhança e as variâncias multiplicadas por 100.
+
+Desta forma as prioris tornam-se praticamente não informativas, porque seu range é maior que o resultante da distribuição a posteriori, a distribuição a priori foi escolhida como nas outras duas especificações.
+
+Para os modelos GARCH/EGARCH considerados, uma cadeia de 10000 iterações foi rodada, descartando-se 2000 iterações como período de aquecimento.
+
+As restantes 8000 foram usadas para fazer inferências.
+
+As implementações foram feitas usando nosso próprio código usando o pacote Ox1.
+
+O tempo computacional gasto em cada um dos modelos foi próximo de 5 minutos.
+
+Mostra as médias a posteriori para os parâmetros de cada modelo e o erro padrão entre parênteses.
+
+Embora, os resultados indiquem a presença de alta persistência na série de retornos diários do IBOVESPA, o coeficiente de persistência, dos modelos GARCH(1,1)-N e GARCH(1,1)-t, pertencem à região estacionária.
+
+Entretanto, no modelo EGARCH(1,1)N a probabilidade Pr = 0, indicando a presença do efeito de alavancagem.
+
+Este fato será verificado também no modelo VE-a.
+
+Agora trataremos da implementação Bayesiana dos Modelos de VEt, VEa e VEMR usando o amostrador por blocos desenvolvido para cada um destes modelos.
+
+No Capítulo 4, o modelo VEN foi estimado aplicando os amostradores SMGS e MSGS, então nesta aplicação também sera estimado o modelo VEN usando o amostrador por blocos para estimar as log-volatilidades.
+
+Em todos os modelos a quantidade de nós usados foi de 30.
+
+O modelo VE-MR foi implementado usando somente dois regimes st = 1 alta volatilidade e st = 2 regime de baixa volatilidade.
+
+Em todos os modelos,uma cadeia de 50000 iterações foi rodada, descartandose 10000 como período de aquecimento.
+
+As restante 40000 iterações foram usadas para fazer as inferências.
+
+Reporta a média a posteriori para cada um dos parâmetros dos modelos estudados e entre parênteses o erro padrão.
+
+A média a posteriori do parâmetro de persistência no modelo VEN foi de 0,9651.
+
+Este resultado indica uma alta persistência nos choques da volatilidade, de acordo com os resultados existentes na literatura para séries diárias.
+
+A média a posteriori do parâmetro de persistência no modelo VEt foi de 0,9837, sendo maior do que o modelo VEN, mas o valor da variância foi menor, 0,0078.
+
+A média a posteriori dos graus de liberdade foi de 10,8648.
+
+Este valor foi maior que o obtido no modelo GARCH(1,1)t.
+
+A persistência do VE-MR foi de 0,8499.
+
+Este valor foi menor que os obtidos nas duas especificações anteriores e de acordo com o documentado na literatura.
+
+Isto sugere que a causa da persistência nos dados pode ser explicada pela mudan ça de um regime de alta para um de baixa volatilidade, e não necessariamente por um valor alto.
+
+A média a posteriori foi de 0,0742, maior que os valores obtido nos modelos VEN e VEt.
+
+As estimativas das probabilidades de transição p11 e p22 estão próximas de 1, indicando que a probabilidade de mudar de um regime de volatilidade alta para um de baixa e viceversa é pequena.
+
+Mostram as probabilidades de estar num regime de alta e baixa volatilidade respectivamente, isto é Pr(st = 1 | DT) e Pr(st = 2 | DT).
+
+Estes valores foram calculadas das saídas do algoritmo MCMC.
+
+Observe que o período de alta volatilidade abrange o período entre 22/09/98 até 26/01/99, isto é o período posterior à crise Russa e vai até a crise cambial Brasileira.
+
+As observações posteriores a 26/01/99, constituem o período de baixa volatilidade.
+
+Os dois regimes não conseguem identificar as outras crises que aconteceram nesse período, a do Nasdaq e a do período pre-eleitoral em 2002.
+
+Este fato poderia indicar a presença de mais de dois regimes.
+
+Para testar esta possibilidade um outro exercício é feito.
+
+Retira-se da amostra analisada as primeiros 76 observações, isto é até o inicio da crise Brasileira.
+
+Com as restantes 1227 observações, rodou-se novamente o modelo com dois regimes.
+
+Os resultados para os parâmetros do modelo são bastante similares aos obtidos com as 1303 observações e portanto não são reportados.
+
+No entanto as estimativas das probabilidades Pr(st = 1 | DT) e Pr(st = 2 | DT), indicam a presença de dois regimes de volatilidade identificando os períodos de alta volatilidade antes mencionados.
+
+Logo, isto indicaria que seria necessário a inclusão de três regimes, alta, média e baixa volatilidade para a modelagem dos retornos diários do IBOVESPA mediante um modelo VE-MR.
+
+No modelo VE-a a persistência foi 0,9710 indicando novamente alta persist ência no IBOVESPA.
+
+A média a posteriori, o coeficiente de correlação entre os choques da médias dos retornos no tempo t e os choques da volatilidade no tempo t + 1 é 0,3850.
+
+O intervalo de credibilidade de 95% é [0,5413, 0,1769] contendo unicamente valores negativos.
+
+Este fato indica uma forte é significante evidência da presença do efeito de alvancagem no IBOVESPA, confirmando o resultado obtido no modelo EGARCH(1,1)N.
+
+Conjuntamente com o valor atual da volatilidade, determinam o efeito das mudanças nos choques dos retornos na volatilidade.
+
+Logo o mesmo nível de volatilidade dos retornos resulta em variações diferentes no desvio padrão (como medida de volatilidade).
+
+Por exemplo, para o IBOVESPA, assumido exp{ht/2} = 1.
+
+Se o IBOVESPA cai 5%, se produzirá um incremento de aproximadamente 18,5% no retorno esperado para o seguinte períodos.
+
+Painel superior se apresentam os valores absolutos da série de retornos do IBOVESPA.
+
+No painel inferior o gráfico das médias suavizadas de exp(ht/2) para o modelo VEN e o modelo VEt.
+
+Observe que existem diferenças significativas especialmente no período próximo a crise cambial Brasileira.
+
+No painel superior mostra-se as médias suavizadas de exp(ht/2) para os modelos VEN e VE-MR.
+
+Note que as estimativas para o modelo VE-MR apresentam um comportamento mais volatil.
+
+Finalmente no painel inferior temos a comparação das volatilidades dos modelos VE-a e VEN.
+
+As diferenças maiores se apresentam no período inicial.
+
+Painel superior, retornos absolutos da série de retornos do IBOVESPA.
+
+Painel inferior, média suavizada de exp(ht/2).
+
+Linha azul modelo VEt e linha vermelha modelo VEN.
+
+Painel superior, média suavizada de exp(ht/2).
+
+Linha azul modelo VEMR e linha vermelha modelo VEN.
+
+Painel inferior, média suavizada de exp(ht/2).
+
+Linha azul modelo VE-a e linha vermelha modelo VEN.
+
+A comparação de modelos de volatilidade é todo um desafio.
+
+Na literatura Miazhynskaia, apresentaram uma ampla revisão dos métodos para calcular o Fator de Bayes usado na seleção Bayesiana de modelos e os aplicaram aos modelos GARCH(1,1)N e GARCH(1,1)t.
+
+Usaram reversible jumping para comparar diferentes especificações dos modelos GARCH/EGARCH.
+
+Usaram o critério DIC para comparar modelos de volatilidade estocástica.
+
+Usaram o fator de Bayes e o DIC para comparar os modelos comumente usados na literatura financeira, os modelos GARCH(1,1)N e GARCH(1,1)t, VEN e VEt.
+
+Para todos os modelos implementados na seção anterior o DIC é calculado.
+
+Além disso log da verossimilhança marginal é determinado pelos métodos da média harmônica e pelo estimador de Chib.
+
+Segundo o critério DIC, vemos que o modelo mais adequado para descrever os retornos diários do IBOVvESPA foi o modelo VE-a seguido pelo modelo VE-MR e o modelo VEt, cujos valores são muito próximos.
+
+Considerando unicamente a classe dos modelos GARCH/EGARCH o modelo GARCH(1,1)t seria escolhido como melhor modelo.
+
+Usando o log da verossimilhança marginal calculado pelos métodos da média harmonica e estimador de Chib, tem-se que o modelo VEt seria escolhido como o melhor modelo, seguido pelo modelos VE-MR e VE-a.
+
+Ambos métodos de estima ção mantém a ordem em que os modelos são classificados, mas diferem do critério DIC na ordem na qual são classificados.
+
+A relação entre a volatilidade dos retornos e o volume de negócios tem sido o foco das pesquisas empíricas e teóricas desde algum tempo atrás.
+
+Iniciou a discussão apresentando a Hipótese de Mistura de Distribuições (MDH).
+
+De acordo com a MDH, os retornos e o volume de negócios estão conjuntamente subordinados a mesmo processo latente não observável que representa o fluxo de informação, isto quer dizer que movimentos nos preços e mudanças no volume de negócios são causados principalmente pela chegada de nova informação e a volatilidade incorpora esta informação no mercado.
+
+Na literatura de finanças numerosos estudos empíricos têm documentado a existência de uma forte correlação positiva entre o volume de negócios e a volatilidade.
+
+Embora muitas destas pesquisas sustentam a correlação positiva entre o volume e a volatilidade, a evidência se a relação observada pode ser conciliada com as previs-oes da teoria da micro-estrutura do mercado é mista.
+
+Existem algumas variantes da MDH na literatura.
+
+A primeira aproximação que junta as principais características da MDH com os de teoria da micro-estrutura do mercado num modelo empírico, para os retornos diários, foi desenvolvida por Andersen, o modelo resultante foi denominado modelo de misturas modificado (MMM).
+
+As contribuições à literatura dos modelos de volatilidade e volume introduzidas neste Capítulo incluem a estimação seqüencial de parâmetros e logvolatilidades no modelo proposto por Andersen e a especificação de mudanças de regime nas log-volatilidades.
+
+A organização do capítulo é a seguinte.
+
+A seção considera medidas de volume de negócios usadas na literatura financeira.
+
+A seção apresenta o MMM e trata da estimação Bayesiana usando os métodos MCMC e SMC para a estimação conjunta de parâmetros e log-volatilidades.
+
+A seção introduz uma modificação na especificação do MMM permitindo mudanças de regime nas log-volatilidades.
+
+Os parâmetros do modelo resultante são estimados via MCMC.
+
+Finalmente, na seção são apresentadas aplicações em dados simulados e reais.
+
+A literatura relacionada à atividade de negócios nos mercados financeiros é ampla e diversas medidas de volume têm sido propostas.
+
+Assim, por exemplo na literatura da atividade de negócios agregada o número total de ações negociadas foi usado como uma medida de volume.
+
+O total de ações negociadas dividido pelo número total de ações pendentes de pago é denominada aggregate turnover.
+
+O volume individual das ações é usado na análise das relações do preço/volume e volatilidade/volume.
+
+Estudos focados no impacto de eventos na atividade de negócios usam o turnover individual.
+
+Alternativamente, considerou o volume individual em dólares normalizado pelo volume agregado do mercado em dólares.
+
+Igualmente o número total de negócios e o número total de negócios por dia ou por ano foram usados como medidas da atividade de negócios.
+
+Suponha que existem I investidores indexados por i e J estoques indexados por j.
+
+Assuma que todos os estoques são arriscados e não redundantes.
+
+Para cada estoque j, seja Njt o número total de ações pendentes de pago.
+
+Suponha também que o número total de ações pendentes de pago é fixo no tempo para cada estoque.
+
+Para cada investidor i, Si jt denota o número de ações do estoque j que possui no tempo t.
+
+Denote por Vjt o número total de ações do estoque j negociada no tempo t.
+
+Logo o volume negociado é definido, onde é um fator de correção para evitar a dupla contagem quando a soma é feita em todos os investidores.
+
+No que resta desta tese esta será a medida de volume a ser usada.
+
+Assumiu que existem dois tipos de investidores, aqueles que possuem informação do mercado e os que têm liquidez.
+
+O investidor com informação reage à chegada de nova informação, porém a informação que recebe é assimétrica.
+
+De outro lado a demanda do investidor com liquidez é independente da chegada de nova informação.
+
+Uma versão empírica do modelo de mistura modificado (MMM) proposto é dada, onde yt é o retorno composto e vt é o volume sem tendência no dia t, m0 reflete a componente de ruído do volume de negócios referida aos investidores com liquidez, e m1 é o fator de proporcionalidade da componente com informação do volume de negócios, a qual é proporcional a eht.
+
+O modelo definido pelas equações será denotado por VEN-VOL.
+
+O modelo definido pelas equações pode ser escrito como um MD não linear.
+
+Seja zt = (yt, vt) o vetor bivariado de observações e o vetor de parâmetros.
+
+Proporcionaram algoritmos MCMC semelhantes para resumir a distribuição posterior conjunta do vetor de parâmetros.
+
+Para amostrar da densidade posterior se usa o amostrador de Gibbs.
+
+O procedimento pode ser representado de maneira algorítmica.
+
+Esta distribuição é analiticamente não fechada, então pode-se simular m0 usando o algoritmo de M-H.
+
+A proposta de densidade é obtida a partir da expansão de segunda ordem em série de Taylor do logaritmo da distribuição condicional.
+
+Denote-se por q a log-densidade, então a proposta é uma N.
+
+A condicional completa de m1 é analiticamente não fechada.
+
+Logo, analogamente a m0, o algoritmo M-H pode ser aplicado para obter amostras de m1.
+
+HT será amostrado usando o amostrador por blocos.
+
+Logo, a distribuição condicional do bloco de perturbações dado ht-1 e ht+1 é expressado por log f.
+
+Denote log f(yr, vr|hr) por l(hr) e sejam l0 e l00 a primeira e segunda derivadas com relação a hr.
+
+O valor da segunda derivada não é necessariamente negativa.
+
+Usou uma expressão alternativa.
+
+O valor esperado é tomado em relação a yt e vt.
+
+Então, definem-se dr e -yr como segue.
+
+Logo o MLD gaussiano resultante é dado.
+
+Assim, o simulador de de Jong e Shepard pode ser aplicado neste modelo para amostrar r=t.
+
+A proposta gerada é aceita usando o algoritmo de A-R e M-H (AR-MH) como nos Capítulos 4 e 5.
+
+Nesta seção descrevem-se três algoritmos seqüenciais aplicados ao modelo VENVOL, o algoritmo APF assumindo que os parâmetros são fixos, a versão APF com estimação de parâmetros e finalmente o practical filtering with parameter learning que também permite a estimação simultânea dos parâmetros e das quantidades latentes para o modelo VEN-VOL.
+
+Logo, o algoritmo APF será apresentado de forma algoritmica para facilitar a exposição.
+
+Esta seção mostra uma extensão do algoritmo APF com estimação de parâmetros introduzido no Capítulo 4, para a estimação conjunta das log-volatilidades e os parâmetros do modelo VEN.
+
+Nesta extensão se inclui os parâmetros do volume de negócios do modelo VEN-VOL.
+
+Infelizmente, isto traz uma complicação adicional, pois não é possível obter uma estatística suficiente para estes parâmetros, por conseguinte a história h0t1 tem de ser armazenada para cada partícula.
+
+O procedimento assume que um conjunto de N partículas.
+
+Seja st-1 a estatística suficiente para os parâmetros das log-volatilidades que são atualizados a cada instante t, o algoritmo então extrai amostras de p e ht e pondera proporcional à verossimilhança p.
+
+A estatística suficiente st é atualizada da mesma forma que no modelo VEN.
+
+Amostrar de p é a tarefa mais complicada, pois esta distribuição não tem forma fechada.
+
+Na aplicação é gerada a partir de uma distribuição normal com média µ e variância V, e onde µ é a média das partículas da iteração anterior e V é o negativo da inversa da matriz Hessiana avaliada em µ.
+
+Esta proposta têm mostrado resultados razoáveis nas aplicações.
+
+A idéia básica é expressar a distribuição filtrada p por uma mistura das fixed lag-distribuições suavizadas.
+
+Isto é, p pode ser representada, nesta equação p é a distribuição do estado e do vetor de parâmetros dados.
+
+O método procede em duas etapas.
+
+Primeiro, devido a natureza seqüencial do problema, temos disponível uma amostra dos estados hg.
+
+A seguir, amostras desta distribuição podem ser obtidas simulando de forma iterativa.
+
+Observe-se que devido a propriedade Markoviana dos estados, depende unicamente de h.
+
+Logo, só é necessário armazenar o último valor de h tk, para simular desta distribuição.
+
+Porém, o mesmo não acontece com o vetor de parâmetros.
+
+Logo precisa-se de todo o vetor h para amostrar.
+
+Para garantir a eficiência do algoritmo de filtragem, é preciso simular eficientemente.
+
+No modelo VEN-VOL amostras de p podem ser obtidas aplicando a proposta.
+
+Isto significa usar as variáveis auxiliares como nas equações.
+
+Depois, no modelo linear dinâmico resultante o simulador pode ser aplicado.
+
+A velocidade e acurácia do algoritmo depende da escolha de (G,M, k).
+
+Nas aplicações serão usados G = 250,M = 50 e k = 50.
+
+O modelo de volatilidade estocástica com mudança de regime e volume de negócios (VE-MR-VOL) é uma das contribuições que o presente trabalho introduz na literatura.
+
+O modelo VE-MR-VOL, resulta da modificação da especificação da log-volatilidade do modelo VEN-VOL, pela especificação usada no modelo VE-MR, dada pela equação.
+
+Assim, o modelo VE-MR-VOL é definido, onde são variáveis independentes com distribuição normal com média zero e variância unitária.
+
+A dinâmica da mudança de regime é governada por um processo Markoviano de primeira ordem com K estados onde pij = Pr(st = j | st1 = i) com PK j=1 pij = 1, indica a probabilidade de transição de um regime a outro e st é uma variável indicadora que define um particular regime.
+
+Seja o vetor de parâmetros v do modelo VE-MR-VOL (os i são definidos como na equação), HT são o vector de log-volatilidades, os estados do processo Markoviano de primeira ordem, o vetor de retornos e o vetor de volume de negócios respectivamente.
+
+Seja, DT toda a informação disponível até o tempo tempo T.
+
+A distribuição posterior p é obtida pela aplicação do teorema de Bayes.
+
+As distribuições a priori para o modelo VE-MR-VOL são as mesmas que foram usadas no modelo VE-MR e incluindo as distribuições a priori para m0 G(a0, b0) e m1 G(a1, b1), como especificadas no modelo VEN-VOL.
+
+A densidade a posteriori p é intratável analiticamente, então o algoritmo de Gibbs será usado para amostrar dela.
+
+As condicionais completas de m0 e m1 não tem forma fechadas, então o mesmo procedimento descrito na seção anterior para o model VEN-VOL será usado.
+
+Amostras de ST são obtidas usando o procedimento descrito.
+
+HT pode ser amostrado pelo mesmo procedimento procedimento determinado na seção, modificando logf(yr|hr) por log f(yr, vr|hr) como no modelo VENVOL.
+
+Logo, definem-se dr e -yr.
+
+Assim, o simulador pode ser aplicado neste modelo para amostrar r=t.
+
+A proposta gerada é aceita usando o algoritmo de A-R e M-H (AR-MH) como nos Capítulos 4 e 5.
+
+Para ilustrar os métodos descritos na seção, um conjunto de dados artificiais com 500 observações foi gerado.
+
+Estes valores correspondem a valores típicos encontrados em séries de retornos diárias.
+
+Mostram os gráficos da série de retornos, o volume e as log-volatilidades.
+
+Assume-se as seguintes distribuições a priori para os parâmetros.
+
+Neste conjunto de dados o modelo VEN e o modelo VEN-VOL são implementados usando o amostrador por blocos com 20 nós para amostrar das logvolatilidades.
+
+O algoritmo de Gibbs é rodado por 30000 iterações.
+
+Descartaram-se 10000 como aquecimento.
+
+As restantes 20000 foram usadas para fazer inferências.
+
+Todos os parâmetros passaram o critério de convergência.
+
+Mostra a média a posteriori, o erro padrão, os quantis 2,5 e 97,5.
+
+Observe-se que as estimativas dos parâmetros obtidas por ambos modelos estão próximas dos valores gerados.
+
+Mostra o gráfico das médias das log-volatilidades suavizadas obtidas pelos modelos VEN e VEN-VOL e as verdadeiras log-volatilidades.
+
+A seguir um outro exercício é realizado.
+
+O algoritmo APF e o practical filtering nas vers-oes com estimação de parâmetros serão aplicados aos modelos VEN e VEN-VOL.
+
+No algoritmo APF o número de partículas usadas foi de 30000.
+
+Os valores G = 250, M = 50 e k = 50 no practical filtering.
+
+Mostram os percentis 2,5, 50 e 97,5 para os parâmetros e as logvolatilidades estimadas seqüencialmente usando o algoritmo APF para o modelo VEN, enquanto mostram os correspondentes percentis para o practical filtering.
+
+As diferenças entre ambos métodos se da principalmente na estimação do parâmetro, na amplitude dos limites de confiança, embora todos os resultados sejam consistentes com os verdadeiros valores.
+
+Mostram os resultados da aplicação do algoritmo APF com estimação de parâmetros aplicado ao modelo VEN-VOL.
+
+Novamente os resultados obtidos incluem o verdadeiro valor.
+
+Isto é provavelmente pela degeneração das partículas sendo necessário incrementar o número delas.
+
+O algoritmo practical filtering apresenta resultados similares, coerentes com os valores dos parâmetros usados na geração dos dados.
+
+Agora faremos um outro exercício de simulação.
+
+Cosideremos o modelo VEMR-VOL com dois regimes, alta e baixa volatilidades.
+
+As variáveis de estado são gerados por um processo Markoviano de primeira ordem com matriz de transição P.
+
+Os valores da diagonal da matriz de transição implicam uma alta persistência em cada regime.
+
+A medida de persistência é 0,6, m0 = 0,82 e m1 = 0,1.
+
+Estes valores são comuns em séries reais.
+
+Um conjunto de 1000 observações foi gerado.
+
+Uma cadeia de 30000 iterações foi rodada.
+
+Descartaram-se 10000 como período de aquecimento.
+
+As restantes 20000 constituem uma amostra das distribuição posterior conjunta de parâmetros e variáveis latentes, st-s and ht-s.
+
+O número de nós usados para amostrar das log-volatilidades foi 30.
+
+Os resultados são apresentados, onde a média a posteriori, erro padrão, e os percentis 2,5 e 97,5 são dados.
+
+Como estimadores pontuais todas as médias a posteriori estão próximas dos correspondentes valores.
+
+E os intervalos de confiança a posteriori de 95% contém o verdadeiro parâmetro, a exceção.
+
+Mostra a média suavizada de ht (linha rouxa) e as compara com os valores verdadeiros.
+
+Mostram as saídas do MCMC, os histogramas e as funções de autocorrelação de todos os parâmeros do modelo.
+
+Nos histogramas a linha verde indica o verdadeiro valor e a linha vermelha o média a posteriori obtida das saídas do algoritmo MCMC.
+
+Todos os parâmetros passaram o critério de convergência de Heidelbelger e Welch.
+
+Considere agora a série de preços de fechamento corrigido por stock-splits e o número de ações negociadas da International Business Machines Corp (IBM).
+
+O período considerado foi do 4 de janeiro de 1999 até 30 de abril de 2004, o que dá 1338 dias de negócios.
+
+A partir deles calcula-se os retornos corrigidos pela equação do Capítulo 4.
+
+Apresenta estatísticas resumo para estes dados.
+
+Os retornos exibem um excesso de curtose e são levemente assimétricos.
+
+Para fazer a série de volume estacionária, os volumes são ajustados por uma regressão de log vt sob uma constante e o tempo t = 1, T.
+
+A função exponencial dos residuais é linearmente transformada tal que os dados sem tendência e os dados originais tenham a mesma média e variância.
+
+O volume sem tendência e multiplicado por 106.
+
+Para os modelos VEN e VEN-VOL, assume-se as seguintes distribuições a priori para os parâmetros.
+
+Os ht-s são simulados usando o amostrador por blocos com nós estocásticos baseados.
+
+Em ambos os modelos uma cadeia de 30000 iterações é rodada.
+
+As primeiras 10000 iterações são usadas como período de aquecimento e as 20000 restantes são usadas para calcular a média posterior, desvio padrão, percentis 2,5% e 97,5%.
+
+Todos os parâmetros passaram o teste de convergência de Heidelbelger e Welch.
+
+Temos que a média posterior no modelo VEN é 0,9661 indicando uma alta persistência na volatilidade dos retornos diários da IBM.
+
+No entanto, que o valor no modelo VEN-VOL é 0,8707, ligeramente diferente que a estimativa do modelo VEN.
+
+Esta diferença na persistência estimada, usando os métodos dos momentos generalizados e máxima verossimilhança simulada, e indica que o modelo MMM tem problemas para captar a alta persistência na volatilidade dos retornos.
+
+O algoritmo practical filtering com estimação de parâmetros é aplicado ao modelo VEN-VOL.
+
+Os valores de G = 250, k = 50 e M = 50 foram usados.
+
+Por uma questão meramente computacional unicamente os primeiros 625 dados, retornos e volume de negócios, da IBM foram usados.
+
+Agora consideremos o modelo VEN-VOL-MR com dois regimes para o conjunto de dados da IBM, isto é os estados serão st = 1 e st = 2, os períodos de alta e baixa volatilidade respectivamente.
+
+No algoritmo MCMC, o amostrador por blocos e com 30 nós foi usado, uma cadeia com 30000 iterações foi rodada.
+
+Descartaram-se 10000 como aquecimento.
+
+As restantes 20000 são consideradas como uma amostra da distribuição a posteriori conjunta dos parâmetros e quantidades latentes.
+
+A média a posteriori, erro padrão, e os percentis 2,5 e 97,5% são mostrados.
+
+O parâmetro de persistência, tem uma média a posteriori igual a 0,7929.
+
+Este valor é menor do que o obtido no modelo VEN-VOL,(0,8707), como resultado da inclusão de mudanças de regime.
+
+Os valores de p11 e p22 têm médias a posteriori próximas de 1, implicando que os estados 1 e 2 tendem a persistir por um longo tempo.
+
+Apresentam os gráficos das médias a posteriori suavizadas de exp(ht/2) para os modelos VEN, VEN-VOL e VE-VOL-MR.
+
+Os valores para os modelos VEN-VOL e VE-VOL-MR apresentam uma maior volatilidade em relação aos outros dois modelos.
+
+Existem justificativas econômicas e econométricas pelas quais os modelos de volatilidade multivariados são importantes.
+
+O conhecimento da estrutura de correlação é vital em muitas aplicações financeiras, tais como gerenciamento e alocação de uma carteira de valores.
+
+Assim, neste contexto os modelos de volatilidade multivariada são uma ferramenta útil para a tomada de decis-oes.
+
+Além disso, como a volatilidade se movimenta através de diferentes ativos e mercados, a modelagem da volatilidade num contexto multivariado pode levar a ampliar a eficiência estatística dos modelos.
+
+A contribuição deste capítulo à literatura é a modelagem multivariada dos retornos e o volume de negocios para vários ativos, permitindo a correlação entre os erros das variáveis de informação de cada ativo.
+
+O restante do Capítulo é organizado da seguinte forma.
+
+Na seção é apresentada a classe de modelos multivariados fatoriais de volatilidade estocástica.
+
+Na seção, propomos a modelagem conjunta de retornos e volume para vários estoques.
+
+Finalmente a seção apresenta aplicações usando os retornos e o volume de negócios da International Business Machines Corp(IBM) e da Hewlett-Packard Co(HPQ), duas firmas do ramo de computadores.
+
+A análise Bayesiana para um par de estoques será implementada usando o software WinBugs.
+
+Uma extensão natural do modelo VEN é o modelo de volatilidade estocástica multiviariado fatorial.
+
+De acordo com este modelo os retornos de um conjunto de ativos são governados por fatores latentes e os quais são especificados como um modelo de volatilidade estocástica.
+
+Esta classe de modelos de volatilidade multivariados são especialmente importantes para a alocação de uma carteira de ativos e na precificação de ativos os quais tem sido tratados no contexto multivariado.
+
+Além disso, modelos de volatilidade multivariados podem prover informação acerca dos fatores que governam o processo da volatilidade.
+
+Considere que os retornos de p ativos yt.
+
+O modelo fatorial multivariado de volatilidade estocástica é dado, onde D é a matriz de cargas de ordem p × K, ft é o vetor de K fatores e cada componente segue um modelo de volatilidade estocástica.
+
+Assume-se que são mutuamente independentes, et é o vetor de erros idiosincráticos.
+
+Para garantir que o modelo seja identificável, as restrições Dij = 0 e Dii para i = 1,K e j > i são usualmente adotadas.
+
+A primeira componente captura a informação relevante aos retornos de todos os ativos, enquanto que a segunda captura a informação especifica de cada ativo.
+
+O modelo dado pelas equações foi estendido, permitindo que cada elemento em ei,t evolua de acordo com um modelo de volatilidade estocástica univariado.
+
+Propuseram métodos de estimação para estes modelos baseados em algoritmos MCMC single-move.
+
+No entanto, na aplicação que será apresentada na seção usaremos o amostrador de Gibbs single-move usando o pacote WinBugs, fato pelo qual não serão apresentadas os desenvolvimentos das distribuições condicionais completas.
+
+A dinâmica dos retornos e a do volume de negócios é governada pela dinâmica da variável de informação que caracteriza a quantidade de noticias que chegam ao mercado durante o dia referentes a um particular estoque.
+
+A idéia central para estender o modelo de volatilidade e volume para k estoques é que ao mesmo tempo, o fluxo de informação referente a diferentes estoques podem interagir um com o outro.
+
+Esta interação pode ser permitida e analisada via o coeficiente de correlação dos erros das variáveis de informação.
+
+Logo o modelo de volatilidade e volume para k estoques é dado, onde yit e vit são independentes condicional aos hit e é esperado que as estimativas das covariância sejam positivas devido à a informação comum para os estoques.
+
+Esta informação pode ter várias fontes.
+
+Primeiro, pela informação comum a todo o mercado, resultado de políticas econômicas ou notícias que têm um efeito no mercado de estoques.
+
+Este tipo de informação têm efeitos significativos nas decis-oes dos investidores nos mercados emergentes dos países em desenvolvimento, enquanto que a quantidade de tais informações é menor em países desenvolvidos devido ao baixo risco de crises políticas.
+
+Segundo, se os estoques pertencem a firmas da mesma indústria, a informação concernente a indústria pode ter um efeito simultâneo nestas firmas, e os investidores podem mudar suas decis-oes referentes à indústria em particular.
+
+Terceiro, a correlação entre as variáveis de informação que pertencem a estoques aparentemente não relacionados podem ser grandes em mercados onde os negócios estão concentrados a uns poucos ativos com liquidez.
+
+Nesta seção se apresentam aplicações dos modelos multivariado fatorial de volatilidade estocástica e de volatilidade estocástica e volume multivariados apresentados nas seções.
+
+As séries de dados pertencem aos preços de fechamento corrigidos por stocksplits e o volume de negócios da International Business Machines Corp (IBM) e da Hewlett-Packard Co(HPQ).
+
+O período considerado foi do 4 de janeiro de 1999 até 22 de dezembro de 2000, o que dá 500 dias de negócios.
+
+A partir deles calcula-se os retornos corrigidos pela equação do Capítulo 4.
+
+Apresenta estatísticas resumo para estes dados.
+
+Os retornos exibem um excesso de curtose e são levemente assimétricos.
+
+Para fazer a série de volume estacionária, os volumes são ajustados por uma regressão de log vt sob uma constante e o tempo t.
+
+A função exponencial dos resíduos é linearmente transformada tal que os dados sem tendência e os dados originais tenham a mesma média e variância.
+
+O volume sem tendência e multiplicado por 10-6.
+
+Numa primeira aplicação considera-se o modelo fatorial bivariado de volatilidade estocástica de um fator.
+
+Isto é, p = 2, K = 1 e vetor de cargas D = (d1, d2)0.
+
+Assume-se d1 = 1 por questão de identificabilidade.
+
+Logo, o modelo fatorial bi- variado de volatilidade estocástica de um fator é definido, onde yt = (y1,t, y2,t)0 é o vetor bivariado de retornos da HPQ e IBM.
+
+O vetor de parâmetros do modelo, FT e HT são quantidades latentes.
+
+Denote-se Y T.
+
+Modelo Bivariado fatorial de volatilidade estocástica, retornos da HPQ e IBM O algoritmo de Gibbs foi usado para amostrar da densidade a posteriori p e foi implementado no pacote WinBugs 1.
+
+Uma cadeia de 80000 iterações foi rodada.
+
+Descartaram-se 20000 como período de aquecimento.
+
+As restantes 60000 foram usadas para fazer inferências.
+
+A média a posteriori, erro padrão, e os percentis 2,5% e 97,5% são mostrados.
+
+É importante observar que a média a posteriori 0,8939, sugere a persistência na volatilidade do fator comum.
+
+As estimativas indicando uma maior variância dos retornos da IBM.
+
+Agora consideremos a aplicação do modelo de retornos e volume para dois estoques nas séries de retornos e volume da HPQ e IBM.
+
+O modelo de retornos e volume para dois estoque é obtido a partir das equações fazendo p = 2, onde yit e vit são independentes condicionalmente aos hit (representando o retorno e o volume de negócios do estoque i).
+
+O vetor de parâmetros do modelo bivariado de retornos e volume para dos estoques, onde i = 1 indica os parâmetros relacionados à HPQ e i = 2 à IBM.
+
+Denotemos Hi,T ao vetor de log-volatilidade do estoque i.
+
+DT representa toda a informação disponível no instante T.
+
+Novamente o algoritmo de Gibbs foi usado para amostrar da densidade a posteriori p e foi implementado no pacote Win- Bugs 1,4.
+
+Também foram considerados o modelo VEN e o modelo VEN-VOL para cada um dos estoques.
+
+Com a finalidade de comparar os resultados do modelo de retornos e volume para dois estoques, também foram considerados os ajustes dos modelos VEN e VEN-VOL para cada um dos estoques.
+
+Em todos os casos uma cadeia de 80000 iterações foi rodada.
+
+Descartaram-se 20000 como aquecimento.
+
+As restantes 60000 foram usadas para fazer inferências.
+
+Apresenta-se os resultados para os modelos VEN e VEN-VOL para a HPQ e IBM respectivamente e mostra os resultados do modelo de retornos e volume para ambos dos estoques.
+
+As duas tabelas fornecem a média, erro padrão e os percentis 2,5% e 97,5% das saídas do algoritmo de Gibbs para os modelos referidos.
+
+Observe-se que na análise individual para ambos estoques a estimativa do parâmetro de persistência, no modelo VEN é maior que a respectiva para o modelo VEN-VOL.
+
+O contrario acontece com as estimativas de i.
+
+Os resultados são consistentes com os obtidos no Capítulo 6.
+
+Além disso, no modelo VENVOL, as estimativas para m0,i são iguais a 2,4590 e 3,9650 para a HPQ e a IBM respectivamente, entanto que as estimativas para m1,i são 0,3692 e 0,4283 para a HPQ e a IBM.
+
+Estes valores grandes de m0,i em relação a m1,i indicam uma forte presença de investidores com liquidez.
+
+Se comparamos os resultados dos modelos VEN-VOL para cada estoque como o modelo de retorno e volume para os dois estoques, temos que as estimativas dos parâmetros comuns são similares.
+
+Entanto, o coeficiente de correlação, tem uma média a posteriori de 0,4057, e o intervalo confidencial de 95%, é estritamente positivo e indicaria que as mudanças da volatilidade da HPQ afetam positivamente à volatilidade da IBM.
+
+Médias Suavizadas de ht para os modelos VEN-VOL e o modelo Bivariado.
+
+Mostra as estimativas das log-volatilidades da HPQ obtidas pelo modelo para ambos estoques e do modelo VEN-VOL, entretanto faz o mesmo para as log-volatilidades da IBM.
+
+Modelo Bivariado de Volatilidade e Volume, conjunto de dados da HPQ e IBM.
+
+Neste trabalho de tese uma revisão dos recentes métodos para a a estimação Bayesiana dos modelos de volatilidade estocástica desde a perpectiva dos modelos dinâmicos não lineares/não gaussianos, foi feita.
+
+Os métodos, embora computacionalmente intensivos, permitem estimar simultaneamente parâmetros e as log-volatilidades, e isto é realmente importante em aplicação com opções e derivativos nos quais a volatilidade é um input.
+
+Um ponto importante de mencionar são os modelos dinâmicos de primeira ordem que são simples e computacionalmente baratos, proporcionando boas estimativas para as volatilidades.
+
+Esta classe de modelos merece ainda pesquisa e pode-se estender a modelos multivariados.
+
+Nesta tese a distribuição conjunta dos retornos diários e volume de negócios foi estudada.
+
+A relação entre estas duas variáveis é derivada da micro-estrutura do mercado na qual a presença de investidores com liquidez e investidores com informação assimétrica são as principais características.
+
+A especificação resultante é consistente com a MDH.
+
+Nós propusemos modificar a especificação da log-volatilidade usando a especificação com mudanças de regime proposta.
+
+Esta especificação permite diferentes regimes na volatilidade.
+
+Métodos seqüenciais são aplicados ao MMM para obter a distribuição dos parâmetros e as log-volatilidades a cada instante do tempo.
+
+Uma modificação da especificação da log-volatilidade permitindo diferentes regimes foi incluida na modelagem.
+
+Métodos MCMC baseados no amostrador por blocos foram propostos.
+
+Estes métodos usados tem claramente uma vantagem de fornecer a distribuição das variáveis latentes e de qualquer função destas.
+
+Estas estimativas podem ser usadas nas diferentes áreas das finanças modernas.
+
+Uma extensão multivariada para o MMM foi proposta e a implementação Bayesiana implementada para um par de ativos.
+
+A discussão dos modelos de retornos e volume de negócios é uma importante área para futuras pesquisas, pois os resultados claramente indicam que o volume de negócios pode ser uma importante variável para entender a volatilidade.
+
+Existem algumas extens-oes imediatas ao presente trabalho.
+
+A primeira delas é a implementação de um modelo completamente Bayesiano que evite o processo de retirar a tendência da série do volume de negócios.
+
+Uma segunda extensão poderia ser feita incluindo outras distribuições para os retornos como foi feito com os modelos de volatilidade no Capítulo 5.
+
+Finalmente como foi mencionado no Capítulo 7, existem justificativas econômicas e econométricas pelas quais os modelos de volatilidade multivariados são importantes.
+
+O conhecimento da estrutura de correlação é vital em muitas aplicações financeiras, tais como gerenciamento e alocação de uma carteira de valores.
+
+Assim, uma outra alternativa usando modelos fatoriais para modelar a volatilidade poderia ser modelar ht usando um modelo fatorial.
+

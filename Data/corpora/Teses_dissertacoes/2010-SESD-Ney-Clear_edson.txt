@@ -1,0 +1,384 @@
+A constante evolução das necessidades de mercado exige que sejam disponibilizados sistemas computacionais com poder de processamento cada vez maior.
+O aumento da frequência de operação e o paralelismo de instruções em microprocessadores não são mais suficientes para garantir a melhora do desempenho destes sistemas.
+Uma forma de garantir tal aumento no poder de processamento é o desenvolvimento de sistemas multiprocessados num único chip (MPSoC), o que permite dividir os custos de computação de aplicações por os elementos de processamento que o formam.
+É tendência que o número de elementos de processamento que compõe um MPSoC cresça com o avanço em direção a tecnologias submicrônicas.
+Para interconectar tais elementos de processamento são necessárias infraestruturas de comunicação mais eficientes do ponto de vista de características elétricas, facilidade de adoção em projetos e desempenho.
+Redes em chip (do inglês, Networks on Chip ou NoCs) são vistas como uma tendência neste processo.
+Assim como o aumento do desempenho da computação prevê- se também o aumento do desempenho da comunicação entre os elementos de processamento.
+Obviamente, NoCs podem sofrer com fenômenos de congestionamento, que degradam a qualidade das comunicações devido, por exemplo, ao aumento da latência de entrega de mensagens.
+O uso de algoritmos adaptativos em NoCs permite reduzir o congestionamento, mas decisões de adaptação são normalmente baseadas no estado instantâneo da rede e apenas no uso de informação local.
+O problema deste tipo de abordagem é a imprevisibilidade da latência de entrega de pacotes, visto que a rota a ser utilizada por um pacote depende do estado da rede e da regra adotada por o algoritmo de roteamento.
+Adicionalmente, o desvio de uma rota considerada congestionada pode levar a outras com concentração de tráfego ainda maior.
+O presente trabalho propõe duas infraestruturas de comunicação que permitem maior previsibilidade, sendo assim úteis para melhor atender requisitos de comunicação de aplicações.
+Ambas as infraestruturas propostas empregam roteamento na origem.
+A primeira, denominada NoC Hermes-SR explora o mapeamento de rotas de comunicação realizado em tempo de projeto.
+Resultados iniciais mostram um ganho desta infraestrutura de comunicação quando comparada à NoC Hermes com roteamento determinístico XY, uma NoC sem mecanismos para reduzir congestionamentos.
+Em a segunda infraestrutura de comunicação, chamada MoNoC (de NoC Monitorada), exploram- se recursos que contribuem para permitir adaptação de rotas, tais como interfaces de rede, monitores e sondas de rede.
+Resultados capturados para tal infraestrutura apresentaram reduções significativas de latência de aplicação.
+Em ambos os casos, a adoção de algoritmos de roteamento adaptativos quando utilizados como base para a definição de rotas permite contornar caminhos congestionados na rede aumentando a previsibilidade de latência de entrega de pacotes.
+Palavras chave:
+Redes em chip, roteamento na origem, balanceamento de carga, controle de fluxo Em a década de 60 do século XX, Gordon Moore observou que a capacidade dos circuitos integrados (CIs) duplicava a cada 18 meses, o que vem se mantendo válido desde então.
+A esta observação denominou- se mais tarde &quot;Lei de Moore», a qual tem funcionado como um propulsor da evolução da indústria de semicondutores.
+Nota- se tal avanço por o aumento exponencial do número de transistores por unidade de área de Ci ocorrido nos últimos 40 anos, conforme ilustra a Figura 1.1.
+O avanço contínuo da tecnologia submicrônica (em inglês, deep submicron) e o consequente aumento do número transistores por unidade de área de Ci, permitem a construção de sistemas projeto de SoCs é visto como uma tendência, pois permitem resolver parcialmente problemas tais como gargalos de desempenho na comunicação entre diferentes módulos de hard-ware dentro de um chip, o consumo excessivo de área e de energia de sistemas.
+Em o International Technology Roadmap for Semiconductors (ITRS), conjunto de documentos elaborado por representantes de grupos industriais da área de semicondutores, prevê- se que CIs fabricados na próxima década conterão dezenas de bilhões de transistores com dimensão em torno de 50 nm e frequência de operação acima de 10 GHz.
+Estruturalmente um SoC é constituído a parti do agrupamento de um conjunto de módulos de hardware comumente interconectados por infraestruturas de comunicação tais como conexões ponto a ponto e/ ou barramentos.
+Conexões ponto a ponto são eficientes tanto em desempenho quanto no suporte ao controle do consumo de energia por disponibilizarem soluções dedicadas, tendo como desvantagem a limitação da escalabilidade.
+Barramentos são mais eficientes quanto a a escalabilidade quando comparados a soluções ponto a ponto.
+Embora vantajoso sobre tal aspecto, o emprego de barramentos acarreta na utilização de fios globais para distribuir sinais, o que é visto como uma abordagem ineficaz para o projeto de SoCs, por ser suscetível a problemas elétricos (e.
+g crosstalk) e estruturais (e.
+g escalabilidade limitada), além de permitir apenas uma comunicação a cada instante.
+O uso de barramentos segmentados pode ser adotado como uma forma de contornar o último problema.
+Porém, a complexidade envolvida em sua adoção e o potencial bloqueio de todo o barramento segmentado são desvantagens claras desta abordagem.
+Uma proposta que atenda os requisitos de SoCs futuros, quanto a a melhora da eficiência na conceitos de redes de computadores e sistemas distribuídos para o projeto de infraestruturas de comunicação em CIs complexos.
+Comparado a mecanismos de comunicação previamente citados (ponto a ponto, barramento simples e barramento segmentado), o uso de NoCs é vantajoso por permitir melhorar parâmetros tais como eficiência energética, reusabilidade, comunicação não bloqueante e escalabilidade.
+Um exemplo de vantagem do emprego de NoCs vem da possibilidade de estruturar a comunicação global de tal forma a explorar o controle de certos efeitos elétricos, tal como o crosstalk.
+Isto facilita o uso de circuitos de sinalização mais eficientes que permitam reduzir a dissipação de potência por até uma ordem de grandeza e aumentar em até três vezes a velocidade de propagação de sinais.
+Tais vantagens levam à aceitação de NoCs como mecanismo de interconexão em projeto de SoCs, contribuindo ainda para o paralelismo tanto da computação quanto da comunicação.
+Avanços na tecnologia de construção de microprocessadores permitiram a evolução do poder computacional destes dispositivos nas últimas décadas.
+Exemplos destes avanços são:
+O aumento da frequência de relógio e a capacidade de execução simultânea de múltiplas instruções.
+No entanto, assim como os dispositivos de hardware, também evoluíram os requisitos de aplicações no que se refere à qualidade dos resultados e o tempo de processamento para obtenção dos mesmos.
+Cada vez mais exige- se resultados precisos, confiáveis e computados sobre um volume crescente de dados.
+Como o fechamento de um ciclo, tais requisitos de aplicações obrigam o aumento do desempenho dos dispositivos de hardware, que devem levar a um novo patamar de requisitos de aplicação e assim sucessivamente.
+Uma forma de garantir o aumento de desempenho vem do emprego de paralelismo que deve ser viabilizado por infraestruturas em hardware e explorado por descrições de software.
+Em o presente trabalho, o foco está em sistemas de hardware multiprocessados.
+Multiprocessadores integrados num único Ci (em inglês, Chip Multiprocessor, CMP) são classes de SoCs que dão suporte ao paralelismo através do emprego de múltiplos elementos de hardware, também chamados de núcleos de hardware de propriedade intelectual (em inglês, Intelectual Property Cores, IP cores ou núcleos IP em português), que podem ser de processamento, de armazenamento, de comunicação ou de entrada e saída.
+Os elementos de processamento (em inglês, Processing Elements, PEs), podem ser de aplicação específica, quando se destinam a uma aplicação ou domínio de aplicação (e.
+g Processadores digitais de sinal), ou de propósito geral, quando não tem uma aplicação específica (e.
+g Microprocessadores).
+MPSoCs são mais comumente empregados em aplicações específicas que exigem computação concorrente de tempo real, com requisitos de eficiência em área e energia.
+Telefones celulares, equipamentos de telecomunicação, televisão digital, e sistemas de vídeo game são exemplos de aplicações embarcadas que empregam MPSoCs.
+Soluções baseadas puramente em processadores de propósito geral (em inglês, general purpose processors, GPPs) tendem a não ser usadas em aplicações embarcadas devido a o seu alto custo, baixa eficiência energética e inabilidade de atender requisitos de tempo real.
+Uma solução mais eficiente vem de dispositivos que proporcionam o atendimento de requisitos de desempenho disponibilizando a flexibilidade de configuração/ programação.
+Fabricantes como a Texas Instruments e a Freescale Semiconductors disponibilizam comercialmente processadores de sinais digitais programáveis (em inglês, programmable digital signal processor, PDSP).
+Adicionalmente, fabricantes de dispositivos reconfiguráveis tais como a Xilinx e a Altera também têm apresentado soluções que embarcam microprocessadores em FPGAs para auxiliar na criação de MPSoCs.
+Como resultado do aumento do poder computacional associado a soluções embarcadas, pode- se notar o surgimento de dispositivos que cada vez mais acumulam funcionalidade, tais como aparelhos celulares atuais, que além de sua função básica, disponibilizam funcionalidades que vão de uma agenda até, mas não apenas, a visualização de filmes codificados (e.
+G. DivX) e reprodução de música (e.
+G. MP3).
+Cada uma destas funcionalidades possui seus próprios requisitos de computação e comunicação.
+Dado que diferentes aplicações podem coexistir neste tipo de plataforma, o uso dos recursos disponíveis por uma aplicação não pode inviabilizar ou degradar consideravelmente a qualidade das outras aplicações.
+Em o que tange a comunicação, diferentes fluxos de comunicação entre pares origem/ destino que compartilham canais podem levar a ocorrência de congestionamentos e à consequente degradação da qualidade da comunicação, aumentando o tempo de execução de aplicações e diminuindo sua qualidade.
+Tendo em vista a tendência de que múltiplas aplicações sejam executadas num mesmo sistema multiprocessado, cenários de congestionamento e a potencial queda de desempenho da comunicação tendem a ocorrer se não houver planejamento ou gerenciamento durante o desenvolvimento ou uso das plataformas multiprocessadas.
+Com base neste pressuposto, o presente trabalho tem por proposta investigar o controle de congestionamento através da reconfiguração de rotas de comunicação entre pares origem/ destino em redes de comunicação em Ci.
+O objetivo é prover meios que possibilitem garantir a qualidade da comunicação.
+O aumento contínuo da capacidade de inclusão de transistores numa mesma área de CIs, que hoje podem alcançar a ordem de centenas de milhões e que continuam seguindo a lei de Moore segundo o ITRS, permite que cada vez mais PEs constituam um SoC.
+Isto é vantajoso, visto que possibilita a redução do tamanho dos dispositivos e do número de dispositivos que compõe um produto.
+Sua desvantagem vem do aumento da complexidade de descrição, validação e gerenciamento de seus projetos.
+Tal complexidade potencializa o aumento do tempo de projeto, o que pode comprometer a vantagem do uso de SoCs por o possível descumprimento do time to market.
+Sendo uma evolução de SoCs e uma tendência em projetos futuros, MPSoCs tem por objetivo prover soluções ótimas para um dado problema, ou classe de problemas, quanto a desempenho e consumo de energia.
+CMPs podem ser uma proposta para cobrir a lacuna de produtividade de projeto (do inglês design productivity gap) de plataformas MPSoC até seu lançamento no mercado.
+Independente da abordagem, tanto CMPs como MPSoCs tiram proveito de conceitos bem fundamentados em áreas como sistemas operacionais e redes de computadores, no que tange o paralelismo.
+Apesar de plataformas multiprocessadas não serem novidade, sua adoção e adaptação em tecnologias submicrônicas é motivação de pesquisa.
+A evolução de produtos tais como celulares e smartphones tem disponibilizado cada vez mais recursos para o usuário final.
+A integração de câmeras digitais, filmadoras, tocadores de música e de filme codificados, navegadores de Internet, receptores de sinal de posicionamento global por satélite entre outras funcionalidades, deixaram de ser uma tendência e passaram a ser realidade neste tipo de dispositivo portátil.
+Individualmente, tais funcionalidades podem encontrar seus requisitos de execução se forem desenvolvidos módulos de hardware específicos.
+Outra forma de garantir tais requisitos vem da adoção do paralelismo na descrição de aplicações e sua execução em sistemas multiprocessados.
+Após a especificação de uma aplicação, o paralelismo desta é alcançado com seu particionamento num conjunto de tarefas.
+A associação destas tarefas a PEs de um sistema multiprocessado é chamada mapeamento, que pode ser realizado estática ou dinamicamente.
+Em o mapeamento estático, cada tarefa é associada a um PE onde será executada.
+Em o mapeamento dinâmico, cada tarefa é associada a um subconjunto de PEs que compõem a plataforma multiprocessada, sendo que tal subconjunto pode representar todos os PEs da plataforma.
+A decisão de qual PE será responsável por executar uma dada tarefa é feita em tempo de execução, de acordo com uma política adotada por o mapeamento dinâmico.
+Apesar de ser importante para garantir o desempenho global da aplicação, o mapeamento pode levar a situações de congestionamento na infraestrutura de comunicação quando aplicado visando unicamente atender requisitos de computação.
+No caso de aplicações dependentes de comunicação, a decisão de onde mapear uma tarefa tem de levar em consideração a situação da rede durante a execução.
+Uma proposta para melhorar o desempenho de aplicações no que tange a comunicação pode ser obtida através da adaptação de rota, o que permite o desvio de canais congestionados na rede.
+A adaptação de rotas tem como vantagem o desvio de canais considerados congestionados.
+As decisões de adaptação de rotas podem ser feitas externa ou internamente à rede.
+Decisões internas a rede normalmente consideram o estado local de contenção para a adaptação da rota.
+Tal abordagem tem como vantagem o tempo de reação e como desvantagem o pouco (ou nulo) conhecimento do estado de ocupação do restante da rede.
+Decisões externas à rede normalmente levam em consideração o estado de ocupação da rede.
+A vantagem desta abordagem é a potencial decisão de uso de rotas menos propensas a congestionamento e como desvantagem o tempo de necessário para computação de tais rotas.
+Em o presente trabalho considera- se decisões internas como aquelas feitas com base em algoritmos de roteamento implementados internamente a cada roteador e computadas em tempo de execução.
+Decisões externas à rede são caracterizadas por o mapeamento de rotas entre pares comunicantes, processo esse realizado em tempo de projeto, ou ainda adaptações de rota realizadas em tempo de execução por recursos especiais conectados aos roteadores das redes em chip.
+As tendências de emprego de ambientes multiprocessados em projetos de SoC e os problemas de congestionamento previstos com a evolução destes motivam a exploração de infraestruturas que possibilitem o controle da queda de desempenho da comunicação.
+Esta tese aborda a redefinição de rotas entre pares de entidades comunicantes como forma de garantir a qualidade da comunicação.
+Esta Seção lista os objetivos estratégicos e específicos do trabalho a ser proposto.
+Os objetivos estratégicos desta tese são:
+Dar apoio ao projeto de plataformas multiprocessadas cuja infraestrutura de comunicação é baseados em redes em chip;
+Dominar o problema de congestionamento em infraestruturas de comunicação em chip;
+Dominar a problemática de estratégias de controle de congestionamento em infraestruturas de comunicação.
+Os objetivos específicos são:
+Desenvolver uma rede em chip capaz de:
+O Realizar arbitragem eficiente -- uma forma de permitir maior precisão na previsão de latência dos pacotes passa por um controle mais eficiente de arbitragem;
+Propor mecanismos de monitoramento da comunicação de dois tipos:
+O Propor mecanismos de avaliação interna à rede -- para adaptação de rotas numa rede, é indispensável o conhecimento de seu estado de utilização.
+Análises, tal como o percentual de ocupação de um canal, contribuem para as tomadas de decisão de adequação de rotas;
+Propor mecanismos de adaptação da comunicação o Propor interfaces de rede com poder de adaptação de rotas -- a rede proposta adota roteamento na origem.
+Com a notificação de descumprimento de serviços de rede, este mecanismo permitirá adaptar rotas entre pares comunicantes;
+A proposta de adaptação de caminhos em infraestruturas de comunicação com roteamento na origem em tempo de execução é original.
+De os trabalhos revisados com tópicos similares, a infraestrutura alvo está em redes de computadores e não em NoCs.
+Concentrando- se em projetos de CIs, o foco dos trabalhos revisados está na definição de rotas em tempo de projeto, atendendo a objetivos de aplicações mapeadas estaticamente.
+O presente trabalho tem como contribuições:
+Disponibilizar de infraestruturas de interconexão com roteamento na origem;
+Propor um fluxo de avaliação de rotas e mapeamento de rotas de forma estática em tempo de projeto para a comunicação entre tarefas;
+Propor uma plataforma com capacidade de decisão dinâmica de rotas (adaptação dinâmica de rotas) tomada com base no estado de ocupação de toda a rota, dando suporte ao atendimento de requisitos de desempenho.
+O restante deste documento é organizado da seguinte forma.
+O Capítulo 2 tem por objetivo apresentar trabalhos relacionados ao tema abordado.
+Revisam- se temas como propostas de infraestruturas de comunicação em chip, trabalhos sobre detecção e controle de congestionamento e mecanismos de controle de contenção.
+Em o Capítulo 3 apresenta- se a proposta de mapeamento de rotas, incluindo um detalhamento de infraestruturas de comunicação em chip, algoritmos de roteamento e mecanismos de avaliação de rotas.
+Em o Capítulo 4 discute- se um conjunto de experimentos relacionados à proposta de mapeamento de rotas.
+Busca- se evidenciar as contribuições alcançadas com cada um dos elementos apresentados no processo de mapeamento de rotas.
+O Capítulo 5 detalha a proposta de adaptação de rotas, incluindo minúcias sobre as infraestruturas de comunicação em chip e os mecanismos definidos para alcançar o objetivo de adaptação.
+O objetivo do mecanismos de suporte a adaptação.
+O Capítulo 7 conclui a tese, destacando os trabalhos desenvolvidos no contexto do doutorado, as contribuições deste e apontando um conjunto de atividades de exploração futura.
+A adoção de sistemas multiprocessados, aliada ao uso eficiente dos recursos destes, permite o aumento de desempenho quando comparado ao emprego de sistemas monoprocessados.
+Computacionalmente, as vantagens decorrem da divisão de uma aplicação em unidades menores, chamadas tarefas, e a exploração do paralelismo de execução destas.
+A distribuição das tarefas por os PEs que compõem uma plataforma multiprocessada viabiliza a exploração do paralelismo.
+Sob o ponto de vista de comunicação, é natural que um conjunto de tarefas que define uma aplicação deva colaborar, implicando na necessidade de troca de informações entre tarefas.
+Desta forma, os ganhos que podem ser alcançados com a exploração do paralelismo em aplicações exigem a preocupação com aspectos de comunicação, tais como o modo por o qual as tarefas colaboram entre si e a forma como são utilizados recursos de comunicação.
+Diferentes aspectos influenciam na comunicação, indo desde características arquiteturais da infraestrutura de comunicação (e.
+g topologia, algoritmo de roteamento) até as estratégias adotadas para a comunicação (e.
+g uso de memória global, a definição do protocolo).
+Definidos tais aspectos, a ocorrência de congestionamentos é fator de degradação da comunicação e de consequente diminuição da eficiência do uso de sistemas multiprocessados.
+Desta forma, o congestionamento na comunicação é um efeito que deve ser controlado.
+Em o presente trabalho, propõem- se duas infraestruturas de comunicação e mecanismos para controle da diminuição da eficiência da comunicação.
+Em este Capítulo são revisados trabalhos relacionados ao tema, divididos em três temas:
+Propostas de infraestruturas de comunicação em chip, o conceito de congestionamento e propostas de mecanismos de adaptação de tráfego em infraestruturas de comunicação em chip.
+Cabe ressaltar que, no que tange infraestruturas de comunicação, neste trabalho o foco está em redes em chip.
+Uma infraestrutura de comunicação em chip é o recurso básico necessário para garantir a transmissão de dados entre entidades comunicantes num sistema, sendo representados por o hardware que o implementa e por os serviços por ele disponibilizados, tal como envio e recepção de pacotes.
+Diferentes infraestruturas de comunicação em chip podem ser empregadas para a interconexão de módulos em sistemas embarcados, tal como conexões dedicadas, barramentos e redes em chip (i.
+e NoCs).
+De estas, NoCs são vistas como tendência devido a suas vantagens de escalabilidade, diminuição/ redução de fios globais, aumento da largura de banda de comunicação, suporte a baixa dissipação de potência entre outras.
+Em o presente trabalho, NoCs são objeto central na pesquisa.
+Revisa- se agora algumas propostas de NoCs, divididas segundo a regularidade das topologias.
+Com a evolução das tecnologias submicrônicas e a constante busca por o aumento de desempenho de dispositivos eletrônicos, a adoção de sistemas multiprocessados é tendência no projeto de CIs.
+MPSoCs deverão conter cada vez mais PEs, e o custo de lidar com esta multiplicação pode levar à adoção de PEs uniformes segundo aspectos tais como dimensões e fator de forma no intuito de facilitar o projeto automatizado e o reuso de módulos e subsistemas.
+Também, é possível que se adote a idéia de clusters de processamento ao invés de PEs de aplicação específica.
+De o ponto de vista da infraestrutura de comunicação, tende- se a adotar arquiteturas parametrizáveis, mas de topologia regular, o que facilita a replicação de PEs homogêneos em funcionalidade e dimensões.
+Revisa- se a seguir alguns trabalhos que propõem infraestruturas de comunicação em chip parametrizáveis para o atendimento genérico de requisitos de comunicação.
+Guerrier Propuseram a rede em chip SPIN.
+SPIN adota uma topologia árvore gorda, onde cada núcleo IP que compõem a plataforma está localizado num roteador folha da topologia, representados na Figura 2.1 (a) como círculos escuros.
+Os núcleos IP colaboram entre si através da troca de mensagens, que são fragmentadas em pacotes antes de serem inseridas na rede.
+Sequências de palavras de 36 bits compõem um pacote.
+O cabeçalho do pacote fica na primeira palavra, onde um byte do cabeçalho identifica o endereço destino, e os demais bits são usados para informações de roteamento e controle.
+A carga útil dos pacotes pode ser de tamanho variável.
+Cada pacote é finalizado por um terminador que contém informações utilizáveis na detecção de erros de transmissão.
+Karim Propuseram a rede Octagon.
+Conforme ilustrado na Figura 2.1 (b), oito roteadores interconectados por doze canais de comunicação definem a topologia base desta NoC.
+Os roteadores são organizados num anel cordal, com um canal para cada lado e um canal de cada roteador para o roteador localizado no ponto oposto do octógono virtual definido na topologia.
+Assim, cada roteador tem três conexões, uma com o roteador à sua esquerda, uma com roteador à sua direita e uma com o roteador oposto do octógono.
+Cada conexão entre dois roteadores interconectados diretamente é denominada hop.
+A distância entre dois roteadores quaisquer da rede é sempre no máximo dois hops dentro de um anel cordal.
+A rede Octagon é escalável.
+Se um dos roteadores é utilizado como ponte, mais octógonos podem ser agrupadas, conforme ilustra a Figura sendo denominados de pontes.
+A rede Octagon foi originalmente proposta para servir à escalabilidade na construção de processadores de rede (em inglês, network processors) maciçamente paralelos.
+Kumar Propuseram a rede em chip CLICHÉ, em a qual foi adotada uma topologia em malha 2 D, conforme ilustra a Figura 2.1 (c).
+Cada roteador é conectado a um PE e o número de roteadores é igual ao número de PEs.
+Dependendo da posição do roteador na topologia, o número de roteadores vizinhos imediatos pode variar entre 2 e 4.
+Os Autores mostram que sob tráfego moderado, roteadores com tamanho de buffer igual a 8 é suficiente para reduzir a probabilidade de perda de pacotes na rede.
+Todavia, se a carga da rede é superior a metade da capacidade da mesma, então a perda de pacotes persiste mesmo quando se aumenta o tamanho das filas de armazenamento.
+Zeferino Propuseram a rede SoCIN, especificando- a de forma a permitir a adoção tanto da topologia malha 2D quanto toróide 2D.
+A SoCIN tem como elemento de roteamento um módulo denominado RASoC.
+Este roteador, descrito em VHDL, permite parametrizações em quatro dimensões, quais sejam:
+O número de portas de comunicação (limitado a 5), (ii) a largura do canal de comunicação, profundidade das filas de armazenamento e o número de bits utilizados no roteamento de pacotes (visando a escalabilidade da rede).
+O roteamento dos pacotes é definido por o algoritmo determinístico XY.
+Moraes Propuseram a rede Hermes.
+Assim como a SoCIN, a rede Hermes permite a parametrização do número de portas dos roteadores, da largura dos canais e da profundidade das filas de armazenamento.
+Em sua primeira versão, a rede Hermes deu suporte somente à topologia malha 2D e ao algoritmo de roteamento XY determinístico.
+Com a evolução dos trabalhos em torno de esta infraestrutura de comunicação, incluiu- se uma série de novas características, incluindo o suporte a topologia toro 2 D, a adoção de algoritmos de roteamento adaptativos (e.
+g West first, North last, negative first), a possibilidade de uso de canais virtuais, e a opção por controle de fluxo baseado em crédito (em inglês, credit based) ou handshake.
+As propostas de NoCs que assumem topologia regular, aqui revisadas, primam por a definição de infraestruturas genéricas.
+Isto é justificável, visto que são propostas pioneiras em projetos de NoCs.
+A partir de o momento em que NoCs foram aceitas como necessárias para projetos de sistemas multiprocessados futuros, a busca por garantias de desempenho na comunicação começaram a ser melhor exploradas.
+Sob este aspecto, as pesquisa em torno de a NoC Hermes têm buscado fortalecer o uso de topologias regulares e garantira qualidade de serviços prestados por a rede.
+O desenvolvimento de (MP) SoCs e de aplicações específicas exige que sejam atendidos requisitos de projeto tal como redução de área e de dissipação de potência.
+No que se refere à infraestrutura de comunicação, tais requisitos podem ser mais facilmente atendidos em sistemas de pequeno e médio porte quando se emprega topologias irregulares.
+Os trabalhos aqui revisados apresentam abordagens que buscam atender diferentes requisitos na implementação de infraestruturas de comunicação em chip de topologia irregular de forma genérica, sem previsão de aplicação específica ou composição de elementos da plataforma.
+Dumitras Exploram uma infraestrutura de comunicação híbrida, composta de diferentes infraestruturas de comunicação e tecnologias de fabricação, disponibilizando ilhas de voltagem e frequência.
+Esta abordagem tem por objetivo prover alto desempenho, tolerância à falhas e flexibilidade no projeto de SoCs, enquanto se atende requisitos de aplicações.
+A Figura 2.3 ilustra três abordagens de construção de infraestrutura híbrida proposta por os autores.
+Richardson Propõem uma infraestrutura de comunicação híbrida, mesclando barramento e NoC.
+Segundo estes autores, barramentos têm melhor desempenho comparado a NoCs quando o número de núcleos IP não excede nove.
+Tendo por base esta observação, uma heurística permite a criação de grupos de afinidade entre os núcleos com maior interação.
+Internamente, os elementos que compõem um grupo de afinidade são interconectados por um barramento, e a ligação destes grupos é feita com NoCs, conforme ilustrado na Figura 2.4.
+Bolotin Propõem a rede em chip QNoC.
+A construção desta NoC parte originalmente de uma topologia malha 2D regular, sendo adaptada de acordo com os núcleos IPs que compõem a plataforma alvo.
+Tal adaptação ocorre através da eliminação de roteadores e ligações da malha 2 D, ação esta justificada por a heterogeneidade das dimensões de núcleos IP, conforme ilustrado na Figura 2.5.
+Podem ainda existir roteadores que não estão conectados a nenhum núcleo IP, mas fazem parte da rede em chip como nós de passagem.
+O roteamento de pacotes é definido por tabelas de roteamento, sendo as rotas entre pares origem/ destino definidas de forma a atender os requisitos de comunicação, diminuindo a concorrência por recursos de comunicação e o tamanho das tabelas de roteamento.
+Ogras Propõem a inserção de fios longos como mecanismo para personalizar a NoC, contribuindo para a diminuição do congestionamento e da latência na comunicação entre pares origem/ destino.
+Uma rede malha 2D é usada como infraestrutura de comunicação de base.
+A ela adicionam- se fios longos, respeitando um limite máximo de fios por roteador e observando a necessidade da aplicação alvo.
+Mantém- se o algoritmo de roteamento XY para atender a rede com topologia regular, adicionado- se um algoritmo livre de deadlock para uso nos enlaces inseridos.
+Srinivasan Propõem uma técnica para a geração automática de topologia de NoCs e rotas entre pares comunicantes, objetivando aplicações específicas e levando em consideração o consumo de energia.
+Os autores computam a influência das taxas de injeção e do tamanho dos fios de comunicação na energia dissipada nos canais.
+A técnica proposta se desenvolve em três fases, quais sejam:
+Criação da planta baixa inicial, mapeamento de núcleos sobre a NoC e definição das rotas de comunicação.
+Em a primeira fase, busca- se a divisão dos elementos da aplicação de tal forma que se atenda a largura de banda exigida tanto para injeção quanto para recepção.
+Em a segunda fase, os pares comunicantes são aproximados numa infraestrutura de comunicação do tipo malha 2 D, tendo por objetivo a diminuição do número de roteadores a serem atravessados desde a origem até o destino.
+Em a última fase, tenta- se reduzir os caminhos utilizados entre os pares comunicantes, visando- se a redução do número de roteadores, porém respeitando a largura de banda a que cada canal dá suporte.
+Bertozzi Propuseram a rede em chip Xpipes.
+Ela possui chaveamento por pacote, adotando a técnica wormhole, e faz uso de roteamento na origem denominado street sign routing.
+Em este tipo de roteamento, o cabeçalho do pacote contém a identificação dos roteadores em que se fará alguma mudança de direção e a direção que tomará.
+Adicionalmente, a NoC Xpipes permite parametrizações em tempo de projeto tais como:
+Tamanho do flit, espaço de endereçamento dos núcleos, número máximo de roteadores entre dois núcleos, número máximo de bits para controle de fluxo fim-a-fim, profundidade da fila de armazenamento e número de canais virtuais por canal físico.
+Os autores também exploram a geração automática da XPipes, através da adoção de um fluxo de projeto que inclui a extração das características de comunicação da aplicação alvo.
+Goossens Propuseram a rede em chip.
+A pode assumir diferentes topologias, regulares ou irregulares, de acordo com o interesse do projeto.
+A transmissão de pacotes na rede é garantida por o uso de roteamento na origem.
+Em esta NoC são oferecidos serviços diferenciados com conexão e com nível de serviço associado.
+A aceitação da conexão pode incluir a reserva de recursos na rede, tal como filas de armazenamento e/ ou percentual de largura de banda em canais.
+Finalizada a comunicação entre o par origem/ destino, a conexão é eliminada e as reservas são desfeitas, permitindo assim a criação de novas conexões.
+O estabelecimento de conexão entre pares comunicantes propicia o atendimento de requisitos tal como a taxa de transmissão.
+Todavia, a reserva de caminhos consequente do estabelecimento da conexão pode acarretar congestionamento e possível dificuldade de cumprimento de requisitos de outros serviços da rede.
+O uso de topologias irregulares de NoCs para o projeto de SoCs também garante a comunicação paralela entre núcleos IP, adicionalmente potencializando otimizações de área e de dissipação de potência, quando comparado a topologias regulares.
+Em todos os casos revisados, a aplicação e seus requisitos comandam as definições arquiteturais da infraestrutura de comunicação.
+As diferentes abordagens adotadas para a geração das infraestruturas de comunicação investigadas são apresentadas na Tabela 2.1.
+O termo congestionamento corresponde ao bloqueio, total ou parcial, de recursos de uma infraestrutura de comunicação, tal como enlaces ou meios de armazenamento temporário.
+A presente Seção tem por objetivo revisar algumas das definições relacionadas a congestionamento encontradas na literatura de infraestrutura de comunicação.
+Yang e Reddy definem congestionamento em redes de chaveamento por pacotes como um estado em o qual o desempenho da infraestrutura de comunicação degrada devido a a saturação dos recursos da rede, tal como canais de comunicação e meios de armazenamento.
+Os autores citam como efeitos adversos resultantes do congestionamento o atraso na entrega de mensagens, o desperdício de recursos do sistema e um possível colapso na rede caso toda a comunicação seja impossibilitada (tal como no caso de ocorrência de deadlocks).
+Monteiro et al definem que um sistema de comunicação está congestionado quando o funcionamento dos serviços for afetado de tal forma que possa ser percebido por o usuário.
+Ainda segundo estes autores, congestionamento é um fenômeno associado a todos os sistemas de comunicação de geometria variável, ou seja, sistemas de comunicação onde haja um número dinâmico de pares comunicantes (i.
+e pares origem/ destino), onde características de tráfego podem mudar, ou onde recursos de comunicação disponíveis não são constantes.
+De forma simplificada, a ocorrência de congestionamento em sistemas de comunicação pode ser identificada quando o fluxo de entrada de dados no sistema, num intervalo fixo de tempo, é maior do que o fluxo de saída no mesmo intervalo, levando a um estado de sobrecarga da rede.
+Culler e Singh expõem que congestionamento pode ter duas causas, quais sejam, meio ou fim.
+O congestionamento causado pelo meio ocorre quando se ultrapassa a capacidade de atendimento de transmissão de dados por alguns recursos de rede, devido a a competição de fluxos de dados por os recursos de comunicação.
+Um dos reflexos deste tipo de congestionamento é o atraso da transmissão de dados por a rede, que pode ser reduzido por o mapeamento de processos e o escalonamento da comunicação de forma apropriada à topologia de rede específica.
+O congestionamento causado por o fim da comunicação pode ocorrer, por exemplo, quando vários PEs necessitam comunicar- se com um mesmo nodo ao mesmo tempo, ou ainda quando há discrepância entre as frequências de operação de elementos comunicantes.
+Em ambos os casos, o alvo da comunicação não consegue consumir a quantidade de dados a ele enviados, o que leva ao potencial bloqueio de recursos do dispositivo de comunicação.
+Em redes de computadores, uma das formas de detectar a ocorrência de congestionamento é por a observação da ocorrência de perda de pacotes, causada por a expiração de um tempo de vida associado a cada pacote (em inglês Time Te o Live, TTL) no trânsito entre a origem e o destino.
+A perda de pacotes ocorre, pois o congestionamento prolonga a permanência de pacotes na rede, o que pode levar a superação de um tempo previsto de entrega do mesmo, ocasionando sua eliminação na rede.
+O não recebimento de pacotes por o destino pode ocasionar a transmissão de pacotes de controle, do destino para a origem, contendo requisições de retransmissão ou sincronizações.
+Em algumas NoCs adota- se o conceito de TTL, mas seu uso ainda é pouco usual.
+Dois fatores contribuem para isto, quais sejam, requisitos de limitação de ocupação de área por redes em chip e a busca por a localidade da comunicação entre pares origem/ destino.
+Todavia, o avanço deste tipo de infraestrutura de comunicação, com redes de dimensões cada vez maiores, bem como o uso de mapeamento dinâmico de tarefas pode tornar mandatória a adoção de TTL em NoCs.
+Em este trabalho, a rede é dita congestionada quando um fluxo de pacotes, trafegando por uma determinada infraestrutura de comunicação, tem o seu tempo ideal de entrega superado em decorrência de competição por recurso (s) compartilhado (s) com outro (s) fluxo (s) de pacote (s), impossibilitando o atendimento de requisitos tal como a taxa de transmissão contratada entre pares comunicantes.
+Define- se tempo ideal de entrega como o tempo mínimo necessário para a entrega de um pacote num cenário onde não há concorrência de utilização por nenhum dos recursos de comunicação envolvidos na transmissão do pacote.
+Outra definição relevante é a de taxa de transmissão contratada, o valor que descreve a frequência média com que uma dada quantidade de bits tem de estar disponível em seu destino, independente da distribuição temporal que a entrega destes dados venha a ter, usando distribuição uniforme de tráfego ou não.
+Sabe- se que quanto maior a diferença entre o tempo ideal e o tempo real de transmissão dos pacotes, maior a probabilidade de ocorrência de congestionamento.
+O controle da degradação do desempenho da comunicação é o foco deste trabalho.
+Isto é explorado de duas formas:
+A disponibilização de infraestruturas de comunicação em chip e os meios de uso de tais recursos em tempo de projeto ou execução.
+As distintas infraestruturas de comunicação e meios de uso são apresentadas nos Capítulos 3 e 5, focando respectivamente decisões a serem tomadas em tempo de projeto e tempo de execução respectivamente.
+O termo ponto quente (em inglês, hotspot) é usado em diferentes etapas de projeto e teste de semicondutores.
+Por exemplo, durante a fabricação de um Ci, um ponto quente ocorre quando o descumprimento de algumas regras de projeto leva à criação de regiões críticas de atividade de chaveamento, o que pode por em risco a robustez do Ci à ocorrência de falhas de operação.
+Em o presente trabalho, o foco limita- se à etapa de uso de CIs.
+Com o aumento do número de núcleos IP por Ci, o planejamento inadequado de uso de uma arquitetura alvo pode acarretar uma maior competição por recursos, o aumento da dissipação de potência e da temperatura além de limites aceitáveis.
+A detecção de extremos de atividade, dissipação de potência e aumento de temperatura durante o uso de um circuito também são algumas das características consideradas para definir o conceito de ponto quente.
+Link Propõem a migração de tarefas como mecanismo para eliminar a ocorrência de pontos quentes em sistemas multiprocessados baseados em NoCs.
+Para estes autores, ponto quente está relacionado com a temperatura no Ci, e não necessariamente com a idéia de congestionamento.
+A migração das tarefas é realizada através da reconfiguração dinâmica parcial.
+Como resultado, a adoção da técnica de reconfiguração proposta aplicada sobre estudos de caso obteve reduções de até 8° C na temperatura de pico do Ci em comparação com uma distribuição estática da computação.
+Banerjee Propõem a adoção de projeto 3D de CIs como forma de aumentar o desempenho das infraestruturas de comunicação e facilitar a integração em SoCs.
+Segundo os autores, assim como proposto em para o projeto de NoCs de arquitetura e tecnologia mistas, é benéfica a integração de diferentes tecnologias num mesmo Ci.
+Apesar de isto, Addo--Quaye assinala que a integração de NoCs e CIs 3D pode sofrer com o aparecimento de pontos quentes, devido a a concentração de potência em determinados pontos no Ci, acarretando a diminuição da confiabilidade nas interconexões, que conforme o autor representa uma suscetibilidade de falha de cerca de 5% a cada 10° C de elevação.
+Como solução, Addo--Quaye propõe a adoção de algoritmos genéticos para o mapeamento da comunicação e da computação.
+Em o presente trabalho, ponto quente é a ocorrência de sobrecarga de atividades de transmissão nos canais de uma infraestrutura de comunicação, tornando- se um gargalo na comunicação entre núcleos IP distintos.
+Pontos quentes são considerados como um fator local de possível deflagração de congestionamento na rede.
+A presente Seção tem por objetivo apresentar um conjunto de trabalhos relacionados com o controle de fluxo de comunicação em sistemas que empregam redes.
+Inicia- se com um levantamento de trabalhos que usam uma proposta de solução para o problema de mapeamento de tare-fas como meio de controlar o fluxo de informações no interior de uma infraestrutura de comunicação.
+Segue- se um estudo de trabalhos que propõem estratégias de adaptação local de uma rede de comunicação com o fim de controlar o fluxo de dados.
+Em oposição a esta abordagem, estuda- se a seguir trabalhos que sugerem abordagens de adaptação via mecanismos globais à rede.
+A Seção conclui com um levantamento de trabalhos sobre o tema relacionado relevante, o emprego de monitores em redes em chip.
+O mapeamento de tarefas em plataformas multiprocessadas influência a distribuição da carga de comunicação que ocorre numa NoC.
+Esta Seção revisa alguns trabalhos relacionados ao mapeamento de tarefas que consideram uma infraestrutura de comunicação subjacente.
+Marcon Propõem o mapeamento de módulos de aplicações sobre NoCs.
+O trabalho é composto de quatro elementos:
+Um modelo de comunicação, um algoritmo de busca de solução, um modelo da infraestrutura de comunicação alvo e uma função custo.
+Usam- se diferentes modelos abstratos de comunicação para descrever os aspectos de comunicação das tarefas que compõem uma dada aplicação.
+Para a busca da solução, propõe- se algoritmos exaustivos, genéricos (e.
+g Simulated Annealing, Tabu Search) e algumas heurísticas.
+O modelo da infraestrutura de comunicação alvo é uma NoC, porém outras estruturas podem ser empregadas.
+A função custo empregada no trabalho objetivava reduzir o consumo de energia causado por as comunicações na rede.
+Zhou Propõem o mapeamento de tarefas de uma dada aplicação como mecanismo de controle de congestionamento em sistemas baseados em NoCs.
+Utilizando grafos de caracterização de aplicação quanto a a comunicação, grafos de descrição da infraestrutura de comunicação e algoritmos genéticos para a busca de um bom mapeamento, os autores melhoram o desempenho da comunicação.
+Aplicando o mapeamento proposto sobre cenários compostos de diferentes NoCs e geração randômica de tráfego, os autores reduzem os tempos de execução em média 20% quando comparado a resultados obtidos com mapeamentos aleatórios.
+Wenbião Propõem uma abordagem combinada de mapeamento de núcleos IP sobre uma NoC e a definição das rotas a serem adotadas por os pares comunicantes, objetivando a redução do consumo de potência e equalizando a carga de ocupação dos canais.
+Segundo os autores, a escolha de rotas pode afetar parâmetros de desempenho tal como largura de banda, latência e utilização de recursos.
+Os autores utilizam um algoritmo de otimização de agrupamento de partículas (em inglês, particle swarm optimization) para computação do mapeamento dos PEs e das rotas de comunicação.
+Os resultados apontam reduções de 20% no consumo de energia após o mapeamento e redução de carga nos canais de 13% posteriormente à escolha das rotas.
+O mapeamento de aplicações busca atender um ou mais objetivos, conforme os trabalhos revisados.
+Quando realizado em tempo de projeto, como nos casos apresentados, o conhecimento das características de computação e comunicação da aplicação é de suma importância para garantir o melhor mapeamento possível.
+Porém, quando não há um conhecimento prévio sobre o comportamento das aplicações que serão executadas, o uso de mecanismos de mapeamento dinâmico torna- se essencial para garantir o melhor aproveitamento da plataforma, conforme salientado nos trabalhos revisados a seguir.
+Carvalho Propõem o mapeamento dinâmico de tarefas de uma aplicação levando em consideração o estado de utilização de uma rede em chip.
+Em este trabalho, três elementos são utilizados para a exploração do mapeamento das tarefas:
+Um grafo de descrição dos requisitos de comunicação de cada tarefa da aplicação, uma unidade de gerenciamento de mapeamento das tarefas sobre a rede em chip e um conjunto de algoritmos de mapeamento.
+O objetivo é buscar o mapeamento de tarefas em pontos da rede onde a comunicação será menos afetada, tendo em vista uma rede malha com roteamento XY.
+Um conjunto de outras propostas de mapeamento dinâmico de tarefas além de comparações entre abordagens dinâmicas e estáticas de mapeamento foram exploradas por Carvalho em.
+Em o presente trabalho, a forma como será definido o mapeamento de tarefas não é essencial, podendo este ser realizado em tempo de projeto ou em tempo de execução.
+O objetivo é prover suporte para que a infraestrutura de comunicação possibilite o atendimento de requisitos de comunicação dinamicamente, de forma a garantir a execução de aplicações com atendimento à qualidade de serviço requisitada.
+Em redes de comunicação, uma das formas de garantir o atendimento a serviços ou melhorar o uso dos recursos de comunicação vem da possibilidade de adaptações dos recursos de rede durante o uso.
+A presente Seção revisa alguns trabalhos que versam sobre tais adaptações.
+Vishnu Propõem o uso de múltiplos caminhos na comunicação entre pares comunicantes como meio de garantir requisitos de desempenho.
+Os autores exploram esta proposta usando uma infraestrutura de comunicação de alta velocidade chamada InfiniBand.
+Assim como as redes Myrinet, InfiniBand foi desenvolvida para ambientes de computação de alto desempenho (em inglês, High Speed Computing, HSC) que incluem máquinas agregadas (em inglês, clusters) e as grades computacionais (em inglês grids).
+Originalmente, permitia- se apenas um caminho de comunicação entre um par comunicante na InfiniBand.
+Esta característica foi estendida por os autores que exploram as vantagens do uso de múltiplos caminhos.
+O objetivo é a eliminação do potencial de geração de pontos quentes.
+A idéia de uso de múltiplos caminhos foi al.
+É a entrega ordenada de pacotes no destino em situações onde múltiplos caminhos existem.
+As várias rotas entre cada par de entidades comunicantes são definidas em tempo de projeto.
+O uso de múltiplos caminhos de comunicação é considerado como uma boa solução para adequação de requisitos de comunicação.
+Todavia, o uso de recursos de adaptação em redes deve levar em consideração o estado de ocupação dos recursos de comunicação.
+Kim Propõem uma arquitetura de roteador de baixa latência e com suporte a adaptação no roteamento, criando critérios de seleção de encaminhamento de pacotes a partir de cada roteador (em inglês, output selection).
+A baixa latência é alcançada através do emprego de uma arquitetura de roteador de pacotes com 2 estágios de pipeline.
+Em o primeiro estágio é tomada a decisão de roteamento, baseado na observação dos roteadores vizinhos, feita a préseleção do melhor canal que o pacote deve ser encaminhado e alocado o canal virtual.
+Em o segundo estágio, o cabeçalho é transmitido através do roteador.
+A adaptação é obtida a partir de o uso de uma unidade de controle em hardware, que permite a adaptação de caminhos numa topologia 2D.
+A arquitetura proposta por os autores foi avaliada sob diferentes padrões de tráfego e observou- se que sob tráfego não uniforme alcançou- se redução da latência quando comparado à mesma arquitetura adotando algoritmos de roteamento determinísticos.
+Nilsson Investigam o desvio de pacotes durante seu caminhamento em redes com algoritmos de roteamento batata quente (em inglês, Hot-Potato, Hp), tal como a NoC Nostrum.
+Infraestruturas de comunicação que empregam roteamento Hp eliminam o uso de filas de armazenamento, recurso este utilizado com o objetivo de amortizar a ocorrência de congestionamento em redes que empregam chaveamento por pacote do tipo wormhole.
+Os autores abordam três características para a decisão de desvio:
+Desconsiderar o congestionamento na rede, considerar o congestionamento ciclo a ciclo e considerar o congestionamento através de uma média dentro de uma janela de observação.
+Uma janela de observação é definida por os autores como um número preestabelecido de ciclos de relógio.
+A informação de congestionamento é compartilhada entre roteadores vizinhos e utilizada na decisão da porta de saída de um pacote.
+Resultados apresentam uma melhor distribuição das cargas de comunicação na abordagem de 6 vezes melhor que à abordagem e 20 vezes superior à.
+Daneshtalab Propuseram o uso de algoritmos de roteamento adaptativos que consideram o estado das portas de entrada e saída de cada roteador, objetivando reduzir a ocorrência de pontos quentes.
+Dois mecanismos estão presentes em cada roteador para dar suporte a roteamento adaptativo.
+O primeiro mecanismo avalia a condição de fila cheia, dada por a taxa de recepção de pacotes e por a taxa de repasse de estes (i.
+einput selection).
+O estado da fila de armazenamento é informado ao roteador vizinho conectado à porta e, caso a indicação de fila cheia seja confirmada, este roteador vizinho evita enviar pacotes a este roteador, preferindo outras rotas.
+O segundo mecanismo é o repasse de informação de congestionamento para os roteadores vizinhos, que darão prioridade de atendimento a pacotes oriundos do roteador congestionado (i.
+e Al Faruque Propõem o emprego da adNoC, uma infraestrutura de comunicação com poder de adaptação levando em consideração os requisitos de comunicação de pares de tarefas e a quantidade de largura de banda disponível nos canais.
+Os autores apresentam um fluxo de emprego da adNoC, onde as aplicações são divididas em tarefas, e as tarefas são mapeadas sobre PEs, os quais são mapeados sobre blocos disponíveis na rede.
+Em tempo de execução adaptase a comunicação através da alocação de canais virtuais e a atribuição destes às portas de saída.
+As portas de saída são selecionadas de acordo com sua disponibilidade (percentual da largura de banda ainda livre), mas considerando a ocupação prevista de largura de banda para a comunicação e a distância entre o roteador corrente e o destino da comunicação.
+Isto é obtido através da execução de um algoritmo chamado wXY.
+Shin e Daniel propõem a adaptação do modo de chaveamento a ser empregado na rede em tempo de execução, sendo opções wormhole (Wh) e virtual cut-through (VCT).
+Segundo avaliação dos autores, VCT proporciona maior vazão e menor latência quando a carga de tráfego na rede é alta quando comparado a Wh.
+Sob tráfego moderado (i.
+e até 30% de injeção de tráfego, Wh permite o emprego de filas de armazenamento de tamanho menor e desempenho equivalente a redes VCT.
+A decisão sobre qual tipo de chaveamento usar está vinculada aos pacotes e não se baseia no estado de ocupação da rede.
+Cada pacote carrega em seu cabeçalho um campo (H) que informa por quantos hops a rede deve oferecer- lhe chaveamento Wh, sendo que inicialmente o deslocamento ocorre por VCT.
+O valor contido neste campo é decrementado hop a hop, e ao atingir- se zero assume- se chaveamento VCT para este pacote.
+Nguyen Avaliaram o impacto do uso de algoritmos de roteamento determinísticos e adaptativos em NoCs.
+Sob tráfego de baixa intensidade, onde não há detecção de congestionamento ou sua existência atrapalha o atendimento de serviços, algoritmos determinísticos permitem alcançar melhor desempenho.
+Na presença de tráfego intenso, algoritmos adaptativos contribuem para a diminuição da latência.
+Hu e Marculescu propuseram uma rede em chip que combina roteamento adaptativo e roteamento determinístico chamada DyAD (do inglês, Dynamic Adaptive Deterministic switching, DyAD).
+Esta infraestrutura de comunicação combina algoritmos garantidamente livres de ocorrência de dependência cíclica (em inglês, deadlock) e/ ou de deslocamentos por tempo indefinido (em inglês, livelock) na rede.
+Os autores assumem XY como o algoritmo de roteamento determinístico e Odd-Even (OE) como o algoritmo de roteamento adaptativo mínimo.
+Os autores citam que a abordagem dá suporte a outros algoritmos adaptativos, desde que a regra de mistura dos algoritmos adaptativos e determinísticos possa garantir que deadlock e livelock não ocorrem.
+Congestionamento é detectado sempre que a quantidade de posições ocupadas numa fila de armazenamento exceder um valor limiar pré-estabelecido em tempo de projeto.
+Quando um rote-ador detecta a ocorrência de congestionamento, seus vizinhos são notificados e todos assumem roteamento adaptativo até que a notificação de congestionamento se desfaça.
+Em a ausência de notificação de congestionamento, o algoritmo de roteamento determinístico impera.
+Dehyadgari Propuseram abordagem similar àquela de Hu e Marculescu, sugerindo o uso de um algoritmo de roteamento determinístico (XY) quando a rede não encontra- se congestionada.
+Na presença de congestionamento, assume- se um algoritmo de roteamento adaptativo (pseudo-XY).
+O algoritmo pseudo-XY é uma variação desenvolvida por os autores com poder de adaptação e que garantidamente não causa deadlock quando usado juntamente com o algoritmo XY.
+Não há maiores detalhamentos sobre o funcionamento do algoritmo, exceto que as adaptações assumidas com o pseudo-XY estão fortemente baseadas no congestionamento da rede.
+O congestionamento é avaliado sobre o percentual de ocupação das filas de armazenamento, havendo indicação de 4 situações, quais sejam:
+Baixa ocupação, ocupação a 50%, ocupação a 75% ou limite de ocupação alcançado.
+Os autores desenvolveram um ambiente para simulação baseado em SystemC para avaliar o desempenho da infraestrutura de comunicação proposta.
+Sobhani Propõem o uso de um algoritmo de roteamento adaptativo em suas formas mínima e não mínima na mesma infraestrutura de comunicação, dependendo do estado da rede.
+Por padrão, o transporte de pacotes ocorre utilizando o algoritmo de roteamento mínimo.
+Se ao chegar a um roteador e a porta definida como saída for considerada congestionada então a porta de saída é definida usando o algoritmo não mínimo.
+Em um roteador, o congestionamento é definido quando a quantidade de posições ocupadas numa fila de armazenamento é superior a um dado limite e a quantidade de flits encaminhados para uma dada porta de saída é inferior à quantidade de flits que são recebidos na porta de entrada do mesmo roteador.
+Os autores desenvolveram um modelo simulável em C+, sendo que os valores obtidos são resultado de uma estimativa da latência média.
+O uso de mais de uma alternativa de caminhos para alcançar um dado destino em infraestruturas de comunicação pode ser uma boa solução em situações onde se requer uma maior taxa de transmissão ou uma melhor distribuição da carga de comunicação.
+Diferentes abordagens, que vão desde a exploração de múltiplos caminhos, avaliação do estado de ocupação dos recursos de comunicação roteador a roteador e a mistura de características contribuem para o melhor uso da rede.
+Em o presente trabalho, mecanismos de balanceamento de carga são explorados em tempo de projeto e em tempo de execução.
+Em tempo de projeto, a decisão de qual caminho utilizar na comunicação entre duas entidades para todos os pares comunicantes tem por objetivo controlar a ocorrência de pontos quentes na rede.
+Em tempo de execução, disponibilizam- se contratos de serviço que permitam a exploração de mais de um caminho de comunicação entre pares comunicantes.
+Em ambos os casos, o objetivo é a tomada de decisão baseada no conhecimento do estado da rede, ou pelo menos de regiões de interesse desta.
+Diferentemente da visão dos mecanismos de adaptação em nível de enlace, o uso de mecanismos fim a fim propõe a observação global do sistema para a tomada de decisão.
+Diferentes formas de adaptação fim a fim podem ser assumidas, tais como a adequação das taxas de injeção de tráfego e a adaptação de caminhos em infraestruturas de comunicação.
+Em a presente Seção, revisase alguns dos trabalhos envolvendo controle fim a fim aplicados a sistemas baseados em NoCs.
+Pastrnak Propõem uma infraestrutura hierárquica de qualidade de serviço, voltada para aplicações que serão executadas numa estrutura de multiprocessador baseada em NoC.
+Para tanto, as aplicações são descritas a partir de um conjunto de Jobs.
+Cada Job é representado por um conjunto de tarefas comunicantes e por os requisitos de computação e comunicação que serão necessários para sua execução.
+A QoS é avaliada em dois níveis, um local e outro global.
+Sempre que um job for escalonado, um módulo local avalia se os recursos necessários para garantir a QoS deste Job estão disponíveis num PE para o qual este foi mapeado.
+Se isto ocorrer, o sistema aloca o recurso.
+De o contrário, o módulo de QoS local pede intervenção de um módulo de QoS global.
+Este último modifica os mapeamentos e/ ou redefine as prioridade de acesso a alguns recursos, a fim de garantir que todas as aplicações em execução mantenham seus requisitos definidos em tempo de compilação.
+Jafari e Yaghmaee exploram a adoção de um mecanismo de controle de fluxo usando um algoritmo de justiça max-min com pesos (em inglês, weighted max-min fairness).

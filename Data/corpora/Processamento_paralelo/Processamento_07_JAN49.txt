@@ -1,0 +1,1334 @@
+Apresentamos uma arquitetura paralela para a renderização eficiente de múltiplos pontos de vista em um cluster de GPUs.
+
+Nossa abordagem utiliza um renderizador de light eld para reconstruir os pontos de vista desejados a partir de um conjunto de imagens da cena.
+
+Para permitir a renderização de cenas dinâmicas, geramos as amostras novamente a cada quadro ao invés de gerar um buer de imagens.
+
+Ao mesmo tempo, nossa paralelização permite que cada ponto de vista utilize qualquer uma das amostras geradas, evitando trabalho redundante.
+
+A eficiência da solução foi avaliada por meio de modelos matemáticos e validada por meio de mediçes de speedup e eficiência.
+
+Concluímos que a solução proposta é escalável e pode suportar renderização a taxas interativas.
+
+A visualização de dados tridimensionais possui aplicações em diversas áreas do conhecimento humano.
+
+Por meio dela é possível avaliar projetos de engenharia antes que eles sejam construídos, realizar diagnósticos mais precisos de doenças ou mesmo embarcar nos mundos imaginários dos jogos e lmes.
+
+A maior parte dos sistemas de visualização pressupõe que a cena está sendo observada de apenas um ponto de vista.
+
+Apesar de ser suciente para várias aplicações, algumas situaçes requerem a geração de diversos pontos de vista da mesma cena.
+
+Em um ambiente de realidade virtual, por exemplo, vários usuários interagem em um mesmo cenário mas com pontos de vista distintos.
+
+Este texto apresenta uma solução para a geração eficiente de um grande número de pontos de vista.
+
+Neste capítulo explicamos porque consideramos o problema importante e os desaos envolvidos na sua solução.
+
+Também delineamos a metodologia utilizada e as contribuiçes deste trabalho.
+
+Por m, explicamos como essa dissertação foi organizada.
+
+As bases de dados tridimensionais aparecem naturalmente em diversas aplicações, como simulaçes físicas, entretenimento ou projetos de engenharia.
+
+A manipulação e visualização desses dados, entretanto, representa um desao constante.
+
+À medida que o poder computacional e de armazenamento aumentam, buscam-se representaçes grácas cada vez mais sosticadas e criam-se bases de dados cada vez maiores.
+
+Quando o tamanho e complexidade dessas bases de dados excede a capacidade de visualização e memória de um computador individual, é necessário utilizar arquiteturas paralelas ou agrupamentos de computadores (clusters).
+
+Os clusters são normalmente utilizados para tarefas de visualização pesadas, uma vez que podem oferecer o mesmo desempenho de uma estação gráca especializada a um custo inferior.
+
+Cada computador possui uma placa gráca de alto desempenho e é interligado aos demais por meio de uma rede de alta velocidade.
+
+A maior parte dos estudos envolvendo clusters dedica-se ao desenvolvimento de sistemas que apresentem um bom desempenho na geração de um único ponto de vista.
+
+Em algumas Exemplo de um modelo renderizado utilizando agrupamentos de PCs.
+
+O modelo do Boeing Triple-7 contém aproximadamente 350 milhões de triângulos.
+
+As imagens foram geradas pela Intrace GmbH situações, entretanto, é desejável ou necessária a geração de múltiplos pontos de vista.
+
+Em projetos multidisciplinares, por exemplo, cada usuário pode estar interessado em uma visão particular de uma mesma base de dados.
+
+Como exemplo, no projeto de um carro, é possível conceber engenheiros preocupados com a ergonomia e aerodinâmica trabalhando remotamente sobre os dados de um repositório central.
+
+Outra aplicação possível são jogos massive multiplayer, nos quais muitos jogadores compartilham simultaneamente o mesmo cenário.
+
+Em ambos os casos, o sistema deve sintetizar ou renderizar um ponto de vista único para cada um dos usuários conectado ao sistema.
+
+A renderização de múltiplas vistas também pode ser utilizada para criar a percepção tridimensional em displays holográcos ou autoestereoscópicos.
+
+Esses dispositivos são capazes de criar imagens 3D para múltiplos usuários, sem a necessidade de óculos ou outros dispositivos especiais.
+
+Para isso, é necessário gerar e exibir múltiplos pontos de vista simultaneamente.
+
+Cada ponto de vista corresponde a uma posição especíca do espaço e é direcionado a um dos olhos do observador.
+
+A não ser que sejam tomadas precauçes adicionais, a renderização de múltiplos pontos de vista pode ser uma tarefa pesada até mesmo para um cluster gráco com dezenas de computadores.
+
+Isso acontece porque a base de dados deve ser desenhada novamente para cada ponto de vista, o que torna o sistema inviável a partir de um pequeno número de usuários.
+
+O objetivo desta dissertação é encontrar uma maneira eficiente para a renderização de múltiplos pontos de vista de um modelo tridimensional em um agrupamento de PCs.
+
+Estamos especialmente preocupados com o ganho obtido pela paralelização (speedup) e com o comportamento da taxa de quadros à medida que o número de pontos de vista cresce (escalabilidade).
+
+Realizar a síntese de múltiplas vistas é um problema difícil.
+
+A escolha do ponto de vista é um dos primeiros passos executados nos algoritmos de renderização tradicionais e inuencia todos os passos subsequentes.
+
+Desse modo, quando se deseja renderizar mais de um ponto de vista (exemplo, visão estéreo) todo o processo é executado para cada um dos pontos de vista.
+
+Os algoritmos mais inteligentes tentam fazer isso explorando a similaridade entre dois pontos de vista para reduzir o esforço computacional.
+
+Entretanto, a mudança do ponto de vista pode introduzir diversas mudanças na imagem final que não são facilmente previsíveis.
+
+Podem ocorrer desoclusões, mudanças de iluminação e mudanças na quantidade de detalhes que podem ser vistos em um objeto.
+
+Quanto maior o número de vistas que se deseja sintetizar, maior deve ser a escalabilidade do sistema, caso contrário, ele se mostraria inadequado para exibir mais que um certo número de pontos de vista.
+
+O primeiro trabalho que explorou a coerência entre pontos de vista foi desenvolvido por Halle.
+
+Esse trabalho utilizou a relação entre a posição de um ponto na cena e sua projeção na imagem para obter uma renderização mais eficiente.
+
+Recentemente, Hasselgren e Akenine-Möller propuseram uma solução na qual um novo hardware é utilizado para alterar a ordem de rasterização dos triângulos, obtendo maior coerência no acesso à memória.
+
+Tanto a abordagem de Halle quanto a de Hasselgren e Akenine-Möller visam a aplicação em displays estereoscópicos e portanto podem utilizar restriçes fortes no posicionamento das câmeras para extrair coerência.
+
+Normalmente, a diferença entre as múltiplas vistas decorre apenas da paralaxe horizontal e/ou vertical.
+
+Em um sistema genérico é necessário considerar não apenas movimentos horizontais e verticais, mas também mudanças de orientação e na distância até a cena.
+
+Finalmente, os displays estereoscópicos estão tecnicamente limitados a um número pequeno de pontos de vista (16 ou 32).
+
+Desse modo a escalabilidade não é tão crítica quanto em um sistema multi-usuário remoto.
+
+A diculdade na renderização eficiente de múltiplos pontos de vista reside no fato das arquiteturas tradicionais utilizarem a informação do ponto de vista no início do processo de renderização.
+
+Com isso em mente, Stewart, construíram uma arquitetura denominada PixelView, onde a informação do ponto de vista só é necessária no último passo da renderização.
+
+Para isso, as diversas vistas são previamente renderizadas e armazenadas em um buer 4 D.
+
+Assim que o ponto de vista é denido, uma varredura é realizada no buer por meio de um hardware dedicado, gerando a imagem.
+
+Nossa abordagem para o problema é similar à de Halle e Stewart no sentido em que queremos reutilizar as amostras já computadas sempre que possível.
+
+A reconstrução de imagens a partir de outras já computadas, ao invés das primitivas originais, recebe o nome de renderização baseada em imagens.
+
+As diculdades neste tipo de reconstrução envolvem, 
+
+Como amostrar a cena original.
+
+A posição das câmeras de amostragem dene a informação que está disponível para a reconstrução, posiçes que não foram amostradas não podem ser reconstruídas.
+
+Idealmente deseja-se que toda a cena seja coberta o mais uniformemente possível.
+
+Uma vez denida a posição das câmeras de amostragem, é necessário denir como será feita a amostragem.
+
+Informação de profundidade e modelos de câmera mais sosticados podem melhorar o processo de reconstrução.
+
+A reconstrução é uma tarefa computacionalmente intensa.
+
+Algoritmos eficientes e a utilização do hardware gráco podem aumentar o desempenho do sistema.
+
+Cada amostra é uma imagem bidimensional.
+
+Uma cena complexa pode necessitar de muitas amostras para que ela seja totalmente representada.
+
+Além disso, a resolução nita limita a quantidade de detalhes que pode ser capturada por cada uma.
+
+Em geral, existe uma relação de compromisso entre a quantidade de memória utilizada e a qualidade da reconstrução.
+
+Uma revisão sobre renderização baseada em imagens será feita no Capítulo 2.
+
+São desejáveis, também, os seguintes atributos, utilizar hardware convencional, ser altamente escalável.
+
+Operar em tempo real.
+
+Suportar cenas dinâmicas.
+
+Não ter necessidade de pré-processamento.
+
+Funcionar a partir de primitivas poligonais.
+
+Reutilizar o máximo possível computação.
+
+O problema de renderização paralela de múltiplas vistas pode ser dividido em 3 sub-problemas, I-Realizar uma amostragem eficiente de cenas sintéticas.
+
+A amostragem da cena inuencia diretamente a qualidade da reconstrução.
+
+Regiões que não foram amostradas não podem ser reconstruídas adequadamente e a sobreamostragem pode fazer com que o processo de reconstrução seja menos eficiente.
+
+Desse modo, a escolha do número de amostras, posiçes e da resolução de cada uma delas representa uma relação de compromisso entre o tempo de reconstrução, memória necessária e qualidade.
+
+II-Realizar uma reconstrução eficiente da cena com qualidade razoável.
+
+A reconstrução é o processo mais crítico, uma vez que ele será realizado para cada um dos pontos de vista.
+
+Por essa razão, algoritmos tradicionais de reconstrução têm sido portados para a execução nos processadores das placas de vídeo (Graphics Processing Units ou GPUs), cujo poder de processamento têm aumentado mais rapidamente que a Lei de Moore.
+
+Por outro lado, a programação de GPUs confere diversas restriçes à implementação, pois elas não são primariamente voltadas para processamento genérico.
+
+III-Encontrar uma paralelização adequada para a execução em clusters.
+
+A utilização de clusters oferece uma melhor relação custo-benefício se comparada a estaçes de trabalho especializadas, mas trazem consigo o problema de uma sobrecarga adicional na comunicação entre os nós.
+
+A excessiva transmissão de dados entre as máquinas do cluster pode impactar negativamente a escalabilidade do sistema.
+
+A metodologia seguida nesta dissertação pode ser resumida nos passos a seguir, 
+
+Definição do algoritmo de renderização a ser utilizado para a reconstrução dos pontos de vista.
+
+Implementação e testes do renderizador serial.
+
+Definição da arquitetura paralela e paralelização do algoritmo.
+
+Implementação do sistema paralelo.
+
+Realização de testes de desempenho, avaliando a eficiência e escalabilidade do sistema.
+
+Análise dos resultados.
+
+Nesta dissertação apresentamos uma arquitetura escalável para a renderização em tempo real de múltiplas vistas.
+
+Nossa arquitetura é voltada para clusters de PCs com placas grácas tradicionais e utiliza um renderizador de light eld para sintetizar as imagens de saída.
+
+Um light eld ou lumigraph é uma técnica de permite gerar imagens rapidamente utilizando uma descrição do uxo de luz na cena.
+
+A arquitetura apresentada aqui é baseada principalmente nas ideias apresentadas por Todt e Yang, Yang apresentam um sistema que distribui alguns dos passos necessários para a reconstrução de um light eld entre vários PCs.
+
+O objetivo é reduzir os custos de comunicação.
+
+Já Todt apresentam um renderizador light eld de parametrização esférica que utiliza informação de profundidade por pixel para melhorar a qualidade da reconstrução.
+
+Uma revisão dos princípios da renderização de light eld e outras técnicas de renderização baseadas em imagens é feita.
+
+Nos dois capítulos seguintes faremos uma revisão dos trabalhos relevantes existentes na literatura.
+
+Em seguida apresentaremos a solução proposta e detalhes da implementação.
+
+Por m, apresentamos os experimentos realizados para a validação da arquitetura e uma análise dos resultados obtidos.
+
+Renderização é o processo de sintetizar uma imagem a partir das primitivas que descrevem a cena.
+
+Neste capítulo revemos alguns conceitos básicos relacionados ao processo de renderização.
+
+Na primeira parte detalhamos as etapas principais do processo de renderização tradicional utilizando GPUs, em seguida, fazemos uma revisão dos métodos de renderização baseados em imagens e do método light eld utilizado nesse trabalho.
+
+As GPUs são processadores grácos de alto desempenho que foram inicialmente projetados para a renderização de primitivas triangulares.
+
+Sua capacidade computacional provém de uma arquitetura altamente paralela, capaz de gerenciar milhares de linhas de execução ao mesmo tempo.
+
+Essa característica fez com que ela se tornasse atrativa para outros tipos de computação, como simulaçes físicas e processamento de dados.
+
+Apesar da arquitetura ainda ser baseada no processamento de triângulos, hoje vários estágios podem ser programados, permitindo a construção de algoritmos que operem sobre outros tipos de primitivas.
+
+Para que os dados possam ser visualizados, as primitivas devem ser transformadas de acordo com a posição do observador, iluminadas e em seguida projetadas no plano que forma a imagem.
+
+Esse processo recebe o nome de renderização.
+
+O custo computacional de cada etapa varia de acordo com o realismo desejado, com o tipo de primitiva e com o tamanho total do modelo.
+
+No caso da renderização de malhas poligonais, por exemplo, é necessário realizar múltiplas operaçes envolvendo matrizes e variáveis em ponto utuante.
+
+A transformação que mapeia os pontos do espaço tridimensional para pontos na imagem bidimensional é uma transformação projetiva.
+
+Essa transformação também pode ser considerada como uma descrição matemática da câmera utilizado pelo observador da cena.
+
+O modelo de câmera mais utilizado em computação gráca é denominado de câmera pinhole.
+
+Ela consiste basicamente de uma abertura innitesimal através do qual a luz proveniente da cena pode atingir o detector (imagem).
+
+Na câmera pinhole, os pontos ao longo de uma mesma direção são projetados no mesmo ponto 2 D, perdendo-se a informação de profundidade.
+
+Modelo de câmera pinhole.
+
+O modelo de câmera pinhole simplica propositalmente o processo de projeção da imagem em troca de uma implementação mais rápida.
+
+Na prática, a maior parte dos dispositivos de captura possui aberturas não innitesimais e utilizam lentes.
+
+Efeitos de profundidade de campo, por exemplo, não aparecem nas imagens de câmera pinhole.
+
+Em algumas aplicações pode ser necessário construir modelos mais reais de câmeras, ou mesmo desenvolver modelos de câmeras com propriedades especiais.
+
+Essas câmeras são conhecidas como não-pinhole.
+
+Estágios da Renderização O processo de renderização de malhas triangulares pode ser dividido conceitualmente em três estágios, aplicação, geometria e rasterização.
+
+O objetivo e as principais operaçes realizadas em cada um deles são discutidas a seguir.
+
+Estágios do pipeline de renderização padrão.
+
+O estágio da aplicação é responsável por preparar as primitivas grácas que serão desenhadas nos estágios seguintes.
+
+Como as primitivas são geradas na CPU ou recuperadas do disco, esse estágio é normalmente implementado em software.
+
+A aplicação tem acesso também a entrada de usuário, rede etc e pode realizar as operaçes que não podem ser executadas bem em hardware, como alguns tipos de animação, física ou pré-processamento.
+
+O estágio de processamento de geometria é o responsável pelas operaçes que são aplicadas a cada polígono ou vértice do modelo.
+
+Tanto o estágio de geometria quanto o de rasterização já podem ser implementados totalmente em hardware.
+
+O estágio de geometria pode ser subdividido em Transformação, Iluminação, Projeção, Clipping e Mapeamento.
+
+A transformação é responsável pela mudança entre o sistema de coordenadas do modelo para o sistema de coordenadas da câmera.
+
+Normalmente as transformaçes são codicadas em matrizes 4 x4 e aplicadas em cada vértice da geometria.
+
+Uma vez transformadas, as primitivas são iluminadas para obter uma melhor sensação de profundidade.
+
+Para isso são calculados os valores de intensidade luminosa presentes em cada vértice por meio de modelos que aproximam o comportamento de luzes reais.
+
+A iluminação também pode ser calculada por pixel na etapa de rasterização.
+
+Depois de transformadas e iluminadas, as primitivas podem ser projetadas na tela.
+
+Isso é feito por meio de uma matriz 4 x4 denominada matriz de projeção.
+
+As transformaçes de perspectiva denem um volume da cena que será projetado na tela.
+
+O volume é denominado frustum.
+
+Como último passo, as primitivas que não estão inteiramente no volume de visualização, devem ter novos limites construídos (clipping) e todos os vértices mapeados para as coordenadas de exibição na tela (mapeamento).
+
+As operaçes realizadas no estágio de transformação das GPUs modernas podem ser modicadas por meio de um programa especial denominado vertex shader.
+
+Os shaders executam diretamente na GPU e podem utilizar informaçes extras passadas por meio de texturas.
+
+Em algumas GPUs, a saída do vertex shader (triângulos projetados) pode ser processada novamente antes de ser enviada ao estágio seguinte.
+
+Esse processamento é feito pelo geometry shader e permite ao programador criar novas primitivas.
+
+A rasterização consiste no processo de determinar quais pontos na tela cada primitiva projetada ocupa (fragmentos).
+
+Quando ocorre uma sobreposição na posição projetada de duas ou mais primitivas, deve ser feito um teste para determinar qual delas está visível.
+
+O algoritmo normalmente implementado é o Z-Buer, que verica antes de desenhar cada pixel se algum outro pixel mais próximo da câmera já foi desenhado.
+
+Em caso armativo, a cor do pixel é simplesmente descartada.
+
+As GPUs modernas também permitem executar um código para cada pixel produzido pelo rasterizador.
+
+Esse programa é conhecido como pixel shader.
+
+Por meio dele é possível calcular a iluminação que incide sobre cada pixel, levando em conta as luzes presentes na cena.
+
+É possível também aplicar uma imagem bidimensional sobre a superfície do modelo por meio de uma função de mapeamento.
+
+Essa operação, conhecida como mapeamento de textura, é suportada em hardware e muito utilizada para simular a existência de detalhes nas superfícies.
+
+Além das malhas poligonais, podemos representar cenas utilizando apenas imagens.
+
+As imagens apresentam a vantagem de serem independentes da complexidade da cena ou objeto que representam.
+
+Entretanto, enquanto modelos geométricos podem ser renderizados de qualquer ângulo ou distância, as imagens representam apenas o que pode ser visto de um conjunto nito de posiçes.
+
+O conjunto ideal de tudo que pode ser visto da cena recebeu o nome de função plenótica e foi introduzido em 1991 por Edward Adelson.
+
+A função plenótica descreve o transporte da luz no ambiente e no tempo a partir do ponto de vista de um observador.
+
+Em sua formulação completa, a função plenótica toma a forma, onde (x,y,z) a posição no espaço do observador.
+
+Teoricamente a função plenótica poderia ser medida posicionando-se um olho imaginário em cada posição possível, registrando-se a intensidade dos raios de luz que passam pelo centro da pupila em todos os ângulos possíveis, para todo comprimento de onda, em todos os instantes de tempo t.
+
+Como a medição da função completa não é prática, é preciso trabalhar com um subconjunto dela.
+
+O objetivo das técnicas de renderização baseadas em imagens é obter uma reconstrução contínua da função plenótica a partir das amostras disponíveis.
+
+Além da informação fornecida pelos raios de luz capturados, é possível utilizar informação geométrica para delimitar um subconjunto da função plenótica.
+
+De fato, as diversas técnicas de renderização baseada em imagens podem ser aproximadamente categorizadas de acordo com a quantidade de informação geométrica utilizada.
+
+Uma imagem, por exemplo, pode ser considerada como uma amostragem 2D da função plenótica em um determinado instante de tempo e em uma posição especíca.
+
+Para ambientes sintéticos, a obtenção de informação geométrica é relativamente simples, entretanto, para imagens reais essa tarefa pode ser extremamente complicada.
+
+Algumas técnicas representativas de renderização baseada em imagens são descritas a seguir.
+
+Cada uma deles captura de uma maneira própria uma parte da função plenótica.
+
+Levantamentos mais detalhados podem ser obtidos.
+
+Devido a restriçes de amostragem e armazenamento, quando trabalhamos com uma representação da função plenótica, normalmente desconsideramos o t e aproximamos pelo sistema de cores RGB.
+
+Desse modo a função passa a ter apenas cinco parâmetros espaciais.
+
+Se considerarmos que o espaço de observação está livre de oclusores, a função plenótica pode ser representada por uma função conhecida por lumigraph ou light eld.
+
+Isso equivale a considerar apenas o sub-conjunto dos raios que saem de um objeto com uma superfície delimitada.
+
+Um light eld pode ser descrito de diferentes formas, sendo que cada uma gera um tipo diferente de parametrização.
+
+A parametrização utilizada por Levoy e Hanrahan descreve os raios que saem da cena por meio da interseção deles com dois dois planos denominados (u,v) e (s,t).
+
+O quadrilátero denido pelos dois planos recebe o nome de lightslab.
+
+Outras parametrizaçes utilizadas na literatura são, cilíndrica, esféricas, duas esferas, esfera-plano e não estruturadas.
+
+As parametrizaçes esféricas tem a vantagem de permitirem uma amostragem mais uniforme do light eld, evitando as descontinuidades que aparecem na representação por dois planos.
+
+Já os não estruturados visam a aquisição de amostras por meio de câmeras portáteis.
+
+A reconstrução do light eld pode ser melhorada se for possível estimar a posição da superfície que emitiu cada raio, ou seja, se a informação de profundidade estiver disponível.
+
+Gortler, utilizou um malha poligonal para aproximar o objeto sendo representado e realizar uma correção durante a renderização.
+
+Algoritmos mais recentes utilizam o valor de profundidade por pixel para realizar a correção Se o ponto de vista do observador não se move, a função plenótica pode ser simplicada ainda mais.
+
+Os panoramas cilíndricos permitem que o observador gire 360 graus na direção de observação horizontal e tenha um movimento limitado na vertical.
+
+A parte do panorama sendo vista é deformada para obter uma imagem com a perspectiva correta.
+
+Basicamente a deformação é o mapeamento de cada ponto (x,y) no plano de imagem para uma coordenada (u,v) na imagem cilíndrica.
+
+Os panoramas cilíndricos são fáceis de obter e renderizar, mas não permitem que o observador se mova do ponto central.
+
+Panorama cilíndrico Esquerda, geometria do frustum Direita, detalhe do warping Oliveira.
+
+A técnica dos mosaicos concêntricos é uma extensão dos panoramas, e permite a liberdade de movimento dentro de um círculo bidimensional.
+
+Essa técnica parametriza o light eld utilizando três parâmetros, raio, ângulo de rotação e elevação vertical.
+
+A aquisição das imagens é feita movendo-se câmeras de fenda vertical em círculos concêntricos em torno de um ponto central.
+
+Uma câmera de fenda vertical é semelhante a uma câmera convencional, mas captura apenas uma linha vertical da imagem.
+
+Coleção de mosaicos concêntricos.
+
+A reconstrução de um ponto de vista especíco é feita recuperando-se cada coluna da nova imagem do mosaico concêntrico desejado.
+
+Como a mesma coluna pode ser utilizada em posiçes diferentes, as imagens podem apresentar distorçes verticais.
+
+Ainda assim, essa abordagem consegue capturar e reconstruir de maneira rápida efeitos de desoclusão horizontal e variaçes de iluminação que dependem do ponto de vista.
+
+Morphing é a técnica que permite reconstruir amostras da função plenótica ao longo de um caminho.
+
+Ela utiliza como entrada um par de imagens, que podem ser considerados como início e m de um caminho percorrido pela câmera ao longo do tempo ou ao longo da cena.
+
+Utilizando informação de correspondência entre os pixels adicionada manualmente e uma função que combina duas imagens, é possível recriar um ponto intermediário do caminho.
+
+A nova imagem é uma combinação linear das imagens originais, aproximada por meio do deslocamento dos pixels nas imagens ao longo do tempo.
+
+A interpolação de vistas permite a recriação de pontos de vista arbitrários baseada na observação de que sequências de imagens espacialmente próximas são bastante coerentes.
+
+O método proposto por Chen e Williams utiliza a posição e orientação da câmera e informação de distância das imagens para determinar automaticamente uma correspondência pixel-a-pixel entre duas ou mais imagens.
+
+A informação do uxo óptico obtida é armazenada de acordo com sua profundidade, sendo possível aproximar efeitos de perspectiva devidos a profundidade.
+
+Diversas técnicas de renderização baseada em imagens foram construídas utilizando-se imagens aumentadas com profundidade.
+
+Normalmente utiliza-se três canais de cor e um quarto canal para representar a distância da câmera (ou plano de imagem) até a superfície responsável pela cor do pixel em questão.
+
+Desse modo, a informação geométrica da cena pode ser inferida utilizando-se o valor de distância armazenado e o modelo da câmera utilizada.
+
+A seguir é feito uma descrição geral de algumas dessas técnicas.
+
+Image warping pode ser utilizado para projetar pixels de um ponto de vista para outro, se a profundidade por pixel da cena é conhecida.
+
+O warping pode ser feito a partir das imagens originais para as desejadas, (direct warping) ou da imagem desejada para a original (inverse warping).
+
+A transformação que mapeia uma imagem com profundidade i em uma imagem alvo it é conhecida como equação de warp.
+
+Se x é um ponto no espaço s cuja a projeção no plano da imagem is tem coordenadas (us,vs), temos que a projeção em um plano alvo é dada por, 
+
+A equação do warp mostra que é possível determinar a posição na imagem final aplicando uma transformação de perspectiva planar P 1 P e depois um deslocamento proporcional a "disparidade generalizada"s na direção do epipolo.
+
+O problema normalmente associado ao 3D warping é a geração de buracos na imagem gerada, que podem aparecer devido a diferenças de amostragem (resolução) e desoclusão de partes da cena ( áreas da imagem não vistas anteriormente se tornam visíveis devido a mudança de posição da câmera).
+
+As alternativas para a solução podem envolver interpolaçes ou duplicação do valor dos pixels próximos, a utilização de várias imagens com pontos de vista diferentes e imagens especiais contendo várias camadas ou produzidas por câmeras não pinhole Relief texture mapping é uma maneira de se adicionar detalhes 3D e paralaxe em superfícies por meio do mapeamento de texturas com profundidade.
+
+Relief textures normalmente são projetadas paralelamente, de modo a simplicar o warp.
+
+A ideia do relief mapping é fatorar a equação de 3D warping (22) de modo que ele seja feito por meio de um pré-warp seguido de uma aplicação de textura normal.
+
+Isso permite que o algoritmo seja utilizado nas aplicações que utilizam OpenGL e o hardware gráco de maneira eficiente.
+
+Para o passo de pré-warp é necessário encontrar um mapeamento p que quando composto com uma operação de mapeamento de textura m resulta em um resultado consistente com a equação de warp original.
+
+Relief Texture Mapping Oliveira.
+
+A abordagem original do Relief texturing pode ser utilizada para renderizar objetos 3D.
+
+Uma representação consiste em um bounding box ao qual é aplicado uma textura relief.
+
+Novos pontos de vista podem ser obtidos alterando-se o pré-warp de acordo com a posição da nova câmera.
+
+Posteriormente Policarpo apresentou uma nova técnica para apresentar relief textures em superfícies poligonais por meio da GPU.
+
+Ao invés da fatoração apresentada anteriormente, os mapas de altura são renderizados por meio de um algoritmo de emissão de raios (raycasting) no espaço da tangente.
+
+O ponto de interseção com o mapa de alturas é encontrado por meio de uma busca linear seguido de um renamento binário 2 Projeção do centro de projeção de uma câmera no plano de imagem da outra câmera Mesmo sendo realizadas com pixel shaders nas GPUs, a renderização de relief textures ainda é cara.
+
+Nehab sugeriram, assim, a utilização de caches para acelerar o processo de reprojeção.
+
+A ideia do cache de reprojeção de tempo real é armazenar informação de superfície no espaço de imagem e assim utilizar a coerência entre frames consecutivos.
+
+Possivelmente um cache pode ser útil para as operaçes de raycasting do relief mapping.
+
+Shade, descrevem uma primitiva denominada Layered Depth Image ou LDI.
+
+Um LDI é uma vista da cena de um ponto de vista apenas, mas com múltiplos pixels ao longo de cada raio.
+
+Assim, os problemas de desoclusão podem ser ser razoavelmente evitados.
+
+Além disso, o sistema de coordenadas único facilita algumas operaçes e o tamanho da representação, depende diretamente da complexidade de profundidade da cena.
+
+Para a representação da superfície de um objeto, seis LDIs podem ser combinadas, formando um Image Object Para isso várias vistas devem ser capturadas e reamostradas a partir de um centro de projeção comum.
+
+As seis faces são mapeadas em um paralelepípedo, de forma que seja possível utilizar o warp levando em consideração a oclusão (occlusion compatible order) e de forma eficiente.
+
+O número mínimo de amostras necessárias para reconstruir um sinal é um problema clássico em processamento de sinais e computação gráca.
+
+Quando consideramos a diversidade das técnicas apresentadas na ultima seção, podemos ponderar sobre a relação existente na qualidade da reconstrução e da quantidade disponível de imagens e de informação geométrica.
+
+A análise da amostragem em renderização baseada em imagens é um problema difícil porque ela envolve uma relação complexa entre três elementos, a profundidade e informação de textura presente na cena, o número de amostras disponíveis e a resolução da renderização.
+
+Chai mostraram que é possível inferir a relação entre a complexidade da cena (informação geométrica e de textura) o número de amostras de imagem e a resolução da imagem de saída.
+
+Sabe-se que a informação de profundidade, além de melhorar a qualidade de renderização, também afeta a taxa de amostragem.
+
+Uma vez que a informação por pixel pode ser obtida sem custos adicionais em imagens sintéticas, ela tem sido bastante utilizada em trabalhos recentes.
+
+Outro ponto importante, é utilizar uma boa estrutura para a amostragem.
+
+Para objetos é comum utilizar-se uma parametrização esférica.
+
+Para cenas genéricas, entretanto, a resposta não é tão clara.
+
+A abordagem mais simples é amostrar a cena utilizando-se um grid regular.
+
+Outra possibilidade é gerar amostras adaptativamente como em Jeschke Ao invés de considerar o problema da amostragem de maneira geral, Schirmacher considera o problema de decidir quais novas amostras devem ser incorporadas ao light eld para melhorar a qualidade da renderização.
+
+O ganho na qualidade da reconstrução é estimado avaliando-se o erro obtido ao renderizar o ponto de vista a ser incluído com as amostras já adquiridas.
+
+Aqueles que puderem ser bem reconstruidos não contribuirão para o light eld e portanto podem ser descartados.
+
+Renderizar múltiplas vistas utilizando o pipeline gráco padrão é um problema difícil.
+
+A arquitetura atual de rasterização requer que a decisão do ponto de vista seja feita logo no início, o que torna difícil explorar a coerência entre pontos de vistas diferentes.
+
+Por essa razão, Halle sugeriu que os pontos de vista fossem renderizados a partir de um volume gerado por várias imagens epipolares.
+
+Mais tarde, Hübner, desenvolveram uma técnica para fazer o splatting em vários pontos de vista simultaneamente.
+
+Splatting é uma técnica de renderização baseada em pontos na qual pequenos discos são desenhados sobre os diversos pontos que denem a superfície dos objetos.
+
+O sistema desenvolvido utiliza a GPU para projetar cada splat apenas uma vez para todas as vistas.
+
+Outras tentativas de realizar a renderização eficiente de múltiplos pontos de vista envolveram a criação de novo hardware.
+
+Hasselgren e Akenine-Möller propuseram uma arquitetura capaz de renderizar cada triângulo simultaneamente em múltiplos pontos de vista, melhorando a coerência do acesso às texturas.
+
+Stewart desenvolveram o sistema Pixel-View, um protótipo de hardware que empregava um frame-buer 4 D para permitir a escolha do ponto de vista no momento em que se lê a imagem para o dispositivo de saída.
+
+Apesar das ideias citadas ajudarem a explorar novos algoritmos, elas têm aplicabilidade limitada por não utilizarem o hardware atualmente disponível.
+
+De certa forma, os buers utilizados por Halle e por Hasselgren e Akenine-Möller podem ser considerados light elds.
+
+Yang também utilizou o mesmo conceito para gerar novos pontos de vista para uma matriz de câmeras.
+
+Entretanto, em nosso trabalho, ao invés de construir e amostrar todo o light eld para cada nova vista, estamos interessados em utilizá-lo como uma maneira de compartilhar os raios entre os pontos de vista e assim evitar esforço computacional desnecessário.
+
+Mesmo utilizando o compartilhamento dos raios, o custo de renderizar múltiplos pontos de vistas interativamente é ainda maior que o poder computacional disponível em uma placa aceleradora gráca típica.
+
+Por esse motivo, propomos uma arquitetura paralela escalável.
+
+Annen descrevem um sistema distribuído para renderizar múltiplos pontos de vista para displays de paralaxe.
+
+Entretanto, eles não exploram nenhum tipo de coerência entre os pontos de vista e se concentram no problema de escalabilidade e balanceamento de carga.
+
+Yang desenvolveram um sistema que distribui alguns dos passos necessários para reconstruir um ponto de vista único, atingindo custos de transmissão escaláveis.
+
+De maneira similar ao nosso trabalho, eles não utilizam um buer de raios, então a técnica pode ser aplicada a cenas dinâmicas.
+
+Para que diversos usuários possam utilizar o mesmo cluster simultaneamente, é que preciso que esses usuários se conectem remotamente aos nós de renderização.
+
+Nessa seção iremos rever algumas soluções adotadas na literatura para a visualização remota.
+
+A infraestrutura de visualização ParaView mantém uma separação entre os clientes, os servidores de dados e os servidores de visualização.
+
+A geometria pode ser gerada em um conjunto de máquinas dedicadas e então transferidas ao conjunto responsável por realizar a renderização.
+
+O resultado da renderização, por sua vez, pode ser direcionado para um display ou para um cliente remoto.
+
+Para permitir um menor tempo de compressão e descompressão da sequência de quadros, o Paraview optou por utilizar o algoritmo denominado SQUIRT (Sequential Unied Image Run Transfer) que é um algoritmo de codicação run-length.
+
+As operaçes são realizadas em triplas RGB para acelerar o processamento.
+
+Como os algoritmos run-length não possuem uma boa taxa de compressão em imagens sintéticas, o SQUIRT ignora alguns bits selecionados em cada cor durante a comparação.
+
+Jeschke apresentaram um sistema para a visualização remota de cenas estáticas baseado em camadas cúbicas de impostores.
+
+Impostores são imagens geradas em tempo execução que têm como objetivo representar de forma mais simples um modelo ou parte do cenário.
+
+Relief textures e LDIs podem ser utilizados como impostores de qualidade superior.
+
+Jeschke, geram os impostores durante uma etapa de pré processamento para cada célula do cenário considerando os erros de paralaxe e falhas entre os texels de texturas consecutivas.
+
+Os objetos mais próximos são mantidos como geometria, enquanto os outros são representa-dos nas camadas de impostores.
+
+Para diminuir o espaço ocupado pelos impostores, os pixels transparentes em cada camada são removidos partindo-se a textura original em um conjunto justaposto de texturas menores.
+
+Durante a execução, os impostores das células vizinhas no grid são carregados em segundo plano.
+
+Outro sistema que utiliza imagens para aceleração é o Massive Model Rendering System.
+
+O sistema funciona renderizando objetos longe do ponto de vista utilizando técnicas de imagem e objetos próximos utilizando geometria com nível de detalhe e teste de visibilidade.
+
+O cenário distante é renderizado com depth-meshes, que consiste em malhas construídas para aproximar a profundidade da cena vista pela câmera.
+
+Uma abordagem recente para o problema de visualização remota é descrita por Callahan Callahan descreve um método para a renderização progressiva de volumes não estruturados.
+
+A ideia é enviar ao cliente de maneira progressiva os triângulos que estão visíveis.
+
+O cliente então renderiza os triângulos diretamente, armazenando os dados já desenhados como imagens.
+
+Apresentamos nesse capítulo uma visão geral dos métodos de renderização mais relevantes para este trabalho.
+
+Primeiro, discutimos a sequência de renderização tradicional, onde as imagens são geradas a partir de descriçes geométricas da cena.
+
+Em seguida, introduzimos o conceito de função plenótica e mostramos como podemos utilizar imagens para reconstruir a cena a partir de outros pontos de vista.
+
+Em especial, descrevemos a parametrização de dois planos que será utilizada como base para o nosso renderizador.
+
+Nas últimas duas seçes zemos uma revisão dos sistemas de renderização de múltiplas vistas existentes na literatura e dos sistemas de renderização remota.
+
+O paralelismo já foi aplicado de diversas maneiras para acelerar a renderização.
+
+Uma maneira é dividir as várias etapas do processo de renderização discutido no capítulo anterior em estágios, tornando-os paralelos na forma de um pipeline.
+
+Outra opção é dividir as primitivas a serem renderizadas entre os processadores disponíveis, assim o paralelismo não ca limitado ao número de estágios do processo.
+
+Por m, é possível explorar a dimensão temporal, onde cada unidade ca responsável por determinados quadros da sequência.
+
+Neste capítulo revisamos os trabalhos relevantes relacionados a renderização paralela, bem como as técnicas, os problemas envolvidos e como eles se relacionam com essa dissertação.
+
+Molnar, classicaram as arquiteturas de renderização de acordo com o momento no qual a ordenação de visibilidade ocorre.
+
+A arquitetura sort-rst recebe esse nome porque a determinação de visibilidade é feita no primeiro estágio.
+
+Essa arquitetura divide a imagem final a ser renderizada em retângulos justapostos.
+
+Cada máquina se encarrega de renderizar o conteúdo de um ou mais retângulos e enviar para a máquina que compõe a imagem.
+
+Essa última máquina apenas reúne lado a lado os retângulos renderizados para formar a imagem.
+
+Um ponto forte dessa arquitetura é a baixa comunicação entre as máquinas.
+
+Além disso, caso o dispositivo de saída seja um mosaico formado por várias placas grácas, a etapa de reunir os diversos retângulos pode ser ser inteiramente evitada.
+
+Na arquitetura sort-rst, como cada processador é responsável por todo o processamento gráco de um trecho da imagem, o balanceamento depende da distribuição das primitivas na imagem.
+
+Além disso, uma primitiva deve ser inteiramente desenhada por todos os retângulos nos quais ela aparece.
+
+Quando o número de processadores aumenta, os retângulos cam menores o que faz com que o trabalho de renderização dessas primitivas seja repetido, limitando a escalabilidade.
+
+Além disso, cada máquina deve possuir todos os dados necessários para construir a imagem do seu retângulo.
+
+Outra abordagem possível é dividir os objetos entre os processadores participantes.
+
+Cada objeto é renderizado completamente, produzindo a imagem já rasterizada e a informação de A arquitetura sort-rst redistribui as primitivas no espaço de tela durante o processamento de geometria.
+
+profundidade para cada pixel.
+
+O processador de composição determina então a visibilidade comparando a profundidade de todos os pixels com a mesma coordenada para obter a imagem.
+
+Essa arquitetura é a denominada sort-last.
+
+Como cada objeto é desenhado apenas uma vez, essa arquitetura apresenta uma boa escalabilidade no processamento das primitivas.
+
+Entretanto, a necessidade de enviar ao processador de composição a informação de cor e profundidade para cada pixel da imagem pode ser um gargalo a se considerar.
+
+Além disso, o estágio de composição é obrigatório para qualquer dispositivo de saída.
+
+Para diminuir o custo de um passo de composição serial, Roth e Reiners propuseram um algoritmo para paralelizar a composição entre as máquinas disponíveis.
+
+Após renderizar sua imagem, cada nó troca uma sub-imagem com outro nó.
+
+Em seguida, cada nó compõe sua sub-imagem e envia o resultado para o outro nó.
+
+Dessa maneira, todas as máquinas trabalham ativamente no processo de composição.
+
+A arquitetura sort-last redistribui os pixels durante o estágio de rasterização.
+
+Por m, a arquitetura sort-middle é uma combinação entre a sort-last e sort-rst.
+
+Nela, as primitivas primeiro são distribuídas entre os processadores para executar a transformação para o espaço de imagem (como no sort-last).
+
+Em seguida, a rasterização é distribuída no espaço de tela como no sort-rst.
+
+A arquitetura sort-middle requer uma redistribuição arbitrária de primitivas entre os processadores de transformação e rasterização, o que requer uma grande largura de banda.
+
+Além disso, nas GPUs tradicionais esses estágios já estão integrados no mesmo processador.
+
+Como no sort-rst, essa arquitetura também é sensível à distribuição das primitivas na tela.
+
+A arquitetura sort-middle redistribui as primitivas no espaço de tela entre os estágios de geometria e rasterização.
+
+Samanta, apresentam uma arquitetura híbrida com o objetivo de combinar as vantagens das arquiteturas sort-rst e sort-last realizando um particionamento dinâmico da cena e da imagem.
+
+Isso é feito agrupando-se as primitivas para renderização por cada processador baseado na sobreposição dos seus volumes no espaço da tela.
+
+Crockett apresenta uma exposição mais detalhada sobre os conceitos de paralelismo aplicados a renderização, bem como uma discussão sobre as questões principais de projeto e implementação desses sistemas.
+
+Alguns dos sistemas de renderização paralela propuseram a utilização de técnicas de renderização baseada em imagens para acelerar e/ou simplicar a exibição dos modelos.
+
+Sloan e Hansen apresentam três técnicas para a reconstrução paralela de lumigraphs.
+
+Entretanto, eles utilizam um computador de memória compartilhada ccNUMA1.
+
+Um trabalho mais recente desenvolvido por Strasser, utiliza um cache de imagens para desacoplar a renderização da visualização.
+
+O sistema desenvolvido, denominado MLIC, distribui o cálculo de renderização entre os múltiplos computadores.
+
+Eles decompõem o espaço em volta do ponto de vista em seis pirâmides.
+
+As imagens são distribuídas em posiçes xas de acordo com o ponto de vista e podem ser renadas utilizando uma kd-tree.
+
+A visualização do banco de dados de imagens implica em visitar todos os poliedros e percorrer as kd-trees associadas de cima para baixo e de trás para frente.
+
+Cache Coherent Non-Uniform Memory Access.
+
+Muitos sistemas híbridos utilizando geometria e imagens também foram propostos para a renderização paralela de modelos gigantes.
+
+A ideia básica é renderizar os objetos distantes do ponto de vista utilizando uma técnica rápida baseada em imagens.
+
+Entre eles podemos citar o trabalho de Wilson e Manocha, Aliaga e Debevec Existem várias maneiras de se medir o desempenho de um sistema paralelo.
+
+As duas medidas mais utilizadas são Speedup e eficiência.
+
+O speedup é denido como a razão entre o tempo gasto na execução de uma tarefa em um processador e o tempo gasto quando P processadores são utilizados, O speedup pode ser avaliado de diversas maneiras.
+
+Se compararmos o melhor algoritmo sequencial com o algoritmo paralelo sendo estudado, temos o speedup absoluto.
+
+O speedup absoluto pode considerar os recursos da máquina ou não.
+
+No primeiro caso, o speedup é denido como a razão entre o tempo gasto pelo melhor algoritmo serial em um processador sobre o tempo gasto pelo algoritmo paralelo em P processadores.
+
+No caso de independência de máquina, o speedup absoluto é denido como a razão do melhor algoritmo sequencial na máquina sequencial mais rápida sobre o tempo do algoritmo paralelo na máquina paralela.
+
+Outra denição é o speedup relativo, que considera o paralelismo intrínseco do algoritmo.
+
+Ele é denido como a razão do tempo gasto pelo algoritmo paralelo em 1 processador sobre o tempo gasto pelo algoritmo paralelo em N processadores.
+
+O speedup relativo permite avaliar como o desempenho do algoritmo varia com o número de processadores, uma vez que é comparado consigo mesmo.
+
+Duas formulaçes conhecidas foram baseadas no speedup relativo, A lei de Amdahl e o speedup de Gustafson.
+
+A lei de Amdahl descreve o speedup obtido ao se resolver um problema de tamanho xo sobre quando se aumenta o número de processadores.
+
+Nesse cenário, se a fração serial de um programa é s e a fração que pode ser executada em paralelo p, tal que s + p = 1, temos, O speedup máximo obtido por uma implementação paralela é portanto 1/s.
+
+Gustafson observou, entretanto, que a fração paralelizável p não é independente de P porque normalmente aumentamos o tamanho do problema quando dispomos de mais proces-sadores.
+
+Como a maior parte dos tempos seriais não aumentam com o tamanho do problema a fração paralelizável tende a crescer.
+
+O speedup calculado com base nesse raciocínio permite retirar o limite da Amhdal, mas pode ser pouco realístico na prática.
+
+Curva típica de speedup Adaptado de Gustafson.
+
+Ao aumentarmos o número de variáveis, o tamanho do problema pode crescer mais rápido que P, levando a tempos de execução maiores.
+
+Um cenário mais realista seria permitir o crescimento do problema desde que o tempo total não ultrapasse um valor especicado.
+
+A noção de speedup por tempo xo foi apresentada por Gustafson e detalhada posteriormente por Sun.
+
+A análise com base em um tempo de execução xo é realizada calculando-se o tempo que seria necessário para que o problema resolvido na máquina paralela seja resolvido na máquina serial, A formulação de Gustafson sugere, portanto, que é possível obter speedup que cresce linearmente com o número de processadores.
+
+Na prática, um speedup perfeito é difícil de alcançar por diversos fatores.
+
+Sun resumiu as origens da degradação de desempenho em, Atrasos de Comunicação Os atrasos de comunicação incluem o tempo de transmissão e propagação das mensagens, bem como o tempo necessário para preparar a informação para transmissão e o tempo gasto nas las de transmissão.
+
+Alocação Desigual Idealmente, o trabalho a ser realizado é distribuído igualmente entre os processadores disponíveis.
+
+Entretanto, o balanceamento perfeito é difícil de ser obtido.
+
+Tanto a granularidade das tarefas quanto características de cada uma podem fazer com que alguns processadores terminem antes dos outros.
+
+Eles então devem esperar pelos outros, o que desperdiça poder computacional.
+
+Trabalho Redundante Algumas vezes pode ser interessante recalcular um determinado passo localmente ao invés de transmiti-lo pela rede.
+
+Outras vezes, a repetição do cálculo localmente pode evitar que os processadores esperem ociosamente por um dado sendo calculado em outro nó.
+
+Nesses casos, o trabalho realizado novamente impede que todo o potencial de computação seja utilizado de forma útil.
+
+Conhecimento Reduzido Alguns algoritmos utilizam informaçes sobre o progresso do algoritmo para efetuar a próxima iteração.
+
+Quando o algoritmo é distribuído, deve-se escolher entre utilizar informaçes defasadas ou recorrer a sincronizaçes frequentes.
+
+Ambas as opçes limitam o desempenho máximo que pode ser atingido.
+
+Uma métrica bastante utilizada para determinar a utilização média dos processadores alocados é a eficiência.
+
+Se o tempo gasto com a transferência de dados for ignorado, a eficiência em um sistema com 1 processador é 1.
+
+A relação entre speedup e eficiência pode ser descrita como, Se a eficiência puder ser mantida constante à medida que mais processadores são adicionados, obtemos um speedup linear.
+
+Entretanto, um speedup linear não pode ser alcançado devido a contenção por recursos compartilhados, pelo tempo necessário para realizar a comunicação entre os processos e pela diculdade de se particionar as tarefas de modo a manter os processadores igualmente ocupados.
+
+A escalabilidade de um sistema paralelo refere-se à sua capacidade de aumentar o poder de processamento adicionando-se novos elementos.
+
+A escalabilidade pode ser inuenciada tanto pela escolha da arquitetura de hardware quanto pelos algoritmos utilizados.
+
+Um estudo mais detalhado sobre análise de desempenho de sistemas paralelos pode ser encontrada em Sun e Jain.
+
+A natureza distribuída dos processadores e memórias nos agrupamentos de computadores exige um modelo de comunicação de comunicação entre as máquinas.
+
+Os dois modelos mais comuns são, MPI Message Passing Interface e PVM Parallel Virtual Machine.
+
+O PVM surgiu em 1989 nos laboratórios da Emory University e Oak Ridge National Laboratory, com o objetivo de permitir pesquisas em computação heterogênea distribuída.
+
+A ideia geral do PVM é apresentar um conjunto de máquinas como uma única máquina virtual paralela, utilizando a transmissão de mensagens internamente.
+
+Devido ao foco do PVM em comunicação baseada em sockets entre sistemas fracamente acoplados, ele deu grande ênfase em aspectos como falhas de comunicação.
+
+A primeira versão do padrão MPI foi denida pelo Fórum MPI, um comitê de 40 especialistas em computação de alto desempenho entre os anos de 1993 e 1994.
+
+O objetivo do MPI era ser uma especicação padrão de passagem de mensagens que pudesse ser implementada por cada fabricante.
+
+O MPI alcançãou um grande sucesso como uma maneira portável de se desenvolver programas paralelos.
+
+Hoje, diversas implementaçes estão disponíveis para várias sistemas e arquiteturas paralelas.
+
+Gropp aponta as razões do sucesso do MPI como sendo, portabilidade, desempenho, simplicidade, modularidade, interoperabilidade e completeza.
+
+Embora o MPI tenha um conjunto grandes de funções, a maior parte das aplicações utiliza apenas seis delas, Funçes básicas do MPI.
+
+As funções são utilizadas para iniciar ou nalizar o ambiente de troca de mensagens MPI.
+
+São utilizados para determinar o número de processos em execução e o identicador do processo atual respectivamente.
+
+O envio e recepção das mensagens é feito por meio das funções.
+
+Na modo de comunicação padrão, essas chamadas não retornam até que a mensagem seja enviada ou recebida como for o caso.
+
+O ambiente de execução do MPI decide, baseado no tamanho da mensagem e buers disponíveis, se vai retornar imediatamente (armazenando a mensagem) ou se vai esperar até toda a mensagem ser recebida.
+
+Além do modo de comunicação padrão, existem os modos buerizado, Síncrono e Pronto.
+
+No modo com buers, as mensagens são sempre armazenadas em uma área de memória fornecida pelo usuário.
+
+No modo Síncrono, as chamadas retornam somente após o receptor ter recebido toda a mensagem.
+
+Por m, no modo Pronto, a comunicação só ocorre após o receptor atingir a chamada.
+
+Cada um dos modos possui rotinas bloqueantes e não bloqueantes, Modos de comunicação e chamadas MPI.
+
+No modo bloqueante, a rotina só retorna quando toda a mensagem for enviada ou copiada para o buer do sistema.
+
+Se o bloqueante for síncrono uma negociação é feita entre o receptor e o transmissor de forma que a mensagem é entregue durante as chamadas de função.
+
+Já uma chamada assíncrona pode retornar assim que a mensagem for copiada para um buer do sistema.
+
+Um bloqueante só retorna após os dados serem recebidos e liberados para uso.
+
+Nas rotinas não-bloqueante as chamadas retornam imediatamente, sem esperar que qualquer tipo de comunicação termine.
+
+Dessa forma, não é seguro modicar um buer até que a operação seja concluída.
+
+O estado das operaçes não-bloqueantes pode ser vericado com rotinas especiais de "wait"e "test".
+
+A comunicação necessária quando se paraleliza um algoritmo é um dos fatores que pode impedir uma boa escalabilidade do sistema.
+
+Assim, uma abordagem para minimizar o impacto da comunicação é realizá-la simultaneamente com os passos de computação por meio de funções não-bloqueantes.
+
+Nesse capítulo descrevemos os modelos clássicos de paralelização da renderização e as métricas tradicionais de desempenho de sistemas paralelos.
+
+Enumeramos os principais problemas que afetam negativamente o speedup e a escalabilidade desses sistemas.
+
+Elas serão importantes posteriormente para a avaliação teórica e prática do sistema proposto.
+
+Neste trabalho, estamos interessados em sintetizar o maior número de pontos de vista possível em um determinado tempo.
+
+O número de quadros por intervalo de tempo é conhecido como taxa de quadros ou frame rate.
+
+Propomos aumentar a taxa de quadros evitando a repetição de trabalho entre cada ponto de vista e ao mesmo tempo mantendo o sistema balanceado.
+
+Gostaríamos também, de obter uma solução adequada para a renderização cenas dinâmicas.
+
+Por esta razão, evitamos armazenar resultados intermediários em buers e amostramos a cena novamente a cada quadro.
+
+Nesta seção construímos um modelo teórico para a paralelização proposta utilizando um light eld e comparamos seu desempenho com outras alternativas por meio de análises de tempo e speedup.
+
+Nas expressões deste capítulo usaremos as deniçes a seguir, Parâmetros relevantes para a análise dos modelos de paralelização.
+
+O tempo de geração depende da complexidade do modelo e da complexidade da renderização.
+
+O tempo de composição, por outro lado, não depende do modelo original.
+
+Para os ns de análise consideraremos g >> c, ou seja, modelos de entrada com grande complexidade geométrica associados a tempos de composição pequenos.
+
+Também consideraremos que V >> S, pois caso contrário é certamente mais eficiente renderizar diretamente os ponto de vistas necessários.
+
+Estamos especialmente interessados no comportamento do sistema à medida que o número de pontos de vistas V cresce.
+
+O efeito do aumento do número total de processadores disponíveis P na taxa de quadros também será avaliado.
+
+Faixa de valores típicos para os parâmetros relevantes O tempo necessário para renderizar um número V de pontos de vistas utilizando o pipeline padrão de renderização é gV, onde g é o tempo para renderizar um único ponto de vista.
+Para renderizar múltiplos pontos de vista de uma maneira escalável, precisamos de uma arquitetura paralela.
+
+A paralelização mais simples é dividir os V pontos de vista entre os P processadores disponíveis, de modo que o tempo transcorrido entre a renderização de dois quadros de um mesmo ponto de vista seja, Podemos assumir que a carga está igualmente balanceada, uma vez que uma imagem pode ser fatiada entre dois ou mais processadores.
+
+Essa arquitetura apresenta a vantagem de praticamente não haver comunicação entre as máquinas.
+
+Entretanto, para melhorar o desempenho ao se renderizar múltiplos pontos de vista, nós gostaríamos de reutilizar a computação entre os pontos de vista sendo gerados.
+
+Para isso, propomos a utilização de um renderizador que utilize um light eld, ao invés da geometria original.
+
+Se S é o número de imagens necessárias para amostrar a cena e c o tempo necessário para se gerar uma nova imagem a partir das amostras, podemos dividir a computação gV em um passo de composição e um passo de geração, Como Sg é constante com o aumento do número de pontos de vista, essa formulação é mais rápida que Ttrivial a partir de (Sg/g c) pontos de vista desde que c < g.
+
+A nova formulação pode agora ser aplicada à arquitetura para explorar a coerência entre os pontos de vista sendo renderizados na mesma GPU.
+
+Cada nó gera suas próprias amostras, que são utilizadas Arquitetura intuitiva Os pontos de vista são distribuídos entre as GPUs disponíveis.
+
+Cada GPU implementa todas as etapas do pipeline de renderização para sintetizar todos pontos de vista atribuídos ao mesmo nó.
+
+Apesar de melhor que o sistema anterior, essa solução ainda não permite a reutilização dos raios comuns a pontos de vistas sendo renderizados em máquinas diferentes.
+
+Apesar do problema não ser expressivo quando o número de GPUs é pequeno, ele torna-se relevante quando o número de máquinas aumenta, limitando a escalabilidade do sistema.
+
+O tempo de renderização desse sistema pode ser expresso como, A solução ideal, portanto, deve permitir que as amostras geradas possam ser compartilhadas por todas as vistas sendo compostas.
+
+A paralelização eficiente desse novo algoritmo requer uma mudança na arquitetura original.
+
+Assim, dividimos os processadores em um pipeline superescalar de dois estágios.
+
+O primeiro estágio é responsável pela geração das amostras e o segundo pela composição dos novos pontos de vista.
+
+Dos P processadores disponíveis, K são utilizados para amostrar a cena, enquanto (P K) são utilizados para compor os pontos de vista nais.
+
+No novo sistema, o tempo entre dois quadros de um mesmo ponto de vista é igual ao tempo gasto pelo estágio mais lento, Arquitetura Melhorada Os pontos de vista são distribuídos entre as GPUs disponíveis.
+
+Cada GPU gera as amostras e as imagens nais.
+
+Uma vez proposto o modelo de pipeline, é necessário descobrir uma maneira de distribuir as GPUs disponíveis de maneira a minimizar o tempo total.
+
+T||proposto é mínimo quando ambos os parâmetros da função max forem o menor possível.
+
+Como os termos são inversamente proporcionais, o mínimo é obtido quando ambos os estágios gastam o mesmo tempo.
+
+Igualando as expressões de ambos os estágios e isolando K obtemos, A equação anterior (46) fornece o valor de K que minimiza o tempo em um sistema ideal, onde cada processador pode ser particionado de forma arbitrária entre os dois estágios.
+
+Em uma situação real, entretanto, apenas um tipo de tarefa roda em cada GPU.
+
+Essa divisão também facilita a integração do sistema com sistemas de renderização já existentes.
+
+Por esta razão, consideraremos que apenas um número inteiro de processadores pode ser alocado para cada estágio.
+
+Ao contrário do que poderia se esperar, um simples arredondamento da função Kf não fornece mais a melhor solução para essa situação.
+
+Note que no intervalo entre 100 e 130 vistas, o arredondamento sugere K = 1.
+
+Entretanto, podemos ver que K = 2 ofereceria uma melhor solução.
+
+O mesmo problema se repete em todos os pontos de transição.
+
+A restrição que K Z+ faz com que um balanceamento perfeito não possa mais ser Arquitetura Proposta O pipeline é dividido em um estágio de amostragem e um de composição.
+
+As GPUs são atribuidas para cada estágio de acordo com o número de pontos de vista sendo gerados, alcançado para todos os valores de V.
+
+Isso transforma o problema de encontrar o mínimo de uma função contínua no problema de minimizar uma função que admite apenas valores inteiros.
+
+Especificamente, queremos encontrar uma função que forneça o valor de K no qual T ||propostoseja o menor possível.
+
+Observando a expressão do tempo da paralelização Proposta, notamos que quando variamos apenas o número de pontos de vista, o tempo é dado pelo maior valor entre uma função constante igual a Sg/k e uma reta de inclinação c/(P K).
+
+Quando o valor de K diminui, obtemos retas de inclinação cada vez maior e constantes de valor menor.
+
+Inuência do arredondamento da função Kf no tempo de renderização.
+
+A curva de menor tempo começa com K = 4 (1 compositor e 4 amostradores), e decresce até k = 1 (4 compositores e 1 amostrador).
+
+De maneira geral, sempre que (V c)/(P K) se torna maior que o próximo K ((Sg)/(k 1)) o valor seguinte de K deve ser adotado.
+
+Número de pontos de vista.
+
+Comportamento do tempo de execução do sistema proposto para cinco processadores, quatro amostras e K=2.
+
+O tempo de geração utilizado foi 0,3 s e o de composição 0,03 s.
+
+Para avaliar os três sistemas descritos anteriormente, vamos analisar o tempo e speedup obtido por cada uma delas.
+
+As expressões do tempo derivadas na seção anterior foram, Para facilitar a comparação com o Sistema Proposto vamos mostrar que um limite assintótico rme para seu tempo de execução é, proposto é mínimo sempre que o balanceamento for perfeito.
+
+Curva esperada de tempo para alguns valores de K.
+
+Comportamento do tempo total para diversos valores de K para um cluster de 5 máquinas.
+
+A curva contínua corresponde ao tempo ótimo obtido pela Equação 4 9 O tempo de geração utilizado foi 0,3 s, de composição 0,03 s e o número de amostras 4.
+
+Por outro lado, o desbalanceamento máximo que pode ocorrer é o devido à diferença de um processador entre os estágios.
+
+Assim o limite superior pode ser dado por, A razão entre as duas expressões é uma constante em relação a V, P/(P 1).
+
+Quanto ao número de pontos de vistas.
+
+O Sistema Trivial apresenta a maior dependência com o número de pontos de vista, uma vez que o tempo cresce com a inclinação g/P que é claramente maior do que a do Sistema Melhorado c/P.
+
+O Sistema Melhorado inicia com um tempo menor devido a constante menor (Sg)/(P 1) no pior caso.
+
+Entretanto seu crescimento é ligeiramente maior.
+
+Para valores de V maiores o Sistema Melhorado obtém um tempo menor que o Sistema Proposto se mantivermos P xo.
+
+Mostraremos, entretanto, que esta solução é menos escalável com o número de processadores.
+
+Quanto ao número de amostras.
+
+Limites superior e inferior para o tempo da paralelização Proposta para valores de K inteiros.
+
+O número de amostras S necessárias para a síntese de uma imagem depende de diversos fatores, como a presença ou não de informaçes de profundidade, do tipo de câmera utilizada (pinhole ou não) e da topologia da cena.
+
+Entretanto, de maneira geral, um número maior de amostras possibilita uma reconstrução de melhor qualidade.
+
+Desse modo, estamos interessados em avaliar o comportamento do sistema com o aumento do número de amostras.
+
+Apesar do custo de composição de novos pontos de vista ser relativamente independente do número de amostras, a geração de amostras representa uma sobrecarga adicional em relação ao processo de renderização a partir da geometria.
+
+Em geral, a formulação Sg + V c se torna interessante quando o número de pontos de vista é tal que, Se o número de número de amostras S ou o tempo de amostragem g cresce, é necessário gerar mais pontos de vista para compensar a sobrecarga adicional da geração de amostras.
+
+A Equação também nos mostra que quanto maior for a diferença entre o tempo de geração e o de composição, mais cedo o benefício da nova formulação aparece.
+
+Quanto ao número de processadores.
+
+A capacidade de se reduzir o tempo quando mais processadores são adicionados ao sistema é um reexo de sua escalabilidade.
+
+Particularmente, Entretanto, como a constante gV > (Sg + V c), para um dado P o Sistema Proposto apresenta um tempo menor.
+
+Por outro lado temos que, Isso mostra que no Sistema Melhorado não é possível reduzir o tempo abaixo de Sg, não importando o número de processadores adicionados ao sistema.
+
+Para capturar melhor as diferenças no desempenho dos três sistemas considerados, vamos analisar o aumento de desempenho de cada um deles frente a um carga xa e a um tempo xo.
+
+Uma vez que o algoritmo de renderização utilizando light elds também pode ser utilizado para acelerar a renderização em um processador serial, utilizaremos esse tempo para obter o speedup S para os três sistemas.
+
+Dado uma carga de tamanho pré-denido, o speedup é a razão entre o tempo gasto pelo sistema serial sobre o tempo gasto pelo sistema paralelo.
+
+Como comparação utilizamos o sistema serial mais rápido (Tproposto).
+
+Vericando os limites quando V, vemos que a diferença de speedup entre os Sistemas Melhorado e Proposto é 1 e que o Sistema Trivial apresenta o pior speedup de todos, tendendo a (cP)/g.
+
+O speedup de tempo xo é a razão entre o tempo necessário para que o sistema serial realize o mesmo trabalho executado pelo sistema paralelo em um intervalo xo de tempo.
+
+Ou seja, o speedup de tempo xo reete diretamente o aumento na taxa de quadros, que é a métrica importante nos sistemas interativos.
+
+Novamente utilizamos como comparação o melhor sistema serial (máquina serial rodando o algoritmo proposto), T é o intervalo de tempo xo considerado.
+
+Observamos que o speedup de tempo xo dos três sistemas cresce linearmente com o aumento do número de processadores, ao contrário do speedup de carga xa.
+
+Apesar disso, observamos que Sproposto cresce muito mais rapidamente que as demais alternativas.
+
+Para T = 2 Sg por exemplo temos, Apresentamos nesse capítulo as conclusões mais importantes dessa dissertação.
+
+Demonstramos analiticamente que a arquitetura proposta apresenta maior escalabilidade e speedup do que alternativas mais simples.
+
+Desenvolvemos também a expressão que permite minimizar o desbalanceamento se considerarmos apenas um número inteiro de GPUs.
+
+As análises desse capítulo partiram do pressuposto de que o tempo de comunicação é pequeno perto do tempo de renderização de cada estágio.
+
+A validação dessa premissa e a comparação do modelo teórico com experimentos reais serão apresentados no Capítulo 6.
+
+Nosso renderizador de light eld baseia-se nos trabalhos sobre a utilização de informação de profundidade por pixel para a correção dos raios durante a reconstrução.
+
+Como discutido na seção, existem diversas maneiras de se parametrizar um light eld 4 D.
+
+A melhor depende do domínio da aplicação, mas geralmente uma boa parametrização possui boas características de amostragem e pode facilitar a tarefa de reconstrução.
+
+Entre as parametrizaçes propostas na literatura podemos citar a parametrização de dois planos, esférica, duas esferas, plano-esfera e não estruturada.
+
+Nesse trabalho, decidimos utilizar como geometria de teste um terreno descrito por um mapa de altitude.
+
+Por essa razão, concluímos que a parametrização de 2 planos (2 PP) seria uma boa escolha.
+
+A parametrização de dois planos indexa cada raio que entra na cena por dois pares de pontos (u,v) e (s,t), um em cada plano.
+
+O plano (s,t) é conhecido como plano no ponto de vista e o plano (u,v) como plano de imagem.
+
+Para obter as imagens, particionamos a cena em blocos.
+
+Cada bloco foi delimitado pelo volume formado.
+
+Como o custo de amostragem não cresce com o aumento do número de pontos de vista, escolhemos utilizar 4 câmeras de amostragem por bloco, o que permitiu um mapeamento eficiente para a implementação em shaders.
+
+Cenas mais complexas podem ser partidas em blocos menores, aumentando assim a densidade de câmeras por volume.
+
+As quatro câmeras de amostragem foram dispostas.
+
+Cada câmera tem um campo de visão de 45 graus e está apontada para a origem do mundo.
+
+A cada quadro, as quatro câmeras novamente renderizam a cena e armazenam a profundidade do pixel no canal de alpha da textura como, onde P1 e P0 denotam os pontos de interseção do raio que sai da câmera com o plano z = 1 e z = 0 respectivamente.
+
+Pg é o ponto onde o raio de visão intercepta a geometria (para o raio que sai da câmera Ca).
+
+Quatro câmeras são utilizadas para amostrar cada bloco da cena.
+
+O volume de amostragem é delimitado.
+
+Canal RBG e canal alpha de uma amostra da cena.
+
+O algoritmo de renderização foi implementado utilizando-se um programa de fragmento em GLSL.
+
+Para que seja possível renderizar um ponto de vista, precisamos da posição da câmera a ser sintetizada Pv, a posição de cada uma das k câmeras de amostragem Pck e a imagem+profundidade de cada uma Ick.
+
+Precisamos também da matriz de projeção Proj que especica o modelo da câmera.
+
+Neste trabalho consideramos que todas as câmeras estão sempre olhando para o centro de cada bloco, portanto, a informação de orientação não é necessária.
+
+Dado um raio r, devemos encontrar as coordenadas (u,v) e (u',v') que correspon-dem ao ponto de interseção Pg.
+
+Para que os shaders de fragmento tenham uma superfície para desenhar, para cada bloco descrito anteriormente, desenhamos um retângulo.
+
+O quad é paralelo ao plano z = 0 e posicionado na origem.
+
+Isso garante uma superfície de renderização desde que a câmera tenha sua coordenada Z maior que a distância do near clipping plane.
+
+Para renderizar novos pontos de vista, devemos decidir para cada pixel qual das amostras utilizar.
+
+Se a profundidade é conhecida, podemos fazer um warp para projetar uma vista para a outra.
+
+Isso pode ser feito realizando-se uma busca ao longo do raio que sai da câmera, reprojetando o pixel em cada câmera de amostragem e comparando a distância com o valor armazenado na imagem.
+
+Primeiro, precisamos calcular o vetor que descreve o raio de visualização para cada pixel.
+
+Isso pode ser feito passando-se a posição do vértice como uma variável interpolada do vertex shader, Como todas as câmeras de amostragem Ckp são idênticas, todas elas podem descritas pela mesma matriz de projeção Proj.
+
+Apesar disso, cada uma possui uma posição e orientação própria.
+
+A matriz de projeção completa pode ser obtida compondo-se a matriz de projeção Proj com a posição offsetk e orientação rotk de cada câmera.
+
+Escolhemos utilizar o mapeamento inverso para que fosse possível utilizar a interpolação da GPU e evitar buracos na imagem.
+
+Para encontrar a correspondência entre as câmeras, é necessário saber a profundidade de cada pixel na nova imagem.
+
+Existem várias maneiras de se fazer isso mas todas elas envolvem algum tipo de busca ao longo do raio de visão v para encontrar a interseção com a superfície implicitamente denida pelas outras câmeras.
+
+Visando a simplicidade, escolhemos uma busca linear.
+
+A busca começa no ponto onde v intersepta o plano z = 1.
+
+A cada iteração, o ponto atual pode ser expresso por, e plane s1 e planes correspondem às intersecções.
+
+Para encontrar a interseção com a superfície empregamos uma abordagem similar à utilizada por Todt, a cada passo, projetamos o ponto corrente na câmera k.
+
+Com isso obtemos o par (x,y) que pode ser utilizado para recuperar a posição da superfície Psk armazenada para cada câmera ao longo do raio Pck Entretanto, ao invés de comparar a posição P com a estimada Psk, comparamos a distância de Pck até o ponto atual P e a distância de Pck até a superfície Psk.
+
+O ponto P entrou na superfície e pode ser renado por meio de uma busca binária.
+
+A busca continua até que P seja considerado dentro da superfície para a estimativa de todas as câmeras Psk.
+
+Quando isso ocorre, escolhemos o ponto com a estimativa mais conservadora (aquela mais perto da superfície).
+
+Note que caso o raio não intercepte nenhuma superfície, ele acaba percorrendo todo o intervalo entre z = 1 e z = 0.
+
+Do mesmo modo, superfícies próximas de z = 1 podem fazer com que o raio termine mais cedo e a imagem gaste um tempo ligeiramente menor para ser sintetizada.
+
+A contribuição de cada câmera para a imagem final pode ser vista.
+
+Nesta seção detalhamos a implementação da paralelização.
+
+O sistema foi implementado em C++ utilizando dois processos, Um realiza a amostragem da cena e o outro a composição das imagens.
+
+O lação principal do produtor renderiza todas as imagens e posteriormente as envia para cada processo de composição.
+
+O método Render_Image é um passo de renderização normal de geometria, apenas incluindo o cálculo da distância discutido no seção 5 1 1 O cálculo da distância pode ser Amostras de entrada e a contribuição na imagem.
+
+Realizado no vertex shader e interpolado por hardware para cada pixel, antes de ser gravado no frame buer.
+
+O código em GLSL está listado no Apêndice A.
+
+O algoritmo de composição recebe as quatro imagens e as utiliza para compor todas as vistas do quadro atual.
+
+Para que o compositor não que ocioso esperando as imagens, antes de compor os pontos de vista do frame i ele requisita os quadros do frame i + 1 por meio do método não bloqueante Irecv.
+
+Desse modo, o tempo de comunicação pode ser sobreposto ao tempo de computação da GPU.
+
+As imagens são gravadas diretamente em áreas contíguas de memória, formando uma textura que pode ser indexada posteriormente no shader.
+
+Disposição das imagens de entrada na textura.
+
+Nesse capítulo descrevemos a implementação do sistema paralelo proposto no Capítulo 4.
+
+O renderizador de light eld desenvolvido utiliza o valor da profundidade por pixel para indexar os raios mais apropriados para a reconstrução e roda inteiramente na GPU.
+
+A comunicação entre os dois estágios do pipeline é realizada simultaneamente com a renderização, utilizando mensagens MPI.
+
+Neste capítulo analisamos os dados coletados para investigar o speedup, eficiência, custos de comunicação e o balanceamento de carga em uma implementação real.
+
+A arquitetura descrita nessa dissertação foi implementada em um cluster Linux composto por onze computadores com processadores dual-Pentiums 340 GHz 64 bits, conectados por uma rede Gigabit ethernet.
+
+O sistema foi avaliado em dois aspectos, Desempenho e Qualidade.
+
+O foco deste trabalho foi obter uma boa paralelização, por isso durante as simulaçes, foram coletados, 1 O tempo necessário para se renderizar uma imagem a partir da geometria cor-responde ao tempo g de se gerar uma amostra da cena.
+
+Corresponde também ao tempo que o algoritmo serial Ttrivial gasta para renderizar um ponto de vista.
+
+O tempo necessário para se renderizar uma imagem a partir das amostras cor-responde ao tempo de composição c e foi medido desde o momento no qual enviamos os triângulos e parâmetros do shader até o momento no qual o frame buer está pronto para ser exibido.
+
+O sincronismo foi assegurado com uma chamada.
+
+O tempo gasto em comunicação entre a GPU e a CPU O tempo de envio das texturas para a GPU corresponde ao tempo gasto para fazer chamada e o tempo gasto na leitura do frame buer corresponde ao tempo da chamada.
+
+O tempo total gasto na transferência de dados na rede corresponde ao tempo gasto pelo segundo estágio esperando que amostras da cena serem transmitidas.
+
+Como existe sobreposição da comunicação, esse tempo é sempre menor que o tempo realmente gasto nas transmissões de rede.
+
+Corresponde ao tempo total transcorrido entre o início e m do processo de renderização.
+
+Nos testes de desempenho utilizamos como modelo de entrada uma cena composta por uma árvore com aproximadamente 300 mil triângulos em um terreno descrito por uma mapa de alturas.
+
+A cena foi iluminada por um shader de phong simples.
+
+Imagem do modelo utilizado nos testes de desempenho.
+
+Para cada câmera, renderizamos dez quadros, movendo o ponto de vista entre eles.
+
+Os primeiros cinco quadros foram desconsiderados.
+
+As amostras foram obtidas utilizando-se uma câmera com abertura de 45 graus e uma resolução de 400 x300 pixels.
+
+A saída foi renderizada em 200 x150 pixels.
+
+Para melhorar a taxa de quadros, a transmissão foi intercalada com a renderização.
+
+As amostras foram transmitidas sem compressão utilizando primitivas MPI de comunicação ponto a ponto.
+
+Nos testes envolvendo um número variável de GPUS, utilizamos a função Kfd (Equação 49) para assegurar um melhor balanceamento de carga entre os estágios.
+
+Para que fosse possível avaliar a qualidade do renderizador de light eld desenvolvido, comparamos algumas imagens geradas a partir da geometria original e a partir das amostras adquiridas.
+
+A comparação entre as imagens foi feita utilizando-se a ferrramenta Perceptual Image Di Utility1.
+
+Esta ferramente é baseada no Visible Dierences Predictor (VDP) de Daly.
+
+O VDP dá a probabilidade de detecção da diferença entre cada pixel de duas imagens.
+
+O modelo leva em conta três aspectos do Sistema Visual Humano (SHV), o primeiro é a não linearidade da sensibilidade a mudanças de contraste, já que o SVH é mais sensível a baixas condiçes de iluminação.
+
+Segundo, a sensibilidade do SVH diminui com o aumento das frequências espaciais.
+
+Por último, o efeito de mascaramento que ocorre quando a sensibilidade é ofuscada por sinais presentes no fundo da imagem (masking).
+
+De maneira similar ao trabalho de Ramasubramanian, o PDIF não inclui a orientação no cálculo das frequências espaciais mas inclui a cor no processo de discriminação.
+
+Entretanto, apesar das estratégias descritas, o VDP ainda é bastante conservativo e muitas vezes marca como visíveis diferenças que normalmente não seriam perceptíveis.
+
+Medimos o tempo total de renderização e o tempo total gasto em cada subtarefa para um número crescente de pontos de vista.
+
+Nosso sistema foi capaz de renderizar 290 pontos de vista em 261 segundos, gastando aproximadamente 9 ms por quadro.
+
+Foram utilizadas cinco GPUs, que foram distribuídas entre os estágios de acordo com a Equação 49 discutida na seção 42.
+A equação acima foi avaliada para cada valor de V utilizando como parâmetros os tempos de composição c = 0, 03 s, tempo de geração g = 0, 3 s medidos em uma execução prévia.
+
+Os resultados foram, Para validar o valor de K (número de GPUs de amostragem) obtido realizamos duas execuçes completas com as duas opçes.
+
+A configuração ótima utiliza apenas um GPU para amostragem.
+
+Os resultados obtidos mostraram que o tempo de comunicação representa uma fração pequena do tempo total, mesmo para 50 pontos de vista.
+
+O tempo gasto na chamada aumentou ligeiramente a partir de V = 130, quando mais nós foram alocados para amostragem.
+
+Isso era esperado, uma vez que utilizamos primitivas de comunicação ponto-a-ponto.
+
+Uma primitiva de comunicação coletiva, proporcionaria um crescimento ainda mais lento dos custos de comunicação.
+
+Observamos, também, um aumento não esperado do tempo de recepção quando V = 130.
+
+Especulamos que ele esteja relacionado a uma redução temporária do tempo de composição.
+
+Os custos de amostragem e de comunicação conrmaram serem relativamente constantes com o aumento da carga, apenas mudando quando a configuração é alterada.
+
+Desse modo, o tempo total de execução é dominado pelo tempo de composição dos novos pontos de vista.
+
+Tempo gasto utilizando duas configurações diferentes de K para o mesmo número de GPUs.
+
+Para calcular a escalabilidade do sistema, comparamos o tempo total de execução da nossa implementação com o que seria gasto por uma paralelização trivial perfeita.
+
+Como discutido anteriormente, este custo é igual a (gV ).
+
+Para cada configuração foram gerados dez quadros, sendo que os primeiro cinco foram descartados.
+
+Primeiramente avaliamos o comportamento do speedup e da eficiência com o aumento do número de processadores.
+
+Para isso, medimos o tempo de execução para uma carga xa de 1000 pontos de vista, variando o número de GPUs disponíveis entre 5 e 11.
+
+Em todas as configurações, apenas uma GPU foi dedicada para a amostragem da cena (estágio 1).
+
+Em seguida, avaliamos a variação da eficiência da paralelização Proposta e da paralelização Trivial com relação ao número de pontos de vista.
+
+Foram utilizadas cinco GPUs e o número de pontos de vista variou de 50 a 290.
+
+Uma das GPUs alocada para a geração de amostras é transferida para o estágio de composição de acordo com a expressão do K ótimo.
+
+A configuração depois desse ponto é Number of Views.
+
+Tempo gasto pela paralelização trivial e pela nossa paralelização utilizando cinco GPUs.
+
+GPU para amostragem da cena e 4 para a geração de novos pontos de vista.
+
+Observamos que, como esperado, a alteração da configuração permite que a eficiência se mantenha entre 70% e 80%.
+
+Número de GPUs Proposta Trivial.
+
+Eficiência da paralelização proposta e trivial para 1000 pontos de vista.
+
+A eficiência pode ser expressa pelo speedup dividido pelo número de processadores.
+
+O Número de GPUs alocadas para amostragem, 1 Tempo gasto nas etapas principais do algoritmo, utilizando 5 GPUs.
+
+Comparamos a qualidade da renderização fornecida pelo renderizador de light eld com a obtida renderizando-se diretamente cada ponto de vista a partir da geometria.
+
+Idealmente, ambas as imagens seriam iguais, entretanto, a delidade depende da amostragem utilizada.
+
+A qualidade da imagem depende também do número de passos utilizados para renar a interseção com a geometria.
+
+Para os testes de qualidade utilizamos 100 passos lineares.
+
+Uma comparação entre a saída do nosso método e uma renderização direta da geometria pode ser vista.
+
+Podemos ver que a diferença é mais signicativa nas posiçes onde ocorre maior descontinuidade na profundidade.
+
+Isso faz com que o erro na discretização na determinação da profundidade leve a erros mais visíveis.
+
+O mesmo problema aparece ao se amostrar superfícies.
+
+A melhor solução para esses casos envolve aumentar o número de passos utilizados para determinar a intersecção com a superfície.
+
+Eles não representam um problema da técnica.
+
+Speedup da paralelização proposta e da paralelização trivial para uma carga de 1000 pontos de vista.
+
+Nesse capítulo foram apresentados os resultado dos experimentos executados para avaliar o desempenho e a qualidade de saída da arquitetura proposta.
+
+Observamos que o resultado dos experimentos foi coerente com as análises teóricas executadas.
+
+Em especial, notamos que, como esperado, o tempo de comunicação não foi relevante para as configurações estudadas.
+
+Escalabilidade da paralelização trivial e da paralelização proposta Imagem gerada pelo renderizador proposto.
+
+Qualidade da renderização.
+
+Renderização direto da geometria.
+
+Saída do renderizador de light eld.
+
+Diferença na percepção.
+
+Perda de qualidade devido aos erros na determinação da superfície.
+
+Neste trabalho apresentamos uma arquitetura para a renderização paralela de múltiplos pontos de vista em um cluster de GPUs.
+
+Mostramos a análise teórica de speedup e escalabilidade do sistema proposto e como ele pode ser superior aos de uma paralelização trivial.
+
+Os resultados obtidos em um cluster de renderização real conrmam essa análise.
+
+A ideia básica do trabalho foi utilizar um renderizador de light eld para evitar o trabalho duplicado entre os pontos de vista.
+
+Ao mesmo tempo, propomos uma paralelização eficiente que permite que o sistema escale bem quanto ao número de vistas.
+
+O principal compromisso do sistema é relacionado ao processo de amostragem, que pode ser complexo para diversas cenas.
+
+Como trabalho futuro, gostaríamos de investigar o posicionamento adaptativo das câmeras, para que as cenas possam ser amostradas de maneira mais eficiente.
+
+Outra área de trabalho é a otimização geral do sistema, utilizando primitivas para transferência mais rápida de textura, balanceamento de carga dinâmico e uma composição mais rápida, por meio de estratégias otimizadas de busca do ponto de interseção.
+
+Por m, gostaríamos de testar o desempenho da paralelização em um framework voltado para o processamento de streams, como o Anthill.
+

@@ -1,0 +1,914 @@
+Esse trabalho apresenta uma pesquisa acadêmica no escopo de códigos corretores de erros empregados em sistemas espaciais.
+O principal objetivo desse trabalho contempla o projeto, implementação e validação de circuitos corretores de erros para dados de telemetria e telecomando, seguindo o padrão CCSDS (Consultative Committee for Space Data Systems).
+Ambos os módulos de telemetria e telecomando são descritos em linguagem VHDL e implementam, respectivamente, os algoritmos de correção de erros Reed-Solomon e BCH (Bose, Chaudhuri and Hocquenghem), os quais possuem alta capacidade de correção de erros ocorridos durante o processo de transferência de dados entre o veículo espacial e a base terrestre.
+Palavras-chave: Reed-Solomon, BCH, Códigos Corretores de Erros, FPGA, VHDL, CCSDS, SoC, Telemetria, Telecomando.
+Sistemas computacionais da atualidade têm utilizado, com freqüência, mecanismos capazes de garantir a integridade dos dados processados.
+Algumas aplicações como por exemplo CD (Compact Disc), TV digital e, em especial aplicações no contexto espacial, necessitam garantir que os dados transmitidos através de um canal ruidoso, propenso a erros, sejam entregues da mesma maneira com que foram enviados.
+Um canal é denido como o meio por onde os dados trafegam, onde os mesmos estão sujeitos a ruídos e interferência, podendo sofrer alterações durante o processo de transmissão.
+A Figura 1.1 apresenta o processo de envio de dados, representado pord.
+Antes do envio, os dados são codicados, representados por c..
+A mensagem c é então enviada e devido a a interferências no processo de transmissão, essa mensagem é recebida alterada, representada por x.
+O destinatário então decodica a mensagem e o dado é recebido, representado por d'.
+Para garantir a corretude dos dados, existem diferentes classes de códigos corretores de erros disponíveis atualmente.
+Esses códigos funcionam através da aplicação de algoritmos para codicação e decodicação de forma tal que a mensagem recebida seja recuperada ao sofrer interferências durante o processo de transmissão.
+Alguns códigos apenas possuem a capacidade de detectar erros e funcionam a partir de a identicação da ocorrência de erros durante o processo de transmissão.
+A o identicar um erro o módulo receptor pode simplesmente descartar a mensagem corrompida, ou enviar um pedido de retransmissão da mensagem para o emissor.
+A Figura 1.2 apresenta o uxo de pedido de retransmissão da mensagem corrompida.
+O processo emissor envia a mensagem através de um canal propenso a erros, a mensagem então é corrompida e o processo receptor ao detectar o erro, envia um pacote de solicitação de retransmissão da mensagem.
+A mensagem é então retransmitida, e ao não detectar- se novos erros, a mesma é passada para a aplicação de destino.
+Em esse trabalho são investigadas as classes de códigos corretores de erros Reed-Solomon (RS) e Bose-Chaudhuri-Hocquenghem (BCH).
+Essas classes de códigos utilizam o conceito de corpos nitos e os algoritmos funcionam basicamente através de cálculos sobre polinômios.
+A teoria sobre corpos nitos compreende um campo da álgebra abstrata que está diretamente ligada à teoria de Galois, utilizada nos dois algoritmos citados anteriormente.
+Em o contexto de aplicações espaciais, os códigos RS e BCH são os algoritmos mais utilizados atualmente e servem para assegurar que pacotes transmitidos de um veículo espacial para uma estação terrestre e vice-versa sejam facilmente recuperados quando corrompidos durante o processo de transmissão de dados.
+Tradicionalmente códigos RS têm sido empregados na codicação de canal devido a as suas excelentes propriedades de codicação e decodicação.
+Chama- se de codicação de canal a codicação de sinais de informação com o objetivo de diminuir a taxa de erro de símbolo e/ ou de bit durante a transmissão dos mesmos através de um canal de comunicação.
+Códigos ReedSolomon são blocos de códigos lineares não binários capazes de recuperar erros aleatórios tão bem quanto erros em rajada2.
+Algumas de suas propriedades incluem, não somente sistemas sido utilizados durante missões de exploração planetária da NASA (National Aeronautics and Space Administration) e ESA (European Space Agency).
+Os códigos BCH são encontrados especialmente no contexto espacial e são utilizados para correção de dados corrompidos no envio dos mesmos provenientes da estação terrestre para o veículo espacial.
+A NASA tem utilizado diferentes códigos corretores de erros em seus projetos.
+Para as missões entre 1969 e 1977 o satélite Mariner usou o código Reed-Muller.
+A interferência que esse satélite estava sujeito era bem aproximada a denominada bell- curve (distribuição normal), assim sendo, o código de Reed-Muller foi bem satisfatório para essa situação.
+Logo em seguida, os veículos espaciais Voyager 1 e Voyager 2, que transmitiam imagens coloridas de Júpiter e Saturno no nal da década de 70, mais precisamente em 1979 e 1980 fazia com que a transmissão de imagens coloridas necessitasse o envio de 3 vezes o tamanho de dados, representando as três cores, o código de correção de erros utilizado foi o de Golay.
+O código de Golay permite correção de apenas 3 erros por codeword.
+O Voyager 2 enviado para Urano e Netuno, teve seu código alterado para um Código Convolucional concatenado ao Código de Reed--Solomon por possuir maior capacidade de correção de erros.
+Os códigos Reed-Solomon e BCH foram escolhidos para o padrão CCSDS (Consultative Com2 Erros em rajada são formados por uma seqüência de erros ocorridos um após o outro mittee for Space Data Systems) devido a a sua alta capacidade de detecção e correção de erros.
+O código RS permite ser congurado de acordo com o número de símbolos de paridade e capacidade de correção.
+Em sistemas espaciais, basicamente, uma estação terrestre envia telecomandos (Tc) a serem consumidos por módulos computacionais presentes nos veículos espaciais, recebendo telemetria (Tm) proveniente dos mesmos.
+A Figura 1.3 ilustra o processo de envio de telecomando e recebimento de telemetria.
+Os pacotes de telecomando são compostos de comandos enviados por a estação terrestre para serem executados nos módulos presentes no veículo espacial.
+Entre eles estão:
+Posicionamento de instrumentos que capturam imagens através de câmera digital, requisição de temperatura externa ao veículo ou até mesmo instruções para navegação do satélite, entre outros.
+Os dados resultantes do processamento das requisições, bem como dados sobre a saúde do veículo espacial, são encapsulados dentro de pacotes de telemetria, os quais são enviados para a estação terrestre.
+O envio de telemetria pode ser dado de duas formas:
+A primeira de elas se dá através do envio da telemetria em resposta a uma requisição recebida através de telecomando, a segunda forma é o envio constante de informações de telemetria, como por exemplo velocidade do veículo espacial, localização e temperatura.
+Esse trabalho tem por objetivo principal investigar técnicas para o projeto de hardware para codicação de telemetria utilizando o algoritmo de Reed-Solomon e decodicação de telecomando utilizando o algoritmo BCH.
+Foi dado ênfase apenas na codicação de Tm e decodicação de Tc, uma vez que essas atividades são realizadas on- board e a pesqusia vislumbra aspectos de sistemas embarcados para veículos espaciais.
+Os pacotes de Tc e Tm estão baseados no padrão CCSDS, padrão esse reconhecido mundialmente e utilizado por as principais agências espaciais, entre elas NASA, ESA e Agência Espacial Russa.
+O trabalho foi composto basicamente de seis etapas:
+A primeira deniu o levantamento bibliográco e investigação dos algoritmos que melhor se adaptam a projetos de hardware para aplicações espaciais.
+Em essa etapa foram escolhidos os algoritmos de RS para codicação/ decodicação de telemetria e o algoritmo BCH para codicação/ decodicação de telecomando.
+Após a realização do estudo e investigação dos códigos levantados, partiu- se para a segunda etapa, que contemplou a implementação e validação em software do algoritmo RS, que possibilitou a validação da funcionalidade do algoritmo RS.
+A partir de sua validação, partiu- se para a terceira etapa, a qual contemplou o projeto, implementação e validação do algoritmo de RS em hardware, descrito em linguagem VHDL e sintetizado num dispositivo FPGA.
+Em a quarta etapa, partiu- se para a implementação em hardware das camadas de empacotamento e transferência propostas por o padrão CCSDS para Tm e Tc.
+Em essa etapa foi realizado um estudo sobre as camadas que compõe o modelo de serviço de telemetria e telecomando.
+Em a quinta etapa foi realizado o projeto, implementação e validação do algoritmo BCH, o qual foi descrito em linguagem VHDL e sintetizado num dispositivo FPGA da mesma forma como feito com o algoritmo RS.
+Em a última etapa, dados de simulação e síntese foram levantados, analisados e discutidos.
+Esse documento está organizado da seguinte forma.
+O Capítulo 2 apresenta alguns trabalhos realizados no contexo de hardware utilizado para correção de erros.
+Em o Capítulo 3 são apresentadas denições, notações e teoremas aplicados a álgebra presente nos algoritmos de correção de erros BCH e Reed-Solomon.
+O Capítulo 4 apresenta conceitos básicos sobre códigos corretores de erros enquanto o Capítulo 5 descreve os processos de codicação e decodicação do algoritmo BCH, utilizado para correção de erros em pacotes de telecomandos.
+De a mesma forma, no Capítulo 6 o algoritmo Reed-Solomon é descrito com mais detalhes e os passos de codicação e decodicação são apresentados.
+Esse algoritmo é utilizado para correção de possíveis erros ocasionados no envio de pacotes de telemetria provenientes do veículo espacial para a estação terrestre.
+O de telecomando e telemetria, apresentando as camadas que compõe o modelo serviço para Tc e Tm, o qual foi objeto de estudo no presente trabalho.
+Em o Capítulo 8 é apresentada a estratégia utilizada para projeto e implementação em software e hardware dos algoritmos BCH e RS.
+Em ele, são apresentadas cada etapa de projeto e passos intermediários que serviram como validação dos algoritmos levantados.
+O Capítulo 9 apresenta os resultados obtidos no desenvolvimento desse trabalho.
+Por m, o Capítulo 10 apresenta as conclusões obtidas e sugestões de trabalhos futuros para a continuação do mesmo.
+Trabalhos Relacionados A implementação de códigos RS e BCH em hardware recongurável é atraente por várias razões.
+Primeiramente por permitir descrição de códigos parametrizáveis, em a qual a capacidade de correção de erros pode ser alterada facilmente.
+Em segundo lugar, por permitir rápida prototipação, o que para muitas aplicações comerciais é um dos principais fatores.
+Esse capítulo apresenta alguns trabalhos relevantes na área de códigos corretores de erros em hardware, dando ênfase aos algoritmos de Reed-Solomon e BCH, utilizados para atividades de correção de possíveis erros ocasionados no envio de telemetria para a estação terrestre e telecomando para o veículo espacial.
+Em é proposta uma implementação de um computador de bordo de um satélite com a lógica programável de um único chip integrando o desenvolvimento de um sistema de comunicação em software para o mesmo.
+O sistema de comunicação está baseado no padrão CCSDS e a integração de núcleos de propriedade intelectual forma o principal subsistema de umsystem-ona-chip.
+O Centro Espacial de Surrey desenvolve pequenos satélites utilizando tecnologias de acordo com o padrão CCSDS, possui entre as suas principais pesquisas, o projeto chamado ChipSat, cujo objetivo consiste na aplicação de tecnologias para projeto de satélites de pequeno porte.
+Como parte do ChipSat, um computador de bordo de um satélite de pequeno porte é implementado na forma de um dispositivo SoC.
+Alguns núcleos de propriedade intelectual escritos em linguagem de descrição de hardware VHDL são usados para construir o sistema do computador de bordo.
+Os principais blocos do SoC são compostos de:
+Microprocessador (Leon 2) em memória, carregador de bootstrap, Sparc), unidade de detecção e correção de erros (EDAC controlador HDLC (High Level Data Link Control), interface CAN (controller area network), interface de rede, interface Ide (Integrated Drive Electronics), co-processador matemático e interface de barramento de periféricos.
+Um FPGA Xilinx Virtex é usado para prototipação do SoC.
+A Figura 2.1 apresenta o diagrama de blocos do SoC proposto em.
+O subsistema resultante LEON+ CAN+ EDAC usadas foram:
+Simulador VHDL ModelSim, ferramenta de síntese Synplify 6.0+ e ferramentas da Xilinx Foundation.
+Versões 2.1i e 3.1 i.
+Como resultado do projeto do SoC, levantou- se dados referentes à ocupação de área em FPGA dos módulos IPs utilizados.
+A Tabela 2.1 apresenta os módulos SoC e dados referentes a ocupação em termos de slices CLB (Congurable Logic Block), BlockRAMs, IOBs (Input/ Output Block), freqüência (MHz) predita por uma ferramenta de Place &amp; Route e freqüência obtida através de simulação.
+É possível observar, através da Tabela 2.1, que o subsistema implementado na forma de um SoC (LEON+ CAN+ EDAC) necessita cerca de 50% da capacidade do FPGA utilizado Virtex XCV800.
+O arquivo bitstream do subsistema implementado possui um tamanho de 576 KB.
+É importante observar que o sistema de telemetria e telecomando é executado num processador embarcado, ou seja, o sistema está implementado totalmente em software do ponto de vista da arquitetura interna.
+De o ponto de vista externo ao sistema, o que pode ser visto é um hardware FPGA operando as funcionalidades do padrão CCSDS.
+De essa forma, é possível dizer que tem- se um hardware dedicado para a execução dessas operações.
+A principal diferença entre o trabalho proposto em Surrey e o trabalho proposto nesse documento se dá na forma com que os sistemas foram implementados.
+Em a metodologia proposta no trabalho de Surrey, existe um processador embarcado no FPGA que executa operações de telecomando e telemetria em software.
+Em a metodologia adotada no presente trabalho, ambos os sistemas foram projetados e implementados diretamente em hardware, sendo descritos na linguagem VHDL.
+Assim sendo, no lugar de um processador embarcado, como feito em Surrey, existem circuitos cujo objetivo é realizar tarefas propostas por o padrão CCSDS, tais como empacotamento, transferência e codicação dos pacotes de telemetria e telecomando a serem processados.
+Os demais trabalhos apresentados nesse capítulo se referem ao projeto de hardware para o algoritmo de correção de erros Reed-Solomon, o qual é um dos principais focos do presente trabalho.
+Em é proposta uma técnica para otimização de códigos RS a m de obter uma melhoria em relação a a tolerância à falhas em memórias.
+A principal parte no processo de codicação e decodicação do algoritmo RS, conforme será apresentado no Capítulo 6, está baseada em operações envolvendo multiplicações de constantes.
+Conseqüentemente o esforço para diminuir o overhead em relação a a área e tempo de execução no circuito como um todo, resulta no uso de multiplicadores.
+Há dois possíveis métodos para otimização no processo de multiplicação:
+A ferramenta é capaz de procurar, entre todos os polinômios possíveis, o polinômio mais adequado para tal aplicação, avaliando o circuito em relação a o número de multiplicadores criados em termos de área e desempenho.
+Por exemplo, para o primeiro polinômio, as constantes multiplicativas são 00101, 01010, 10100 e 01101, para o segundo polinômio as constantes são 11101, 00111, 01110 e 11100.
+A primeira opção totaliza 11 constantes zeros, a segunda somente mesmo resultará numa melhor simplicação do circuito multiplicador pois ele eliminará mais portas And.
+O circuito proposto por foi sintetizado sobre o dispositivo FPGA VirtexE 600 da Xilinx e foram levantadas medidas relacionadas à ocupação de área do circuito em termos de número de LUTs, menor unidade lógica presente num FPGA.
+A Tabela 2.2 apresenta dados levantados no trabalho proposto em, com comparação de desempenho entre geradores de códigos manuais e automáticos.
+O trabalho avalia os resultados em termos de número de LUTs de 4 entradas e o desempenho é avaliado em termos de atraso e o número de slices num caminho crítico.
+Solomon ao padrão DVB (Digital Video Broadcast), requisito para a transmissão de pacotes MPEG2 (Moving Picture Experts Group).
+O padrão DVB utiliza o padrão RS, com capacidade de correção de 8 erros por pacote.
+Para isso, são necessários 16 símbolos de vericação anexados à mensagem a ser codicada, resultando em umacodeword de 204 bytes.
+Um maior detalhamento do algoritmo RS é apresentado adiante no Capítulo 6.
+Em o artigo, um novo algoritmo para codicação Reed-Solomon em arquiteturas SIMD (Single Instruction Multiple Data) é apresentado.
+Esse algoritmo não necessita de divisão de polinômio sobre Corpos de Galois para cálculo de símbolos de paridade.
+Em, Atieno apresenta um decodicador de erros Reed-Solomon adaptado.
+A principal inovação do algoritmo é o projeto de um sistema de decodicação do canal o qual contém múltiplos componentes decodicadores.
+Para que a recuperação de dados seja executada de forma correta, somente um dos pares gerador/ decodicador deve produzir um resultado correto.
+Os parâmetros de entrada do decodicador foram gerados via simulação.
+A chave para a melhoria do desempenho é o uso de reconguração dinâmica baseada em amostragem periódica de condições de ruído do canal.
+Através de experimentos, foi apresentado que 14% de melhoria no desempenho pode ser atingido através do uso de reconguração do decodicador em tempo de execução em comparação a implementação estática de maior complexidade, maior poder de decodicação.
+O decodicador proposto no artigo foi validado em hardware utilizando a placa de desenvolvimento NIOS da Altera, com um FPGA Stratix.
+Embora o processo de codicação Reed-Solomon adaptável seja bastante explorado, implementações parametrizáveis em hardware são limitadas.
+Em Lee um sistema de decodicação que fornece múltiplos decodicadores para múltiplos canais é descrito.
+Desde que a célula básica MEA (Modied Euclid Algorithm) para o projeto seja replicada, os blocos MEA consomem cerca de 80% de área do decodicador.
+Em uma implementação de canal único, especíco para DVD (Digital Video Disc), múltiplos blocos MEA são usados para melhorar a decodicação utilizando um dispositivo Altera Flex10 K200.
+O trabalho proposto em utiliza uma única célula de processamento MEA a qual é usada de forma recursiva.
+Uma técnica de decodicação RS adaptável é apresentada em e permite variação nos parâmetros de n e k em tempo de execução, desde que reconguração dinâmica não esteja sendo usada.
+Para decodicação Reed-Solomon, várias implementações em hardware encontram- se disponíveis.
+A maioria das implementações são baseadas no uso de LFSR (Linear Feedback Shift Register), o qual fornece um meio eciente para executar o cálculo sobre divisão polinomial.
+Um resumo de implementações em software e hardware para codicação Reed-Solomon é apresentado em.
+Os autores de introduzem uma proposta de hardware-- software codesign para processamento de codicação e decodicação Reed-Solomon.
+Eles propõe duas novas instruções para processadores de propósito geral que possibilitam codicação e decodicação RS com baixo consumo de potência.
+Por m, muitos trabalhos têm sido propostos direcionados para diversos tipos de aplicações utilizando os algoritmos de Reed-Solomon e BCH.
+Esse capítulo apresentou alguns desses trabalhos objetivando fazer um levantamento dos diferentes meios de aplicação desses algoritmos.
+O envolvidos nos processos de codicação e decodicação dos algoritmos Reed-Solomon e BCH.
+Álgebra Abstrata Desde as antigas civilizações, como a egípcia ou a persa, há referências a métodos de cálculo e fórmulas polinomiais.
+Os hindus, em 600 AC (Antes de Cristo) já sabiam resolver equações quadráticas, e os babilônios possuíam alguma maquinaria de manipulação algébrica que usavam casos especiais da fórmula quadrática.
+A álgebra simbólica, surgiu com os árabes, entre 600 e 1000 DC (Depois de Cristo).
+Aqui surge já a fórmula cúbica, e destaca- se o trabalho de Al-Quarizimi (séc..
+IX, nome que deu origem à palavra algarismo).
+Em o séc..
+XVII a geometria analítica já estava bem compreendida, e já se usava a álgebra para resolver problemas geométricos, e vice-versa.
+O progresso continuou com vários matemáticos notáveis nos séculos seguintes, nomeadamente como Euler e Lagrange (séc..
+XVIII), que se preocuparam, entre outras coisas, em encontrar fórmulas resolventes para polinômios de grau cinco, e Gauss (séc..
+XIX), a quem se deve aquela que é por vezes considerada a primeira demonstração do teorema fundamental da álgebra, ou teorema de d'Alembert (ainda que essa demonstração não satisfaça os critérios contemporâneos de clareza).
+Em o mesmo século, Abel e Galois, usando a teoria de grupos, provaram a inexistência de fórmulas resolventes gerais com radicais para graus maiores que quatro.
+Foi surgindo também interesse nos polinômios enquanto fórmulas que descrevem superfícies e curvas, dando origem ao que se chama hoje geometria algébrica.
+Em o início do século XX, surgiram as estruturas algébricas abstratas, os teoremas não construtivos de Hilbert e os desenvolvimentos da geometria algébrica, que constituiram um novo olhar sobre os polinômios.
+Ainda hoje os polinômios são tema de investigação, tanto no campo computacional como no campo teórico.
+O último teorema de Fermat, por exemplo, formulado em 1641, e demonstrado nalmente em 1994 por Andrew Wiles e Richard Taylor, trata da resolução de uma equação diofantina polinomial.
+As bases de Gröbner, importantes em termos computacionais na geometria algébrica, foram também devidamente estudadas no m do século passado.
+Esse capítulo tem por objetivo apresentar os conceitos matemáticos dentro de o escopo de álgebra abstrata.
+A nalidade não é de esgotar o assunto, mas sim, de apresentar conceitos, denições e teoremas para melhor entendimento do trabalho aqui proposto.
+Em a Seção 3.2 são apresentados os conceitos relacionados às estruturas algébricas, entre elas teoria de conjunto, grupo, anel e corpo.
+A Seção 3.3 introduz a teoria de Corpo de Galois, apresenta o processo de construção e ordem de um corpo.
+Em continuação, a Seção 3.4 apresenta as propriedades no escopo de Corpos de Galois, entre elas estão ordem do corpo, ordem de um elemento, elementos primitivos e características de Corpos de Galois.
+Por m, na Seção 3.5 são apresentadas as propriedades fundamentais de polinômios e suas raízes como irredutibilidade, polinômio primitivo, raízes de um polinômio primitivo e exemplo de construção para o Corpo de Galois GF (23).
+As estruturas algébricas formam um ramo da álgebra moderna que estende o conceito da teoria dos conjuntos, efetuando uma análise sobre os elementos constituintes de uma dada estrutura e respectivas operações entre si.
+Em essa seção introduzem- se os conceitos relacionados com as estruturas algébricas, de uma forma progressiva, salientando os pontos mais importantes que estão relacionados com a construção dos códigos utilizados na codicação de canal.
+A análise é efetuada partindo da estrutura mais simples denominada por grupóide até chegar ao corpo e posteriormente ao objeto de estudo, o Corpo de Galois.
+Um conjunto pode ser denido como um agrupamento de elementos sem operações denidas entre si.
+O número de elementos que pertencem a um dado conjunto determina a sua dimensão, eventualmente innita, o que dene uma característica muito importante designada por cardinalidade.
+Se num dado conjunto E for denida uma operação binária'.'
+tal que a sua aplicação a dois quaisquer elementos de E, resulte num terceiro elemento pertencente à E (não necessariamente diferente), então esta operação designa- se por lei de composição interna emE, e tem- se a estrutura algébrica mais simples, o grupóide.
+A operação'.'
+é uma lei de composição interna em E O conjunto E é um espaço fechado O grupóide resume- se a um espaço fechado com uma operação entre dois dos seus elementos, designados por operandos.
+O resultado da aplicação da operação resulta num terceiro elemento pertencente ao grupóide, e que pode coincidir com um dos operandos.
+Se a operação'.',
+além de ser uma lei de composição interna em E, possuir ainda a propriedade associativa, então a estrutura algébrica adquire uma nova propriedade e passa a designar- se por semigrupo.
+Se os elementos do semigrupo E apresentarem as seguintes propriedades:
+Existência de elemento identidade (neutro):
+E: A. E $= e.
+A a E Existência de elemento inverso para cada elemento de E:
+Então pode- se dizer que existe uma estrutura algébrica mais elaborada, denominada por grupo.
+No caso de a operação'.'
+ser também comutativa, tem- se um grupo comutativo ou abeliano.
+A operação'.'
+é comutativa quando se verica a seguinte condição:
+A. B $= b.
+A, a, b E Em resumo, a denição do grupo é a seguinte:
+Existência de elemento identidade em E (E,.)
+é grupo Existência de elemento inverso único para cada elemento de E Os grupos podem ter ordem (por ex..
+Cardinalidade) innita.
+A ordem de um grupo G denomina- se por ord (G).
+No entanto para os objetivos do presente estudo apenas se consideram estruturas algébricas de ordem nita.
+Para simplicar a análise de um determinado grupo este pode ser subdividido em vários sub-grupos com menor cardinalidade que o grupo que lhes deu origem.
+Um conjunto G é subgrupo de E se respeitar a seguinte relação:
+O Teorema de Lagrange enuncia uma propriedade importante que relaciona a ordem do grupo G com a ordem de um dos possíveis subgrupos denominados por S.
+Teorema A. Sendo S um subgrupo de G então ord (G) é múltipla de ord (S) Em o ponto anterior foi apresentado que a ordem de um grupo dene- se como a cardinalidade do grupo.
+No entanto, associado a cada elemento g do grupo G também existe uma ordem, denominada por ord (g), que se dene como o menor número inteiro a que se tem de elevar q para obter o elemento identidade do grupo, designado por e.
+De uma forma mais formal tem- se:
+Tendo como exemplo um grupo de ordem 4, com a operação'.'
+denida como a multiplicação módulo 5, obtêm- se os resultados apresentados na Tabela 3.1, para as várias aplicações da operação:
+como se pode vericar o elemento identidade da operação é o número 1.
+Cada um dos elementos tem um inverso único.
+A ordem dos elementos é calculada a partir de a denição, e os resultados são apresentados na Tabela 3.2.
+Existe uma propriedade importante que relaciona a ordem de um elemento com a ordem do grupo, e que se pode inferir por a Tabela 3.2.
+Enuncia- se a forma seguinte:
+A ordem de um elemento é sub-múltipla da ordem do grupo.
+O exemplo anterior serve também para mostrar um Teorema que envolve os grupos e os números primos.
+O enunciado do Teorema é o seguinte:
+Em a base da formação da estrutura grupo está a aplicação de uma operação binária sobre um dado conjunto de elementos que obedecem a um dado conjunto de regras.
+É possível agregar a um grupo mais uma operação binária denominada por'+' de forma que se estabeleça um conjunto de relações que obedecem a certas regras de forma a obter a estrutura algébrica Anel.
+Esta é a denição base de anel.
+No entanto, esta estrutura ainda pode ter variantes.
+No caso de a operação'.'
+ser comutativa, tem- se um anel comutativo.
+Se a operação'.'
+tiver um elemento identidade, então tem- se um anel com identidade.
+Em a situação em que se vericam ambos os casos anteriores, tem- se um anel comutativo com identidade.
+Partindo da denição anterior sobre a constituição de um Anel, quando vericadas determinadas condições, obtém- se uma nova estrutura algébrica denominada por Corpo.
+A denição de Corpo é por isso semelhante à denição de Anel, apresentada anteriormente e pode ser escrita da seguinte forma:
+Um corpo é um anel comutativo com identidade, em o qual cada elemento tem um inverso multiplicativo.
+Ou ainda de outra forma mais simples:
+Um corpo é constituído por dois grupos.
+Todos os elementos formam um grupo comutativo Torna- se necessário dar ênfase nesta denição pois é sobre a estrutura algébrica Corpo que o presente estudo vai ser direcionado a partir de essa seção.
+Um Corpo de Galois dene- se como sendo um corpo de ordem nita.
+Signica que tem uma cardinalidade perfeitamente conhecida, a qual o caracteriza completamente.
+Genericamente um Corpo de Galois de ordem p é representado por GF (p).
+Para obter um Corpo de Galois de ordem p, inteiro primo, consideram- se todos os inteiros um grupo devido a as seguintes propriedades:
+A forma mais simples que se pode ter, consiste no Corpo de Galois de ordem 2, representado por GF.
+É possível obter Corpos de ordem superior q, gerados a partir de a ordem p, tal que se veriquem as seguintes condições:·
+p é um número primo;·
+m\&gt; 1;
+A partir de os dados do ponto anterior é possível concluir que os Corpos de Galois de ordem prima p com valores baixos são fáceis de construir.
+O seguinte Teorema enuncia a construção de um Corpo de Galois de ordem p:
+Um Corpo de Galois de ordem pm pode ser obtido como um espaço vetorial sobre um outro corpo de ordem p..
+Portanto os corpos de ordem p servem de base geradora para a construção de outros corpos de ordem superior.
+Em esta seção é realizada uma análise detalhada das principais características de um Corpo de Galois e dos respectivos elementos que o constitui.
+Inicialmente são analisadas as propriedades dos corpos de uma forma geral, em seguida passa- se para a análise dos elementos que o constituem, descrevendo um conjunto de propriedades úteis, que servem de fundamento à aplicação de polinômios sobre o corpo e à fatorização do polinômio xn+ 1, que representa a chave para a criação de um código cíclico.
+Um código cíclico é aquele que, a partir de um vetor U pertencente ao subespaço vetorial do código cíclico, é possível gerar todos os demais códigos através do deslocamento sucessivo deU.
+O vetor U pode ser descrito como:
+U $ . Sendo um corpo de ordem nita e com todas as suas propriedades bem conhecidas, é possível armar que um corpo é completamente caracterizado por a sua ordem.
+A notação GF (p) representa um Corpo de Galois de ordem p..
+No caso de uma notação GF (p), signica que tem- se uma aplicação de polinômios sobre os Corpos de Galois, e que os coecientes dos polinômios são constituídos de valores entre 0 e p -- 1.
+O grau dos polinômios designa- se por n e é independente dos coecientes dos mesmos.
+Exemplo: Existe semelhança entre a ordem de um elemento e a ordem de um Grupo, também existe o conceito de ordem de um elemento quando se trata de um Corpo, sabendo que um corpo é constituído por duas estruturas algébricas do tipo Grupo.
+A ordem de um elemento é denida como o menor número inteiro positivo tal que esse elemento precisa de um operador, usando a operação de caráter multiplicativo do corpo, para obter o seu elemento identidade designado por '1'.
+De uma forma mais formal tem- se:
+A notação GF é utilizada para indicar um Corpo de Galois que tem ordem q, sobre o qual são aplicados polinômios de grau n com coecientes com valores compreendidos entre 0 e q -- 1.
+Um exemplo de um polinômio p pode ser apresentado na Equação 3.2.
+P $= a5.
+X5+ a4.
+X4+1 a+ 1 Os coecientes de um polinômio ai pertencem obrigatoriamente ao GF (p), ao passo que o grau do polinômio n, pode ter um valor qualquer.
+Um polinômio designa- se por irredutível quando não é possível efetuar a sua fatorização em pelo menos dois polinômios de grau inferior, usando coecientes até uma dada ordem.
+Exemplo: Dado o GF, e p $= x2+ x+ 1 um polinômio cujos coecientes estão compreendidos entre 0 e 1, inclusive.
+Este polinômio é irredutível em GF.
+Mas no caso de considerar GF, logo o polinômio deixa de ser irredutível.
+Um polinômio p de grau m é primitivo em GF (p) se for irredutível e atender às seguintes condições apresentadas nas Equações 3.3 e 3.4: Para ser um polinômio primitivo, p deve ser irredutível.
+No entanto nem todos os polinômios irredutíveis são primitivos.
+O caso contrário vericase sempre, todos os polinômios primitivos são irredutíveis.
+As raízes de um polinômio primitivo possuem propriedades bastantes interessantes no estudo dos Corpos de Galois, e que servem posteriormente para a geração de Corpos de q a partir de subcorpos de ordem p..
+Cada Corpo de Galois de ordem q, possui um subcorpo de ordem prima p..
+As raízes do polinômio primitivo, de grau m, p GF (p), são elementos primitivos em GF (q), com q $= pm.
+Isto signica que um GF (q), pode ser construído através de um subcorpo de ordem prima GF (p), e de seu polinômio primitivo, ou seja, GF (q) é um espaço vetorial sobre GF (p).
+Quando GF (p) tem ordem prima, GF (q) pode designar- se como a sua extensão.
+Assim como os grupos contêm subgrupos, os Corpos de Galois também contêm subcorpos, para além de o subcorpo base de ordem prima.
+GF pode ser visto como espaço vetorial sobre GF.
+O polinômio p $= x3+ x+ 1 é primitivo em GF.
+As suas raízes são elementos primitivos de GF (q) com q $= pm $= 23 $= 8.
+Assim como apresentado nas propriedades dos elementos primitivos, prova- se que todos os elementos de GF (q) podem ser obtidos através de (q -- 1) produtos dos elementos primitivos.
+De essa forma ca apresentada a importância das propriedades dos polinômios primitivos e das suas raízes na construção de Corpos de Galois.
+Esse capítulo apresentou alguns conceitos importantes para a formação do embasamento matemático necessário para o entendimento dos algoritmos BCH e RS apresentados nos Capítulos 5 e 6 respectivamente.
+O Capítulo 4 introduz o conceito de códigos corretores de erros apresentando denições importantes como por exemplo Distância de Hamming, Código de Bloco Linear e Códigos Convolucionais.
+Códigos Corretores de Erros Por denição, códigos corretores de erros são códigos que possuem a capacidade de detecção e correção de erros ocorridos sobre um determinado conjunto de dados.
+Geralmente esses dados são transmitidos através de um canal ruidoso, propenso a erros.
+Chama- se codicação do canal a codicação de sinais de informação com o objetivo de diminuir a taxa de erro de símbolo e/ ou de bit durante a transmissão dos mesmos através de um canal de comunicação.
+Geralmente os códigos corretores de erros estão baseados no mesmo princípio:
+Dados de redundância são adicionados à informação a m de corrigir possíveis erros que podem ocorrer nos processos de armazenamento e transmissão de dados.
+Em a forma mais usual, símbolos de redundância são anexados aos símbolos de informação para obter uma seqüência de código denominada de codeword.
+Para ns de ilustração, uma codeword obtida através da codicação utilizando um código de bloco é mostrada na Figura 4.1.
+De acordo com o modo com que a redundância é adicionada às mensagens, os códigos corretores de erros podem ser divididos em duas classes:
+Código de bloco e código convolucional.
+Ambos os tipos de esquema de codicação são encontrados em aplicações práticas.
+Códigos de blocos, basicamente, processam a informação bloco por bloco, tratando cada bloco de bits de informação de forma independente com relação a outro bloco.
+Ao contrário de códigos de blocos, a saída de um codicador convolucional depende não somente da informação de entrada, mas também das entradas e saídas anteriores da forma bloco a bloco ou bit a bit.
+Códigos convolucionais são usados geralmente para melhorar o desempenho da comunicação via rádio e satélites.
+Considere um código corretor de erros C com elementos binários.
+Objetivando explorar as capacidades de correção de erros, nem todos os 2n vetores binários possíveis de largura n são permitidos para serem transmitidos.
+C é um subconjunto de vetores binários de dimensão n pertencente ao espaço V2 $= 0, 1n, onde os elementos estão o mais distante possível um do outro.
+Em um espaço vetorial V2, a distância é denida como o número de inteiros diferentes entre dois vetores.
+Sendo x1 $= e x2 $= dois vetores pertencentes a V2.
+A distância de Hamming entre x1 e x2, denotada por dH $= é denida por a Equação 4.1.
+Dado um código C, a distância mínima de Hamming, dmin, é denida como a distância mínima entre todos os pares distintos de codewords em C, representado por a Equação 4.2.
+Para ns de notação, no decorrer de o capítulo são adotados os seguintes símbolos: (n, k, dmin) é usado para descrever os parâmetros de um código de blocos de comprimenton, o qual codica mensagens de tamanho k e possui uma distância mínima de Hamming dmin.
+O tamanho do código é dado por| C| $= 2k.
+Exemplo 1 O mais simples código corretor de erros é composto de repetições binárias de comprimento 3.
+Ele repete cada bit três vezes, sendo '0' codicado num vetor de e '1' num vetor de.
+Sendo que esses vetores são diferentes em três posições, a distância mínima de Hamming é igual a três.
+A Figura 4.2 é uma representação vetorial desse código.
+O espaço vetorial corresponde a um conjunto de 23 $= 8 vértices de um cubo tridimensional.
+A distância de Hamming entre as codewords e é igual ao número de bordas dispostas entre eles.
+Isso equivale ao número de coordenadas necessárias para converter para, ou vice-versa.
+O espaço vetorial binário V2 é também conhecido como espaço de Hamming.
+Sendo v uma codeword de um código corretor de erros C.
+Uma esfera de Hamming St, de raio t e centralizada em v, é composta de um conjunto de vetores em V2 que possui distância menor ou igual a t a partir de o centro de v.
+O tamanho de um (ou o número de codewords em) St (v) é dado por a Equação 4.4.|
+St| $= i $= 0 Exemplo 2 A Figura 4.3 apresenta a esfera de Hamming de raio t $= 1 sobre codewords de código de repetição binária.
+É possível observar que as esferas de Hamming são disjuntas, ou seja, não existe vetor em V2 pertencente a ambos S1 e S1.
+Como resultado, se houver uma troca numa posição qualquer de uma codeword v, o vetor resultante ainda se encontrará dentro de a esfera de Hamming centralizada em v.
+Esse conceito é a base para o entendimento e denição da capacidade de correção de erros de um código C.
+A capacidade de correção de erros (t) de um código C é dada por o maior raio da esfera de Hamming St sobre todas as codewords v C, em o qual, para todos os diferentes pares pertencentes a v i, v j C, as esferas de Hamming correspondentes são disjuntas, por ex., v i, v j C Em termos de distância mínima de C, dmin, uma denição equivalente e mais utilizada é dada na Equação 4.6.
+Para calcular a distância mínima dmin de um código C, de acordo com a Equação 4.2, um total de (no máximo) 2k (2 k -- 1) distâncias entre pares distintos de codewords são necessárias.
+Isso é praticamente impossível para códigos de tamanho maiores, como k $= 50.
+Uma das vantagens de códigos de blocos lineares é que o cálculo de dmin necessita saber apenas o tamanho de Hamming de todas 2k -- 1 codewords diferentes de zero.
+Como mencionado na seção anterior, encontrar um bom código signica encontrar um subconjunto de V2 com elementos o mais distante possível um do outro, o que é muito difícil.
+Além disso, sempre que um conjunto é encontrado, existe ainda o problema de como atribuir as codewords para mensagens de informação.
+Códigos Lineares são subespaços vetoriais de V2.
+Isso signica que a codicação pode ser realizada através de multiplicação de matrizes.
+Em a área de circuitos digitais, simples codicadores podem ser construídos usando operações de XOR's, And's e ip- ops do tipo D. Em essa seção, as operações de soma e multiplicação no espaço vetorial binário estão representadas por a saída de portas lógicas XOR (adição módulo 2) e And, respectivamente.
+As Tabelas de adição e multiplicação para elementos binários são apresentadas por a Tabela 4.1.
+Seja C um código linear binário (n, k, dmin).
+Sendo C um subespaço vetorial k dimensional, como uma combinação linear de elementos na base:
+Seja C um espaço vetorial em V2 de k dimensões, existe um espaço dual C T de (n -- k) dimensões, gerado por as linhas de uma matriz H, denominada de matriz de vericação de paridade, apresentada na Equação 4.10, onde H T representa a matriz transposta de H.
+Além disso, é possível observar que para qualquer codeword v C, vH T $= 0 A Equação 4.11 é de fundamental importância na decodicação de códigos lineares.
+Um código linear C gerado por H é um código linear binário (n, n -- k, d min), chamado de código dual de C.
+A Equação 4.8 apresenta uma regra de codicação para códigos de bloco linear que pode ser implementada de forma direta.
+Se a codicação for sistemática, então o gerador da matrizG de um código de bloco linear C (n, k, dmin) pode ser apresentada por Gsys, através de operações And/ OR e permutação de linhas e colunas.
+Gsys é composta de duas sub-matrizes:
+A matriz identidade (k, k), denotada por Ik, e a sub-matriz de paridade P de dimensão (k, n -- k), em a qual Gsys $= (Ik| P), onde Pk-1, 0 Pk-1, 1 P0, n-k-1 P1, n-k-1 Pk-1, n-k-1 Sendo GH T $= 0, na forma sistemática Hsys da matriz de paridade é Hsys $= (P T| In-k) Exemplo 3 Considere um código de bloco linear (4, 2) com a seguinte matriz geradora:
+Para transformar G para a forma sistemática, troca- se a segunda e a quarta coluna e obtém- se:
+Então a sub-matriz de paridade é dada por:
+É possível notar que nesse caso a relação P $= P T é referenciada como seu próprio código dual.
+A partir de a Equação 4.14 tem- se a matriz de paridades na forma sistemática apresentada como segue:
+Hsys $= O vetor u $= representa a mensagem a ser codicada enquanto o vetor v $= representa a codeword correspondente em C.
+Se os parâmetros de C tal que k (n -- k), ou equivalentemente a taxa do código k/ n 1/2, a codicação com a matriz geradora é mais econômica.
+O custo considerado aqui é em termos de número de operações binárias.
+Em esse caso:
+Entretanto, se k\&gt; (n -- k) ou k/ n\&gt; 1/2, então a codicação alternativa com a matriz de paridades H necessita de menor número de cálculos.
+Em esse caso, tem- se a codicação baseada obtidas como segue:
+Exemplo 4 Considerando o código linear binário (4,2,2) do Exemplo 3.
+Sendo a mensagem e as codewords $= e v $ , respectivamente.
+De a Equação v2 $= u0+ u1 v3 $= u0 A relação entre as 22 $= 4 mensagens de 2 bits e as codewords correspondentes é dada por:
+Em essa subseção o processo de codicação é apresentado e objetiva encontrar a codeword v mais apropriada para a palavra recebida r $= v+ e.
+Um vetor padrão para um código de bloco linear C é uma tabela de todos os possíveis vetores recebidos r dispostos num meio em a qual a codeword v pode ser lida para r.
+A Tabela 4.2 apresenta o vetor padrão de um código de bloco linear binário.
+O vetor padrão contém 2 n-k linhas e 2k+ 1 colunas.
+A entrada das 2k colunas mais a direita se faz necessário introduzir o conceito de síndrome.
+A síndrome de uma palavra em V2 é denida na Equação 4.20.
+A síndrome de r é s $= rH T $= (v+ e) H T $= eH T, onde a igualdade é deduzida da Equação 4.11.
+Em a primeira linha, em cada posição correspondente as 2k colunas mais a direita, coloca- se todas as codewords de C, começando com a codeword formada de zeros na posição mais à esquerda.
+Em a posição correspondente a primeira coluna, coloca- se a síndrome composta de Faça j $= j+ 1.
+Encontre a palavra com menor distância de Hamming ej em V2, não em C, e não incluída nas linhas anteriores.
+A síndrome correspondente sj $= ej H T é a primeira (mais à direita) entrada da linha.
+As 2k entradas restantes na linha são obtidas por a adição de ej a todas as entradas da primeira linha (as codewords de C).
+Repita o passos anterior até que todos os vetores em V2 sejam incluídos no vetor.
+De forma equivalente, j $= j+ 1.
+Se j 2 n-k, então repita o passo anterior, senão pare.
+O processo de decodicação seguindo os procedimentos do vetor padrão se dá como segue.
+Seja r a palavra recebida, conforme apresentada na Equação 4.22.
+A síndrome de um elemento é calculada por a Equação 4.23.
+Exemplo 6 Considere um código linear binário (4, 2) do Exemplo 3.
+Suponha que a codeword v $= é transmitida e que r $= é recebida.
+Então a síndrome é s $= rH T $= A partir de o vetor padrão de um código, o vetor e $= é encontrado (Tabela 4.3) e então a codeword estimada é v $= r+ e $ + $ , logo um erro foi corrigido.
+Este Capítulo apresentou a denição de códigos corretores de erros bem como o embasamento matemático nos processos de codicação e decodicação de códigos de bloco linear.
+O capítulo apresenta exemplos de formação do vetor padrão e procedimento de cálculo da síndrome e recuperação da codeword corrompida.
+O Capítulo 5 introduz o algoritmo BCH, utilizado para atividades de codicação e decodicação de telecomando no contexto espacial.
+Em ele são apresentados os passos necessários para codicação e decodicação de codewords no padrão denido por o CCSDS.
+Algoritmo BCH O principal objetivo desse capítulo é introduzir um conjunto mínimo de conceitos necessários para o entendimento de códigos cíclicos binários e para implementações ecientes dos processos de codicação e decodicação.
+Também nesse capítulo é apresentada uma importante família de códigos cíclicos binários, chamada de códigos BCH, nome esse dado em homenagem a seus criadores Bose-Chaudhuri-Hocquenghem.
+Códigos binários BCH com distância mínima 3, conhecidos como Códigos de Hamming, têm sido bastante utilizados em redes de computadores e em memórias, devido a a simplicidade e velocidade nos processos de codicação e decodicação.
+Códigos cíclicos são uma classe de códigos corretores de erros que são ecientemente codicados e decodicados utilizando simples registradores de deslocamentos e elementos de lógica combinacional, sendo sua representação baseada em polinômios.
+Sendo C representado por um código de bloco linear (n, k).
+Seja u e v as representações de uma mensagem e de sua codeword correspondente em C, respectivamente.
+Códigos cíclicos são códigos lineares com propriedades que tornam possível sua implementação em hardware.
+Para toda codeword v existe um polinômio v associado, v $= v0+ v1 x+··+ vn-1 xn+ 1 A variável x serve para indicar a posição relativa de um elemento vi de v como um termo vi xi de v, 0 i n..
+Um código de bloco linear C é cíclico se somente se todo o ciclo de deslocamento de uma codeword é outra codeword, v $= C v $= C. Em linguagem de polinômios, um deslocamento cíclico de uma posição, representado por v, é realizado por a multiplicação por x módulo, v C v $= xv mod C. Exemplo 1 Seja n $= 7, um deslocamento cíclico de uma posição de um vetor v $= é igual a v $ .
+Em termos de polinômios, v $= x+ x3+ x5+ x6 e v $= xv $= x2+ x4+ x6+ x7 mod $= x2+ x4+ x6+ x7+ 1 $= 1+ x2+ x4+ x6 Uma propriedade importante de códigos cíclicos é que todos os polinômios do código v são múltiplos de um único polinômio, g, chamado de gerador polinomial do código.
+Esse polinômio é especicado por suas raízes, chamadas de zeros do código.
+É possível mostrar que o gerador polinomial g divide.
+Assim como inteiros, a divide b sempre que b $= qa.
+Entretanto, para encontrar o gerador polinomial, o polinômio deve ser fatorado em fatores irredutíveis, j $= 1, 2,··, Uma importante observação é que em operações binárias da -- b e a+ b (módulo 2) resulta no mesmo valor.
+Conforme a Equação 5.5, o polinômio g é dado por:
+Alguns exemplos de códigos cíclicos de tamanho 7 são:·
+Um código cíclico binário de Hamming (7,4,3) é gerado por o polinômio g $= x3+ x+ 1.·
+Um código cíclico de paridade é geardo por g $ .·
+Um código seqüencial de tamanho máximo é gerado por g $ .
+A dimensão de um código cíclico binário (n, k) é dada por k $= n -- deg, onde deg representa o grau do argumento.
+Desde que um código cíclico C seja também linear, qualquer conjunto de k vetores linearmente independentes (Li) podem ser selecionados com uma matriz geradora.
+Em particular, os vetores binários associados à g, xg,··, xk-1 g são Li.
+Esses vetores podem ser usados como linhas de uma matriz geradora de C.
+Em esse caso, uma regra de codicação sistemática é obtida, fazendo com que os bits da mensagem não apareçam explicitamente em qualquer posição das codewords.
+Exemplo 3 Considere o código cíclico de Hamming (7,4,3) com o gerador polinomialg (x) $= x3+ x+ 1 g $ .
+Uma matriz geradora para esse código é Como alternativa, a sub-matriz de paridade da matriz geradora de um código cíclico pode ser construída com os vetores associados com os seguintes polinômios:
+Exemplo 4 Considere um código cíclico de Hamming C (7, 4, 3).
+Logo, g $= x3+ x+ 1, e x6 x5 x4 x3 mod mod mod Seguindo a matriz geradora sistemática de C x2+ 1, x2+ x, x+ 1, tem- se Seja u a mensagem a ser codicada.
+A codicação de codewords de códigos cíclicos binários pode ser sistemática ou não-sistemática, dependendo do meio com que a mensagem é processada:·
+Codicação não-sistemática:
+V $= ug.·
+Codicação sistemática:
+Outro polinôminio, h, chamado de polinômio de paridade, pode ser associado com a matriz de vericação de paridade.
+O gerador polinomial e o polinômio de vericação de paridade são dados por:
+O polinômio de vericação de paridade pode ser calculado a partir de o gerador polinomial com h $ / g $= h0+ h1 x+··+ hk xk.
+Então, a matriz de vericação de paridade para C é dada por as linhas do vetor binário associadas com os primeiros n -- k -- 1 deslocamentos (j) cíclicos diferentes de zero h $= xj h mod, j $= 0, 1,··, n -- k -- 1.
+Exemplo 5 O polinômio de vericação de paridade para o código cíclico de Hamming (7,4,3), com o gerador polinomial g $= x3+ x+ 1, é h $ / $= x4+ x2+ x+ 1.
+A matriz de vericação de paridade para esse código é dada por O corpo GF (2m) é isomórco (com relação a+) para o espaço linear 0, 1m.
+Em outras palavras, para cada elemento GF (2m).
+Existe um único vetor binário m-dimensional v 0, 1m.
+Existe um elemento primitivo GF (2m), em a qual todo elemento em GF (2m) pode ser representado como $= j, 0 j 2m -- 2.
+Este elemento é a raíz de um polinômio irredutível, chamado de polinômio primitivo, p sobre 0, 1, por ex..
+P (a) $= 0.
+Um elemento primitivo do corpo GF (2m) satisfaz a equação 2 1 $= 1 e n $= 2m -- 1 é o menor inteiro positivo em a qual an $= 1.
+Exemplo 6 Seja p $= x3+ x+ 1 um polinômio primitivo de GF (23).
+Seja um elemento de representação dos elementos de GF (23).
+Em a representação de potência, 2 1 $= 1.
+Nota- se que 2m $= 2 1 $ , 2+ 1 $= 2 2m 1 $ , etc..
+Isto quer dizer que as potências de são calculadas módulo 2m -- 1.
+Aplicando o mesmo argumento, mostra- se que 1 $= 1+ 2 1 $= 2.
+Para o Exemplo 6 apresentado anteriormente, $ .
+Em geral, a inversa $= k de um elemento $= é encontrada por k, 0 k 2 -- 1 em a qual+ k $= 1 e pode ser expressada como+ k $= 0 mod.
+Entretanto, $= 2m -- 1 -- k.
+De a mesma forma, na representação Uma outra forma de se executar operações de soma e multiplicação sobre GF (2m) é usar duas tabelas look-up.
+Isso permite a troca entre representação polinomial (vetor) e representação de potência de um elemento de GF (2m).
+A tabela de anti-log A é útil quando executadas operações de adição.
+A tabela dá o valor de um vetor binário, representado como um inteiro em representação natural.
+A, que corresponde ao elemento i.
+A tabela de log L é usada quando executadas operações de multiplicação.
+Essa tabela dá o valor da potência de alfa, L que corresponde ao vetor binário correspondente representado por o inteiro i, dado por a seguinte equação:
+A melhor forma para entender o uso de tabelas de log e anti-log no cálculo de operações artiméticas em GF (2m) é através do exemplo.
+Essa seção tem por objetivo apresentar um exemplo dos processos de codicação, decodicação e recuperação da mensagem corrompida.
+Para o exemplo apresentado aqui, foi utilizado o padrão BCH (7,4), onde a mensagem é composta de 7 bits, sendo 4 de dados e os outros 3 de paridade, com capacidade de correção de 1 bit da mensagem original.
+Como apresentado anteriormente, o algoritmo BCH trabalha com uma matriz geradora chamada G e outra matriz de paridade H.
+A matriz G possui dimensão 4 × 7 (4 linhas e 7 colunas) e a regra de formação é apresentada na Seção 5.1.3.
+O polinômio utilizado para esse padrão é dado por g $= x3+ x+ 1 A matriz geradora obtida é A matriz G é composta por 2 sub-matrizes.
+A sub-matriz chamada de I1 de dimensão (4 × 4) é representada por uma matriz identidade, em a qual os valores de sua diagonal são '1', enquanto os demais valores são dados por '0'.
+A sub-matriz chamada de G1 de dimensão (4 × 3) apresenta os valores de síndrome calculados através da divisão de polinômios por o polinômio gerador como segue:
+As sub-matrizes I1 e G1 são apresentadas como segue:
+A matriz H T de dimensão (7 × 3) é composta da sub-matriz G1 e da matriz identidade I (3 × 3).
+A regra de composição da mesma é dada por A matriz H T resultante é apresentada como A a partir das matrizes geradora e de paridade formadas, é possível codicar qualquer mensagem composta de 4 bits a ser transmitida.
+Por exemplo, para codicar a mensagem u1 $ , é necessário realizar a seguinte operação:
+Ou seja, multiplica- se o vetor da mensagem a ser codicada por a matriz geradora G, como resultado tem- se um vetor de 7 bits contendo nas 4 primeiras posições a mensagem original, seguida dos 3 bits de paridade anexados a mensagem, logo u1 $= × A mensagem a ser transmitida, dada por u1 é então calculada e o vetor resultante é dado por u1 $ .
+A o receber a mensagem transmitida, multiplica- se por a matriz de paridade H T, a m de obter o vetor de síndromes (S).
+Logo, tem- se:
+S $= u1 × H T onde Em esse caso o valor de síndrome resultou em, representando que a mensagem recebida não foi corrompida durante o processo de transmissão e que não precisará ser corrigida.
+Agora, suponha- se que a mensagem tenha sido corrompida durante a transmissão e ela é recebida na seguinte forma u1 $ , alterando o bit mais signicativo (bit mais à esquerda).
+O processo de cálculo da síndrome é executado, logo O próximo passo é encontrar na matriz G, o valor correspondente a síndrome S $ .
+Seguindo a matriz apresentada na Equação 5.16, o valor correspondente a síndrome é dado por e $ .
+O valor da síndrome é localizado através de uma busca na matrizG partindo na linha 1 até a linha 4, entre as colunas 5 e 7 de cada linha tem- se os valores de síndrome.
+Logo, o valor associado a síndrome é encontrado na primeira linha, e o valor referente é dado por, chamado de e (representando um erro estimado).
+Para corrigir e restaurar a mensagem original transmitida, basta executar uma operação de Ou Exclusivo entre a mensagem recebida (4 bits da mensagem sem os bits de paridade) r1 $= e o vetor de erro estimado).
+Logo tem- se:
+Então, a mensagem corrompida é restaurada e a mensagem original está pronta para ser processada.
+Por m, é apresentado o exemplo onde a mensagem é corrompida em 2 bits, e o processamento não é capaz de corrigir a mesma pois o padrão BCH (7,4) permite correção de no máximo 1 bit da mensagem transmitida.
+Como exemplo, a mensagem transmitida originalmente é a mesma usada nos exemplos anteriores, u1 $ .
+Suponha- se então que a mensagem recebida seja corrompida nos dois bits mais signicativos (bits mais à esquerda), resultando na mensagem recebidar1 $= (1010001).
+Inicia- se o processo de decodicação da mensagem, sendo o primeiro passo a ser executado dado por o cálculo do valor de síndrome, sendo:
+A o tentar encontrar o valor de síndrome S $= na matriz G da Equação 5.16, vericase que não existe um vetor de erro estimado para esse padrão de síndrome, logo não é possível corrigir a mensagem recebida.
+Então o algoritmo sinaliza de alguma forma esse evento e suspende seu processamento.
+Em o projeto do circuito decodicador de telecomando BCH, quando não é possível corrigir um telecomando corrompido, o circuito sinaliza aos demais módulos que o telecomando não foi restaurado.
+Em a seqüência, um pedido de re-envio do telecomando para a estação terrestre é realizado, garantindo assim, que só serão processados os telecomandos recebidos de forma correta, dando maior conabilidade ao sistema.
+Esse exemplo apresentou a correção de erros com a capacidade de correção de apenas 1 bit por codeblock, seguindo as recomendações CCSDS.
+Para correção de mais de um bit por codeblock deve- se usar look-up tables.
+Esse capítulo apresentou a classe de códigos corretores de erros BCH, utilizada para atividades de correção de telecomandos corrompidos durante o processo de transmissão de dados provenientes da estação terrestre para o veículo espacial.
+Em o Capítulo 6 é introduzida a classe de códigos Reed-Solomon, largamente empregada em projetos das maiores agências espaciais mundiais e utilizada para correção de erros ocorridos durante a transmissão de telemetria do veículo espacial para a estação terrestre.
+Algoritmo de Reed--Solomon chamados Códigos Reed--Solomon.
+Esses se mostraram bastante ecientes sendo atualmente utilizados em diversas aplicações, entre estas as da área espacial.
+Essa seção apresenta os algoritmos de codicação e decodicação dessa classe de códigos corretores de erros.
+Códigos Reed--Solomon são códigos cíclicos não-binários constituídos de seqüências de mbits, onde m é qualquer inteiro positivo maior que 2.
+Um código cíclico é aquele que, a partir de um vetor U pertencente ao subespaço vetorial do código cíclico, é possível gerar todos os demais códigos através do deslocamento sucessivo de U.
+O vetor U pode ser descrito como:
+Seqüências RS são representadas na forma RS (n, k), onde n representa o número total de símbolos, e k o número total de símbolos a serem codicados.
+Em a Equação 6.1, t representa a capacidade de correção de símbolos com erros do código, e r $= 2t o número de símbolos de paridade anexados a mensagem a ser transmitida.
+Códigos RS são particularmente úteis para correção de erros em rajada ser usados ecientemente em canais onde o conjunto de símbolos de entrada é consideravelmente grande.
+Uma classe de polinômios, chamada polinômios primitivos, se faz necessária para denir os códigos RS.
+A seguinte condição é necessária e suciente para garantir que um polinômio seja primitivo.
+Um polinômio irredutível, f de grau m é dito como primitivo se o menor inteiro positivo n em a qual f divide X n+ 1 é n $= 2m -- 1.
+Um polinômio irredutível não pode ser fatorado em polinômios de ordem menor.
+Por exemplo, o polinômio x2+ x+ 1 é irredutível, mas x2+ 1 não, porque $= x2+ 2x+ 1 $= x2+ 1 (módulo 2).
+Entretanto, nem todos os polinômios irredutíveis são primitivos.
+A Tabela 6.1 apresenta o mapeamento dos 8 elementos pertencentes ao Corpo de Galois representado por GF (23) com f (x) $= x3+ x+ 1.
+Há diferentes maneiras para representar um polinômio, entre elas notação binária e notação decimal.
+As notações na seqüência apresentada na Equação 6.2 representam o mesmo polinômio.
+1 seqüência de erros consecutivos, também conhecidos como burst errors.
+A Tabela 6.2 apresenta uma lista de polinômios primitivos, com m variando de 3 a 24[ 4].
+No caso de aplicações espaciais no padrão CCSDS, cada pacote é dividido em blocos de 256 bytes, sendo necessários 256 elementos que compõe o Corpo de Galois para representar cada um dos bytes.
+O polinômio que representa esses elementos é denido como sendo de grau 8, ou seja, m $= 8.
+2 × 4 $= 6;
+13 × 9 $= 22 $= 15 × 7 $= 7;
+4/ 2 $= 2.
+O próximo passo é montar a relação de cada elemento do corpo do polinômio.
+Para simplicar a demonstração, o polinômio utilizado é de grau 3.
+A Equação 6.3 apresenta 3 como sendo a soma de termos de menor ordem.
+De fato, todas as potências de podem ser então representadas.
+Por exemplo, considere a Equação 6.4.
+Sabendo que $ +, considere a Equação 6.5.
+De as Equações 6.3 e 6.5 obtém- se Agora, usando a Equação 6.6, tem- se Usando a Equação 6.7, obtém- se Note que 7 $= 0, e portanto, os oito elementos nitos do corpo de GF (23) são Com o desenvolvimento dessas funções é possível obter a relação de todos os elementos pertencentes a GF (23), pois cada elemento é representado por a soma de termos de menor ordem.
+A Tabela 6.4 representa as operações de adição e multiplicação de elementos num corpo nito de grau 3 na representação de matrizes.
+As tabelas de adição e multiplicação representam uma matriz de dimensão× e contém todas as associações aditivas e multiplicativas dos elementos pertencentes aGF (23).
+A Equação 6.1 apresenta a forma mais convencional de códigos RS em termos de os parâmetros n, k, t e qualquer inteiro positivo m\&gt; 2.
+Um gerador polinomial, representado por g, representa todos os polinômios válidos pertencentes ao Corpo de Galois.
+Sendo o gerador polinomial de grau 2 t, ele deve ser precisamente 2t potências sucessivas de que são raízes do polinômio.
+A Equação 6.10 descreve o gerador polinomial com 2t $= n -- k $= 4 raízes.
+Seguindo o formato de baixa ordem para alta ordem, e trocando os sinais negativos para positivo na Equação 6.1, sendo que em corpos binários+ 1 $= 1, o gerador g pode ser representado na forma g $= 3+ 1 X+ 0X2+ 3X3+ X 4 A seguir é demonstrado o passo de codicação para a mensagem apresentada na Equação Primeiramente multiplica- se o polinômio da mensagem 1+ 3 X+ 5X2 por X n-k $= X 4, resultando em 1X4+ 3X5+ 5X6.
+O próximo passo é dividir o polinômio da mensagem por o gerador polinomial da Equação no seguinte polinômio de paridade:
+Então, o polinômio do bloco de códigos a ser transmitido pode ser escrito como de (n -- k) Estágios Um LFSR (Linear Freedback Shift Register) é composto de um registrador de deslocamento e uma função de retorno.
+Um registrador de deslocamento é um dispositivo cuja função é deslocar seu conteúdo em posições adjacentes ao registrador ou deslocar o conteúdo para a saída.
+O conteúdo de um registrador de deslocamento é geralmente composto de' 1's e' 0's.
+Se um registrador de deslocamento contém o seguinte padrão de bit 1101, um deslocamento, para a direita nesse caso, resultaria em 0110, com mais um deslocamento para direita obteria- se 0011.
+Dois usos para registradores de deslocamento são:
+Conversão entre dados paralelos e serial;
+Atraso numa stream de bit serial;
+A função de conversão pode ser feita dos seguintes modos:
+Preencher todas as posições do registrador de deslocamento de uma única vez (paralelo) e então deslocar os bits para a saída (serial).
+A função de atraso simplesmente desloca os bits do nal de um registrador de deslocamento para outro, fornecendo um atraso igual ao comprimento do registrador de deslocamento.
+Em um LFSR, os bits contidos nas posições selecionadas no registrador de deslocamento são combinados no mesmo tipo de função e o resultado é colocado de volta nos registradores de entrada.
+A função de retorno num LFSR possui alguns nomes:
+XOR (ou exclusivo), paridade ímpar, soma módulo 2.
+Qualquer que seja o nome, a função é simples:
+1) Somar os valores de bits selecionados, 2) se a soma for ímpar, a saída da função é 1;
+senão a saída é 0.
+A Tabela 6.5 mostra a saída para uma função XOR de 3 entradas:
+A operação implementada por o codicador da Figura 6.2 resulta em codewords na forma não sistemática, procedendo do mesmo modo como feito em códigos binários.
+Os passos podem ser descritos como segue:
+Switch 1 é fechado durante os primeiros k ciclos de clock para permitir o deslocamento dos símbolos da mensagem em (n -- k) estágios no registrador de deslocamento.
+Switch 2 está na posição A durante os primeiros k ciclos de clock para permitir transferência de símbolos da mensagem diretamente para um registrador de saída.
+Depois de transferir os k th símbolos da mensagem para o registrador de saída, switch 1 é aberto e switch 2 é movido para a posição B.
+Os (n -- k) ciclos de clock restantes apagam os símbolos de paridade contidos no registrador de saída.
+O número total de ciclos de clock é igual a n, e o conteúdo do registrador de saída é o polinômio p+ X n-k m, onde p representa os símbolos de paridade e m os símbolos da mensagem em forma de polinômio.
+Tabela 6.6: Conteúdo dos registradores no processo de codicação LFSR Depois do terceiro ciclo de clock, o registrador contém os 4 símbolos de paridade, representados por 0, 2, 4 e 6, como mostrado.
+Então, o switch 1 do circuito é aberto, switch 2 é levado para a posição B e os símbolos contidos no registrador são deslocados para a saída.
+Conseqüentemente o codeword de saída, escrito na forma polinomial, pode ser representado como apresentado na Equação 6.15.
+Em este capítulo, de forma a exemplicar o algoritmo de decodicação, uma mensagem de teste codicada na forma sistemática usando um código RS (7,3) resultou em umacodeword polinomial descrita por a Equação 6.15.
+Agora, assume- se que durante a transmissão essa codeword foi corrompida resultando no recebimento de 2 símbolos com erro.
+O número de erros corresponde a capacidade máxima de correção do código.
+Para a codeword de 7 símbolos desse exemplo, o erro padrão pode ser descrito na forma polinomial representada na Equação 6.16.
+Para esse exemplo, dois símbolos de erros são representados como2 e 5 conforme a Equação e $= 0+ 0X 2+ 2X3+ 5X4+ 0X 5+ 0X 6 Como visto anteriormente, os quatro primeiros elementos do polinômio representam a paridade e os outros três elementos representam a mensagem a ser transmitida.
+Um símbolo de paridade foi corrompido com 1-bit de erro (2), e um símbolo de dados corrompido com 3 bits de erro (5).
+O polinômio da codeword recebida com erro r (X) é então representada por a soma da codeword transmitida com o polinômio de erro padrão como segue:
+Seguindo a Equação 6.18, soma- se U da Equação 6.15 com e da Equação 6.17 para produzir r $ + X+ X 2+ X 3+ X 4+ X 5+ X 6 Em esse exemplo de correção de erros de 2 símbolos, existem quatro elementos desconhecidos duas localizações de erros e dois valores de erros.
+É importante notar a diferença entre decodicação binária e decodicação não binária, na primeira o decodicador só precisa encontrar a localização do erro.
+Sabendo que existe um erro numa localização particular, basta trocar o bit de 1 para 0 ou vice-versa.
+Símbolos não binários necessitam não somente saber a localização do erro, mas também os valores dos símbolos corretos nas suas localizações.
+Uma vez que existem quatro elementos desconhecidos nesse exemplo, quatro equações são necessárias para sua solução.
+A síndrome é o resultado da vericação de paridade executada em r para determinar se r é um membro válido do conjunto de codeword.
+Se de fato r é um membro, então a síndrome S tem o valor 0.
+Qualquer valor de S diferente de zero indica a presença de erros.
+Similarmente ao código RS (7,3) existem quatro símbolos que compõe o vetor de síndromes;
+Esses valores podem ser calculados a partir de o polinômio recebido r.
+Para esse exemplo, os quatro símbolos de síndrome são encontrados como segue:
+S2 $= r(2) = 0+ 4+ 8+ 6+ 14+ 13+ 17 S3 $= r(3) = 0+ 5+ 10+ 9+ 18+ 23 S4 $= r(4) = 0+ 6+ 12+ 22+ 23+ 29 O resultado conrma que a codeword recebida contém um erro (aqui inseridos) desde que erro mostrado nas Equações 6.16 e 6.17 pode ser escrito como deve ser determinada.
+Foi denido um número localizador de erros como l $= jl.
+Em o próximo passo, são obtidos os n -- k $= 2t símbolos de síndrome substituindo i no polinômio recebido st nd S2 $= r(2) = ej1 1+ ej2 2 2t 2 t 2t 2 t Existem 2t elementos desconhecidos (t valores de erros e t localizações), e 2t equações simultâneas.
+No entanto, essas 2t equações não podem ser resolvidas de modo usual por serem não-lineares.
+Uma técnica que resolva esse sistema de equações é conhecida como algoritmo de decodicação Reed-Solomon.
+Quando um vetor de síndromes diferente de zero (um ou mais dos seus símbolos são diferentes de zero) é corrompido, signica que um erro foi recebido.
+Para isso, é necessário descobrir a localização do erro ou erros.
+Um polinômio localizador de erro pode ser denido como localização de erros padrão e.
+Usando técnica de modelagem auto-regressiva é formada uma matriz de síndromes, onde as primeiras t síndromes são usadas para prever a próxima síndrome.
+Que é St-1 St St St+ 1 St+ 2 St St St+ 1 S 2 t-2 S 2 t-1 t-1 St+ 1 St+ 2 S 2 t-1 S2t Para o código RS (7,3) corretor de erros de duplos símbolos, o tamanho da matriz é2 × 2 e o modelo é escrito como Para resolver os coecientes 1 e 2 do polinômio localizador de erros, primeiramente calcula- se a inversa da matriz da Equação 6.29.
+A inversa de uma matriz é encontrada como segue:
+Inv $= cof ator det Portanto, det cof ator Inv $= a-5 Para vericar se a inversão foi feita corretamente, multiplica- se a matriz original por a matriz invertida, o resultado deve ser uma matriz identidade.
+Continuando a Equação 6.29, inicia- se a pesquisa para localizar os erros por a resolução dos coecientes do polinômio localizador de erro como segue:
+De as Equações 6.26 e 6.34 tem- se:
+As raízes de são recíprocas as localizações dos erros.
+Uma vez encontradas, a localização do erro passa a ser conhecida.
+Em geral, as raízes de podem ser um ou mais elementos do corpo.
+Nós determinamos essas raízes por teste exaustivo do polinômio com cada um de seus elementos, como mostrado na seqüência.
+Qualquer elemento X que resultar em $= 0 é uma raíz em o qual permite a localização de um erro:
+Como visto na Equação 6.26, as localizações dos erros são a inversa das raízes do polinômio.
+Então,(3) = 0 indica que uma raíz existe em 1/ l $= 3.
+Logo, l $= 1/3 $= 4.
+Similarmente,(4) = 0 indica que outra raíz existe em 1/ l $= 1/4 $= 3, onde (para esse exemplo) l e l referem- se ao 1s t e 2 nd erro.
+Como existem 2 símbolos de erros aqui, o polinômio de erro é congurado da seguinte forma:
+Os dois erros foram encontrados nas localizações e.
+Note que o índice do número de localização do erro é completamente arbitrário.
+Então, para esse exemplo, podem ser escolhidos os valores l $= jl como 1 $= j1 $= 3 e 2 $= j2 $= 4.
+Um erro é denotado por ejl, onde o índice j refere- se a localização do erro e o índice l identica o lth erro.
+Uma vez que cada valor de erro está associado a uma localização particular, a notação ejl pode ser simplicada por el.
+Agora, preparando para determinar os valores de erro e1 e e2, associado com as localizações 1 $= 3 e 2 $= 4, qualquer das quatro equações de síndrome pode ser usadas.
+De a Equação 6.25, são usados S1 e S2:
+S2 $= r(2) = e1 1+ e2 2 Nós podemos escrever essas equações em forma de matriz como segue:
+Para encontrar os valores de erro e1 e e2, a matriz na Equação 6.39 é invertida da mesma forma, resultando em:
+Inv Agora, resolvendo a Equação 6.39 para os valores de erros tem- se:
+O polinômio de erros é formado a partir de as Equações 6.36 e 6.41, resultando no polinômio apresentado na Equação 6.42.
+O algoritmo demonstrado repara o polinômio recebido, resultando numa estimativa da codeword transmitida, recuperando a mensagem original transmita.
+A Equação 6.43 apresenta o processo de restauração da codeword transmitida.
+Em esse capítulo foram apresentados os cálculos envolvidos nos processos de codicação e decodicação de telemetria utilizando a classe de códigos corretores de erros Reed-Solomon.
+No decorrer de o capítulo é apresentado um exemplo de codicação/ decodicação e correção da telemetria corrompida durante o processo de transmissão da mesma.
+O Capítulo 7 apresenta os pacotes de telemetria e telecomando segundo o padrão CCSDS.
+Em ele são apresentados todos os campos de informações presentes em cada pacote juntamente com a aplicação dos algoritmos BCH e RS em cada um de eles.
+Telemetria e Telecomando no Contexto Espacial O Consultative Committee for Space Data Systems (CCSDS) é uma organização ocialmente estabelecida por as principais agências espaciais do mundo.
+Esse comitê se reúne periodicamente para discutir problemas comuns, ocorridos em sistemas de comunicação, a todos os participantes do comitê, e formular soluções técnicas seguras para esses problemas.
+Uma vez que a participação no CCSDS é completamente voluntária, os resultados das ações tomadas por o comitê são designadas recomendações e não são consideradas obrigatórias em qualquer agência espacial.
+O CCSDS publicou algumas recomendações de formato de dados e métodos para transmissão de telemetria e telecomando.
+A recomendação do pacote de telemetria dene o padrão de unidades de dados para transferência de telemetria de um veículo espacial para a estação terrestre.
+A recomendação de telecomando dene o padrão de unidade de dados para enviar comandos da estação terrestre para o veículo espacial.
+Esse Capítulo tem por objetivo apresentar os quadros de telemetria e telecomando estabelecidos por esse padrão e utilizados para o desenvolvimento do presente trabalho.
+Em a Seção 7.1 são apresentados dados referentes aoframe de telemetria CCSDS enquanto a Seção 7.2 apresenta o conjunto de informações inseridas no frame de telecomando.
+Basicamente, o uxo de envio de telecomando e recebimento de telemetria na base terrestre é ilustrado na Figura 7.1.
+Inicialmente o frame a ser transmitido é colocado dentro de o pacote no padrão CCSDS.
+Após essa etapa o telecomando é codicado utilizando o algoritmo de correção de erros BCH através de um módulo codicador presente na estação terrestre.
+A partir de então o telecomando é transmitido para o segmento espacial, o qual contém um módulo responsável por a decodicação do telecomando recebido.
+Esse módulo é responsável por corrigir os possíveis erros ocorridos durante a transmissão e está implementado em hardware num dispositivo recongurável do tipo FPGA.
+Após a decodicação, o frame é processado e as ações denidas por o telecomando são disponibilizadas para execução nos diferentes módulos do segmento espacial.
+No caso de a telemetria, antes do envio de um pacote, o frame é codicado utilizando o algoritmo RS.
+Esse módulo está implementado também na forma de um SoC, presente num dispositivo FPGA.
+O frame de telemetria é então enviado para a estação terrestre que possui um módulo RS responsável por a decodicação do frame de telemetria recebido.
+Esse trabalho apresenta uma proposta de implementação do codicador RS em hardware recongurável para codicação de telemetria e do algoritmo BCH para decodicação do telecomando, ambos de acordo com o padrão CCSDS.
+O propósito da telemetria é prover o estado atual do veículo espacial bem como os dados de plataforma do mesmo.
+Em esta seção, algumas convenções e denições são usadas para representar os dados no padrão CCSDS.
+A essência do pacote de telemetria é permitir múltiplos processos de aplicação rodar em fontes on- board diferentes, a m de criar unidades de dados com melhor ajuste para cada fonte.
+Uma fonte poder ser apresentada como sendo um instrumento ou sistema presente no veículo espacial.
+Assim sendo, é possível fazer com que o sistema de bordo transmita as unidades de dados sobre um canal de comunicação espaço-terra, de modo que o sistema terrestre receba as unidades de forma individual com alta conabilidade, repassando- as para os processos destino em terra em seqüência.
+Essas fontes on- board podem ser instrumentos, como por exemplo, sensores paca captura de dados cientícos, estado atual do veículo espacial ou demais sub-sistemas.
+A camada de aplicação provê ao usuário um método para investigar fenômenos físicos através do uso de instrumentos no espaço para coleta e análise de dados da aplicação.
+Logo abaixo encontra- se a camada de gerência do sistema, a qual provê a tradução de medidas físicas em conjuntos de unidades de dado de aplicação.
+A camada de empacotamento fornece a entrega m-a-m das unidades de dados de aplicação.
+Como serviço opcional, a camada de segmentação prepara as maiores unidades de dados empacotadas para multiplexação e transferência através de um canal de dados no espaço.
+A camada de transferência provê transferência conável de pacotes e segmentos numa estrutura para seu transporte através de um link de comunicação do veículo espacial para a estação terrestre.
+O frame de transferência é então repassado para a camada de codicação, responsável por proteger os frames contra erros ocasionados durante o processo de transmissão através de um canal de comunicação físico ruidoso.
+Por m, e no nível mais baixo da pilha de camadas de telemetria, encontra- se a camada física, a qual provê a conexão física via sinais de radio freqüência entre a estação transmissora e a estação receptora.
+Para o trabalho, foram implementadas as 3 camadas consideradas interessantes para uma funcionalidade básica de um sistema de telemetria no padrão CCSDS:
+Camada de empacotamento, transferência e codicação.
+A Figura 7.4 apresenta o formato do pacote na camada de empacotamento.
+A seguir são apresentados os campos que compõe o pacote da fonte.
+Cabeçalho Primário do Pacote O cabeçalho primário do pacote é obrigatório e deve consistir de quatro campos, posicionados na seguinte seqüência:
+Número de Versão Identicação do Pacote Controle de Seqüência do Pacote Tamanho do Pacote de Dados Tamanho em bits Número de Versão O número de versão deve estar contido dentro de o cabeçalho primário do pacote, o campo possui tamanho de 3 bits.
+O campo de 3 bits identica a unidade de dados do pacote da fonte e deve ser xado em 000.
+O número de versão é usado para reservar a possibilidade de introdução de outras estruturas de dados.
+Identicação do Pacote a..
+O campo de identicação do pacote é representado por os bits de 3 a 15 do cabeçalho primário do pacote.
+Indicador do Tipo Flag do Cabeçalho Secundário do Pacote Identicador do Processo de Aplicação Tamanho em bits A identicação do pacote verica o tipo de pacote (pacote da fonte de telemetria), indica se o pacote carrega um cabeçalho secundário ou não e fornece informação na fonte de dados, por ex..
+O processo de aplicação.
+Indicador do Tipo O bit 3 do cabeçalho primário do pacote contém o indicador do tipo que fornece o tipo de unidade de dados.
+O indicador de tipo deve ser xado em '0'.
+Devido o fato do telecomando CCSDS usar uma estrutura de dados similar, o indicador de tipo diferência unidade de dados de telecomando e telemetria (para pacotes de telecomando o indicador de tipo deve ser xado em '1'.
+Flag do Cabeçalho Secundário do Pacote O bit 4 do cabeçalho primário do pacote contém o ag do cabeçalho secundário do pacote.
+O ag indica a presença ou ausência de cabeçalho secundário do pacote dentro de seu pacote da fonte.
+Ele deve conter '1' se o cabeçalho secundário do pacote se faz presente e '0' caso contrário.
+O ag é estático com relação a o identicador do processo de aplicação durante toda a missão.
+O ag é xado em '0' para pacotes ociosos.
+Identicador do Processo de Aplicação Os bits de 5 a 15 do cabeçalho primário do pacote contém o identicador do processo de aplicação.
+O identicador deve ser diferente para cada processo presente no mesmo canal mestre.
+Para pacotes ociosos o identicador do processo de aplicação deve conter todos os bits em '1', por exemplo, 1111111111111111.
+Controle de Seqüência do Pacote O campo de controle de seqüência do pacote é representado por os bits 16 a 31 no cabeçalho primário do pacote.
+Os 16 bits do campo são subdivididos em 2 sub-campos como segue:
+Flags de Agrupamento Contador de Seqüência da Fonte Tamanho em bits O campo de controle fornece um contador seqüencial de pacotes gerados com o mesmo identicador do processo de aplicação, se o recurso de agrupamento for aplicado, fornece informações da posição de um pacote da fonte num grupo.
+Flags de Agrupamento Os bits 16 e 17 do cabeçalho primário do pacote contém os ags de agrupamento.
+Os ags de agrupamento são compostos de: --
+01 para o primeiro pacote da fonte de um grupo; --
+00 para um pacote da fonte contínuo de um grupo; --
+10 para o último pacote da fonte de um grupo;
+Para o pacote da fonte não presente em qualquer grupo de pacotes, o ag de agrupamento deve consistir de 11.
+Todos os pacotes pertencentes a um grupo de pacotes especíco devem ser originados de um mesmo processo de aplicação identicado por um único identicador de processo.
+Contador de Seqüência da Fonte Os bits 18 a 31 do cabeçalho primário do pacote contém o contador de seqüência da fonte.
+O contador de seqüência fornece um contador binário seqüencial de cada pacote gerado por um processo de aplicação identicado por um identicador de processo exclusivo.
+O contador de seqüência deve ser contínuo, módulo 16384.
+Para pacotes ociosos não é necessário incrementar o contador de seqüência.
+O objetivo desse campo é ordenar os pacotes gerados por o mesmo processo de aplicação, embora sua ordem possa ser modicada durante a transmissão para os processos na estação terrestre.
+Tamanho do Pacote de Dados O campo de tamanho do pacote é representado por os bits de 32 a 47 do cabeçalho primário do pacote.
+O campo de 16 bits contém um número binário igual ao número de octetos no campo de dados do pacote menos 1.
+O valor contido no campo de tamanho do pacote pode ser variável e estar numa faixa de valores compreendidos entre 0 e 65535, correspondendo 1 a 65536 octetos.
+O campo de dados do pacote segue, sem intervalo, o cabeçalho primário do pacote.
+O campo de dados é obrigatório e consiste de no mínimo um dos dois campos, posicionados em seqüência como segue:
+Cabeçalho Secundário do Pacote Campo de Dados da Fonte Tamanho em bits variável O campo de dados do pacote deve conter no mínimo um octeto.
+Cabeçalho Secundário do Pacote Quando presente, o cabeçalho secundário do pacote segue, sem intervalo, o campo de tamanho do pacote de dados.
+O cabeçalho secundário é obrigatório se o campo de dados da fonte está presente, caso contrário ele é opcional.
+A presença ou ausência do cabeçalho secundário é assinalada por um ag no campo de identicação do pacote, conforme apresentado anteriormente.
+Quando presente, o cabeçalho secundário deve consistir de: --
+um campo de dados do cabeçalho secundário; --
+ou um campo de código de tempo; --
+ou um campo de código de tempo seguido de um campo de dados do cabeçalho secundário;
+A escolha da opção permanece estática para um identicador de processo de aplicação especíco durante toda a missão.
+O propósito de um cabeçalho secundário é permitir (mas não exigir) um meio denido por o CCSDS para alocar dados como:
+Tempo, dados internos, posição do veículo espacial, altitude, etc..
+Com um pacote da fonte.
+Campo de Dados da Fonte Quando presente, o campo de dados da fonte segue, sem intervalo, o cabeçalho secundário do pacote (se o cabeçalho estiver presente) ou o campo de tamanho dos dados do pacote (se o cabeçalho secundário não estiver presente).
+O campo de dados da fonte é obrigatório se o cabeçalho secundário do pacote não se zer presente, caso contrário é opcional.
+O campo de dados da fonte contem os dados da fonte do processo de aplicação ou dado ocioso.
+O tamanho do campo de dados da fonte pode ser variável.
+Ele contém um número inteiro de octetos.
+A camada de transferência de telemetria é denida em.
+Em esta seção oframe de telemetria na camada de empacotamento foi descrito e os dados que compõe o mesmo detalhados separadamente por campo.
+O padrão CCSDS propõe esse formato de pacote e por isso as implementações apresentadas nesse trabalho utilizam esse padrão de pacote para dados de telemetria.
+De a mesma forma como o modelo de serviço de telemetria, o modelo de serviço de telecomando é dado por um protocolo composto de 7 camadas:
+Aplicação, gerência do sistema, empacotamento, segmentação, transferência, codicação e física.
+A Figura 7.5 ilustra as camadas e os serviços prestados por cada uma.
+Por m, a camada física provê a conexão, via rádio freqüência entre a estação transmissora e a estação receptora de dados.
+O serviço prestado por o canal de telecomando permite um caminho de dados para tratamento de erros a ser estabelecido para transferência de telecomandos para o veículo espacial.
+O serviço contém duas camadas distintas de operações de transferência de dados:
+Camada De Codificação, que permite o conjunto de bits de informação do telecomando a ser transmitido, ser mais conável através de um canal de dados físico ruidoso, através do uso de técnicas de codicação de canal.
+A camada de codicação também fornece informação sobre o começo do conteúdo de codeblocks válidos e a continuidade da stream de dados, e repassa o conteúdo dos codeblocks para a camada acima.
+Camada Física, que contém a freqüência de radio e as capacidades de modulação que podem ser utilizadas para estabelecer o canal físico de dados.
+A camada física também que provê os métodos de contém os procedimentos de operações da camada física (PLOPs ativação e desativação do canal físico.
+A camada de codicação estabelece a conabilidade do canal de dados através do uso de bits de dados de telecomando a serem transferidos.
+Os dados são codicados a m de reduzir os efeitos de ruído na camada física do canal.
+Um bloco de código foi escolhido para fornecer essa proteção.
+A sincronização para o codeblock e a delimitação do começo de dados do usuário são fornecidos por a estrutura de dados CLTU (Command Link Transmission Unit).
+O formato do codeblock de Tc é a estrutura de dados de comprimento xo ilustrado na Figura informação nos primeiros bytes (bytes mais a esquerda) e o controle de erros nos últimos bytes.
+A CLTU é uma estrutura de dados que carrega os dados de Tc como uma série contínua de codeblocks de Tc através do canal de serviço.
+Os dados de Tc codicados dentro de a CLTU consistem dos dados de entrada da camada acima.
+Os componentes que formam a CLTU são apresentados na Figura 7.7.
+O campo de seqüência de início da CLTU delimita o começo dos dados de Tc codicados dentro de a CLTU.
+Consiste de um padrão de sincronização de 16 bits e deve ter o formato apresentado na Figura 7.8.
+O campo de dados de Tc codicados consiste de um conjunto de codeblock de Tc os quais foram codicados de acordo com o procedimento de codicação de Tc apresentado anteriormente.
+Além de os bits de controle de erros, os codeblocks contém os dados de entrada para essa camada, mais o bit de preenchimento anexado ao codeblock a m de preencher o codeblock de tal forma a car com 64 bits de comprimento.
+O campo de dados de Tc codicados pode ter sido preenchido aleatoriamente antes da codicação ou não, como escolhido para a missão.
+O campo de seqüência de m é uma estrutura de dados que é construída especicamente para ser uma seqüência não corrigível que delimita o m da CLTU fazendo com que o processo de decodicação seja parado.
+A seqüência de m deve conter o mesmo tamanho do codeblock utilizado e deve conter o seguinte padrão 11000101, repetido sucessivamente até o último byte da seqüência de m ser encontrado.
+O último byte completa o campo de seqüência de m e sempre tem o padrão 01111001.
+Então, o padrão de bits que compõe a seqüência de m deve ser descrito como:
+Maiores detalhes sobre os pacotes de telecomando seguindo o padrão CCSDS encontram- se no documento.
+Em esse capítulo foram apresentados os pacotes de telecomando e telemetria seguindo o padrão CCSDS.
+Para cada pacote são apresentados os campos que compõe o mesmo bem como as informações necessárias para a formação dos mesmos.
+O Capítulo 8 apresenta os passos executados para a implementação e validação dos procedimentos de codicação e decodicação de telemetria e telecomando.
+Em ele é apresentada a estratégia utilizada para levantamento de dados de polinômios bem como procedimentos e ferramentas usadas para processamento de informações necessárias para a implementação dos módulos em hardware.
+Protótipo em Hardware para Esse Capítulo tem por objetivo apresentar os passos seguidos para implementação e validação dos módulos de telemetria e telecomando respectivamente.
+As funções da estação terrestre são implementadas num computador pessoal e consistem, basicamente em:·
+formatação de pacotes e frames Tc;·
+inserção de bits de paridade para correção de erros utilizando o código BCH;·
+inserção de pacotes Tc no campo de dados de frames Tc;·
+decodicação RS;·
+recepção de frames Tm;·
+extração de pacotes Tm do campo de dados de frames Tm;·
+decodicação da Tm e, caso não existam erros, os dados de Tm são consumidos;·
+caso existam erros, o frame de Tm é corrigido utilizando o algoritmo de Reed-Solomon.
+As funções do seguimento espacial (módulo de bordo) foram implementadas totalmente em hardware na forma de núcleos IPs prototipados num dispositivo FPGA.
+Algumas de elas foram implementadas também implementadas em software para ns de validação do sistema.
+Essas funções consitem, basicamente, em:·
+formatação de frames Tm;·
+cálculo dos símbolos de paridade utilizando o código Reed-Solomon e inserção dos mesmos no nal dos frame de Tm;·
+inserção de pacotes Tm no campo de dados de frames Tm;·
+recepção de frames Tc;·
+extração de pacotes Tc do campo de dados de frames Tc.·
+decodicação do Tc e, caso não existam erros, os dados de Tc são consumidos;·
+caso existam erros, o frame de Tc é corrigido utilizando o algoritmo BCH.
+A primeira implementação em software do algoritmo RS foi desenvolvida concorrentemente com atividades da segunda implementação, onde o codicador RS foi implementado em hardware na forma de um núcleo IP (Intellectual Property).
+Após a implementação e validação em software e em hardware do algoritmo RS, partiu- se para a implementação do algoritmo BCH, sendo o codicador em software e o decodicador em hardware, na forma de um núcleo IP.
+A implementação em software é uma boa alternativa para ns de teste e validação, devido a maior facilidade e agilidade na depuração e execução.
+O trabalho visa o projeto e implementação de módulos em hardware para codicação de telemetria e decodicação de telecomando seguindo o padrão CCSDS.
+Futuramente será considerada também uma implementação para ASIC (Application Specic Integrated Circuit), que poderá vir a ser utilizada em missões da AEB (Agência Espacial Brasileira).
+Essa implementação segue os padrões CCSDS para transmissão de pacotes de telemetria.
+A Seção 8.1 apresenta a estratégia utilizada para implementação e validação do codicador de telemetria em hardware, enquanto a Seção 8.2 apresenta a estratégia utilizada para codicação e decodicação de telecomando.
+Esta seção apresenta a metodologia de projeto utilizada no desenvolvimento e validação das camadas que compõem o protocolo para transmissão de telemetria seguindo o padrão CCSDS.
+O modelo de serviço para telemetria é composto de 7 camadas:
+Aplicação, gerência do sistema, empacotamento, segmentação, transferência, codicação e física.
+Entre elas, foram escolhidas as 3 camadas consideradas interessantes para uma funcionalidade básica de um sistema de telemetria no padrão CCSDS:
+Camadas de empacotamento, transferência e codicação.
+Para essas três camadas, foi gerado um circuito escrito em linguagem VHDL em o qual é responsável por formatar os dados em estrutura de dados para as camadas de empacotamento e transferência, e codicar- los na camada de codicação, antes de serem enviados para a camada física.
+A camada de empacotamento é responsável por fornecer a entrega m-a-m das unidades de dados de aplicação.
+A Figura 8.1 apresenta a entidade da camada de empacotamento CCSDS implementada em linguagem VHDL.
+O circuito descrito é responsável por a formatação dos dados a serem enviados e é composto de 6 sinais de entrada e 2 de saída.
+O sinal de clock é responsável por a sincronização do circuito implementado enquanto o sinal de reset serve para indicar a inicialização dos registradores e variáveis do módulo responsável por o empacotamento.
+O sinal data_ in representa os 64 bits de dados, sendo o sinal de proc_ id composto dos 11 bits de identicação do processo de aplicação.
+O sinal grouping_ ag, conforme o padrão CCSDS, indica se os dados a serem enviados representam o primeiro pacote, pacote de continuação, último pacote ou sem agrupamento, ele é usado para reagrupar os pacotes de telemetria enviados quando chegam ao seu destino.
+O sinal de enable indica que os dados estão disponíveis na entrada do circuito e pronto para serem formatados.
+Os outros dois sinais de saída representam quando o circuito acabou seu processamento, indicado por o sinal de ready e os dados do pacote, representados por o sinal data_ out..
+O circuito da camada de empacotamento CCSDS foi simulado através do software ModelSim e os dados de simulação são representados na Figura 8.2.
+O circuito é capaz de formatar os dados de entrada e colocar- los numa estrutura de dados o qual é apresentada por o padrão CCSDS.
+A partir de a validação da camada de empacotamento de dados partiu- se para a implementação e validação da camada de transferência de telemetria A camada de transferência é responsável por prover transferência conável de pacotes e segmentos numa estrutura para seu transporte através de um link de comunicação do veículo espacial para a estação terrestre.
+A Figura 8.3 apresenta a entidade da camada de transferência descrita em linguagem VHDL.
+O sinal spacecraft_ id é denido por o padrão CCSDS e fornece a identicação do veículo espacial que criou o frame de dados.
+O identicador do veículo espacial deve ser estático durante todas as fases da missão.
+O sinal virtual_ chan fornece a identicação do canal virtual de dados enquanto o sinal enable sinaliza que os dados de entrada estão prontos para serem processados por o circuito.
+Os dois sinais de saída representam quando o circuito acabou seu processamento, indicado por o sinal de ready e os dados do frame de transferência, representados por o sinal data_ out..
+O circuito de camada de transferência CCSDS foi simulado através do software ModelSim e os dados de simulação são representados através da Figura 8.4.
+A principal contribuição do trabalho se dá na investigação e implementação de códigos corretores de erros para telecomando e telemetria seguindo o padrão sugerido por o CCSDS.
+A próxima etapa do trabalho consistiu na investigação, implementação e validação de módulos de correção de telemetria utilizando o algoritmo de Reed-Solomon e correção de telecomando utilizando o algoritmo BCH.
+Esta etapa iniciou com a validação do algoritmo RS, escrito em C, utilizando dois computadores pessoais conectados por intermédio de uma interface de comunicação RS232C e sistema operacional Linux.
+A Figura 8.8 apresenta o modelo de validação para envio e recebimento de pacotes Tc/ TM respectivamente.
+O computador à direita representa o veículo espacial, o qual codica o pacote de telemetria a ser enviado para a estação terrestre.
+O computador à esquerda tem por objetivo simular o funcionamento da estação terrestre, a qual decodica o pacote de telemetria recebido.
+A partir de a validação numa linguagem de alto nível do codicador/ decodicador RS CCSDS, partiu- se para a validação do sistema em software para codicação/ decodicação de telemetria executando num processador embarcado Leon.
+A Figura 8.6 apresenta o segundo passo da validação do sistema, agora presente parte em software e parte em hardware.
+A plataforma de prototipação, com o processador Leon, simula o funcionamento do computador de bordo do veículo espacial, o qual codica e decodica o pacote de telemetria a ser enviado para a estação terrestre, enquanto que o PC rodando Linux, executa o papel de estação terrestre.
+PCs Linux O terceiro passo da validação, conforme mostrado na Figura 8.7, consistiu na implementação do codicador RS CCSDS em VHDL na forma de núcleo IP, fazendo com que o mesmo seja executado em conjunto com um IP responsável por a comunicação serial entre o PC e o FPGA.
+O dado codicado é transferido entre um PC Linux e um FPGA congurado com o núcleo IP codicador Reed-Solomon e IP serial RS 232-C.
+Para o módulo IP serial RS 232-C foi reutilizado um IP responsável por a comunicação serial entre PC e FPGA desenvolvido no grupo de pesquisa GAPH da PUCRS.
+Esta seção apresentou a metodologia utilizada para projeto, implementação e validação do modelo de telemetria CCSDS utilizando diferentes mecanismos.
+Inicialmente foram implementadas as camadas de empacotamento e transferência em linguagem de descrição de hardware VHDL.
+Os circuitos foram validados através de simulação utilizando o software ModelSim.
+Após essa etapa, partiu- se para a implementação e validação do algoritmo Reed-Solomon, representado por a camada de codicação, principal contribuição nesse trabalho.
+Inicialmente o algoritmo foi implementado em software utilizando dois PCs interconectados via porta serial, padrão RS232C, rodando sistema operacional Linux.
+Após essa etapa, partiu- se para a implementação do circuito codicador de telemetria em hardware e validação através de simulação e comunicação física entre um PC e o dispositivo FPGA.
+Os módulos codicador e decodicador BCH utilizado para processamento de dados de telecomando foram descritos em linguagem VHDL e validados através de simulação na ferramenta ModelSim.
+Os dados de simulação são apresentados no Capitulo 9, essa Seção tem por objetivo apresentar o processo de captura dos dados de polinômios a serem colocados estaticamente no código VHDL a m de deixar o circuito mais rápido, ocupando menor área.
+Inicialmente o polinômio utilizado foi o proposto por o padrão CCSDS, e é dado por g $= x7+ x6+ x2+ 1.
+Os próximos passos consistem na formação das matrizes de geração de paridade (G) e matriz de vericação de paridade (H).
+A matriz geradora G possui dimensão (56×63), sendo 56 linhas e 63 colunas.
+Esta é composta por duas sub-matrizes, a matriz G1 de dimensão (56×56) é composta por uma matriz identidade, e a matriz G2 de dimensão (56×7) é composta por os 56 padrões de síndrome (S').
+Esses padrões de síndrome são calculados efetuando a divisão modular de cada polinômio por o gerador polinomial g, sendo S i $= xi mod g, onde n -- k i n, o processo de construção da matriz de paridade G é mostrado na Seção 5.4.
+Para a captura dos valores de divisão modular entre os polinômios foi escrito um programa utilizando o software Maple.
+O programa é apresentado como segue:
+A linha 1 do código descrito apresenta a atribuição do polinômio gerador g proposto por o padrão CCSDS.
+O padrão BCH utilizado nesse trabalho é o BCH (63, 56), logo as variáveis n e k recebem respectivamente esses valores, n representa o número de bits da mensagem a ser enviada e k representa o número de bits de dados da mensagem.
+A diferença entre eles, apresentada por a variável z, representa o número de bits de paridades anexados aos dados codicados.
+As variáveis i e j representam apenas variáveis para controle de índices, sendo z i n..
+A variável a recebe o polinômio que realizará a divisão por o polinômio gerador g..
+A operação é realizada módulo 2 pois os dados são apresentados em notação binária, conforme trabalha o algoritmo de BCH, diferentemente do algoritmo Reed-Solomon que trabalha com símbolos dem bits.
+A o nal do processamento, tem- se os 56 padrões de síndrome possíveis para o polinômio gerador g $= x7+ x6+ x2+ 1.
+Assim, a matriz G é gerada e os polinômios inseridos em ela são calculados no Maple.
+A Figura 8.10 apresenta a execução do programa escrito em Maple tendo como resultados os 56 polinômios representando os padrões de síndrome gerados.
+Maple O primeiro polinômio resultante é dado por x6+ x5+ x, em representação binária 1100010, logo, esse padrão de síndrome compõe a primeira linha da matriz G a partir de a coluna 57, onde se encontram os padrões de síndrome.
+De essa forma, toda a matriz G é gerada e os padrões de síndrome são colocados na mesma seqüência com que foram gerados.
+Como apresentado na Seção 5.4, a matriz de vericação de paridade H T é dada por a junção das sub-matrizes G2 e da matriz identidade I.
+Logo, tem- se as duas matrizes necessárias para a execução dos processos de codicação e decodicação BCH.
+Para vericar se as duas matrizes foram geradas de forma correta e garantir que os polinômios e síndromes foram calculados corretamente, multiplica- se a matriz G por a matriz H T, o resultado de G × H T deverá ser igual a uma matriz contendo em todos os seus elementos o valor 0.
+De essa forma, vericase que as matrizes estão corretas e podem ser inseridas estaticamente no código VHDL dos circuitos descritos.
+A partir desse passo, as matrizes G e H T foram colocadas estaticamente no código VHDL a m de economizar área e tempo de processamento.
+Caso fosse descrito um circuito para gerar essas matrizes, a ocupação do FPGA seria maior e o tempo de processamento para geração das mesmas seria acrescido ao tempo de execução dos algoritmos de codicação e decodicação.
+Logo, optou- se por a otimização em termos de área e tempo de processamento nos passos envolvidos para a execução do algoritmo BCH em hardware.
+A validação dos circuitos codicador/ decodicador BCH foi feita utilizando a ferramenta ModelSim e os dados de simulação são apresentados no Capítulo 9.
+Esse capítulo apresentou os passos executados na estratégia utilizada para o projeto, implementação e validação dos circuitos Reed-Solomon e BCH em hardware além de as camadas de empacotamento e transferência de telemetria seguindo o padrão CCSDS.
+O Capítulo 9 apresenta os dados de área, desempenho e simulação dos circuitos propostos nesse trabalho.
+Resultados. Este Capítulo tem por objetivo apresentar os resultados obtidos através de simulação e sínteses lógica e física dos circuitos codicador Reed-Solomon, codicador/ decodicador BCH, camada de empacotamento e transferência para Tm e Tc.
+A Seção 9.1 apresenta o uxo de validação do algoritmo Reed-Solomon enquanto na Seção 9.2 dados levantados utilizando o algoritmo BCH são apresentados.
+Por m, a Seção 9.3 apresenta os dados de área dos circuitos implementados para as camadas de empacotamento e transferência Tm e Tc.
+O módulo codicador RS foi validado através de dois métodos.
+O primeiro consistiu na simulação do circuito através do simulador ModelSim, ferramenta da empresa Mentor Graphics.
+O circuito codicador RS é composto de três sinais de entrada (clock, reset e data) e dois sinais de saída (ready, encoded_ data), apresentados na Figura 9.1.
+O sinal de clock é responsável por gerar o pulso de sincronismo para o circuito, enquanto o sinal de reset serve para sinalizar o circuito que o mesmo deve ser inicializado, fazendo com que a máquina de estados direcione o processamento para seu estado inicial e carregue o conteúdo em seus registradores.
+O circuito inicia seu processamento quando o sinal de reset passa do nível lógico '0' para o nível lógico '1'.
+A Figura 9.1 apresenta as interfaces de entrada e saída do circuito.
+O terceiro sinal de entrada, chamado data, contém os 223 bytes da mensagem de telemetria a ser codicada.
+A saída é composta de dois sinais:
+O sinal deready indica o momento em que o circuito acabou seu processamento, enquanto o sinalencoded_ data contém os 255 bytes de telemetria incluindo os 32 bytes de paridade anexados aos bytes de dados.
+A o término da codicação, o circuito coloca em sua saída, os 32 bytes de paridade a serem anexados à mensagem de telemetria.
+A Figura 9.3 apresenta o momento em que os bytes de paridade são calculados por o circuito codicador.
+Os bytes dos índices 224 a 255 representam os 32 bytes de paridade gerados por o circuito.
+O sinal de ready passa para o nível lógico '1' após o processamento do algoritmo, e pode ser observado aproximadamente aos 4485 ns de simulação.
+Através desse método, foi possível validar o funcionamento lógico do circuito codicador de telemetria proposto.
+O segundo método de validação se deu através da síntese física do circuito na plataforma Virtex-II Para o da Xilinx.
+O circuito foi prototipado em hardware e validado através do uso de um IP para comunicação serial, padrão RS-232C desenvolvido por o Grupo de Apoio ao Projeto de Hardware (GAPH), da PUCRS.
+O módulo serial é responsável por a comunicação entre o aplicativo em linguagem Java, rodando sobre um PC, e o IP serial prototipado em hardware.
+Com o uso do módulo IP serial foi possível adequar- lo para comunicar com o módulo IP do codicador RS, também prototipado em hardware.
+A Figura 9.4 apresenta o uxo de validação do módulo IP através do uso de um aplicativo em Java para envio de dados de telemetria.
+Para a sincronização do aplicativo em Java com o módulo serial IP presente em hardware, é necessário enviar o byte 55, representado na Figura em hardware.
+Logo, a stream de telemetria a ser enviada para o módulo IP serial e, posteriormente ao módulo IP codicador, é composta de 224 bytes, o primeiro representado por 55 e os demais bytes compostos de valores de 1 a 223, representados em notação hexadecimal.
+Os dados de telemetria são codicados no IP codicador presente em hardware e os dados de paridade são retornados via porta serial para o aplicativo em java.
+Esse processo é representado por a Figura 9.5.
+A partir de a simulação e prototipação do codicador RS em hardware foi possível validar o circuito codicador de telemetria.
+A Tabela 9.1 apresenta dados de área referente a síntese física do circuito codicador RS.
+O mesmo foi prototipado sobre a plataforma Virtex-II Para o da Xilinx.
+Área maior do que o proposto nesse documento.
+Para nossa proposta, o número de bytes de paridade está denido para o padrão RS CCSDS, representado porRS (255, 223).
+Sendo assim, o gerador polinomial foi obtido em software e colocado estaticamente no código VHDL do circuito codicador RS.
+Com isso, a ocupação de área do circuito no FPGA reduziu signicativamente e o desempenho do mesmo aumentou devido a o tempo economizado no processo de cálculo do polinômio gerador.
+O circuito RS, apresentado nesse trabalho, teve uma ocupação de área de48 LUTs, representando 0, 26% da área disponível no dispositivo FPGA utilizado.
+A partir de o levantamento de dados de ocupação de área no dispositivo por parte de o circuito codicador RS, foi também medido o tempo de execução do processo de codicação de telemetria em hardware.
+A Figura 9.6 apresenta o tempo de execução do circuito codicador RS em hardware obtido através do uso de um analisador lógico.
+O circuito opera com um sinal, chamado R, que permanece em nível lógico '1' enquanto o circuito codicador está em processamento.
+A o nal da execução, o nível lógico do sinal retorna para '0'.
+Assim, para se obter o tempo de processamento do codicador, bastou medir o período em que o sinal R permaneceu em nível lógico '1'.
+Com isso foi possível obter o tempo real que o circuito levou para codicar uma telemetria no padrão RS (255, 223) em hardware.
+Essa seção apresentou os resultados de validação para os dois métodos propostos.
+O primeiro método consistiu na validação através de simulação utilizando o software ModelSim.
+O segundo método consistiu na prototipação do circuito RS num dispositivo FPGA comunicando com um aplicativo escrito em linguagem Java.
+Para ambos os métodos, foram levantados dados referente a forma de ondas geradas por o circuito codicador bem como dados de síntese, como ocupação de área (baseado em número de LUTs) e tempo de processamento do circuito codicador de telemetria.
+Por m, é feita uma comparação de ocupação de área com os artigos propostos em, justicando assim a contribuição cientíca do trabalho desenvolvido.
+O módulo codicador BCH, da mesma forma como o módulo codicador RS, foi validado através de simulação utilizando ModelSim.
+O circuito codicador BCH é composto de quatro sinais de entrada (clock, reset, enable e data) e dois sinais de saída (ready, encoded_ data), apresentados na Figura 9.7.
+O sinal de clock é responsável por gerar o pulso de sincronismo para o circuito, enquanto o sinal de reset serve para sinalizar o circuito que o mesmo deve ser inicializado, fazendo com que a máquina de estados direcione o processamento para seu estado inicial e carregue o conteúdo em seus registradores.
+A Figura 9.7 apresenta as interfaces de entrada e saída do circuito.
+O terceiro sinal de entrada, chamado enable serve para sinalizar o início do processamento de codicação.
+Quando seu nível lógico passa de '0' para '1', o circuito é sinalizado de que pode começar seu processamento.
+O quarto sinal de entrada, chamado de data, contém os 56 bits da mensagem de telecomando a ser codicada.
+A saída é composta de dois sinais:
+O sinal de ready indica o momento em que o circuito acabou seu processamento, enquanto o sinal encoded_ data contém os 63 bits de telecomando, incluindo os 7 bits de paridade anexados aos bits de dados.
+Para a simulação do funcionamento do circuito foi criado um arquivo de testbench que gera sinais de estímulo para o circuito codicador BCH.
+Além de os sinais de clock, reset e enable, é atribuído ao sinal data os 56 bits de telecomando a serem codicados.
+Para a simulação apresentada nessa seção, foi utilizado um telecomando no formato representando os 56 bits de entrada.
+A Figura 9.8 ilustra o momento em que o circuito começa a codicar.
+A o nal do processamento de codicação, o circuito coloca em sua saída os dados de entrada anexados os 7 bits de paridade calculados por o módulo codicador BCH.
+A Figura 9.9 ilustra o momento em que o sinal de ready passa do nível lógico '0' para nível lógico '1' indicando o m do processamento de codicação.
+Tabela 9.3: Dados de síntese do circuito codicador BCH levantados através da ferramenta ISE Selected Device:
+Virtex-IV XV4 VSX35 da Xilinx.
+A área ocupada no FPGA é medida em número de Look-up Tables (LUTs) de quatro entradas usadas para implementar a lógica do circuito e é apresentada na Tabela 9.2.
+O sinal de clock é responsável por gerar o pulso de sincronismo para o circuito, enquanto o sinal de reset serve para sinalizar o circuito que o mesmo deve ser inicializado, fazendo com que a máquina de estados direcione o processamento para seu estado inicial e carregue o conteúdo em seus registradores.
+A Figura 9.10 apresenta as interfaces de entrada e saída do circuito.
+O terceiro sinal de entrada, chamado enable serve para sinalizar o início do processamento de codicação.
+Quando seu nível lógico passa de '0' para '1', o circuito é sinalizado de que pode começar seu processamento.
+O quarto sinal de entrada é chamado deencoded_ data, e contém os 62 bits da mensagem de telecomando a ser decodicada.
+A saída é composta de quatro sinais:
+O sinal de a (aected) indica se o telecomando recebido foi corrompido ou não, quando em nível lógico '1' indica que o telecomando foi corrompido e que passará por o processo de correção, quando em nível lógico '0' indica que o telecomando não foi corrompido e que não precisa ser corrigido.
+Para validar o decodicador BCH foram criados três arquivos de testbench que geram sinais de estímulo para o circuito decodicador.
+Além de os sinais de clock, reset e enable, é atribuído ao sinal encoded_ data os 63 bits de telecomando a serem decodicados.
+Para a validação do mesmo, foram criadas três situações de teste, onde a primeiro situação representa um telecomando enviado contendo os 56 bits de dados somado com os 7 bits de paridade.
+Em a primeira situação, o telecomando não sofre qualquer alteração, ou seja, não é corrompido, e o telecomando recebido é então enviado para o decodicador BCH, apresentado na Figura 9.11.
+Como o telecomando recebido não foi corrompido, o sinal de saída a permanece em nível lógico '0' indicando o não corrompimento do telecomando, enquanto o sinal destatus altera para nível lógico '1', sinalizando que o telecomando está correto, ou seja, como não foi preciso passar por o processo de correção do telecomando, o sinal indica que ele está pronto para ser passado para os demais instrumentos presentes no veículo espacial.
+A segunda situação representa o envio do mesmo telecomando porém o bit mais signicativo, representado por o bit mais à esquerda do telecomando, foi alterado durante a transmissão, sendo o telecomando recebido corrompido, com o bit mais signicativo alterado.
+O telecomando recebido é representado por diferentemente do telecomando enviado.
+O telecomando recebido é processado no módulo decodicador BCH o qual gera as saídas apresentadas na Figura 9.12.
+A terceira e última situação representa o envio do mesmo telecomando utilizado nas situações, porém com os dois bits mais signicativos alterados, simulando o corrompimento do telecomando com alteração de dois bits.
+O telecomando recebido então é dado da forma sendo o original.
+O telecomando recebido é então processado por o módulo decodicador BCH o qual gera as saídas apresentadas na Figura 9.13.
+Tabela 9.5: Dados de síntese do circuito decodicador BCH levantados através da ferramenta Selected Device:
+De a mesma forma como feito com os demais módulos em hardware, foram levantados dados referente a ocupação de área do circuito no dispositivo Virtex-IV XV4 VSX35 da Xilinx.
+A área ocupada no FPGA é medida em número de Look-up Tables (LUTs) de quatro entradas usadas para implementar a lógica do circuito e é apresentada na Tabela 9.4.
+Outros dados de síntese levantados através da Ferramenta ISE da empresa Xilinx, são apresentados na Tabela 9.5.
+A Tabela 9.6 apresenta os dados referente a a área ocupada dos circuitos de empacotamento e transferência de Tm e Tc.
+Eles foram sintetizados numa plataforma FPGA Virtex-II Para o da família Xilinx, dispositivo XC2 VP20.
+Os dados de área são medidos por o número de LUTs de quatro entradas ocupadas e número de ip- ops.
+FPGA, o que facilita e incentiva o projeto de hardware para as camadas de empacotamento e transferência.
+Este capítulo apresentou os resultados obtidos com o desenvolvimento do presente trabalho.
+Em ele são apresentados os resultados de ocupação de área e tempo de processamento do circuito codicador Reed-Solomon.
+Para o algoritmo de BCH, é apresentada a arquitetura proposta do circuito bem como as formas de onda para ns de validação do circuito capturadas através do software ModelSim.
+Por m, é feito um levantamento de ocupação de área dos circuitos que representam as camadas de empacotamento e transferência para Tm e Tc.
+Conclusões e Trabalhos Futuros Esse trabalho apresentou o projeto de um SoC para codicação de telemetria e codicação/ decodicação de telecomando CCSDS utilizando os algoritmos Reed-Solomon e BCH respectivamente.
+Inicialmente conceitos referentes aos sistemas de telecomando e telemetria seguindo o padrão CCSDS foram introduzidos a m de facilitar o entendimento da proposta apresentada nesse trabalho.
+Em seguida, o algoritmo Reed-Solomon foi descrito, apresentando o padrão RS utilizado para codicação de telemetria.
+Alguns conceitos da álgebra abstrata empregada sobre Corpos de Galois foram descritos objetivando facilitar a compreensão do texto nos capítulos referentes aos algoritmos implementados.
+Logo após, foi apresentado o processamento do algoritmo de codicação RS, onde foi introduzido o circuito LFSR, utilizado para codicação de telemetria.
+Um exemplo do processo de codicação de mensagem no padrão RS (7,3) foi apresentado, descrevendo passo a passo os cálculos envolvidos na codicação de códigos Reed-Solomon.
+Em a seqüência, foi apresentada a metodologia utilizada para validação em software e hardware dos módulos de codicação e decodicação do algoritmos RS e BCH.
+Inicialmente os algoritmos foram validados exclusivamente em software, utilizando dois PCs conectados via porta serial.
+Após essa etapa, foram implementadas as camadas de empacotamento e transferência de Tc/ TM CCSDS.
+Os módulos foram descritos na linguagem VHDL e validados por meio de simulação utilizando o software ModelSim.
+O trabalho apresentou algumas pesquisas cientícas que utilizam o algoritmo de Reed-Solomon em diferentes tipos de aplicações.
+Em a seção de resultados foram apresentados dados referente a as implementações propostas nesse trabalho em comparação à implementações propostas por outros autores.
+O circuito codicador RS proposto nesse trabalho apresenta ocupação de área de 48 LUTs de 4 entradas, comparadas à 134 e 215 LUTs de ocupação levantadas por os artigos propostos em.
+No entanto, a proposta aqui apresentada, dene o polinômio gerador e todos os elementos pertencentes ao Corpo de Galois de forma estática no circuito, devido a o fato de ter- los pré-denidos por o padrão de codicação de telemetria CCSDS.
+Assim, não se faz necessária a implementação de um circuito para geração do polinômio gerador que melhor se adapta à aplicação, economizando área de ocupação do circuito e aumentando a velocidade no processamento de codicação de telemetria e decodicação de telecomando.
+O circuito codicador de telemetria proposto nesse trabalho executa o processo de codicação num tempo de 4, 46 µs.
+Ele foi mensurado através de um sinal que permanece em nível lógico '1' enquanto o circuito está em execução.
+Em o momento da nalização do procedimento de codicação, o sinal retorna ao nível lógico '0'.
+O tempo em que o sinal permaneceu em nível lógico alto é medido através do uso de um analisador lógico, permitindo assim, o levantamento do tempo em que o circuito gasta para executar o processo de codicação de telemetria CCSDS utilizando o algoritmo de Reed-Solomon padrão RS (255,223).
+Os circuitos implementados foram validados através de simulação e também por meio de um aplicativo em Java que envia dados de telecomando/ telemetria a serem codicados/ decodicados nos circuitos prototipados num dispositivo FPGA, recebendo dados resultantes provenientes do mesmo.
+Todo o processo de projeto, implementação e validação foi feito visando otimização de área e diminuição no tempo de processamento nos processos de codicação e decodicação.

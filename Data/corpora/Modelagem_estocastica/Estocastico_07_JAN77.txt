@@ -1,0 +1,2057 @@
+Os métodos tradicionais de simulação, utilizados para modelagem de redes de computadores, enfrentam problemas em relação ao custo computacional, já que as redes atuais possuem uma grande capacidade de transmissão e em geral grandes dimensões.
+
+Para minimizar este problema surgiram diversas técnicas, entre elas, a simulação de fluido, onde o tráfego entre os nós de rede é tratado de forma contínua, em vez de unidades discretas.
+
+Sua principal vantagem está no fato de que somente as mudanças de taxas precisam ser tratadas.
+
+Neste trabalho, foi criado um paradigma de modelagem de fluido baseado em recompensas de taxa.
+
+De acordo com este paradigma, foi idealizado, projetado, construído e validado, um simulador de fluido com foco na área de redes.
+
+Este foi construído sobre o simulador da ferramenta TANGRAM-II, onde foram adicionadas diversas funcionalidades.
+
+O simulador de fluido herdou as características e o poder de modelagem do TANGRAM-II e de acordo com seus princípios, é genérico o suficiente para modelar praticamente qualquer tipo de sistema, ao mesmo tempo que possui objetos de rede prontos para o uso de forma rápida e simples.
+
+Simulação de Fluido Análise de Desempenho Redes Multimídia Ferramenta TANGRAM-II Este trabalho de tese abrange o projeto e implementação de um simulador de fluido no ambiente de modelagem e análise TANGRAM-II.
+
+O simulador de fluido fora concebido de forma a se enquadrar dentro do paradigma da ferramenta, encontra-se embutido no módulo de simulação e tem como foco a modelagem de redes de computadores.
+
+Nas seções seguintes são apresentados a motivação e objetivo, que introduzem o trabalho como um todo e apresentam, dentre outros, um resumo das técnicas de resolução de modelos, uma breve descrição de simulação de fluido e a abrangência da tese, a contribuição, onde o simulador é brevemente descrito e o resultado alcançado é apresentado, e o roteiro que descreve a dissertação sob um ponto de vista macro.
+
+As redes de computadores continuam a desenvolver-se num ritmo acelerado, crescendo em tamanho e complexidade.
+
+Este desenvolvimento tem o suporte de técnicas de engenharia apoiadas em ambientes de modelagem e análise, onde dentre outras, encontram-se ferramentas de simulação e soluções analíticas.
+
+Estas permitem a análise de mecanismos relacionados ao comportamento de uma rede, seja esta préexistente ou em fase de desenvolvimento.
+
+O comportamento dos sistemas é analisado através de resultados obtidos de modelos, cuja resolução pode ser feita com a utilização de métodos analíticos que produzem resultados exatos ou boas aproximações destes.
+
+Os métodos analíticos, podem ser muitas ordens de magnitude mais econômicos em termos computacionais que a simulação, além de freqüentemente permitirem um conhecimento mais profundo e exato de certas propriedades do sistema.
+
+O maior problema se dá pelo fato destes métodos exigirem condições nos modelos que por muitas vezes são difíceis de satisfazer, inviabilizando assim, a modelagem de grande parte dos sistemas.
+
+Existem também técnicas numéricas que se encontram numa faixa entre a simulação e os métodos analíticos, tanto em termos de restrições quanto custo computacional.
+
+Entretanto, a técnica mais utilizada para resolução de modelos é a de simulação, pela sua capacidade em representar com detalhes qualquer mecanismo de um sistema.
+
+Apesar de todo este poder, existe um preço a pagar que está na complexidade de programação e nos custos computacionais de tempo.
+
+Na simulação de sistemas de computação, um paradigma dos mais usados é a orientação a eventos, ou seja, o sistema reage sempre que há a ocorrência de um evento e o tempo de simulação salta de evento em evento.
+
+Como exemplos de evento numa simulação de redes, cita-se a geração de pacote, uma mudança de estado de alguma fonte de tráfego, o término de serviço de um pacote, dentre outros.
+
+Desta forma, cada mensagem a ser transmitida é representada no modelo, assim como sua evolução entre os diferentes nós da rede.
+
+Num modelo de rede de alta velocidade, uma simulação usando o paradigma tradicional, orientado a eventos, tem problemas de custo computacional.
+
+Um exemplo deste problema pode ser mostrado num modelo de rede ATM, onde são geradas e transferidas entre os nós milhões de células por segundo.
+
+Supondo-se que a medida de interesse a ser calculada, seja a probabilidade de descarte de células na entrada de um roteador, e sabendo-se que em geral essa probabilidade é baixa, da ordem de 10 6, pode-se deduzir que centenas de eventos de perda de células necessitarão ser gerados para que se possa obter um mínimo de precisão no resultado, o que exige a geração e manipulação de centenas de bilhões de células.
+
+Isto porque o descarte de células é um evento raro e ocorre em média 1 a cada 1 bilhão de células geradas.
+
+Para lidar com o problema de simulação de eventos raros pode-se utilizar técnicas como por exemplo importance sampling e spliting/RESTART.
+
+Nestes casos é possível obter uma boa precisão nos resultados com menos esforço computacional.
+
+O módulo de simulação do TANGRAM implementa a técnica de spliting/RESTART.
+
+Outra técnica utilizada consiste em um tipo de simulação híbrida onde o tempo é discretizado em pedaços de igual tamanho.
+
+Esta técnica, apresentada em, é chamada TSHS e pode ser mais econômica em termos computacionais, em troca de uma perda de precisão das medidas.
+
+A perda de precisão das medidas, assim como o ganho de velocidade, estão relacionados com a granularidade em que os eventos são analisados.
+
+Ainda existem outras técnicas, que são brevemente descritas em, tais como cálculos preliminares, agregação de tráfego, métodos de extrapolação, que estimam eventos raros, e paralelismo.
+
+Entretanto, mesmo que a medida a ser calculada não esteja diretamente relacionada à ocorrência de um evento raro, caso o tempo para se atingir o estado estacionário seja grande em relação ao intervalo de tempo do sistema, um número muito elevado de eventos deve ser gerado para que se possa obter a medida de interesse com um intervalo de confiança razoável.
+
+O objeto de estudo deste trabalho concentra-se em uma técnica distinta das mencionadas acima, baseada na simulação de modelos de estado contínuo, que são os chamados modelos de fluido.
+
+Nesta abordagem, o fluxo de unidades discretas que viaja através dos canais e fica armazenado nas filas é substituído por fluidos que se movem de um recipiente para outro.
+
+Deste modo classificam-se como eventos apenas as mudanças de taxa na transferência dos fluidos.
+
+Assim sendo, em vez de modelar cada célula individualmente, apenas modela-se eventos de mudança de taxas de transmissão dos fluidos.
+
+Como em geral estas mudanças de taxas ocorrem com frequência bem inferior em relação ao intervalo entre transmissão de pacotes, não fica difícil perceber o ganho desta abordagem em termos de esforço computacional.
+
+Cabe salientar que os modelos de fluido são uma abstração de mais alto nível em relação aos modelos tradicionais, o que requer um atenção especial em relação aos tipos de medidas de interesse que podem ser obtidos e à precisão destas medidas.
+
+Baseado no fato de que a modelagem de sistemas têm um papel importante na engenharia de computação, procurou-se através do estudo aprofundado da técnica de fluido, uma forma de minimizar um dos principais problemas da simulação, o custo computacional.
+
+Este estudo mostrou que a técnica pode realmente trazer enormes ganhos em termos de custo computacional.
+
+O objetivo maior deste trabalho, foi o desenvolvimento de um simulador de redes de computadores capaz de trabalhar de acordo com a técnica de fluido, cuja principal vantagem é oferecer resultados de simulação de boa qualidade, a um custo bem menor que o simulador tradicional.
+
+Criou-se um paradigma de modelagem de fluido baseado em recompensas onde, o comportamento dos fluidos é modelado através do uso de recompensas de taxa.
+
+Esta associação mostrou-se bastante interessante, por sua simplicidade, flexibilidade e capacidade de representar com exatidão o comportamento dos fluidos.
+
+Baseado neste paradigma, um simulador de fluido com foco na área de redes de computadores, foi idealizado, projetado, construído e validado.
+
+O simulador de fluido tem como base o simulador de eventos discretos da ferramenta TANGRAM-II.
+
+Nele, vários recursos foram inseridos, de forma que o simulador pudesse operar de acordo com a técnica de fluido, além é claro, de operar os modelos tradicionais.
+
+Os diversos elementos de uma rede foram estudados e modelados em forma de objetos.
+
+Os modelos de fluido são construídos através da composição destes elementos primários, e os resultados da simulação são obtidos através de medidas de interesse especificadas para cada objeto.
+
+Alguns pontos importantes que distinguem a ferramenta TANGRAM-II em relação a outros trabalhos publicados na literatura cabem ser ressaltados.
+
+O novo simulador herdou todas as características de facilidade e poder de modelagem do simulador do TANGRAM-II e de acordo com o mesmo paradigma, é genérico o suficiente para modelar praticamente qualquer tipo de sistema.
+
+Ao mesmo tempo possui objetos de rede previamente construídos, que permitem a modelagem de sistemas de forma rápida e até mesmo por indivíduos com conhecimento menos apurado sobre o assunto.
+
+O simulador também conta com interessantes recursos de apresentação de resultados onde, além de medidas sobre os pontos de interesse, há opções de geração de traces, que mostram o comportamento do modelo.
+
+Estes podem ser visualizados em formato de gráficos, diretamente através da interface gráfica da ferramenta.
+
+A contribuição inclui também a elaboração e implementação de novos recursos para a ferramenta TANGRAM-II, baseados no paradigma de modelos com recompensa.
+
+A ferramenta implementa uma série de soluções analíticas para modelos markovianos com recompensa e portanto o simulador desenvolvido neste trabalho complementa os trabalhos anteriores fornecendo ao analista um largo espectro de opções para o desenvolvimento e solução de modelos, não encontrados em outras ferramentas existentes.
+
+O capítulo 2 descreve o ambiente de modelagem TANGRAM-II.
+
+O Capítulo 3 mostra a teoria de fluido através do estudo dos componentes básicos que compõem uma rede de computadores.
+
+No capítulo 4 é descrita a implementação do simulador dentro do TANGRAM-II.
+
+Os resultados obtidos e a validação do recursos implementados aparece no capítulo 5 e o 6 apresenta as conclusões e trabalhos futuros.
+
+Neste capítulo o ambiente de modelagem TANGRAM-II é descrito.
+
+Este ambiente permite a construção de modelos e a sua solução tanto pela utilização de métodos analíticos como através de simulação.
+
+A ferramenta TANGRAM-II possui um poderoso ambiente de modelagem desenvolvido para fins de pesquisa e ensino que possibilita a descrição de sistemas gerais através de uma interface amigável.
+
+Apesar de possuir um paradigma genérico o suficiente para suportar a descrição de sistemas gerais, o objetivo principal é fornecer suporte à descrição de sistemas de computação e comunicação.
+
+A descrição gráfica dos modelos é feita através da utilização de uma ferramenta de domínio público denominada, TGIF que tem como paradigma o trabalho com gráficos vetoriais.
+
+O paradigma de descrição de modelos foi proposto em e é orientado a objetos.
+
+Ele suporta modelos genéricos o suficiente para descrever modelos de sistemas de computação e obter medidas de confiabilidade e de desempenho.
+
+Uma primeira versão rudimentar da ferramenta foi implementada em linguagem Prolog em 1991.
+
+Em 1997 uma versão com novos recursos foi implementada em C/C++ e desde então vem sendo aprimorada.
+
+Em 1998 parte do código foi reimplementado e otimizado de forma a produzir um ganho de desempenho além de facilitar ainda mais o uso da ferramenta.
+
+Nos anos seguintes a ferramenta recebeu inúmeras novas funcionalidades, além de ganhar uma interface gráfica escrita em Java que permite o uso facilitado dos diversos módulos do TANGRAM-II.
+
+Atualmente, dentre as funcionalidades, destaca-se um ambiente de engenharia de tráfego de redes.
+
+Desde outubro de 2000 a ferramenta é distribuída gratuitamente pela internet.
+
+De acordo com o paradigma da ferramenta, os modelos são representados por um conjunto de objetos que podem interagir entre si através do envio de mensagens.
+
+O estado interno de um objeto é armazenado por um conjunto de variáveis inteiras e o comportamento de cada um é definido por eventos que possuem uma condição e um conjunto de ações, e também por ações associadas à chegada de mensagens.
+
+Os eventos são habilitados para o disparo sempre que a condição associada seja satisfeita.
+
+O tempo de disparo de cada evento, obedece a uma distribuição de probabilidade.
+
+A ferramenta possui as seguintes distribuições exponencial, determinística, erlangiana, gaussiana, lognormal, uniforme, pareto, FBM, FARIMA, weibull e file onde as amostras são lidas de um arquivo.
+
+As amostras de tempo de disparo dos eventos são geradas pela ferramenta, desde que a condição associada esteja satisfeita no tempo atual, e a execução do evento só acontecerá se esta condição permanecer válida no tempo de disparo.
+
+As condições para o disparo de eventos podem ser descritas em função do estado interno do objeto.
+
+Mensagens são abstrações criadas para possibilitar a interação entre os objetos e são trocadas em tempo zero.
+
+Quando um evento ocorre ou uma mensagem é recebida, um conjunto de ações é executado com uma determinada probabilidade.
+
+O tempo de execução destas ações também é zero.
+
+No final da execução de uma ação o objeto pode ter seu estado alterado e mensagens podem ter sido enviadas a outros objetos.
+
+Estas mensagens serão tratadas pela ferramenta ainda em tempo zero.
+
+Durante esta execução o sistema pode passar por um conjunto de estados evanescentes.
+
+Estes estados evanescentes não pertencem ao espaço de estados do modelo.
+
+Um estado evanescente é uma abstração para facilitar a modelagem.
+
+Estes estados podem ocorrer enquanto existirem mensagens sendo trocadas entre os objetos.
+
+Após o tratamento de todas as mensagens o sistema estará num novo estado válido, denominado tangível.
+
+Para criar um modelo, o usuário pode contar com objetos pré-construídos que acompanham a distribuição da ferramenta, ou ainda, pode iniciar a descrição de um objeto particular através do uso de um objeto "vazio" chamado obj_template.
+
+Faz-se necessária a especificação dos eventos (subentende-se a especificação da sua condição e ações associadas), das ações associadas ao recebimento de mensagens, das variáveis de estado, e outras especificações, que ao todo irão compor a funcionalidade do objeto.
+
+Este processo exige conhecimentos do sistema que está sendo modelado, bem como das facilidades e características do módulo de modelagem da ferramenta que é apresentado em mais detalhes na próxima seção.
+
+Após a descrição do modelo, o usuário precisa resolvê-lo para que possa obter as medidas de interesse desejadas.
+
+Este processo pode ser feito de duas formas possíveis, através de solução analítica ou através da simulação.
+
+Para resolver o modelo através do uso de métodos analíticos se faz necessária, em geral, a geração de todo o espaço de estados do modelo, bem como a montagem da matriz que representa as transições entre estes.
+
+Dado um estado inicial apontado pelo usuário, o gerador identifica todos os eventos habilitados e então um evento é escolhido para ser executado.
+
+A ação correpondente é executada, podendo ocasionar uma mudança de estado no objeto e o envio de um conjunto de mensagens, o que na prática é representado por uma lista de mensagens que devem ser entregues no próximo passo.
+
+Devido a existência de mensagens a serem processadas, o estado em questão é dito evanescente.
+
+No próximo passo cada uma das mensagens é entregue e sua ação correspondente é executada.
+
+Esta ação por sua vez pode mudar o estado do objeto em questão e enviar mais mensagens.
+
+Este processo é repetido até que não existam mais mensagens a serem tratadas.
+
+Neste instante tem-se um estado tangível, que pertence ao espaço de estados do sistema.
+
+Durante este processo de busca por um estado tangível, as taxas de transição também são calculadas.
+
+Este algorítmo é repetido recursivamente, fazendo um busca em profundidade nos estado tangíveis.
+
+A partir do momento em que a geração do espaço de estados e a da matriz de transição de estados é concluída, o modelo pode ser resolvido.
+
+No TANGRAM-II existe um poderoso módulo de solução analítica, que é capaz de resolver algumas classes de modelos, através do uso de diversos métodos de solução, onde podem ser feitas análises em estado estacionário e transiente dos modelos em questão.
+
+Em existe uma descrição do módulo e a lista dos métodos utilizados.
+
+Vários métodos para resolução de modelos Markovianos podem ser encontrados, tais como GTH, GAUSS-SIEDEL, JACOBI, SOR e POWER que trabalham com solução em estado estacionário.
+
+Para a solução transiente, vários métodos estão implementados baseados na técnica de uniformização.
+
+Por exemplo, é possível a obtenção das probabilidades de estado no tempo t, assim como o cálculo da distribuição da recompensa acumulada num intervalo de tempo.
+
+Estes métodos permitem a solução de modelos onde o tempo de disparo de um evento é dado por uma distribuição exponencial, isto é, modelos que podem ser representados por uma cadeia de Markov.
+
+Ainda existe um método que permite a solução de uma classe de modelos não Markovianos.
+
+Este método pode resolver um subconjunto de modelos que possuam eventos exponenciais e determinísticos.
+
+Uma restrição implica na impossibilidade de lidar com modelos onde exista mais de um evento determinístico habilitado ao mesmo tempo.
+
+A outra forma de resolução de um modelo é a simulação, onde é possível resolver modelos com distribuições genéricas predefinidas ou até mesmo modelos cujo intervalo entre disparos de eventos é dado por valores lidos de arquivos de trace, como descrito em.
+
+Além desta vantagem, cita-se que na simulação o espaço de estados do modelo não precisa ser armazenado.
+
+A simulação progride de forma semelhante à descrita , onde é descrito o processo de geração do espaço de estados, com a diferença de que o único estado armazenado em memória é o estado presente e não é preciso determinar todo o espaço de estados.
+
+Apenas os estados pertencentes ao caminho amostral sendo gerado são obtidos.
+
+Os resultados vão sendo coletados e mantidos em estruturas de dados em memória e posteriormente escritos em arquivos, ou são gravados diretamente, durante o processo de simulação, quando a opção gerar traces estiver selecionada.
+
+Após esta explanação sucinta sobre o funcionamento interno da ferramenta, retoma-se o processo de criação de modelos que é apresentado de forma mais detalhada na próxima seção.
+
+Estes passos precisam ser compreendidos pois são cruciais para que o leitor possa compreender o trabalho desta dissertação.
+
+O primeiro passo a ser seguido na criação de um modelo, é a definição de seus objetos e a forma de interação entre estes.
+
+Para aplicar a devida funcionalidade a um objeto o projetista precisa definir as suas variáveis de estado, suas recompensas e quais são seus eventos, bem como em quais condições estes estarão habilitados.
+
+O projetista precisa também escrever o código representando a ação referente a cada um destes eventos, assim como a ação associada ao recebimento de cada mensagem.
+
+A seguir, mais detalhes são apresentados através do uso de um exemplo bastante simples em caráter ilustrativo, onde pressupõe-se que um usuário queira modelar uma fila M/M/1/k.
+
+Neste modelo, uma fonte emite pacotes a uma taxa de acordo com uma distribuição exponencial.
+
+Estes pacotes são enviados para um objeto filaservidor que é responsável por armazená-los e serví-los de acordo com uma taxa cuja distribuição também é exponencial.
+
+Ao armazenar um pacote, o objeto fila-servidor incrementa uma variável que representa o número de pacotes na fila e ao servir a decrementa.
+
+Para construir o modelo, inicialmente, o usuário deve chamar o módulo de modelagem.
+
+Esta interface foi criada e desenvolvida durante os estudos desta tese e tem como objetivos principais facilitar e guiar o usuário na utilização da ferramenta.
+
+Inicialmente, o ambiente de modelagem aparece com todas as figuras em preto e branco, e à medida que o projetista avança no processo de modelagem as figuras vão ficando coloridas, simbolizando as etapas já completadas.
+
+Nesta seção apenas é coberto o primeiro passo, a criação do modelo.
+
+O usuário deve pressionar o botão new e escolher o nome para o novo modelo a ser criado.
+
+Após isto, o botão de chamada da ferramenta TGIF encontrar-se-á habilitado, indicando o próximo passo.
+
+Toda a especificação do modelo ocorrerá dentro do TGIF.
+
+A definição de um objeto consiste basicamente da descrição de seis atributos, citados abaixo.
+
+Declaration Initialization State Variables Events Messages Rewards.
+
+Cada um destes atributos é apresentado em mais detalhes a seguir, juntamente com a descrição, em caráter ilustrativo, do objeto fila-servidor.
+
+Este atributo é responsável pela declaração das variáveis, constantes e parâmetros usados no objeto.
+
+Os três tipos de declaração são variáveis, constantes e parâmetros, onde, os seguintes tipos podem ser usados.
+
+State usado para declarar variáveis que representam o estado interno dos objetos.
+
+Integer, Float usados para especificar constantes numéricas ou parâmetros.
+
+Object usado para referenciar outros objetos do modelo.
+
+Port define portas usadas na comunicação entre objetos.
+
+O objeto fila-servidor precisa de uma variável de estado para armazenar o valor da fila, uma constante inteira para representar o tamanho máximo da fila, uma constante real para representar a taxa de serviço e uma variável do tipo porta porta_ent usada para o recebimento dos pacotes.
+
+Este atributo é responsável pela inicialização das variáveis de estado e pela definição das constantes.
+
+Supondo que a fila-servidor tem capacidade de servir 20 pacotes por unidade de tempo, que o tamanho do buffer é de 100 pacotes e que inicialmente a fila está vazia.
+
+Este atributo é utilizado no simulador interativo.
+
+As variáveis que forem nele indicadas, terão seu valor atualizado a cada passo de simulação.
+
+Pode-se ainda alterar o seu valor e com isto forçar uma mudança no caminho amostral.
+
+Maiores detalhes sobre este atributo podem ser encontrados no manual da ferramenta.
+
+Este atributo é utilizado para declaração e definição dos eventos do objeto.
+
+Um evento precisa ter pelo menos uma condição e uma ação associadas a ele.
+
+Em se tratando do evento de serviço da fila-servidor, sabe-se que a condição para que este esteja habilitado é a existência de algum pacote a ser servido, e a ação associada é o decremento do número de pacotes na fila.
+
+De acordo com as regras da ferramenta, para que se possa alterar o valor de uma variável de estado, é necessário o uso de uma função especial set_st que deve ser chamada sempre no final da ação.
+
+Neste atributo, todas as mensagens recebidas pelo objeto são tratadas.
+
+Ações são associadas à chegada de mensagens, e quando uma mensagem específica é recebida estas ações são executadas.
+
+As mensagens são identificadas pela constante Port, que indica por qual porta a mensagem está sendo recebida.
+
+No exemplo em questão, cada mensagem recebida representa a chegada de um novo pacote e a ação associada tem como função incrementar o número de pacotes na fila, caso esta não esteja cheia.
+
+Neste atributo são especificadas as recompensas de taxa e de impulso.
+
+Estes conceitos e a sintaxe merecem uma explicação mais detalhada e são apresentados separadamente na próxima seção.
+
+Durante esta breve explanação foram apresentados os passos para a criação de um único objeto do modelo M/M/1/k, o fila-servidor.
+
+A fonte de pacotes poisson é muito simples e pode ser rapidamente deduzida se os conceitos acima apresentados forem levados em consideração.
+
+Modelo de Fila M/M/1/k no Ambiente de Modelagem Apresenta o modelo completo e dispensa maiores comentários.
+
+Exemplos mais complexos e maiores detalhes sobre a ferramenta podem ser encontrados em.
+
+Existe, pelo menos, duas formas de definir recompensas em um modelo.
+
+Seguem as definições de recompensa de taxa e recompensa de impulso.
+
+Definição de Recompensa de Taxa Acumulada Seja um sistema com espaço de estados finito S.
+
+A cada estado s 2 S está associada uma taxa de recompensa de um conjunto R = fr c, i representa a recompensa ganha por unidade de tempo em que o sistema se encontra no estado s i e c é uma função que mapeia o índice i do estado s i no índice de recompensa associada a s i.
+
+Seja IR a variável aleatória que representa a recompensa instantânea no tempo t.
+
+A variável aleatória recompensa acumulada é definida, durante o intervalo.
+
+Diversas medidas de interesse podem ser calculadas a partir do conceito de recompensa de taxa associada.
+
+Por exemplo, o valor médio de uma fila em pode ser obtido, através da criação de uma recompensa de taxa que acumule o tamanho da fila, ou seja, IR igual ao tamanho atual da fila.
+
+Neste exemplo a medida ACR seria a variável aleatória desejada.
+
+Outros exemplos, inclusive de recompensas que descrevem filas, são apresentados no decorrer da tese.
+
+De forma análoga, segue a definição formal de recompensa de impulso.
+
+Seja ff n = a n-ésima transição feita pelo sistema e que ocorre do estado s 0 para o estado s.
+
+Define-se a variável ffn como sendo o valor da recompensa de impulso ganho quando o sistema transiciona de s 0 para s.
+
+Sabendo-se que N é o número de transições feitas até o tempo t, tem-se que a recompensa de impulso acumulada no período.
+
+Como exemplo de utilização deste conceito, cita-se a definição de uma recompensa de impulso acumulada associada a uma transição de estado indicando falha de transmissão.
+
+Desta forma, a medida CI traria a informação sobre o número de falhas de transmissão ocorridas no sistema em.
+
+Pode-se fazer uso dos conceitos de recompensa acumulada no ambiente de modelagem da ferramenta TANGRAM-II, onde é permitida a definição de recompensas tanto de taxa quanto de impulso.
+
+Para manter a generalidade das definições, o significado das medidas e sua interpretação fica a cargo do usuário.
+
+Isto faz com que a ferramenta seja flexível e poderosa, sendo ao mesmo tempo, fácil de usar.
+
+Exemplos de medidas de interesse que podem ser obtidas são utilização, vazão, tamanho médio de filas, tempo médio de espera, número de falhas, tempo operacional, tempo de reparo, dentre muitas outras.
+
+Tendo em vista os conceitos formais apresentados acima, sabe-se que para se obter medidas de interesse através do uso de modelos com recompensas de taxa, precisa-se atribuir a cada estado do sistema um valor que indique a quantidade de recompensa que a medida está acumulando por unidade de tempo em que permanecer no dito estado.
+
+Por exemplo, num modelo onde deseja-se obter a medida de desempenho vazão de um dado sistema, a recompensa precisa determinar o desempenho que o sistema está obtendo em cada momento.
+
+Desta forma, medidas como o desempenho médio do sistema podem ser facilmente obtidas.
+
+No TANGRAM-II as recompensas estão associadas aos estados dos objetos através de condições.
+
+Um objeto pode ter diversas recompensas definidas, de forma que várias medidas possam ser obtidas simultaneamente.
+
+Assim sendo, pode-se descrever a sintaxe da ferramenta, salientando que tudo aqui referenciado encontra-se dentro do atributo Rewards dos objetos.
+
+Inicialmente o usuário precisa definir um nome para sua recompensa que represente a medida de interesse.
+
+Após a definição do nome, devem ser definidos pares condição / valor, onde a condição define o conjunto de estados em que a recompensa de taxa irá acumular o valor indicado.
+
+Nos estados onde a condição não for satisfeita nada será acumulado.
+
+No exemplo anterior, toma-se por base que a medida de interesse seja a utilização do objeto fila-servidor.
+
+Assim sendo, deve-se definir uma recompensa de taxa que acumule um valor unitário sempre que haja pacotes a serem servidos.
+
+Pressupõem-se agora um outro exemplo, onde existam N servidores para atender a demanda da fila.
+
+Para a obtenção da utilização, precisa-se associar o valor 1, quando todos servidores estiverem trabalhando e o valor f ila=N quando existirem servidores ociosos.
+
+Ao permitir que o usuário especifique vários pares condição / valor, pode-se obter estados onde duas ou mais condições possam ser satisfeitas, caso não sejam mutuamente exclusivas.
+
+Nesta situação a ferramenta provê quatro opções de comportamento média, define como valor da recompensa a média aritmética entre todos os valores das condições que foram avaliadas como verdadeiras máximo.
+Define como valor da recompensa o máximo entre todos os valores avaliados mínimo, define como valor da recompensa o mínimo entre todos os valores avaliados erro, gera um erro avisando ao usuário que mais de uma condição foi satisfeita numa recompensa para o mesmo estado Uma destas opções deve ser escolhida antes da geração do modelo matemático, possivelmente cadeia de Markov, ou antes do início de uma simulação.
+
+A interface provê este controle ao usuário e tem inicialmente marcada a opção erro.
+
+Da mesma forma que é possível associar valores de recompensa de taxa aos estados do sistema, pode-se associar valores de recompensa às transições de estado.
+
+Com as recompensas de impulso, diversas outras medidas podem ser obtidas.
+
+Por exemplo, pode-se avaliar o número de falhas num roteador, associando-se uma recompensa de impulso ao evento "falha".
+
+Toda vez que o evento ocorrer, uma recompensa é acumulada, indicando mais uma falha.
+
+A medida CI desta recompensa fornece o número de falhas ocorridas até o instante t.
+
+As transições de estado podem ocorrer no disparo de eventos e no tratamento de mensagens, logo, as recompensas de impulso podem ser associadas a ambas.
+
+Uma transição se inicia quando ocorre o disparo de um evento.
+
+No entanto esta transição pode resultar em diversos estados diferentes, caso existam diferentes ações que possam ser tomadas.
+
+O envio de mensagens também pode dar origem a transições com destinos distintos.
+
+Desta forma, para que se possa referenciar exatamente a transição desejada, é possível a indicação da ação específica na qual a recompensa deverá ser associada, seja esta ação parte integrante do código de disparo de eventos ou do código de tratamento de mensagens.
+
+Da mesma forma que a recompensa de taxa, o usuário necessita especificar um nome único que irá representar a medida de interesse desejada.
+
+Em seguida deve-se especificar o evento ou mensagem a qual a recompensa estará associada e uma ou mais ações que, ao serem executadas, farão com que a recompensa acumule um dado valor.
+
+Em um caso onde haja a necessidade do conhecimento do número de pacotes transmitidos pela fonte no exemplo M/M/1/k, pode-se associar uma recompensa de impulso ao evento geracao_pacote da fonte.
+
+Cada evento pode estar associado a uma ou mais ações.
+
+Neste exemplo nota-se que a ação associada foi a primeira dentro do evento geracao_pacote.
+
+Este número que indica a ação é relativo a ordem de aparição das ações no código do usuário e inicia com 1.
+
+Outro exemplo do uso de recompensas de impulso é, que apresenta um modelo composto de uma fonte On-Off, que só transmite pacotes durante a permanência no estado On, e de um objeto fila-servidor que recebe os pacotes emitidos pela fonte.
+
+Neste exemplo, a fila não é modelada da maneira tradicional com uma variável de estado para representar seu tamanho, e sim, através da especificação de uma recompensa de impulso, de onde pode-se obter as medidas desejadas com vantagens em termos de redução do número de estados do modelo e conseqüentemente no custo computacional para sua resolução.
+
+Pode-se associar impulsos aos eventos de transmissão de pacotes da fonte.
+
+Além disto, um novo evento que simboliza o serviço da fila está embutido no mesmo objeto, fazendo com que este na prática assuma todas as funcionalidades do sistema, passando a ser fonte, fila e servidor ao mesmo tempo.
+
+A este novo evento, associa-se uma recompensa negativa que representa o serviço de um pacote na fila.
+
+Logo uma recompensa chamada buffer irá descrever exatamente o comportamento da fila, recebendo uma unidade a cada pacote gerado e perdendo uma unidade a cada pacote servido.
+
+Entretanto uma fila não pode ter um número negativo de pacotes e sabe-se que na prática são limitadas em relação ao tamanho máximo que podem armazenar.
+
+Por este motivo existe a possibilidade de especificação de limites no valor acumulado da recompensa, através do uso da palavra reservada cr_bounds, onde podem ser especificados os limites inferior e superior que são aplicados ao valor acumulado.
+
+Assim CI conterá o número de pacotes na fila no tempo t e TCI a média de pacotes na fila até o mesmo instante.
+
+Este recurso de limite pode ser aplicado tanto às recompensas de impulso (CI) quanto às de taxa (CR).
+
+Se omitido, o valor acumulado pode tender a infinito.
+
+Além disto, pode-se especificar apenas um dos limites, inferior ou superior, através do uso da palavra reservada INF num dos extremos, como mostra o exemplo a seguir, onde um buffer infinito é modelado.
+
+O conceito de recompensas, bem como seu uso na ferramenta, é de vital importância para o entendimento deste trabalho, uma vez que os fluidos manipulados pelo simulador são representados através destas recompensas.
+
+Este capítulo tem como objetivo apresentar de forma detalhada a descrição de modelos de fluido aplicados a redes de computadores, bem como seu comportamento durante o processo de simulação, através da especificação de seus principais componentes lógicos.
+
+O embasamento para as teorias descritas ao longo deste, no contexto de redes e teoria de filas, pode ser encontrado em.
+
+Já os conceitos e equações de fluido, provêm de trabalhos que utilizam a técnica.
+
+Os simuladores orientados a eventos, reagem sempre que há a ocorrência de um evento no sistema sendo modelado e o tempo de simulação salta de evento em evento.
+
+A abordagem clássica para a modelagem de redes, de acordo com este paradigma, especifica eventos como geração de pacote, mudança de estado de fonte, serviço de um pacote, dentre outros.
+
+No entanto, este método pode ter um alto custo computacional, uma vez que todas as mensagens são representadas no modelo, assim como a evolução destas entre os diferentes nós da rede.
+
+Por isso faz-se necessário o uso de diferentes técnicas de simulação, de forma que se possa obter resultados com menos esforço computacional.
+
+Uma das técnicas possíveis consiste na simulação de modelos de estado contínuo, que são os chamados modelos de fluido.
+
+Estes modelos de fluido são uma abstração dos modelos convencionais discretos, onde os dados que trafegam na rede são tratados de forma contínua.
+
+Em modelos de redes de computadores que usam esta abordagem, o fluxo de unidades discretas que viaja através dos canais de comunicação e fica armazenado nas filas é substituído por fluidos que se movem de um recipiente para outro.
+
+Deste modo classificam-se como eventos apenas as mudanças de taxa na transferência dos fluidos.
+
+Assim sendo, em vez de um evento ser gerado cada vez que um pacote é transmitido, apenas é necessário representar eventos relativos a mudanças das taxas de transmissão.
+
+Para certos modelos, como por exemplo aqueles que descrevem redes de alta velocidade, onde os intervalos de mudanças de taxas de transmissão, são ordens de grandeza maiores que o intervalo entre geração ou término do serviço de pacotes, fica evidente o ganho desta nova abordagem que necessita tratar apenas eventos de mudanças de comportamento dos fluxos em vez da enorme quantidade de eventos que representam a atividade dos pacotes.
+
+Cabe ressaltar que os modelos de fluido também possuem estados discretos, além dos contínuos que modelam os fluidos.
+
+Ao longo deste capítulo, é apresentado um estudo descritivo sobre a teoria dos modelos de fluido.
+
+Para mostrar a dinâmica de funcionamento destes modelos, optou-se pela apresentação de alguns dos principais componentes lógicos que compõem uma rede modelada sob o paradigma de fluido.
+
+Obviamente, estes componentes são abstrações dos componentes reais que compõem as redes multimídia atuais.
+
+Questões relativas ao ganho em termos de custo computacional e em relação à qualidade das medidas de interesse obtidas, são enfocadas no final do capítulo.
+
+Cabe salientar ainda que mesmo tendo como enfoque principal os modelos de redes de computadores, este trabalho descreve a técnica de simulação de fluido que é bastante genérica e pode ser aplicada a outras áreas, além da computação.
+
+Um exemplo, no campo da física, seria a modelagem de um sistema de vasos comunicantes, onde a água armazenada numa caixa d'água de um bairro, localizada numa altitude maior, é transferida para caixas d'água e cisternas residenciais, localizadas numa altitude menor.
+
+A transferência da água acontece, sempre que uma bóia reguladora de nível indique que uma determinada caixa d'água necessita ser enchida.
+
+O modelo poderia ser estendido às torneiras, chuveiros e demais saídas de uma residência, representando o consumo de água das residências do bairro inteiro.
+
+Estes objetos representam os geradores de tráfego da rede.
+
+Por exemplo, tráfego proveniente dos mais variados tipos de servidores, onde cita-se www, e-mail, troca de arquivos, até os mais modernos serviços como distribuição de vídeo sob demanda, teleconferências e transmissão de voz sobre IP.
+
+Todas estas fontes geradoras de tráfego podem ser representadas através de modelos chamados MMPS (MarkovModulated Packet Source) que são as fontes de pacotes moduladas por Markov.
+
+Estas fontes são modeladas por uma cadeia de Markov de tempo contínuo com n estados.
+
+A cada estado tem-se associada uma taxa de transmissão i, onde i representa a taxa de um processo de Poisson responsável pela geração de pacotes (ou células) no mesmo.
+
+Em outras palavras, quando a fonte encontra-se em um estado i, pacotes são gerados em intervalos exponenciais, com média i.
+
+Existem taxas de transição entre os estados, que são responsáveis pelo comportamento da fonte.
+
+Mostra um exemplo de fonte MMPS do tipo nascimento e morte, onde existem taxas i para transições de nascimento e taxas i para mortes.
+
+Sendo assim, percebe-se que o funcionamento deste tipo de fonte é bastante simples, pois durante a evolução do processo, ou seja, enquanto a cadeia vai mudando de estado, a fonte emite pacotes a diferentes taxas, podendo variar de 0 à 1.
+
+Fonte de Pacotes, Nascimento e Morte.
+
+As fontes não necessariamente precisam ser do tipo nascimento e morte e podem assumir qualquer comportamento descrito por uma cadeia de Markov, onde as transições entre os estados são descritas por uma matriz de taxas Q com espaço de estados S.
+
+Como o enfoque deste trabalho está dentro do paradigma de fluidos, utilizamse fontes ligeiramente modificadas, onde, para cada estado associa-se a emissão de fluido a uma taxa constante i, em vez da geração de pacotes individuais.
+
+No que diz respeito a transição de estados não existem diferenças.
+
+Estas fontes de fluido, utilizadas no decorrer deste trabalho, são denominadas MMFS (Markov-Modulated Fluid Sources) fontes de fluido moduladas por Markov.
+
+De forma a ilustrar a diferença entre os tipos de fontes citados, são apresentadas duas figuras.
+
+Contém uma fonte do tipo On-Off e mostra a diferença de abstração entre pacotes e fluido.
+
+Observa-se o comportamento do tráfego acumulado, gerado em um período de atividade da fonte.
+
+Estas fontes On-Off são amplamente utilizadas por serem bastante simples e terem a capacidade de representar diversas fontes de tráfego reais.
+
+Fonte On-Off de Pacotes e Fluido Tráfego Acumulado em Fontes On-Off de Pacotes e Fluido Sendo a fonte do tipo MMFS nota-se que durante o estado On existe a emissão constante de fluido à uma taxa entretanto se esta for considerada MMPS, percebese que durante este estado pacotes são emitidos de acordo com um processo de Poisson de média Em ambos os tipos, não existe emissão alguma no estado Off, onde a fonte permanece sem atividade.
+
+Além disto, as transições do estado Off para o estado On e do estado On para o estado Off ocorrem segundo processos Poisson com médias e respectivamente.
+
+As fontes MMFS descritas acima são utilizadas em praticamente todos os trabalhos relacionados a modelos de fluido e podem ser encontradas em.
+
+Esta seção apresenta os principais componentes lógicos de um sistema de rede, a fila, suas disciplinas de atendimento e gerenciamento e o roteamento que pode ocorrer junto a esta.
+
+As filas, ou buffers podem estar presentes em diversos equipamentos, que podem ser caracterizados como um nó de rede, tais como bridges, switches, roteadores, dentre outros, cuja descrição pode ser encontrada em.
+
+De forma simplificada, pode-se dizer que cada nó de uma rede tem pelo menos uma fila, onde os pacotes são armazenados, e possui uma disciplina de atendimento que será utilizada para estabelecer a ordem em que estes pacotes serão retransmitidos.
+
+Ainda existem outros fatores a serem considerados, tais como a forma de gerenciamento do espaço em fila.
+
+Ou ainda, o roteamento que geralmente é feito neste componente.
+
+Estes fatores são abordados ao final desta seção, que começa pela definição da fila em si e da descrição de duas disciplinas de atendimento.
+
+Enfatiza-se que numa rede de fluido não existem pacotes chegando e sendo armazenados, e sim fluidos escoando em direção a um nó e sendo acumulados em um reservatório.
+
+Em cada reservatório existe uma saída para o líquido armazenado, que escoa, em direção a outro nó, a uma determinada taxa.
+
+O primeiro ponto a ser considerado é o próprio buffer, que representa o espaço disponível para o armazenamento dos fluidos.
+
+Este espaço, que na prática é constituído por células de memória, é representado por sua capacidade B, que varia, em teoria, entre 0 e 1.
+
+Esta capacidade é uma medida de volume, e comporta o armazenamento de igual volume de fluidos.
+
+Análogo ao funcionamento de um buffer de pacotes discretos, onde pacotes são perdidos caso não exista espaço suficiente para guardá-los, o volume de fluido que exceder o volume máximo de armazenamento é descartado no momento de sua chegada na fila, sendo o processo de perda irreversível.
+
+Na outra extremidade, o fluido é servido, ou seja retransmitido, o que contribui para a diminuição de volume do fluido armazenado.
+
+Um ponto de extrema importância a ser considerado é a disciplina de atendimento da fila de um nó de rede.
+
+No entanto para que as disciplinas possam ser definidas formalmente, juntamente com a explanação sobre estas, são considerados outros fatores intrínsecos.
+
+Um deles é o buffer em si, outro, são os fluxos, de entrada e saída, que caracterizam a movimentação dos líquidos e são representados por vetores, além de outros detalhes cujo conjunto compõe o sistema em análise.
+
+Seja um nó com uma fila finita de capacidade B 1, uma taxa de serviço constante c e uma disciplina de atendimento conservadora de trabalho FIFO (First In First Out), onde o serviço ocorre de acordo com a ordem de chegada.
+
+Esta disciplina também é conhecida por FCFS, ou seja, o primeiro a chegar é o primeiro a ser servido.
+
+Supondo que A seja uma função degrau contínua à direita, pode-se dizer que a integral é contínua e linear por partes.
+
+Impondo esta restrição para A, pode-se simplificar as equações de forma a facilitar a análise matemática do comportamento dos fluidos.
+
+Esta premissa é bastante plausível já que esta condição não é difícil de ser satisfeita.
+
+Como exemplos cita-se fontes On-Off não Markovianas ou ainda toda a classe de fontes Markovianas MMFS recentemente apresentada.
+
+Seja Q o volume de fluido na fila no tempo t 0.
+
+A dinâmica de Q pode ser descrita de forma exata,onde, 1 representa uma função indicadora.
+
+Para as funções degrau contínuas à direita, esta integral representa a n-ésima transição de A e + = max.
+
+De acordo com estas equações, percebe-se que o caminho amostral resultante de Q é linear por partes, com inclinações definidas.
+
+Estas mudanças de inclinação ocorrem no instante em que a fila enche, esvazia ou nas transições T n de A.
+
+Partindo da suposição inicial, onde A é degrau contínua à direita, pode-se deduzir que D também se classifica da mesma forma.
+
+Outro aspecto importante a ser considerado é o fato de as filas não serem bloqueantes, ou seja, o fluido que chega numa fila finita cheia é perdido.
+
+Esta perda acumulada durante o intervalo pode ser calculada pela integral, onde representa todos os períodos de sobrecarga.
+
+Salienta-se ainda que dado um tempo t, chama-se t 0 o início do próximo período de fila vazia, assim como t B o início do próximo período de sobrecarga.
+
+Até aqui, foi apresentado um nó que trata apenas um fluxo de fluido, entretanto o modelo acima descrito, pode ser aplicado a um caso mais geral onde a fila é alimentada por N fluidos.
+
+Este caso ocorre quando lida-se com diferentes fluxos de tráfego e pode-se pensar, em se tratando de fluidos, em líquidos de diferentes cores, um para cada fluxo, que possivelmente não se misturam.
+
+Seja a a taxa do i-ésimo fluido de entrada no nó e o vetor que representa os fluxos de todos os fluidos de entrada.
+
+Se cada fluxo a i for descrito por uma função degrau contínua à direita, continua-se a respeitar a condição de que A também seja degrau contínua à direita, uma vez que a soma de funções degraus contínuas à direita, resulta numa função de mesmo tipo.
+
+O fato de lidar com N fluidos, requer uma atenção especial sobre o comportamento da fila, quando se leva em consideração a disciplina de atendimento FIFO.
+
+Seja fi n a n-ésima transição do vetor de entrada.
+
+Desta forma, uma mudança em que ocorra em t = fi n levará =c 0 unidades de tempo para se propagar até a saída da fila.
+
+Isto ocorre pois quando trabalha-se de acordo com a disciplina de atendimento FIFO, o serviço ocorre de acordo com a ordem de chegada.
+
+O tempo de propagação é igual ao tempo que o servidor leva para transmitir a quantidade de fluido que já estava na fila no momento da mudança.
+
+Sendo assim, no tempo, a proporção dos fluxos de saída deve ser a mesma dos fluxos de entrada no tempo fi.
+
+Cabe ainda salientar que, uma mudança em, pode produzir duas transições caso a fila esvaziar antes da próxima transição.
+
+As equações que descrevem o comportamento dos fluidos na fila FIFO.
+
+No exemplo existem dois fluxos provenientes de fontes MMFS, representados pelo vetor a, além da fila FIFO e do vetor de saída.
+
+Salienta-se que os fluidos são de cores diferentes e não se misturam.
+
+Além disto eles são representados como se fossem blocos.
+
+Esta disposição em blocos, serve para diferenciar a proporção de chegada, e acúmulo de fluidos, nas diferentes fases da evolução do fluxo de entrada.
+
+Evolução do sistema.
+
+No tempo t = 0 a fila está vazia e não há fluido chegando no nó.
+
+Num instante seguinte t = fi 1, a fonte 1 passa para o estado 1 e começa a transmitir a uma taxa 0.
+
+Imaginando então, que a fonte 2 passe para o estado 1, e comece a transmitir a uma taxa 1.
+
+Neste momento tem-se um fluxo de entrada A maior do que a capacidade de serviço c, portanto, passa-se a ter acúmulo de fluidos no interior do buffer, que se dá de acordo com a equação.
+
+Em t = 2, tem-se A = 1, o serviço, dado pela equação, é d = h0 e observa-se um acúmulo no buffer de 0, e 0 unidades de volume por unidade de tempo para q 1 e q 2 respectivamente.
+
+Desta forma, se fi 3 ocorrer x unidades de tempo após fi 2, ter-se-á uma quantidade total de fluido acumulada na fila.
+
+Supondo que em fi 3, a fonte 1 mude para o estado 2 e passe a transmitir numa taxa 1 ocasiona-se então a formação de um novo bloco.
+
+Neste bloco existe uma nova proporção de acúmulo e serviço para os fluidos, onde um acúmulo de 0 unidades por unidade de tempo para q 1 e q 2 respectivamente.
+
+Sabe-se que esta saída só entrará em vigor, Q=c unidades de tempo após fi 3, pois este é o tempo que a mudança levará para se propagar até a saída (justamente o tempo de serviço de Q).
+
+Mostra o sistema sob o ponto de vista dos fluxos que entram, ficam e saem da fila, ou seja, mostra a evolução de A, Q e D.
+
+Observando seu comportamento apartir de fi 4, quando a fonte 2 é desligada, constata-se uma entrada de A = 1 e uma inclinação de Q com coeficiente angular m = 0.
+
+Em fi 5 a fonte 1 passa para o estado 1, quando tem-se A = 0 e Q com uma inclinação negativa.
+
+Neste instante, seria possível prever um esvaziamento do buffer no instante t 0, desde que nenhuma outra mudança no fluxo de entrada ocorra.
+
+Entretanto, se ocorrer alguma mudança no vetor de entrada em fi 6 < t 0, o esvaziamento pode não ocorrer, sendo necessário o novo cálculo para prever o esvaziamento do buffer t 0.
+
+Evolução de A, Q e D na Fila FIFO É o que acontece neste exemplo, quando em fi 6 a fonte 1 desliga, fazendo com que o vetor de entrada tenha valores nulos.
+
+O fluido que está na fila continua a ser servido.
+
+Observa-se que agora o ângulo de inclinação de Q mudou, o que deve acarretar no cancelamento do evento t 0 previsto anteriormente.
+
+No mesmo instante um novo evento sinalizando o término de saída de fluxo é escalonado para t 0.
+
+Uma nova mudança no fluxo de entrada ocorre somente em fi 7 > t 0.
+
+Neste caso, o esvaziamento do buffer ocorre no tempo previsto (t 0), não havendo o cancelamento deste tipo de evento como ocorreu em t 0.
+
+Assim sendo, ter-se-á D(t 0) = A = 0.
+
+Acima, foram apresentadas características da fila de fluido com disciplina de atendimento FIFO, que é apenas uma das formas existentes de se lidar com o fluxo de entrada de fluidos.
+
+Outra disciplina de interesse, a GPS, é caracterizada na próxima subseção.
+
+A disciplina de atendimento GPS, surgiu de uma generalização natural da UPS, onde a capacidade do canal é dividida igualmente entre os fluxos.
+
+Já que a GPS é intrinsecamente contínua, uma versão discreta para lidar com pacotes foi proposta, com o nome PGPS (Packetby-Packet Generalized Processor Sharing).
+
+A PGPS é uma aproximação da GPS e foi proposta originalmente por Demers, Shenker e Keshav sob o nome WFQ (Weighted Fair Queueing).
+
+Estes e outros detalhes podem ser encontrados em.
+
+A GPS divide a capacidade do canal de saída em n partes, de acordo com os parâmetros de particionamento, satisfazendo as condições.
+
+Cada parte, que recebe uma percentagem do serviço, pode ser interpretada como uma fila FIFO, e pode manusear um fluxo de fluido, ou um grupo de fluxos, desde que estes fluidos sejam misturados.
+
+A disciplina GPS é conservadora de trabalho e opera de forma que a banda alocada para uma parte ociosa, é distribuída para as demais na proporção de seus parâmetros de particionamento.
+
+Observa-se a representação gráfica de uma fila com disciplina de atendimento GPS.
+
+Nó de Rede com Fila de Fluido GPS A Estas equações que descrevem o comportamento dos fluidos na fila.
+
+As disciplinas apresentadas acima, descrevem a maneira no qual o fluido é servido na fila de um nó de rede.
+
+Entretanto para que se possa garantir o senso de justiça, a robustez, e a qualidade de serviço, há também, a necessidade de um gerenciamento do espaço da fila, ou em outras palavras, uma política de ocupação de buffer.
+
+Sem este gerenciamento, as características das disciplinas de atendimento podem ficar comprometidas.
+
+O exemplo a seguir, mostra como a falta de gerenciamento do espaço pode acarretar em injustiças.
+
+Seja fila finita de tamanho B, que recebe 2 fluxos de fluidos, um amarelo e outro vermelho.
+
+A disciplina de atendimento é GPS, de capacidade c e pesos idênticos amarelo = 0, 5 e vermelho = 0.
+
+Imagina-se um cenário, onde num dado instante a fila esteja cheia, com 50% de fluido de cada cor e o amarelo passe a chegar a uma taxa bastante alta, em relação a capacidade de serviço de sua classe, por exemplo.
+
+Supõem-se também, que a taxa de chegada do vermelho diminua para um valor menor que a capacidade do canal destinada a este, por exemplo 0.
+
+Neste cenário, a taxa do amarelo é maior que a do vermelho, a amarelo = 1 > a vermelho = 0, e a soma da duas taxas de entrada é maior que a capacidade de serviço, 1 > c.
+
+Nesta situação, ocorrerão perdas na entrada da fila e apenas parte do fluxo conseguirá lugar no buffer.
+
+Sabe-se também que a cada unidade de fluido servida, uma nova unidade entra no buffer, sendo esta unidade de entrada, uma mistura de fluidos, de acordo com a proporção explicitada.
+
+Assim sendo, o fluido amarelo vai entrar em maior quantidade, por causa de sua maior avidez.
+
+Como a quantidade de fluido vermelho que entra é menor que sua respectiva saída, a tendência é que ocorra o esvaziamento deste fluido no buffer.
+
+Assim como o amarelo tenderá a tomar todo o espaço da fila.
+
+No momento em que o fluido vermelho se extingüir da fila, sua taxa de saída passará a ser igual a de entrada, e sendo esta menor do que o 0, o vermelho deixará de usufruir parte da capacidade a que tinha direito.
+
+Parte esta que vai ser aproveitada pelo amarelo, já que a disciplina é conservadora de trabalho.
+
+Assim sendo, o amarelo vai ganhar maior banda, amarelo por ser mais ávido, e o vermelho mesmo chegando a uma taxa menor do que sua banda nominal garantida pela disciplina de serviço GPS, terá perdas e não conseguirá usufruir da banda a que tem direito.
+
+Caracteriza-se assim, uma injustiça em relação à qualidade de serviço.
+
+Existem várias formas de resolver estas injustiças, dentre as quais destacam-se algumas bastante conhecidas, descritas em.
+
+Estas técnicas são aplicadas para os modelos que trabalham com pacotes, o que não impede a analogia com fluidos.
+
+A seguir são apresentadas descrições de duas destas técnicas, as mais básicas, conhecidas como CP e CS.
+
+Um resumo de todas as técnicas apresentadas em pode ser encontrado no apêndice A.
+
+Neste esquema a fila é permanentemente particionada em N filas menores, uma para cada fluxo de serviço.
+
+Não existe compartilhamento do recurso espaço em fila, entretanto nenhum fluxo é prejudicado por ações dos demais.
+
+Esta técnica não faz um bom aproveitamento do espaço total do buffer.
+
+Entretanto garante justiça, robustez e com isto a qualidade de serviço.
+
+Neste esquema a fila é integrada e um pacote que chega é aceito se houver espaço disponível.
+
+Nesta disciplina existe o máximo aproveitamento do recurso espaço em fila, no entanto um fluxo pode monopolizar o serviço se for mais ávido.
+
+Uma das possíveis funcionalidades de um nó de rede é o roteamento de pacotes.
+
+Como, em geral, esta funcionalidade ocorre junto às filas, o assunto é abordado nesta seção.
+
+A idéia básica de um roteador é orientar os fluxos de entrada para seus devidos canais de saída.
+
+O nó é representado por um retângulo e possui canais físicos de entrada E i e saída S i.
+
+Também estão representados os fluxos de entrada a i e saída d i.
+
+Neste exemplo de roteamento, os fluxos a 1 e a 2 chegam no nó através do canal físico E 1, assim como a 3 chega através de E 2 e chegam através de E 3.
+
+Percebe-se no entanto, que independentemente do funcionamento interno, ou seja, das disciplinas de atendimento e do gerenciamento da fila, os fluxos d i saem do nó por algum canal físico estipulado.
+
+No exemplo supra citado, o fluido 1 sai através do canal S 2.
+
+Assim como os fluxos 3 e 4 fluem através de S 1, 2 e 5 fluem através de S 3 e 6 sai por S 2.
+
+Roteamento Dentro do Nó de Rede O roteamento de interesse neste trabalho é simplesmente o ato de redirecionar um fluxo de entrada a um canal específico de saída.
+
+Este redirecionamento pode ocorrer de acordo com o estado interno das filas, ou pode ser fixo, fazendo com que a rota seguida por um fluxo de fluido represente, por exemplo, um circuito virtual de uma rede ATM ou uma conexão, no nível da camada de aplicação, estabelecida pelo protocolo TCP em uma rede ethernet.
+
+As teorias apresentadas nesta seção e no apêndice A descrevem a fila presente na maioria dos nós de rede físicos, bem como as disciplinas de atendimento e gerenciamento inerentes a esta.
+
+Também é descrito nesta seção, o esquema de roteamento que envolve o redirecionamento dos fluxos na saída da fila.
+
+Os tópicos foram apresentados de forma genérica e servem de base para a modelagem de objetos de rede que se caracterizam como nó, tais como os citados no início desta seção.
+
+No capítulo 4 estão descritos alguns destes componentes que foram modelados durante o desenvolvimento desta tese.
+
+O objetivo é representar, através deste tipo de objeto, o meio físico de comunicação entre dois nós.
+
+Como exemplos de meios cita-se cabos coaxiais, fibras óticas, fios do tipo par trançado, canais de rádio frequência, dentre outros.
+
+Para efeitos de modelagem, apenas a característica tempo de propagação t p é levada em consideração.
+
+Assim sendo a única tarefa desempenhada pelo canal de comunicação é a inserção de um tempo de retardo no fluxo que está por este passando.
+
+Em outras palavras, uma mudança de taxa ocorrida em um tempo t na entrada de um canal, só será observada em seu outro extremo no tempo t + t p.
+
+Canal de Comunicação Outro componente de importância na estrutura de uma rede de computadores é o regulador de tráfego.
+
+O regulador é um mecanismo que tem por finalidade o policiamento e a moldagem do tráfego que por ele atravessa.
+
+O esquema de um FLB Fluid Leaky Bucket é apresentado, e a descrição do seu funcionamento é dada a seguir.
+
+Existem 3 parâmetros associados a um regulador.
+
+A capacidade do buffer de fluido, onde o fluido, que representa o tráfego de rede, fica armazenado caso não possa ser transmitido imediatamente.
+
+Equivalente ao buffer de pacotes em um regulador tradicional.
+
+Representada pela variável B C.
+
+A capacidade do buffer de fichas, onde o fluido proveniente da geração de fichas fica armazenado.
+
+Representada pela variável B T.
+
+A taxa de geração de fichas define a quantidade de fluido que é gerado para o buffer de fichas por unidade de tempo.
+
+Além das variáveis acima apresentadas, considera-se a como a taxa de fluido que entra no regulador, d como a taxa de fluido que sai, q a quantidade de fluido armazenada no buffer e f a quantidade de fichas armazenada no buffer de fichas.
+
+Regulador de Tráfego de Fluido Para que uma unidade de fluido contida no buffer deixe o regulador, uma quantia igual de fluido contido no buffer de fichas precisa ser consumida.
+
+Desta forma o buffer só vai armazenar fluido caso a taxa de chegada a seja maior do que a taxa de geração de fichas e o buffer de fichas fique completamente vazio.
+
+Da mesma forma que o buffer de fichas só pode acumular fluido proveniente da geração de fichas se a < r.
+
+O FLB opera de forma que qf = 0 para todo tempo t.
+
+De acordo com o funcionamento deste mecanismo, todo o fluxo de tráfego que atravessa o regulador, é policiado, de forma que as rajadas passam de forma controlada.
+
+Uma rajada que tem uma taxa de pico maior que a taxa de geração de tokens r passa pelo regulador às custas do consumo do buffer de fichas, contudo o tamanho máximo da rajada está limitado ao tamanho do buffer de fichas e sabe-se que após o consumo do buffer de fichas, somente uma taxa r de fluxo vai passar diretamente à saída.
+
+Nota-se também que podem haver perdas de fluido na entrada do FLB.
+
+Esta característica de policiamento, faz uma amortização no fluxo de tráfego, e tem uma importância vital na garantia da qualidade de serviço.
+
+O uso do regulador de tráfego em conjunto com uma fila de serviço GPS, garante um tempo máximo de espera na fila e desta forma pode ser usado como garantia em um controle de admissão.
+
+Esta garantia é descrita em e é apenas um exemplo de utilização do leaky bucket na garantia de QoS.
+
+Por um outro prisma, pode-se dizer que o leaky bucket efetua a moldagem do tráfego que por ele passa.
+
+O tráfego de saída do FLB encontra-se sempre dentro dos limites, onde tanto o inferior quanto o superior são determinados pela inclinação da taxa r de geração de fichas com a diferença de que o superior é acrescido do tamanho do buffer de fichas B T.
+
+A este comportamento, que modifica o tráfego, deixando-o sempre dentro dos limites denomina-se moldagem de tráfego.
+
+Reguladores de tráfego, assim como as disciplinas FIFO e GPS, podem ser encontrados em roteadores como por exemplo, séries 1600,1700, 2500, 2600, 7500 a AS5300 da Cisco Systems ou no ASX-1000 da Fore Systems.
+
+Em se tratando de reguladores, estes podem ainda ser encontrados em implementações de software em aplicações que necessitem policiamento e/ou moldagem, como por exemplo servidores com garantia de QoS.
+
+Tráfego Moldado por um Regulador de Tráfego de Fluido A grande vantagem da técnica de fluido está no ganho em relação ao custo computacional que esta pode de fato prover.
+
+Este ganho se dá pelo fato de que um número reduzido de eventos precisa ser tratado para que um mesmo sistema seja analisado.
+
+Como visto no início deste capítulo, existe um conjunto de modelos onde o uso da técnica se torna vantajoso.
+
+Neste encontram-se justamente aqueles que possuem taxas de transição de estados das fontes ordens de grandeza menores que as taxas de geração de pacotes.
+
+Os modelos que descrevem as redes de alta velocidade atuais se encaixam neste perfil, e compõem apenas um exemplo que demonstra a utilidade da técnica.
+
+Trabalhos como, fazem uma análise de quando cada método é mais eficiente, levando em consideração o número de eventos a serem processados.
+
+No entanto, existem alguns pontos que precisam ser considerados, como por exemplo o fato de que os eventos de fluido podem ser mais custosos de serem tratados.
+
+De acordo com a teoria de fluido, eventos podem ser escalonados, e por motivos peculiares pode ser que alguns destes venham a ser retirados da fila de eventos.
+
+Mostra um exemplo onde existe a necessidade de que ocorra o desescalonamento de um evento.
+
+O processamento necessário para verificar a existência de um evento escalonado, e retirá-lo da fila de eventos, ou até mesmo reescaloná-lo para outro tempo, onera o custo do tratamento de eventos.
+
+Entretanto este custo é muito baixo se for considerado o custo de processamento para o tratamento completo de um evento.
+
+Assim sendo, este problema não invalida os benefícios desta forma de simulação.
+
+Outro fator que deve ser observado, contudo previsto nos estudos, é que em certos casos uma única mudança de taxa de fluido pode gerar 2 eventos.
+
+Este caso pode ser exemplificado pela ocorrência de um evento do tipo t 0 (quando um recipiente de fluido esvazia).
+
+Nesta situação uma mudança de taxa na entrada de uma fila, tratada pela ocorrência de um evento, ainda gera um segundo evento, que é necessário para que a nova taxa de saída seja calculada, no momento que o recipiente esvaziar.
+
+Porém existe um fator que pode degradar bem mais o desempenho de uma simulação de fluido.
+
+É o chamado ripple effect, mencionado pela primeira vez em.
+
+Este efeito é ocasionado por uma onda de mudanças de taxas que pode se propagar por todo o sistema.
+
+De forma a exemplificar o problema, apresenta-se uma rede cuja topologia é descrita.
+
+Considerando-se que uma mudança em alguma taxa de entrada na FILA 1 pode ocasionar alterações nas taxas de saída da mesma, observa-se que a FILA 2 será notificada desta modificação.
+
+O efeito pode ser semelhante na FILA 2 e ocasionar modificações nas filas que se seguem, formando uma onda que se propaga em direção ao final da rede.
+
+Para certas mudanças de taxa, o efeito pode não aparecer, ou aparecer e não se propagar indefinidamente.
+
+No entanto, em modelos onde há realimentação nas filas, ele pode ser bastante prejudicial ao desempenho.
+
+Apesar da dificuldade em se avaliar o impacto do efeito, mostra o seu comportamento para casos específicos, inclusive descreve que mesmo em modelos com realimentação, o sistema atinge a estabilidade, apesar de ter o desempenho bastante agravado.
+
+Ripple Effect Uma das técnicas utilizadas para diminuir o ripple effect é a agregação de fluxos.
+
+A técnica consiste em isolar o fluido de interesse e agregar os remanescentes em um único fluxo.
+
+Quando os fluxos estão agregados, uma única mudança de taxa pode representar diversas mudanças nos fluxos individuais.
+
+Exemplifica o benefício da agregação de fluxos de fluidos.
+
+No exemplo, três fluxos a1, a2 e a3 alimentam uma fila FIFO, e d1, d2 e d3 representam suas respectivas saídas após o serviço.
+
+Nota-se que o número de mudanças de taxa do processo agregado é igual a soma do número de mudanças de cada fluxo individual, portanto não há economia, neste exemplo, em relação a agregação de fluxos de entrada.
+
+Entretanto, no processo de saída, considerando-se os fluxos individuais, ocorrem 11 mudanças de taxas, enquanto no agregado ocorrem apenas 3.
+
+Além da redução do número de eventos a serem processados, este tipo de técnica diminui efetivamente a propagação do efeito ripple, já que muitas mudanças no fluxo de entrada de uma fila são absorvidas e não geram mudanças de taxa de saída.
+
+Salienta-se que após a agregação de fluxos, não se pode mais diferenciar os fluxos agregados.
+
+Por isto, a importância de deixar isolado o fluxo, ou fluxos, de interesse.
+
+Agregação de Fluxos O número de eventos de uma simulação de pacotes é comparado com simulações de fluido, com e sem agregação de fluxos.
+
+O modelo estudado tem várias filas em série, e é semelhante ao apresentado.
+
+O estudo mostra que para simulação de fluido com fluxos agregados, o comportamento em relação ao número de eventos é linear e assintoticamente igual a simulação de pacotes.
+
+Assim sendo a simulação de fluido é sempre mais rápida que a de pacotes para a resolução deste tipo de modelo, o que não seria verdade se não houvesse agregação de tráfego.
+
+Relaciona a taxa de eventos que devem ser processados na simulação de pacotes, de fluido com tráfego agregado e não agregado.
+
+Neste observa-se que a simulação de fluido com tráfego agregado é sempre mais vantajosa em termos de número de eventos a serem processados que as demais alternativas, em se tratando de modelos de rede com filas em série (tandem network models).
+
+Taxa de Eventos para Fluxos Agregados e Não Agregados As filas com disciplinas FIFO são bastante afetadas pelo ripple effect.
+
+No entanto este efeito é amenizado quando se usa a disciplina GPS.
+
+De acordo com as características do GPS, há um certo grau de isolamento entre os fluxos, e é justamente isto que o dá uma certa imunidade ao efeito de propagação.
+
+Enquanto no FIFO, uma mudança de taxa de um fluxo de fluido que possua líquido no buffer provoca mudanças de taxas em todos os fluxos que também possuam fluido no buffer, no GPS, uma mudança de taxa, em condição semelhante (mas sem que o buffer esteja cheio), não altera a saída de nenhum fluxo se o fluxo em questão já está usando sua capacidade nominal.
+
+Ou então, altera somente o próprio fluxo se a banda usada for inferior a nominal e os que usavam a sua banda excedende.
+
+Entretanto, contrastando com o benefício do isolamento, está a realocação de banda provinda do GPS, quando fluxos que chegam a taxas maiores que sua banda nominal utilizam a banda excedente de fluxos que não estão utilizando sua banda nominal por completo.
+
+Mas este efeito contrário provoca, em muitos casos, menor efeito de degradação do que os benefícios do efeito de isolamento, fazendo com que a simulação da política GPS seja, em geral, mais rápida que a da FIFO.
+
+Um fator que amplifica esta discrepância em relação ao número de eventos processados é a carga da fila, onde quanto menor a carga, menor o número de eventos processados por uma fila GPS e maior a diferença entre o número de eventos que devem ser processados entre GPS o FIFO.
+
+Os aspectos apresentados na seção anterior demonstram características relativas ao custo computacional da técnica de fluido, no entanto, sabe-se que esta técnica representa uma abstração de mais alto nível em relação às técnicas de modelagem tradicionais, portanto alguns pontos referentes à precisão das medidas de interesse, assim como quais podem ser obtidas, devem ser levados em consideração.
+
+É sabido que para modelar um sistema é necessário que se faça várias simplificações, e que apenas as características mais importantes ou de real interesse devem ser levadas em consideração.
+
+De forma idêntica, os modelos de fluido são concebidos, e são boas aproximações, principalmente quando se trata de situações onde trafegam enormes quantidades de informações discretas.
+
+Nestes casos, onde há muitas partículas, pode-se olhar o sistema sob um ponto de vista mais distante, como se as partículas fossem puntiformes, e considerar-se então, que o sistema possui informação contínua, ao invés de discreta, trafegando pelo seu interior.
+
+Grande parte das medidas de interesse que podem ser obtidas através da simulação de pacotes, também pode ser obtida na simulação de fluido, como por exemplo, tamanho médio da fila, taxa de perda, utilização, capacidade, tempo de resposta, etc.
+
+Medidas como estas podem ser facilmente calculadas se for considerado que o espaçamento entre os pacotes é constante.
+
+O volume médio de fluido em uma fila descreve seu tamanho, o fluido perdido denota os pacotes perdidos e assim por diante.
+
+Entretanto, deve-se lembrar que o tratamento dos dados em forma de fluido pode diferir ligeiramente da realidade.
+
+Como exemplo cita-se o caso onde uma fila está cheia e a taxa de entrada passa a ser idêntica a capacidade de serviço.
+
+Na realidade, e nos modelos de pacotes, pode haver perda, justamente por causa da diferença de espaçamento entre pacotes.
+
+No entanto em um modelo de fluido a perda é zero nesta situação.
+
+Cabe salientar que certas medidas como o jitter, não podem ser obtidas através deste tipo de modelo.
+
+De forma a avaliar o impacto das abstrações na qualidade das medidas de interesse, fez um estudo, baseado em alguns modelos, que demonstrou a potencialidade da técnica.
+
+Este estudo, baseado em fontes e filas-servidoras, sugeriu que na maioria dos casos, a relação custo X benefício é favorável ao uso da técnica de fluido.
+
+O trabalho focou a comparação entre modelos de pacotes e de fluido, em diferentes escalas de tempo.
+
+Escalas x = foram usadas, onde o número médio de pacotes gerados em cada estado on das fontes era definido por aproximadamente 10x.
+
+Para modelos de fluido, mudanças na escala de tempo praticamente não alteram o número de eventos que devem ser tratados, enquanto que na de pacotes este cresce significativamente.
+
+Além disto, para maiores escalas de tempo, onde um número grande de informações é gerado, os modelos de fluido aproximam os de pacotes, e consequentemente as medidas tendem ao mesmo valor.
+
+Apenas para exemplificar, a figura mostra os resultados obtidos no estudo, realizado sobre um modelo de uma única fila alimentada por uma fonte on-off.
+
+O gráfico denota que o erro relativo tende a zero à medida que o tamanho do buffer cresce.
+
+Para escalas de tempo maiores, o erro já é muito pequeno mesmo para buffers pequenos.
+
+Este fato se justifica pois para buffers maiores, existe uma maior quantidade de níveis discretos que aproximam o comportamento ao contínuo, assim como a escala de tempo também contribui nos níveis de discretização, além de que nos buffers maiores ocorrem menos perdas, que também auxiliam na imprecisão das medidas.
+
+Erro Relativo para uma Fila com uma Fonte on-off Conclui que para a maioria dos casos o erro relativo entre os modelos de pacotes e de fluidos é muito pequeno, de até 5%, e que em casos piores, o erro não passa de 13%.
+
+Ainda assim, sabe-se que apenas alguns modelos foram criados, e que outros casos precisam ser analisados antes que se possa afirmar sobre a precisão destas medidas.
+
+Para complementar, o trabalho mostrou ganhos de até 2116 vezes em termos de tempo de simulação, para escalas de tempo x = 1000, que afirmaram a eficácia e o custo X benefício favorável ao uso da técnica de fluido.
+
+É apresentado um modelo de rede ATM, bastante simples, que compara a simulação de pacotes com a de fluido, mostrando a proximidade dos resultados e o enorme ganho em termos de custo computacional.
+
+Este capítulo descreve o funcionamento da simulação de fluido dentro do ambiente de modelagem TANGRAM-II, assim como os recursos implementados ao longo deste trabalho, que possibilitaram a realização deste tipo de simulação.
+
+Em uma simulação tradicional, eventos a serem executados são colocados em uma lista ordenada por tempo.
+
+A simulação progride através da execução dos eventos, onde as ações associadas a estes são realizadas e novos eventos podem ser habilitados.
+
+O intervalo de tempo de um evento, desde o momento em que é habilitado até o seu disparo, é determinado por uma distribuição que é especificada no modelo.
+
+De forma a ilustrar este processo, mostra um modelo bastante simples, com uma fonte on-off e uma fila de serviço exponencial.
+
+Neste modelo tem-se eventos de mudança de estado da fonte, eventos de geração de pacotes e eventos de serviço de pacotes na fila.
+
+No disparo de quaisquer destes eventos, uma rotina de tratamento é executada e novos eventos são escalonados (inseridos no escalonador de eventos do simulador).
+
+O código das rotinas executadas e os eventos inseridos no escalonador definem o comportamento do modelo.
+
+Na simulação de fluido, além dos eventos tradicionais, existem novos eventos relacionados com o comportamento dos fluidos.
+
+Mostra um modelo equivalente ao apresentado acima, onde salienta-se a necessidade da especificação de, por exemplo, eventos como o esvaziamento do buffer e o enchimento deste por completo.
+
+Estes eventos são diferentes dos tradicionais e são definidos por equações matemáticas, como demonstrado no capítulo 3.
+
+Para o escalonamento destes eventos faz-se necessária uma monitoração do nível de fluido do buffer e previsões de tempo de disparo para quando o nível do fluido atingir certos valores.
+
+Objetivou-se neste trabalho, a construção de recursos que possibilitassem a manipulação destes eventos de fluido, de forma genérica e transparente para os usuários.
+
+Mesmo sendo perfeitamente possível a implementação de mecanismos que descrevem por completo o comportamento dos objetos de fluido apresentados no capítulo anterior de forma direta no código do simulador, optou-se pela criação de um paradigma genérico e de recursos que formassem uma base para a implementação de tais objetos.
+
+Ou seja, em vez de implementar toda a funcionalidade das equações de fluido para um subconjunto de objetos internamente ao simulador, optou-se pela implementação de um conjunto genérico de funcionalidades, onde apenas o tratamento de eventos de fluido está embutido no simulador, de forma a prover suporte à criação de modelos de fluido complexos.
+
+Assim sendo, parte das funcionalidades dos objetos de fluido ficara fora do código do simulador, encontrando-se dentro do código dos modelos, de forma a prover flexibilidade e poder, uma vez que, por exemplo, novas disciplinas de atendimento e gerenciamento de espaço podem ser implementadas apenas com modificações no código dos objetos.
+
+O paradigma genérico que serve de base para a construção dos modelos de fluido utiliza a idéia de representar os reservatórios de fluido através de recompensas.
+
+Desta forma, recompensas acumulam valores que indicam o volume de fluido armazenado em um determinado recipiente.
+
+No final do capítulo 2 há um exemplo onde um buffer é definido através de uma recompensa de impulso.
+
+Nele, a recompensa chamada buffer é definida de forma a receber uma unidade a cada pacote gerado e perder uma unidade a cada pacote servido.
+
+Também são especificados limites.
+
+Com estas características sabe-se que um buffer infinito é modelado com exatidão.
+
+Entretanto, a simulação de fluido manipula a informação de forma contínua, o que sugere a utilização de recompensas de taxa.
+
+Assim sendo, os valores instantâneos IR, definem o quanto de fluido vai ser acumulado por unidade de tempo.
+
+Valores positivos fazem com que o buffer cresça em volume e valores negativos fazem com que diminua em volume.
+
+Da mesma forma, os limites precisam ser especificados, ou seja, para a modelagem de um buffer de tamanho finito, especificam-se limites.
+
+Através do uso destas recompensas de taxa acumuladas, pode-se modelar os recipientes de fluido, necessários para a construção dos objetos descritos no capítulo anterior.
+
+Outro princípio importante para o paradigma é a definição de que as mensagens da ferramenta, devem transportar valores de taxas de fluxos de fluido, e a troca de mensagens, passa a representar mudanças nessas taxas.
+
+Assim sendo, uma mensagem enviada de um componente de rede A para outro B, especifica o quanto de fluido passa a escoar por unidade de tempo de A para B a partir do recebimento da mensagem.
+
+Com o uso das recompensas de taxa acumulada para a descrição dos recipientes de fluido e o uso das mensagens para a notificação de mudanças de taxa, tem-se a base genérica para a implementação de objetos de simulação de fluido.
+
+Entretanto, a ferramenta TANGRAM-II, do modo como estava concebida, não suportava o uso do paradigma criado, nem possuía recursos que possibilitassem a implementação dos objetos de fluido em questão.
+
+Logo, havia a necessidade de incorporação de novos recursos.
+
+A descrição destes, bem como a dos problemas encontrados, compõem o restante deste capítulo.
+
+De acordo com os princípios de funcionamento e com a necessidade de representar os componentes de rede apresentados no capítulo 3, surgiu a necessidade de criação e implementação de diversos recursos no módulo de simulação da ferramenta.
+
+Estes recursos formam a base genérica para a criação de modelos de fluido e implementam diversas funcionalidades dentre as especificadas pelas equações.
+
+Em paralelo ao desenvolvimento dos recursos genéricos, os objetos de fluido foram trabalhados, de forma que implementassem as funcionalidades restantes, peculiares aos objetos.
+
+Ambas as implementações, internas ao simulador e o desenvolvimento dos objetos, são apresentadas a seguir e, sempre que possível, ilustradas com exemplos.
+
+A primeira modificação ocorreu na estrutura da mensagem para que esta pudesse transportar um valor contínuo.
+
+Como dito, o módulo de simulação do TANGRAM é implementado em C++, portanto a modificação em questão fez com que a mensagem passe a carregar variáveis do tipo double ou integer.
+
+Assim sendo, a ferramenta ficou apta para o transporte das taxas de fluidos e com esta modificação as fontes de tráfego puderam ser modeladas em sua plenitude.
+
+Mostra uma fonte de fluido On-Off.
+
+Modelo de Fonte On-Off de Fluido no Ambiente de Modelagem Neste objeto, chamado fluid_on_off, existe apenas 1 variável de estado, status, que indica o estado da fonte.
+
+Dois eventos foram especificados, On_Off que desliga a fonte e Off_On que a liga.
+
+Na ação destes eventos é enviada uma mensagem através da porta de saída denominada port_out e é executado o comando set_st que atualiza a variável de estado status.
+
+A mensagem enviada carrega em seu corpo o novo valor de transmissão.
+
+Outras fontes são descritas no próximo capítulo e também podem ser encontradas no apêndice B.
+
+Até então, os valores instantâneos acumulados por uma recompensa eram definidos no momento em que a própria recompensa era definida, dentro do atributo Rewards, através dos pares condição / valor, tal qual como descrito na seção.
+
+No entanto, para representar os recipientes de fluido, os valores instantâneos precisam reagir de acordo com as mudanças de taxas dos fluidos que chegam ao recipiente.
+
+Como as mudanças de taxa acontecem durante o processo de simulação, e os valores instantâneos são calculados a partir dos novos valores das taxas, houve a necessidade de criação de comandos que definem novos valores instantâneos para as recompensas que representam os recipientes.
+
+A partir desta necessidade, foram criados 3 comandos, get_ir, efetua a leitura do valor instantâneo IR da recompensa especificada como argumento.
+
+Set_ir quando executado, define um novo valor IR para a recompensa especificada, desabilitando a associação automática condição / valor.
+
+Antes do uso deste comando, os valores instantâneos eram definidos pelo par condição / valor, onde IR = valor se condição for verdadeira.
+
+Após o uso do set_ir, o valor instanâneo da recompensa fica valendo indefinidamente, pois o mecanismo de associação automática se mantém desabilitado.
+
+O valor instantâneo só pode ser mudado através do uso de uma nova chamada de set_ir ou através de unset_ir.
+
+Unset_ir habilita a associação automática da recompensa especificada, fazendo com que o valor de IR passe a ser calculado automaticamente de acordo com os pares condição / valor especificados para a recompensa.
+
+Estes comandos foram criados para o uso exclusivo do simulador e podem ser executados de qualquer lugar do código da ação de eventos ou mensagens.
+
+O exemplo a seguir mostra o uso dos comandos, toma-se como base que um objeto de fluido receba uma mensagem notificando mudança de taxa da fonte para 12Mb/s.
+
+Sendo a capacidade de serviço do objeto em questão igual a 10Mb/s, o recipiente deve acumular 2Mb/s.
+
+Dando ênfase apenas aos comandos aqui apresentados, e supondo Mega bits por segundo como unidade de informação, a linha de comando A especifica o novo valor IR da recompensa recipiente.
+
+Os comandos B e C são meramente ilustrativos, e neste exemplo, a variável valor recebe 2 na linha B e em C o mecanismo de associação automática volta a vigorar novamente.
+
+Nota, os comandos set_ir, unset_ir e set_cr têm comportamento semelhante ao das variáveis de estado, em relação ao tempo.
+
+Como citado anteriormente, no capítulo 2, o valor de uma variável de estado só é atualizado ao final do código da ação, já que este instante de finalização caracteriza a mudança de estado.
+
+No caso dos comandos supracitados, mesmo sendo permitida sua utilização em qualquer parte do código, seu efeito em se tratando de atualização de recompensas, somente será notado ao final da execução do código da ação.
+
+Desta forma, qualquer mudança proveniente destes comandos somente terá efeito no cálculo das recompensas do estado seguinte.
+
+Cabe salientar que se estes comandos forem utilizados de forma replicada no código, prevalecerá o efeito do último comando executado.
+
+A ferramenta dispunha de várias distribuições, com o qual pode-se especificar diversas formas de espaçamento de tempo entre eventos.
+
+No entanto, não existia um mecanismo que pudesse notificar quando o valor acumulado de uma recompensa atingisse um valor específico.
+
+Na verdade, faz-se necessário o monitoramento dos valores acumulados, pois de acordo com a teoria dos fluidos, precisa-se saber quando o nível de fluido do reservatório atinge o valor zero, ou às vezes quando este nível atinge B, representando respectivamente o esvaziamento e enchimento completo do recipiente.
+
+Nestes casos ações devem ser tomadas, como por exemplo, no momento que um reservatório esvazia, a taxa de saída deve ser alterada, recebendo o valor igual ao da taxa do fluxo de entrada.
+
+Com o intuito de inserir este mecanismo na ferramenta, criou-se um pseudo evento denominado REWARD_REACHED.
+
+Este evento especial escalona disparos para o instante em que o valor acumulado CR de uma recompensa alcança um determinado limite.
+
+Foram definidos 2 símbolos, /n e n/ que ao serem usados na condição do evento, definem se o disparo deve ocorrer no momento em que o CR da recompensa alcança um dado valor de baixo para cima ou de cima para baixo.
+
+Os testes são realizados através de sentenças especiais do tipo "get_cr(recompensa) símbolo limite " onde get_cr representa o valor acumulado de recompensa, símbolo é um dos caracteres n/ ou /n e limite representa o valor a ser alcançado.
+
+O cálulo do tempo para o próximo disparo do evento é realizado através da seguinte expressão,onde CR i e IR i representam, respectivamente, o valor acumulado e o valor instantâneo da recompensa especificada na sentença i, assim como L i representa o limite desta sentença e símbolo é o caracter especial que define o sentido por onde o valor limite será alcançado.
+
+A condição do evento REWARD_REACHED suporta a presença de vários testes baseados nos valores acumulados CR das recompensas, através das sentenças especiais "get_cr símbolo limite", além de expressões aritméticas e testes sobre variáveis de estado e constantes, como ocorre nos demais eventos.
+
+No entanto existe uma restrição na qual não é permitido o uso de uma mesma recompensa mais de uma vez na condição de um evento.
+
+Caso exista a necessidade de observação de uma recompensa em diversos pontos, eventos diferentes devem ser criados, de forma que cada um deles possua somente uma sentença especial referenciando a recompensa em questão.
+
+Esta restrição é proveniente da implementação que utiliza uma estrutura de dados agregada ao evento para análise de cada recompensa, onde duas sentenças referenciando a mesma recompensa, causariam estados de inconsistência.
+
+A condição do evento é avaliada em duas etapas, inicialmente todas as sentenças especiais são consideradas verdadeiras e a condição como um todo é analisada.
+
+Se a condição inteira for falsa, nenhum evento é escalonado.
+
+Caso seja verdadeira, o sistema analisa uma a uma as sentenças especiais e extrai o valor mínimo dentre todas elas, escalonando a ocorrência do evento para um tempo futuro, distante do tempo presente de simulação.
+
+Salienta-se que, em certos casos, o evento pode ser escalonado para um tempo infinito, o que em termos práticos, equivale ao não escalonamento.
+
+Outro ponto de observação é o comportamento das sentenças especiais em relação aos operadores lógicos.
+
+Para estas sentenças não existe diferença entre os operadores OU e E, já que inicialmente todas as sentenças especiais são verdadeiras e no passo seguinte todas são analisadas, independentemente do operador.
+
+Tanto na sentença "(get_cr n/ 0) || (get_cr n/ 0)" quanto na "(get_cr(fluido1) n/ 0) && (get_cr n/ 0)", as duas condições seriam analisadas de forma idêntica e o tempo de disparo do evento seria escalonado para o menor tempo de alcance, não importando o operador utilizado.
+
+Mostra um exemplo com uma fila de fluido GPS, onde o evento chamado t 0 está condicionado ao momento em que o valor acumulado de uma das recompensas, fluido1, fluido3, fluido3 alcança o valor 0.
+
+No exemplo, sempre que um dos valores acumulados tocar o limite 0, o evento é disparado e conseqüentemente tem o código de sua ação executado.
+
+Com os recursos implementados até o momento, o regulador de tráfego poderia ser modelado quase que totalmente.
+
+No entanto um único ponto precisava ser resolvido.
+
+No modelo previsto para o regulador, o buffer de fluido inicia completamente cheio, entretanto no TANGRAM-II todas as recompensas acumuladas possuiam inicialmente o valor zero.
+
+Por isso foi criado um mecanismo que permite a inicialização de recompensas acumuladas.
+
+Durante a especificação de uma recompensa, o usuário pode definir o seu valor CR inicial através do prenchimento de cr_init_val.
+
+Mostra o trecho do código do regulador, onde o CR da recompensa que representa o balde de fichas TOKEN_BUCKET é inicializado com o valor 100.
+
+Caso a descrição da recompensa não contenha a atribuição de inicialização, seu valor é automaticamente preenchido com 0.
+
+O modelo completo do regulador encontra-se no apêndice B.
+
+Com o intuito de modelar os nós de rede, que são os componentes mais complexos dentre os estudados, diversos recursos foram projetados e implementados.
+
+O primeiro deles surgiu da necessidade de se armazenar os valores de entrada da fila ~a, onde cada elemento representa a taxa de entrada de um fluxo de fluido.
+
+Foram criadas variáveis de estado do tipo contínuas de forma que os modelos pudessem ter espaço de estados contínuo.
+
+Com este novo recurso o TANGRAM passou a permitir modelagem com espaço de estados discreto e contínuo, ambos em cadeias de tempo discreto.
+
+Também é possível a especificação de vetores de variáveis de estado contínuas, de forma análoga aos vetores de variáveis de estado discretas.
+
+O exemplo mostra mais um fragmento do objeto fila GPS, dando ênfase ao uso do recurso.
+
+A variável afl[] é declarada em A, no atributo Declaration.
+
+Esta deve ser inicializada em Initialization, como apresentado na linha B.
+
+Seu uso efetivo ocorre dentro do atributo Messages, onde ela armazena os valores das taxas de entrada de cada classe de fluido.
+
+Seguindo a filosofia da ferramenta, um vetor local, neste exemplo chamado a, é especificado na linha C.
+
+O conteúdo da variável de estado afl[] pode ser recuperado através do comando get_st encontrado na linha D, que efetua a cópia dos dados de afl[] para a.
+
+Neste ponto, a contém o vetor de entrada que antecede ao recebimento da mensagem que está sendo tratada.
+
+Assim sendo, a deve ser atualizado de acordo com a nova taxa recebida dentro do corpo da mensagem recém chegada.
+
+Em seguida, as taxas de saída podem ser calculadas, tomando-se como base o vetor de entrada a, os pesos das classes e a ocupação do buffer sendo que estes dois últimos estão omitidos no código do exemplo.
+
+Após o cálculo, resta a atualização dos IRs das recompensas e o armazenamento do vetor afl[] que ocorre na linha E.
+
+Além de transportar valores contínuos, fez-se necessário a implementação de mensagens que pudessem transportar vetores, contendo diversas informações numéricas.
+
+A partir desta, possibilitou-se que uma mensagem pudesse transportar um vetor de qualquer tamanho, tanto do tipo inteiro quanto contínuo.
+
+Uma das utilizações deste recurso é a indicação de qual fluido tem sua taxa alterada, onde diversos fluidos distintos são trabalhados em um mesmo objeto, como por exemplo em uma fila GPS.
+
+Neste caso, de forma a indicar quais fluxos de fluido tiveram mudança de taxa, mensagens são enviadas com vetores de duas posições, sendo que a primeira posição indica o número do fluxo de fluido e a segunda a nova taxa de escoamento.
+
+O exemplo enfatiza o uso do recurso.
+
+Dentro do atributo Messages do objeto Server_Queue_GPS, após o cálculo das taxas de saída d, existe um trecho de código responsável por enviar mensagens ao objetos posteriores, com a notificação de mudanças de taxas.
+
+Para isto, um vetor local msg_body é criado em A, em B sua primeira posição é preenchida com o número do fluido que teve alteração de taxa, em C a segunda é preenchida com o novo valor da taxa de saída e por fim, em D uma mensagem contendo estas informações é enviada ao objeto subseqüente.
+
+Por outro lado, o objeto Server_Queue_GPS_2, ao receber a mensagem, lê o conteúdo desta e atualiza o vetor de entrada ~a, em E, F, G, H, para em seguida proceder com suas demais tarefas, onde se encontra a de recalcular as novas taxas de saída do servidor.
+
+Caso houvessem mais objetos após o Server_Queue_GPS_2, o procedimento ocorreria de forma sucessiva, até que não houvesse mais modificações de taxas de saída ou até o último dos objetos.
+
+Este é o efeito de propagação denominado ripple effect.
+
+Após a finalização desta implementação, tornou-se possível a modelagem do objeto fila_servidor_GPS, desde que utilizasse fila infinita ou com a disciplina de gerenciamento de buffer CP.
+
+As funções de roteamento também foram cobertas em sua plenitude com o desenvolvimento deste recurso.
+
+O mais complexo dos recursos elaborados surgiu da necessidade de monitorar e controlar diversas recompensas de forma integrada.
+
+Para isto foi criado um mecanismo que controla a soma dos valores acumulados e instantâneos das recompensas de taxa.
+
+Com o auxílio deste controle tornou-se possível a modelagem por completo do objeto fila_servidor_GPS, utilizando qualquer disciplina de gerenciamento de buffer e com limite superior de tamanho da fila.
+
+O mecanismo de controle implementado na forma de uma recompensa especial, denominada rate_reward_sum, permite a especificação de vários nomes de recompensas de taxa, através da qual irá acumular os valores CR e IR de todas elas.
+
+Além da monitoração destes valores, a rate_reward_sum exerce um efeito de controle sobre as recompensas associadas, no que diz respeito aos limites dos valores acumulados.
+
+Assim como os limites individuais sobre o CR de cada recompensa são respeitados, o limite especificado para a soma das recompensas também é controlado.
+
+A complexidade do mecanismo encontra-se justamente neste ponto.
+
+Para que a soma das recompensas seja condizente com a situação atual de cada recompensa individual, a partir do momento em que esta soma atingir um limite, faz-se necessário um controle refinado sobre a taxa de acumulo de cada uma das recompensas associadas.
+
+A figura exemplifica o uso da recompensa especial no objeto fila_servidor_GPS.
+
+Assim como as recompensas que definem cada fluxo de fluido, a recompensa especial, que representa o montante de fluido total do buffer compartilhado, é especificada dentro do atributo Rewards.
+
+No exemplo, uma soma denominada buffer é especificada para manter o controle sobre outras 3 recompensas, f luido1, f luido2 e f luido3.
+
+A figura mostra dois exemplos simples, que ilustram o funcionamento do mecanismo.
+
+Caso 1, considera-se que os fluidos 1 e 2 possuem IR positivos de forma que a fila de fluido tem seu volume aumentado ao passar do tempo.
+
+Se nenhuma taxa mudar, buffer atingirá B em algum ponto no tempo, o que caracteriza a ocorrência de um evento t B.
+
+A partir deste ponto, aonde o limite da soma foi alcançado, as recompensas devem sofrer uma alteração em seu comportamento, de forma que a soma não ultrapasse o limite pré-estabelecido.
+
+Neste exemplo, os fluidos 1 e 2 apenas param de crescer, indicando que há perda de fluido para ambos os fluxos.
+
+Perda esta que pode ser calculada através da diferença do ângulo de inclinação do CR, entre seu crescimento natural e depois da atuação do mecanismo.
+
+Caso 2, entretando, situações complexas podem aparecer, como no exemplo em que os fluidos A e B têm IR positivos e C possui IR negativo, de forma que a soma seja positiva.
+
+Nesta situação, de forma a manter a soma buffer constante, os fluxos A e B devem sofrer mudanças de taxa de crescimento, já que C deve continuar com a mesma taxa de decréscimo.
+
+Nenhum fluido tem o CR congelado neste exemplo, já que o espaço liberado por C é ocupado pelos demais proporcionalmente a suas taxas de crescimento originais.
+
+Exemplos do Controle dos CRs Baseados na Soma.
+
+Nota-se que existe perda de fluido para os fluidos A e B.
+
+Para que o mecanismo fosse robusto o suficiente de modo a cobrir todos os casos, teve de ser criado um algoritmo que analisa uma a uma as mudanças de taxas de cada fluido individual ou da soma geral.
+
+Basicamente, a soma deve ser atualizada a cada mudança de taxa individual, uma vez que as equações dos fluidos são caracterizadas pelas seguintes equações de primeiro grau,onde, LI i e LS i representam o limite inferior e superior do valor acumulado da recompensa i, e CR i o próprio valor acumulado.
+
+A equação indica que o valor acumulado CR de uma recompensa i deve estar sempre dentro dos limites individuais desta.
+
+Os símbolos CR i e IR i representam o valor acumulado no tempo inicial do intervalo e a recompensa instantânea atual da recompensa i no tempo t.
+
+Esta equação é válida para um intervalo de tempo onde não haja mudança de taxa IR i, neste exemplo, e descreve o comportamento do valor acumulado da recompensa i.
+
+CR soma é o valor acumulado resultante da soma das demais recompensas e a equação indica que o valor acumulado da soma deve estar dentro do intervalo delimitado por seus limites inferior e superior, respectivamente.
+
+Mostra as iterações do algoritmo de atualização das recompensas acumuladas, que atua a cada variação de taxa.
+
+Apresenta a listagem Iterações do Algoritmo de Atualização dos Valores Acumulados do algoritmo em português estruturado, para n recompensas, salientando-se alguns pontos a priori, supondo que a simulação progrediu no tempo, a missão do algoritmo é atualizar os valores acumulados CR i de cada recompensa, bem como o valor acumulado da soma CR soma, entre o último tempo de simulação e o tempo atual de simulação.
+
+Quando o valor de uma recompensa CR i encontra-se dentro de seus limites, sua taxa de atualização é idêntica ao seu valor instantâneo IR i.
+
+No entanto, caso haja a necessidade de um desvio de crescimento para que o CR soma não extrapole os limites, o valor instantâneo de cada recompensa IR i será modificado, podendo variar entre 0 e seu IR i nominal.
+
+A este IR i modificado, dá-se o nome IRvirtual i.
+
+Este IRvirtual i é o valor instantâneo que efetivamente está sendo utilizado para a atualização da recompensa acumulada CR i, levando em consideração todos as demais recompensas envolvidas na soma, seus limites e o valor acumulado da própria soma e seus limites, de forma que nenhum dos valores acumulados extrapole seus limites.
+
+Para recompensas que não estão associadas a nenhuma soma, a atualização do CR i pode ter o comportamento de uma reta, caso em que o CR i esteja dentro de seus limites, ou de duas retas, com apenas um ponto de quebra, justamente no ponto onde o limite foi alcançado.
+
+Para as recompensas associadas e suas somas, podem haver n quebras.
+
+Cabe ressaltar que existe uma limitação na implementação, que proíbe a inclusão de uma mesma recompensa em mais de uma soma, portanto, uma recompensa de taxa, pode estar sob o controle de uma única soma, onde a inclinação de seu CR pode mudar por causa de mudanças em qualquer IR de recompensas pertencentes a soma, ou qualquer limite individual seja alcançado, ou ainda, no caso de o limite da própria soma ser atingido.
+
+Obviamente, também existe a possibilidade da recompensa ser livre de qualquer controle, de forma que somente suas mudanças de IR ou limites individuais possam alterar a inclinação de seu CR.
+
+A partir do momento que a soma foi implementada, criou-se o comando get_cr_ sum de forma que pudesse ser usado, dentro da ação dos atributos Messages e Events, para ler o valor acumulado CR da soma de recompensas.
+
+Adaptou-se também, o evento especial REWARD_REACHED para que este pudesse disparar quando o valor acumulado da soma de recompensas atinge algum limite, de forma análoga a utilizada para as recompensas de taxa.
+
+Mostra o evento t B, no objeto Server_Queue_GPS, cuja condição prepara o disparo, atualize o valor acumulado entre ut e tempo de todas as recompensas que não estão atreladas a uma soma, levando em consideração seu IR e seus limites.
+
+Para cada soma de recompensas veja se a soma alcançou algum limite.
+
+Caso negativo, faça para cada recompensa IRvirtual = IR.
+
+Caso positivo, calcule para cada recompensa o IRvirtual baseado em que a soma dos IRvirtuais deve ser nula.
+
+Cada valor IR que se opor ao sentido da soma deve ser distribuído para os IRvirtuais no sentido da soma, em proporção a seu tamanho IR nominal.
+
+Analize cada recompensa pertencente a soma entre ut e tempo levando em consideração seus valores IR e limites.
+
+Pegue a soma dos CR e IRvirtuais, assim como o menor ponto de quebra de taxa dentre elas.
+
+Baseado na soma dos CR e IRvirtuais, calcule o comportamento da soma entre ut e tempo e veja se esta extrapola algum limite, e em qual tempo isto aconteceria.
+
+Pegue o menor dos tempos, caso o menor valor seja tempo, atualize todas as recompensas da soma, inclusive ela, entre ut e tempo e vá para o passo 7.
+
+Caso o menor tempo seja tquebra4, atualize todas as recompensas da soma, inclusive a soma, entre ut e tquebra4.
+
+Faça ut=tquebra4 e vá para o passo 2.
+
+Caso o menor tempo seja tquebra5, atualize todas as recompensas da soma, inclusive a soma, entre ut e tquebra5.
+
+Faça ut=tquebra5 e vá para o passo 2.
+
+Fim de atualização.
+
+Algoritmo de Atualização de Recompensas para o momento em que o buffer compartilhado encher por completo.
+
+Soma de Recompensas na Condição de Evento Especial A restrição do evento especial, onde uma mesma recompensa não pode ser utilizada mais de uma vez na mesma condição, é também estendida à soma de recompensas.
+
+Portanto, uma recompensa não pode estar na mesma condição onde sua soma é analisada.
+
+Os recursos até então implementados permitiam a modelagem da maior parte dos objetos descritos no capítulo 3, faltando a implementação da fila FIFO e do canal de comunicação.
+
+Estes elementos possuem características peculiares onde certas variáveis possuem tamanho variável.
+
+Como exemplo cita-se que a fila FIFO precisa armazenar blocos de fluido, de acordo com mudanças de taxas de entrada (cada mudança de taxa requer o armazenamento de um novo bloco).
+
+Estas taxas, em geral, variam de forma aleatória, tornando impossível prever em tempo de modelagem, quantos blocos precisam ser armazenados.
+
+Para solucionar este problema, foram criadas variáveis de estado com capacidade de alocação dinâmica durante a execução da simulação.
+
+As variáveis de estado, denominadas IntegerQueue e FloatQueue são capazes de enfileirar quantos elementos forem necessários, dinamicamente.
+
+Mostra trechos do código de um objeto Fila_Servidor_FIFO, onde é necessário o uso de uma variável de estado de tamanho variável para o armazenamento dos blocos.
+
+No exemplo, que possui 3 classes de fluidos, é necessário que cada bloco guarde 4 informações, as taxas de saída de cada fluido para aquele bloco e o tempo necessário para que elas entrem em vigor.
+
+O seu uso pode ser observado na linha A, onde a variável bloco do tipo FloatQueue é declarada com dimensão 4 e em B onde ela é inicializada.
+
+Do ponto de vista de leitura e escrita, estas variáveis dinâmicas se comportam de forma idêntica às variáveis de estado estáticas.
+
+Ou seja, as variáveis podem ser lidas com a função get_st e atualizadas com set_st.
+
+Nestas operações, o vetor acessado é denominado vetor de trabalho trab.
+
+Mostra a estrutura de dados da variável de estado de tamanho variável e permite a observação do vetor de trabalho.
+
+Variável de Estado Dinâmica na Fila FIFO O dinamismo se dá, pela capacidade que elas possuem de enfileirar e desenfileirar vetores de igual tamanho e tipo de sua declaração (o próprio vetor interno trab ou algum vetor declarado dentro do código da ação desde que satisfaça a condição).
+
+Através dos comandos save_at_head, save_at_tail, restore_from_head e restore_from_tail o vetor trab é posto ou retirado da fila, em sua cabeça ou cauda.
+
+Também é permitido a inserção de um vetor local diretamente na cauda ou cabeça da fila, desde que seja do mesmo tamanho e tipo do vetor trab.
+
+Estrutura de Dados da Variável de Estado de Tamanho Variável A linha D, situada ao final do atributo Messages, apresentado na figura mostra justamente o exemplo onde o conteúdo do vetor local prox_bloco é enfileirado na cauda da variável de estado dinâmica bloco.
+
+No exemplo, a cada mudança de taxa de entrada é armazenado um novo bloco que guarda em seu conteúdo as taxas de saída proporcionais àquele período e uma informação de tempo que indica quando estas entrarão em vigor.
+
+De forma análoga, é permitida a retirada de um vetor alocado na fila, de maneira que seus dados sejam copiados diretamente para um vetor local, desde que este tenha o mesmo tamanho e tipo do vetor trab.
+
+Após a cópia o vetor é removido da fila, fazendo com que esta diminua em tamanho.
+
+A lista completa que mostra a sintaxe dos comandos pode ser encontrada no manual da ferramenta.
+
+Tendo em vista que este trabalho tem como base o uso de modelos de estado contínuo, é necessário que alguns comentários sejam feitos a respeito.
+
+O primeiro ponto a ser esclarecido refere-se a forma com que a informação é tratada dentro do computador, que mesmo sendo intrinsecamente discreta, pode ser considerada contínua devido a sua granularidade.
+
+Os números são representados por variáveis com milhares de níveis de discretização e podem ser considerados na prática, contínuos.
+
+Esta discretização intrínseca aos computadores dá origem a erros de cálculo numérico computacional.
+
+Estes erros foram responsáveis por grande parte dos problemas enfrentados durante este trabalho de tese.
+
+Os computadores digitais só conseguem armazenar números de forma discreta, portanto, para que os números reais sejam representados deve haver uma aproximação para o número discreto mais próximo do real em questão.
+
+Problemas mais graves ocorrem quando operações entre estes números são realizadas.
+
+Em muitos casos, as operações fazem com que o número perca precisão, justamente por causa das aproximações que devem ser feitas, já que o resultado da operação é armazenado em uma variável com número limitado de bits.
+
+Estes problemas são apresentados em.
+
+Esta característica faz com que números reais armazenados no computador não possam ser comparados diretamente.
+
+A solução para este problema é usar intervalos de comparação.
+
+Um número x é considerado igual à outro y se diferir no máximo do valor de y.
+
+Onde é um valor bastante pequeno, da ordem de 10 6 ou menor.
+
+Este valor ínfimo deve ser suficientemente grande para evitar os erros de precisão númerica e pequeno o bastante para não alterar de forma significativa o resultado das simulações.
+
+No TANGRAM-II, usou-se 2 números, x_epsilon e y_epsilon, para comparações nos eixos das abscissas e ordenadas, respectivamente.
+
+Valores de tempo são associados ao eixo x e valores de recompensas ao eixo y.
+
+Nos testes realizados durante a implementação usou-se 10 10, que se mostrou um valor seguro, para ambas as variáveis.
+
+Além disto, estes números também são a base do sistema de aproximações implementado.
+
+O sistema de aproximações atrai valores muito próximos para determinados valores, como por exemplo os limites de um valor acumulado, atuando de forma similar à força da gravidade.
+
+Exemplifica o sistema de aproximações.
+
+Em A um ponto é atraído para o limite zero no eixo y e para o tempo t no eixo x, fazendo com que sejam minimizados os erros de precisão numérica.
+
+Em B, há uma amostra, representada pela linha tracejada, do que poderia acontecer com um valor acumulado se não houvesse aproximação e do que ocorre com o sistema de aproximações atuando.
+
+Sistema de Aproximações Utilizado no Simulador de Fluido antes da implementação do sistema de aproximações e da comparação em intervalos, enfrentava-se o seguinte problema, o cálculo para o tempo de disparo de um evento REWARD_REACHED é realizado de acordo com a equação.
+
+Suponha que o valor calculado (para que CR alcance 0) seja um número com muitos dígitos significativos após a vírgula, como por exemplo, 2,5069076059.
+
+Imaginando-se que no disparo do evento, o tempo de simulação fosse também um número com muitos dígitos significativos após a vírgula, como 12,5069076059, a atualização das recompensas não encontraria o valor exato CR = 0, por causa dos erros de precisão numérica.
+
+Em determinadas situações, o valor CR permaneceria acima do limite L = 0 e um novo cálculo então seria acionado.
+
+Neste, também por causa da imprecisão, receberia o valor zero, e a simulação entraria em um laço infinito onde o tempo não mais progrediria.
+
+Da análise e correção deste problema surgiram dois mecanismos, um detector de falta de progressão de simulação, e o mecanismo de atualização de recompensas com valores pré-definidos.
+
+O detector monitora o tempo de simulação e inicia uma contagem do número de disparos de eventos especiais, assim como dos demais eventos, toda vez que o tempo de simulação não progride.
+
+É perfeitamente possível, que ocorram diversos eventos em um mesmo tempo de simulação, no entanto pouco provável que isto ocorra por um número elevado de vezes.
+
+Se uma das duas contagens, de eventos especiais ou normais, ultrapassar este valor, o simulador imprime uma mensagem de aviso para o usuário indicando que algo pode estar errado, e que provavelmente o simulador está em laço infinito.
+
+A mensagem se repete em cada múltiplo do número, e cabe ao usuário cancelar a simulação.
+
+Além do sistema detector de laço infinito, foi criado um mecanismo de atualização de recompensas com valores pré-definidos.
+
+Quando um valor é calculado, o sistema armazena o limite alcançado e qual recompensa será responsável pelo disparo do evento especial (por exemplo a recompensa fluido1 alcançando o limite 0, neste caso o mecanismo armazenaria a recompensa fluido1 e o valor 0).
+
+No disparo de fato do evento, o mecanismo é acionado e utiliza os valores pré-definidos para atualizar o valor exato da recompensa.
+
+Desta forma, o processo de cálculo do CR que pode inserir erros de precisão é dispensando, com isto tem-se uma melhora na precisão do resultado.
+
+Tanto o mecanismo de atualização de recompensas com valores pré-definidos como o detector de falta de progressão, coexistem com a comparação em intervalos e o sistema de aproximações apresentados na subseção anterior.
+
+Inclusive, a atração em relação ao eixo x só ocorre por causa da existência do mecanismo de atualização de recompensas com valores pré-definidos.
+
+Apresenta um exemplo onde um evento especial possui 2 recompensas em sua condição "(get_cr /n B) || (get_cr n/ 0) ", e ambas alcançam seus limites em tempos muito próximos t e t 0.
+
+O sistema de aproximações unifica ambos os tempos em t ou t 0 (o que for encontrado primeiro durante a avaliação da condição do evento) e armazena os valores dos limites, um para cada recompensa.
+
+Num deles será armazenado, z e B enquanto no outro w e 0.
+
+Quando o evento disparar, no momento da atualização das recompensas, estas duas serão poupadas do cálculo tradicional e seus valores acumulados serão atualizados de acordo com os valores previamente armazenados.
+
+Atualização de Recompensas e Aproximação no Eixo das Abcissas Mesmo depois da criação dos mecanismos acima descritos, ainda foram encontrados problemas.
+
+Ilustra uma situação onde um evento especial não dispara.
+
+Supondo-se uma recompensa w predestinada a alcançar seu limite B no tempo t.
+
+No entanto, assume-se que um evento dispara num tempo e menor que t x_epsilon.
+
+Durante a atualização das recompensas neste tempo e, é perfeitamente possível que em vez de calcular o ponto p, para a recompensa acumulada de w, o sistema calcule um valor próximo, como por exemplo z, dado que existem erros de precisão numérica.
+
+Nestas condições, o sistema de aproximações age, atraindo o valor acumulado de w para seu limite B.
+
+Deste modo, o disparo do evento w deixaria de acontecer, já que este alcançou seu limite e na avaliação da sua condição, receberia 1.
+
+Problema de Falha de Evento Especial De modo a evitar este tipo de problema, foi criado um mecanismo que garante a ocorrência de um evento especial se porventura, a recompensa que prederminou seu tempo de toque alcance o valor limite durante a atualização das recompensas ocasionada por um disparo de outro evento.
+
+Neste mecanismo, são monitoradas todas as recompensas utilizadas em condições de eventos especiais.
+
+Durante o processo de atualização das recompensas, é feita uma verificação que indica se alguma recompensa alcançou um limite especificado em alguma condição.
+
+Se algum destes limites foi alcançado, e sabendo-se que o evento está escalonado num tempo muito próximo à frente, a única ação que precisa ser tomada, é o cancelamento do processo de avaliação da condição deste evento, evitando que este possa ser desescalonado.
+
+Assim existe a garantia de que o evento ocorrerá em seu devido tempo.
+
+Cabe salientar, que os eventos especiais só tem suas condições avaliadas, quando alguma característica em sua condição é alterada, como por exemplo, uma mudança de estado ou uma mudança de IR de alguma recompensa que faz parte de sua condição.
+
+Além disto, esta avaliação só ocorre caso o mecanismo não tenha identificado que o evento deva ocorrer em virtude de que alguma condição tenha sido satisfeita durante o processo de atualização de recompensas.
+
+As condições dos eventos especiais REWARD_REACHED são analisadas no tempo presente de simulação t e antevêem o futuro de forma a identificar quando os valores acumulados alcançam algum dos limites.
+
+No entanto, quando o recurso de monitoração de soma de recompensas foi implementado, surgiram problemas de inconsistência com este mecanismo de previsão.
+
+Exemplifica o caso onde um evento é escalonado para o tempo t 0 por possuir em sua condição a seguinte sentença "get_cr /n LS1 ".
+
+Entretanto, neste exemplo o f luido1 pertence a soma de recompensas buffer e num dado momento, tem seu comportamento alterado por causa da soma, de forma a não mais tocar seu limite LS1 no tempo t 0.
+
+Com isto o evento previamente escalonado para t 0 estaria incorreto.
+
+Para resolver este problema o algoritmo descrito teve de ser incluído no processo de cálculo do tempo de disparo.
+
+Os eventos que fazem parte de uma soma de recompensas passaram a não mais analisar o comportamento de um CR isoladamente, mas de todo o conjunto de recompensas associadas a esta soma.
+
+Problema de Escalonamento Inválido Além disto, pensou-se numa lógica onde os eventos escalonados erroneamente pudessem ser ignorados, evitando inconsistências na simulação.
+
+O mecanismo implementado escalona o disparo do evento, obtendo o menor dos tempos calculados de acordo com as seguintes regras 1 Tempo em que o CR do fluido analisado irá tocar seu limite.
+
+Este cálculo é feito de forma isolada, como se só existisse este fluido.
+
+O menor tempo de mudanças de taxas de acúmulo dentre todas as recompensas envolvidas na soma.
+
+Se o menor tempo não for o calculado pela regra 1, tem-se uma inconsistência.
+
+Portanto o evento deve ser ignorado no momento em que seu tempo de disparo for atingido.
+
+Para facilitar este trabalho, é utilizada uma variável indicadora de inconsistência.
+
+No tempo de disparo, ao identificar a inconsistência do evento através da variável indicadora, o simulador simplesmente ignora toda e qualquer ação que deveria tomar em condições normais, apenas sendo responsável pelo reescalonamento deste evento especial.
+
+Deste modo, alguns eventos escalonados no simulador do TANGRAM-II podem ser falsos.
+
+Mostra a evolução do simulador de fluido no tempo, onde coexistem eventos verdadeiros e falsos.
+
+Linha do Tempo para o Simulador de Fluido Esta opção foi escolhida em prol de ganho de velocidade.
+
+A solução mais natural, seria fazer toda a análise do comportamento futuro de um valor acumulador CR e escalonar o evento, em cuja condição está definido o limite de alcance da recompensa em questão, para o tempo correto de alcance, levando em consideração todas as recompensas envolvidas, de modo que não existissem eventos falsos.
+
+Nesta solução, todas as mudanças de taxas seriam analisadas entre o tempo atual de simulação e o provável tempo onde a recompensa alcançaria algum limite.
+
+No entanto, diversas vezes, eventos deste tipo são reescalonados por causa de mudanças de taxas de entrada, fazendo assim com que o tempo de processamento gasto para tal cálculo fosse totalmente perdido.
+
+Na solução apresentada, apenas o tempo mínimo dentre todas as mudanças de IR é obtido e sendo o evento escalonado para este, a simulação progride com garantia de que nada está inconstente.
+
+Se durante o processo alguma taxa de entrada de fluido mudar, o evento deve ser reescalonado, e a perda de processamento é mínima.
+
+Se nada alterar o comportamento das taxas IR das recompensas associadas ao evento e este ocorrer no tempo indicado, o simulador irá saltá-lo, apenas com o trabalho de fazer um novo escalonamento para este evento.
+
+Podem haver casos onde um seqüencia de eventos falsos pode ocorrer, já que num evento falso, a nova avaliação pode incorrer em um novo evento falso, e assim por diante.
+
+Diversos problemas, em diferentes níveis, foram enfrentados durante a implementação deste trabalho, incluindo os erros supracitados de precisão númerica e complexidade dos recursos criados.
+
+No entanto obteve-se uma implementação que proporciona a coexistência de simuladores de técnicas distintas em um único módulo, de forma transparente para o usuário.
+
+Sabe-se que esta característica pode prover vantagens sequer exploradas neste trabalho, como a criação de modelos híbridos, onde parte da informação é tratada como fluido e outra como elementos discretos, de modo que se possa usar cada técnica onde esta for mais conveniente e/ou mais rápida.
+
+Este tipo de modelo pode ser construído com o uso de objetos conversores fluido-pacotes e pacotes-fluido, que são elementos bastante simples de serem implementados.
+
+Assim sendo, acredita-se que o TANGRAM-II, tenha se fortalecido ainda mais como uma ferramenta de apoio à engenharia de redes, permitindo a criação e avaliação de modelos de forma facilitada e com diversas possibilidades de resolução.
+
+Um pouco mais deste potencial é mostrado no capítulo seguinte, onde são apresentados alguns dos modelos criados.
+
+Durante este trabalho de tese foram criados diversos modelos com objetivos de validar os recursos implementados, verificar os ganhos da técnica de fluido e mostrar o potencial da ferramenta.
+
+Neste capítulo são apresentados alguns destes exemplos, sub divididos por seus objetivos.
+
+Uma das formas de validar os recursos e modelos implementados no simulador de fluido do TANGRAM-II, foi a comparação de resultados com outro simulador de fluido.
+
+Para tal tarefa, utilizou-se o NetSimul, brevemente descrito a seguir.
+
+Diversos modelos foram simulados em ambos os simuladores e o critério utilizado para verificação foi a comparação dos valores das medidas de interesse para os modelos análogos.
+
+Além disto, alguns modelos mais simples, foram comparados com suas resoluções analíticas, donde algumas foram calculadas através do próprio TANGRAMII.
+
+Estas comparações provêm uma base ótima de comparação, justamente porque os valores das medidas de interesse dados pelo simulador são comparados com sua medida exata, calculada analiticamente.
+
+O NetSimul foi desenvolvido no departamento de ciências da computação da universidade UMASS nos Estados Unidos, e está disponível na internet.
+
+A ferramenta consiste em dois simuladores simples e independentes, um de pacotes e outro de fluido.
+
+Estes, criados para simular redes de computadores, possuem diversos componentes, tais como fontes, canais, roteadores e filas.
+
+Os modelos são especificados através da linguagem de programação C, onde se faz o uso dos objetos previamente construídos.
+
+Os simuladores foram construídos sobre o framework SSF, que reúne um conjunto de recursos para construção de simuladores, inclusive com possibilidade de programação paralela.
+
+Segundo os autores, o simulador foi amplamente testado e validado, através de resultados analíticos e de comparações com o simulador de redes mais utilizado pelo meio acadêmico, o NS desenvolvido pela universidade de Berkeley.
+
+Inclusive, deste trabalho de validação surgiu um relatório técnico que indicara um erro de implementação na fonte on-off do NS.
+
+O primeiro exemplo apresentado possui 3 fontes do tipo on-off onde cada capacidade de serviço correponde a uma utilização específica, respectivamente.
+
+Mostra o diagrama dos modelos.
+
+A única diferença do segundo exemplo em relação ao primeiro é a disciplina de atendimento da fila, que passa a ser FIFO.
+
+Salienta-se que sendo ambas as disciplinas conservadoras de trabalho e tendo os modelos os mesmos parâmetros, os valores médios das filas devem ser iguais, fato este que pode ser comprovado nos experimentos.
+
+Mostram os resultados obtidos nas simulações com as duas ferramentas, o TangramII e o NetSimul.
+
+Elas mostram o valor médio da fila e o intervalo de confiança calculado em 95%, para as diferentes cargas.
+
+Para a obtenção dos resultados foram efetuadas 10 rodadas de simulação para o tempo 100000 unidades.
+
+Apesar de não provar que o funcionamento do simulador de fluido do TANGRAMII é correto, os resultados encontrados validam a implementação, por apresentarem um comportamento muito semelhante.
+
+A medida de volume médio do buffer é um bom indicador, pois envolve muitas variáveis, onde salienta-se o comportamento da fonte, a manipulação das taxas de entrada da fila, o cálculo das taxas de saída para cada fluxo e a própria manipulação do recipiente que acumula os fluidos.
+
+Nos valores apresentados, observa-se a grande proximidade dos valores, e que estes encontram-se dentro dos intervalos de confiança, essenciais neste tipo de comparações.
+
+De acordo com os resultados, nota-se que o simulador de fluido do TANGRAM-II, para este exemplo particular, é aproximadamente 22 vezes mais lento que o NETSIMUL.
+
+Isso é facilmente explicável pelo fato de o TANGRAM-II ter sido concebido com objetivo de prover flexibilidade e facilidade para o usuário, além de possuir um código fonte com alta legibilidade.
+
+Com estes objetivos, há um detrimento em relação à eficiência do simulador.
+
+A diferença de desempenho entre os simuladores não está relacionada com a simulação de fluido e sim com os mecanismos de funcionamento internos ao TANGRAM-II.
+
+Ainda assim cabe salientar que os modelos do NETSIMUL executados nesta comparação são extremamente rudimentares, sequer mostram os valores médios de cada fluxo de fluido dentro da fila, não calculam perdas, não geram traces e não foram construídos de forma a serem simulados em diversas rodadas.
+
+Logo os valores médios e o intervalo de confiança foram calculados manualmente.
+
+As facilidades adicionais do TANGRAM-II em relação ao NETSIMUL também explicam em parte o maior tempo de execução.
+
+O TANGRAM-II tem todo um aparato de auxílio a modelagem, que começa desde a facilidade de modelagem propiciada por sua interface gráfica TGIF, especificação das medidas de interesse de forma objetiva e simples, possibilidade de geração automática de traces, além das facilidades que a interface da ferramenta proporciona.
+
+Além disto, os modelos executados acima são genéricos e possuem diversas recompensas, que a rigor não seriam necessárias para estes exemplos específicos.
+
+Como nestes modelos o tamanho do buffer é ilimitado, não haveria necessidade do uso da facilidade que fornece a soma de recompensas, muito menos de recompensas para armazenamento das perdas.
+
+Algumas destas características, que indicam o poder e facilidade de uso da ferramenta são apresentadas no final deste capítulo.
+
+De forma a executar um teste mais abrangente, foi criado um modelo mais complexo que possui filas em série.
+
+O modelo é análogo ao apresentado, e possui as seguintes características, nove fontes on-off idênticas de parâmetros = 1, = 0, 5 e = 300 (on-off / off-on / taxa de transmissão).
+
+Quatro filas-servidor GPS de parâmetros B = 1, 1 = 2 = 3 = 1 3 e C = 315,7895 (O valor de serviço tem como base uma utilização de 95% para a fila 1).
+
+Quatro canais de comunicação com delay = 0,1 e quatro comsumidores, responsáveis pela absorção do tráfego.
+
+Mostra a arquitetura do modelo.
+
+O tráfego gerado pela fonte 1 flui através de todas as filas e canais até ser consumido pelo consumidor 4.
+
+Além deste tráfego, denominado tráfego de interesse, cada fila recebe outras duas classes, cada uma alimentada por sua fonte.
+
+O fluxo destas 2 fontes extras, é imediatamente enviado para um consumidor, de forma que cada fila trabalhe com 3 fluxos de fluido.
+
+Este modelo foi simulado no Tangram-II, enquanto sua contrapartida foi executada no NetSimul.
+
+Foram realizadas 10 rodadas de 100000 unidades de tempo para a obtenção das medidas de interesse.
+
+O resultado em termos de valor médio das filas é apresentado.
+
+Tangram-II X NetSimul, Média das Filas em Série.
+
+O simulador de fluido do Tangram-II manteve a mesma consistência apresentada em todas as demais comparações, estando os valores médios muito próximos aos encontrados pelo NetSimul e sempre havendo interseções nos intervalos de confiança.
+
+Além da comparação de resultados com outro simulador de fluido, alguns exemplos foram elaborados, de forma que seus resultados pudessem ser comparados com o resultado exato obtido através de solução analítica.
+
+Um destes exemplos, cuja solução analítica foi obtida através da própria ferramenta, é detalhado na próxima seção.
+
+Um dos modelos criados, é composto de uma fonte do tipo histograma e uma fila, ambos modelados em um único objeto.
+
+A fonte histograma fora obtida a partir de um trace de vídeo de uma partida de futebol, disponibilizado em.
+
+Esta seqüência está codificada em MPEG-I e todos os três tipos de quadros foram levados em consideração para a modelagem da fonte de tráfego.
+
+A parametrização fora feita conforme descrito em, onde a partir da análise do trace foram definidos valores para as taxas de transmissão em cada um dos oito níveis da fonte.
+
+A fila-servidor possui C = 1337368 bits/s e B = 100000 bits.
+
+Taxas de Transmissão da Fonte de Histograma Os resultados analíticos foram obtidos através do próprio TANGRAM-II, com o uso do método de solução proposto em.
+
+Este método calcula a função de distribuição complementar para uma medida de interesse especificada por uma recompensa, num dado tempo transiente.
+
+Esta distribuição é dada por vários pontos e seus respectivos valores de probabilidade, de onde pode-se extrair a média através da integral dos pontos, com o uso da técnica de aproximação por trapézios.
+
+O valor médio da fila, calculado analiticamente, fora E = 30707.
+
+Embora o mesmo modelo pudesse ser simulado por técnicas tradicionais, criou-se um modelo análogo com os objetos de fluido desenvolvidos neste trabalho, de forma que sua simulação pudesse ser comparada ao resultado exato previamente obtido.
+
+Mostra o modelo, que fora construído com um objeto fonte histograma, de parâmetros idênticos ao da figura, e um objeto fila servidor GPS, que por ter apenas um fluxo de fluido em uso, torna irrelevante a disciplina de atendimento, comportando-se como o FIFO.
+
+Este segundo modelo fora simulado em 10 rodadas de 100000 unidades de tempo, e o valor médio da fila encontrado fora E = 30562, 85 418, 48 para um intervalo de confiança de 95%.
+
+Como esperado, o valor da medida de interesse encontrado na simulação fora semelhante ao seu valor exato, que encontra-se dentro do intervalo de confiança da simulação.
+
+De forma a exemplificar o enorme ganho que pode ser obtido através do uso do simulador de fluido, é apresentado um modelo que descreve um comutador ATM.
+
+Além do ganho em termos de custo computacional, o exemplo apresentado mostra também que a diferença entre os resultados é bastante pequena, o que comprova as vantagens da técnica de fluido.
+
+Foram criados na ferramenta TANGRAM-II dois modelos semelhantes, um de fluido e outro tradicional de células.
+
+Mostra a topologia dos modelos.
+
+Os parâmentros escolhidos para a simulação de fluido foram = 1, = 1 e = 348, 4528 (on-off / off-on / taxa de transmissão) e uma fila servidor FIFO de parâmetros B = 18(1000 células), 1 = 2 = 0,5 e C = 366, 79 onde a capacidade de serviço correponde a uma utilização de 0,95.
+
+O modelo de células, também têm mudanças de estado das fontes regidas por variáveis exponenciais, no entanto a geração de pacotes ocorre de forma determinística.
+
+Os parâmetros são idênticos aos do modelo de fluido, com excessão da capacidade de serviço C que necessita de um fator de correção de modo que a mesma utilização de 0,95 seja mantida.
+
+Este fato se deve a uma diferença existente entre as fontes, onde o valor médio de cada uma varia de acordo com o paradigma utilizado.
+
+Mostra a diferença entre uma fonte de fluido e uma fonte de pacotes com geração determinística.
+
+Na abstração de fluido, desde o exato momento em que ocorre uma transição para o estado on, até o momento onde a fonte é desligada, considera-se geração de tráfego, de forma exata.
+
+Na fonte de pacotes, ou células, em geral define-se que um evento de geração, representa o final de transmissão de um pacote, e com isto o primeiro evento de geração só ocorre depois de um tempo determinístico, justamente o tempo de geração de um pacote.
+
+O problema se dá ao final do período on, quando ao ser desligada, a fonte interrompe a geração de eventos de pacotes, fazendo com que o último pacote seja perdido.
+
+Deste modo as duas fontes têm um volume de tráfego gerado que pode diferir de até um pacote a cada período em que a fonte está ligada.
+
+Demonstra esta diferença através de expressões analíticas.
+
+As equações descrevem o cálculo da média de tráfego gerado pelas fontes de fluido e de pacotes respectivamente.
+
+Pela fonte e,as taxas de transição on para off, de off para on e de transmissão, respectivamente.
+
+No exemplo, a capacidade de serviço é calculada.
+
+Onde a capacidade de serviço do comutador C, é dada pelo dobro do valor médio de transmissão de cada fonte, dividido pela utilização U.
+
+Assim sendo, a capacidade de serviço da fila de células, foi recalculada e a simulação foi executada com C = 365,74.
+
+Mostra os resultados obtidos nas simulações obtidas através de 10 rodadas de 50000 segundos cada.
+
+Comutador ATM, modelo de células X fluido Neste exemplo os resultados diferem de 2,7% e o simulador de fluido é 57 vezes mais eficiente, o que demonstra a ótima relação custo benefício do método.
+
+A unidade escolhida para a simulação foi 1000 células para que se pudesse simular o modelo de pacotes, em um tempo plausível.
+
+Se a unidade células fosse escolhida, o que seria mais adequado, em termos de corretude da simulação, o número de eventos para a simulação de pacotes seria acrescido em 3 ordens de grandeza.
+
+Enquanto que para o simulador de fluido, o tempo de execução seria o mesmo, fazendo com que a diferença de velocidade entre eles também fosse 3 ordens de magnitude maior.
+
+Este é apenas um exemplo que mostra o enorme potencial da técnica.
+
+Por este pode-se imaginar que quanto maior forem os modelos, maiores serão os ganhos.
+
+O crescimento do número de eventos é linear para os modelos de pacotes, e será linear também para os modelos de fluido que não tiverem efeito ripple.
+
+Cabe salientar que o efeito ripple pode ser minimizado através do uso da técnica de agregação de tráfegos.
+
+Assim sendo, percebe-se que a técnica de fluido expande o limite das simulações atuais, em relação ao tamanho das redes modeladas, para algumas ordens de grandeza a mais, viabilizando a construção de modelos consideravemente maiores.
+
+Nesta seção alguns exemplos são analisados de forma mais detalhada, para que se possa mostrar algumas das potencialidades que a ferramenta TANGRAM-II proporciona aos usuários, e que fazem dela uma excelente ferramenta de auxílio à engenharia e apoio didático.
+
+O primeiro exemplo apresentado nesta seção visa mostrar o poder e facilidade com que diversas medidas podem ser extraídas de um modelo.
+
+Apresenta um modelo onde são definidas recompensas para coletar as seguintes medidas de interesse, tráfego sainte das fontes, tráfego entrante no consumidor, tráfego entrante e sainte na fila-servidor, média do buffer, utilização e perda.
+
+Outras medidas derivadas podem ser obtidas, como por exemplo o tempo médio de serviço, obtido através da lei de Little.
+
+Podem ser observadas a especificação das recompensas no atributo Rewards e suas atualizações no atributo Messages do objeto server_queue_GPS.
+
+O simulador apresenta três medidas distintas, CR, ACR e ATC para cada recompensa especificada.
+
+Dependendo da maneira pela qual a recompensa é utilizada, alguma destas medidas fornece o valor de interesse.
+
+Por exemplo, a recompensa fluido1, recebe valores de recopensa instantânea que podem ser positivos ou negativos, assim sendo, o valor médio de fluido acumulado na fila é dado pela ATC (média de recompensa acumulada ponderada pelo tempo).
+
+A recompensa rew_a1 recebe somente valores positivos de IR, portanto as medidas CR e ACR informam o total de fluido entrante e a média de tráfego, respectivamente.
+
+Outras recompensas podem ser mais trabalhadas, como a utilização, que recebe o valor instantâneo 1 caso exista fluido sendo servido ou 0 caso contrário.
+
+Deste modo a medida ACR indica a proporção de tempo (entre 0 e 1) em que a fila foi utilizada.
+
+As somas de recompensas também fornecem estas medidas, e devem ser usadas de forma análoga.
+
+Estes resultados são gravados no arquivo de saída da simulação.
+
+Um trecho do arquivo de saída é apresentado na Figura.
+
+Após a execução de uma simulação de 30000 segundos com 5 rodadas, os seguintes resultados foram obtidos para um intervalo de confiança de 95%, além destes resultados, existe ainda a opção de geração de traces.
+
+O simulador do TANGRAM-II gera automaticamente arquivos de trace para o valor instantâneo e acumulado de cada recompensa.
+
+Estes arquivos são gerados no padrão GNUPLOT, logo, além de fornecerem os valores ao longo de todo o caminho amostral para análises numéricas, podem ser usados diretamente na visualização de gráficos.
+
+As medidas podem ser combinadas de forma que se pode colocá-las em um mesmo gráfico, permitindo assim uma análise facilidada do comportamento das variáveis.
+
+As figuras a seguir apresentam trechos de gráficos obtidos apartir deste modelo.
+
+Pode-se observar o comportamento dos valores instantâneos e acumulado do fluido1.
+
+Observa-se as taxas de chegada A e saída D totais da fila-servidor.
+
+Mostra o nível de fluido acumulado na fila e as perdas acumuladas ao longo do tempo.
+
+Apresenta-se as taxas do fluido 1 na saída da fonte, na entrada da fila (nota-se que o comportamento é idêntico, mas defasado de 0,1 segundo, que é justamente o atraso provocado pelo canal) e na entrada do consumidor.
+
+Estes são apenas alguns exemplos de gráficos, e salienta-se que qualquer combinação pode ser gerada.
+
+A interface provê uma tela onde o usuário escolhe os arquivos desejados e ao aperto de um botão, o GNUPLOT é chamado para desenhar os gráficos.
+
+Continuando a descrição do poder e facilidade da ferramenta, criou-se um novo exemplo, com as mesmas características do anterior exceto pelo fato de que reguladores de tráfego estão associados à entrada de cada fluxo de fluido na fila.
+
+O objetivo é mostrar apenas um exemplo do tipo de análises que podem ser feitas através dos modelos.
+
+Apresenta a arquitetura e os valores do novo modelo.
+
+Também foi realizada uma simulação de 30000 segundos com 5 rodadas e intervalo de confiança de 95%.
+
+A partir destes resultados, pode-se fazer análises de comportamento de ambos os modelos, A e B.
+
+No exemplo A tem-se uma perda maior na fila, em relação ao B, já que neste existem reguladores de tráfego.
+
+A perda menor que ocorre em B tem o custo de maior espaço em buffer, já que os reguladores também possuem memória deste tipo.
+
+Com esta amostra, fica fácil perceber que diversos sistemas podem ser analisados de uma forma simples e muito rica em detalhes.
+
+Além de análises de engenharia, estes resultados podem auxiliar no aprendizado, já que os alunos podem acompanhar o desenvolvimento de sistemas de uma forma prática e totalmente visual.
+
+Para finalizar, selecionou-se mais 4 gráficos que mostram o comportamento de um regulador de tráfego e de filas com disciplinas distintas.
+
+Mostra um gráfico gerado a partir de traces obtidos como resultado de uma simulação, onde aparecem as taxas de chegada e saída do regulador, o comportamento do balde de fichas e da fila de dados.
+
+Através das recompensas LOWB_CR, UPPB_CR, D_CR e A_CR pode-se observar a moldagem do tráfego, num gráfico gerado a partir do mesmo experimento que originou a figura anterior.
+
+As figuras subsequentes mostram o comportamento do fluido1, fluido2 e do buffer para duas filas-servidor com tráfego de entrada idêntico (fontes idênticas e simuladas com o mesmo caminho amostral).
+
+No primeiro modelo, utilizou-se uma fila GPS e no segundo uma fila FIFO.
+
+Como resultado observa-se que o buffer é idêntico em ambas, já que são conservadores de trabalho, no entanto os volumes individuais de cada fluido varia de acordo com a disciplina de atendimento.
+
+Tendo-se como base a importância da modelagem no apoio à engenharia de sistemas, e sabendo-se que a simulação é o método mais abrangente e utilizado para resolução dos modelos, procurou-se uma forma de minimizar seu principal problema, relativo ao alto custo computacional, através da utilização da técnica de fluido, que é promissora nesta área.
+
+Criou-se um paradigma de modelagem de fluido baseado em recompensas onde, o comportamento dos fluidos é modelado através do uso de recompensas de taxa.
+
+Esta associação mostrou-se bastante interessante, por sua simplicidade, flexibilidade e capacidade de representar com exatidão o comportamento dos fluidos.
+
+Dentro deste paradigma e focalizado na área de redes de computadores, um simulador de fluido foi idealizado, projetado, construído e validado.
+
+Este simulador tem como base o simulador da ferramenta TANGRAM-II, na qual vários recursos foram inseridos, de forma que o simulador pudesse dar suporte a modelos de acordo com a técnica de fluido, além é claro, dos modelos tradicionais.
+
+Para tal desenvolvimento, os diversos elementos de uma rede foram estudados e modelados em forma de objetos, através da aplicação das teorias envolvidas na técnica de fluido.
+
+Esta implementação é composta por duas camadas, uma genérica que provê a base para a implementação dos objetos, implementada dentro do código do simulador, e uma camada específica de acordo com cada objeto, implementada dentro do código dos modelos.
+
+Do estudo destes objetos e do comportamento dos modelos que são compostos por estes, revelou-se várias características, peculiaridades, vantagens e problemas da técnica.
+
+Para os modelos onde as taxas de geração de pacotes são muitas vezes maiores que as taxas de transição de estados do sistema, a técnica mostrou-se extremamente eficiente.
+
+Salienta-se que neste caso enquadram-se a maioria das redes de computadores de alta velocidade da atualidade.
+
+Alguns aspectos relativos à qualidade das medidas de interesse são abordados, e na maioria dos casos o erro relativo é bastante pequeno, viabilizando o uso deste tipo de modelagem.
+
+Problemas como o chamado ripple effect podem degenerar o desempenho dos modelos de fluido em casos onde haja muitos elementos interligados em série ou quando exista realimentação, mas técnicas como agregação de tráfego o minimizam, e fazem com que os modelos de fluido sejam sempre mais velozes do que suas contrapartidas de pacotes.
+
+Dependendo do modelo a ser resolvido, o uso da simulação tradicional pode se tornar inviável, por causa do elevado custo computacional.
+
+Nestas situações pode ocorrer de um único segundo de simulação levar horas para ser executado.
+
+De uma forma geral conclui-se, que a técnica de fluido expande este limite das simulações atuais, para algumas ordens de grandeza a mais, possibilitando a construção de modelos consideravelmente maiores.
+
+O resultado alcançado neste trabalho foi bastante satisfatório, já que o simulador herdou todas as características de facilidade, poder de modelagem e apresentação de resultados do simulador do TANGRAM-II, e os recursos implementados no simulador do TANGRAM-II são genéricos o suficiente para suportar a modelagem de quaisquer sistemas que se enquadrem à técnica de fluido, podendo estes estarem fora da área de redes ou até mesmo fora da área de computação.
+
+Ao mesmo tempo objetos de fluido bem definidos foram criados e podem ser usados como elementos básicos na montagem de diversos tipos de modelos.
+
+Com o uso desta biblioteca de objetos, o tempo de aprendizado e construção dos modelos diminui sensivelmente, além de que estes objetos provêm várias medidas de interesse que disponibilizam para o usuário uma ótima visão das propriedades do sistema e permitem que se obtenha um conhecimento aprofundado sobre os elementos e o modelo como um todo.
+
+Três linhas de atuação podem estender o trabalho aqui apresentado, aperfeiçoamentos no simulador, análises da própria técnica de fluido e o uso dos recursos criados para o desenvolvimento de novos modelos.
+
+A respeito de aperfeiçoamentos no simulador, cita-se que vetorização de recompensas e de constantes são necessárias para que objetos como o fila-servidor possam ser totalmente genéricos em termos de número de classes suportadas.
+
+Atualmente os modelos prontos possuem 3 classes e uma extensão neste número, apesar de simples, requer modificações em seu código fonte.
+
+Vetorização de objetos para que não seja necessária a cópia de vários objetos idênticos, como por exemplo no caso onde existem várias fontes de tráfego iguais.
+
+Construção de novos objetos, definir e modelar outros objetos de rede e de sistemas computacionais para expandir a abrangência do simulador.
+
+Implementação de um cache de estados ou modificação na estrutura do simulador, atualmente para cada estado de simulação, são criados diversos objetos, que representam uma cópia do estado interno da simulação, e após a execução dos passos de transição de estado, toda a estrutura antiga é desalocada.
+
+Este é o principal fator da lentidão do simulador e o principal responsável pela diferença de velocidade se comparado ao NetSimul.
+
+Este problema pode ser resolvido de duas formas, através da criação de um cache de estados de simulação, que forneceria uma solução boa em termos de desempenho e consumo de memória, ou idealmente, em termos de velocidade, a modificação da estrutura principal, de forma que todo o espaço de estados seja gerado antes do início da execução da simulação.
+
+Neste segundo caso o desempenho seria ótimo, mas haveria um maior consumo de memória.
+
+Dentre os itens, os 2 primeiros são de fácil implementação, sendo o terceiro, dependente da complexidade do objeto a que se propõe a modelagem e apenas o último demandaria um trabalho mais apurado e custoso.
+
+Outra linha a ser explorada é a própria pesquisa sobre os modelos de fluido.
+
+Dentre os trabalhos estudados, apenas aborda diretamente a qualidade das medidas de interesse, enquanto a imensa maioria apenas aborda os aspectos de ganho computacional.
+
+Trabalhos na área de simulação de fluido são recentes, sendo que os primeiros datam de 1996 e o primeiro simulador de fluido de que se tem notícia data de 1999.
+
+Apesar de já existirem diversas respostas, a técnica de fluido necessita ainda ser explorada, para que se possa definir com mais exatidão, o quão precisa e rápida ela pode ser e em quais casos ela é melhor aplicada.
+
+Além destes, cita-se como trabalho futuro o uso dos recursos do simulador para a criação de novos modelos de redes de computadores.
+
+Modelos mais exatos e mais requintados podem ser construídos, inclusive fora da área de redes.
+
+Com isto poder-se-á descobrir, inclusive, outras utilizações para estes novos recursos além das especificadas neste trabalho.
+
+A seguir são apresentados resumos das principais técnicas de gerenciamento de buffer.
+
+Particionamento Completo, neste esquema a fila é permanentemente particionada em N filas menores, uma para cada fluxo de serviço.
+
+Não existe compartilhamento do recurso espaço em fila, entretanto nenhum fluxo é prejudicado por ações dos demais.
+
+Compartilhamento Completo, neste esquema a fila é integrada e um pacote que chega é aceito se houver espaço disponível.
+
+Aqui existe o máximo aproveitamento do recurso espaço em fila, no entanto um fluxo pode monopolizar o serviço se for mais ávido, vide exemplo injustiça.
+
+Compartilhamento com Tamanho Máximo de Fila (SMXQ, Sharing with Maximum Queue Lenghts).
+
+Também conhecido como compartilhamento restrito de buffer.
+
+Nesta disciplina a fila é compartilhada contanto que um dado fluxo não ultrapasse um valor máximo pré-estabelecido k i.
+
+A idéia é fazer uso do compartilhamento e ao mesmo tempo evitar que algum fluxo possa monopolizar o sistema.
+
+Para isto, onde k i representa a quantidade de buffer que um fluxo pode ocupar, e M é o tamanho total da fila.
+
+Apesar desta definição ser genérica, em geral usa-se apenas um parâmetro threshold para todos os fluxos.
+
+Este parâmetro, que atua como um limite, define o grau de compartilhamento e pode deixar a disciplina equivalente ao CP se = 1.
+
+Compartilhamento com Alocação Mínima (SMA, Sharing with Minimum Allocation).
+
+Nesta disciplina cada fila individual f luxo i têm um mínimo de espaço reservado, sendo o restante do espaço compartilhado.
+
+Isto evita o monopólio do recurso.
+
+Compartilhamento com Tamanho Máximo de Fila e Alocação Mínima (SMQMA, Sharing with a Maximum Queue and Minimum Allocation).
+
+É a integração da SMA e SMXQ.
+
+Cada f luxo i tem acesso a um mínimo de espaço reservado e não pode ultrapassar seu limite k i.
+
+Desfruta de vantagem sobre a SMXQ, pois mesmo sendo esta restritiva em relação ao tamanho máximo de cada fila, pode ocorrer o caso de vários fluxos estarem com carga alta e um fluxo com carga leve sofrer consequências por não haver espaço de armazenamento para suas células.
+
+Até aqui todas as disciplinas apresentadas possuem um comportamento em comum, um pacote que está chegando é descartado imediatamente se a fila estiver em um estado específico, onde haja necessidade para tal, de forma a manter o compromisso entre vazão e justiça com relação aos fluxos.
+
+No entanto existe a possibilidade de que a decisão de descarte seja incorreta, como por exemplo, um pacote descartado de forma a preservar a reserva de um outro fluxo, poderia estar sendo jogado fora em vão, se o outro fluxo não fizesse um da sua reserva.
+
+Por este motivo, foram criadas disciplinas de pós-descarte, que evitam este tipo de desperdício.
+
+Na filosofia pós-descarte, um pacote que chega nunca é descartado se existir espaço na fila como um todo.
+
+Se a fila estiver cheia ao chegar um pacote, a perda pode se dar tanto neste que está chegando, quanto num outro pacote previamente armazenado, de acordo com algum critério de decisão.
+
+A decisão pode baseadar-se simplesmente no estado da fila ou em diferentes classes de prioridade.
+
+Medida de Policiamento Posterior (DRP, Delayed Resolution Policy), primeira disciplina baseada nesta filosofia foi proposta por Thareja e Agrawala sob o nome DRP (Delayed Resolution Policy).
+
+Seu funcionamento é idêntico ao descrito ateriormente e dá origem a filosofia pós-descarte.
+
+Descarte sob Demanda, foi proposta por Wei et al, sob o nome original Drop From the Longest Queue.
+
+Segue as mesmas regras da classe PO, sendo que o critério para o descarte é a escolha do último pacote da fila mais longa.
+
+Esta disciplina trata todos os fluxos de forma igualitária, o que não permite o tratamento de tráfegos de diferentes prioridades.
+
+Pós-Descarte com Limite, nasceu de uma generalização da disciplina DoD, onde diferentes tipos de tráfegos passam a ter diferentes prioridades.
+
+Uma idéia similar surgiu independentemente com o nome CSVP.
+
+Esta disciplina possui os seguintes atributos N fluxos dividem o buffer total de tamanho M, de forma que cada fluxo tem uma fila individual.
+
+Quando o buffer não está cheio, pacotes de qualquer tipo são aceitos.
+
+Caso contrário, existe duas possibilidades, se o pacote que está chegando for do tipo i e sua respectiva fila estiver ocupando um espaço menor do que k i, então com certeza existe uma fila j, ocupando mais espaço do que deveria.
+
+Assim a disciplina de admissão vai aceitar o novo pacote as custas de rejeitar um pacote do tipo j que havia sido previamente aceito.
+
+Por outro lado, se a fila do pacote que está chegando for maior do que k i, então este será rejeitado.
+
+Observa-se que se o pacote descartado for o da chegada, ou se a fila não estiver cheia, a disciplina comporta-se de forma equivalente à CS.
+
+No entanto, sob alta carga, a disciplina tende a operar como o CP.
+
+Do ponto de vista teórico esta última classe é justa, eficiente e naturalmente adaptativa.
+
+Justa no sentido de que as filas pequenas podem crescer, às custas do descarte que ocorrerá nas mais longas.
+
+Eficiente pois permite que nenhum espaço em buffer fique vago quando houver algum pacote ávido por este.
+
+E naturalmente adaptativa no que diz respeito ao comportamento da disciplina em relação ao comprimento das filas.
+
+Quando muitas filas estão ativas, a rivalidade faz com que seus tamanhos sejam pequenos, no entanto quando apenas uma está ativa, é permitido que seu tamanho atinja grandes dimensões.
+
+O problema da PO concentra-se no campo prático, pois é difícil implementar esta disciplina em roteadores modernos de alta velocidade.
+
+Quando o buffer está cheio, uma escrita tem um passo extra do descarte de um pacote, além de que o sistema terá que fazer um controle permanente dos tamanhos das filas e do fato que o descarte de pacotes localizados no meio da fila deixa buracos que não são fáceis de gerenciar.
+
+As disciplinas baseadas na filosofia de janelas estáticas presumem ambientes onde o comportamento do tráfego não varia significantemmente com o tempo.
+
+No entanto sabe-se que o número de fluxos pode mudar, as rotas de tráfego podem ser alteradas, assim como a própria demanda de um fluxo pode variar com o tempo.
+
+A filosofia pós-descarte lida bem com estas mudanças, mas sabendo-se dos seus custos de implementação, buscou-se soluções alternativas onde o gerenciamento do buffer pode adaptar-se às mudanças e sempre garantir um desempenho ótimo ou próximo deste.
+
+Assim sendo, surgiram as disciplinas de gerenciamento dinâmicas que se adaptam às variações de tráfego.
+
+Controle Adaptativo, este esquema possui dois elementos chave, identificação e atuação.
+
+Identificação refere-se à medição do tráfego, bem como à análise do seu comportamento de forma a identificar a necessidade de correção das ações da disciplina de gerenciamento.
+
+A atuação é o ato de aplicar as correções que mudam o comportamento do sistema.
+
+A partir do princípio de que a identificação pode ser feita através de medições do tráfego, ou através de estimativas estatísticas e que a atuação é simplesmente o ato de efetuar uma nova alocação de filas, o problema concentra-se na criação de um procedimento de atualização.
+
+Em outras palavras, quando e como a atualização deve ocorrer durante a atividade da disciplina compõem o maior desafio a ser superado.
+
+Especificamente no controle adaptativo usa-se uma heurística para solucionar o problema citado.
+
+Mesmo não tendo uma solução definitiva para o problema, esta disciplina abriu caminho para o surgimento de outras através da sua idéia básica de dinamismo, e dos procesos de identificação e atuação.
+
+Limite Dinâmico, o objetivo é obter uma disciplina de gerenciamento cujo esquema tem a simplicidade do SMXQ e a adaptabilidade do PO.
+
+Não existe a necessidade do monitoramento do tráfego de cada porta que ocorre no controle adaptativo.
+
+O esquema é baseado na seguinte idéia, o limite de cada fila em qualquer instante de tempo é proporcional ao montante livre do buffer como um todo.
+
+Um pacote que chega é descartado caso a fila a qual se destina, esteja com um tamanho igual ou maior do que o seu limite k i.
+
+Com esta fórmula, o DT adapta-se às mudanças de carga que ocorrem no tráfego.
+
+Sempre que uma mudança ocorre, o sistema entra em um estado transiente.
+
+Passa-se a um exemplo onde um fluxo que está operando com carga baixa aumenta sua atividade.
+
+Sua fila individual tende a crescer, fazendo com que a fila global também cresça.
+
+Este crecimento vai provocar uma diminuição do limite e fai fazer com que algumas filas, que possivelmente tenham ficado acima do seu limite, passem a frear os pacotes na entrada enquanto são drenadas pelo servidor.
+
+Este processo faz com que exista mais espaço livre para os pacotes do fluxo que acabou de aumentar.
+
+A maior vantagem do DT é a robustez em relação à mudanças de carga no tráfego, o que não ocorre nas disciplinas de janelas estáticas.
+
+Neste apêndice são apresentados os objetos de fluido construídos durante o trabalho de tese.
+
+Para tal, optou-se por mostrar os objetos dentro de modelos onde estão inseridos, sendo estes modelos, em alguns casos, os mesmos apresentados no capítulo 5.
+
+As figuras mostram a imagem representativa do modelo por completo, entretanto somente o objeto em evidência têm seu código fonte listado, em forma de atributos que encontram-se espalhados pelo desenho.
+

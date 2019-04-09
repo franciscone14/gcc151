@@ -1,0 +1,712 @@
+Em qualquer sistema onde ha compartilhamento de recursos, é importante que a carga de trabalho seja distribuída de forma equilibrada entre esses recursos, visando otimizar o tempo médio de resposta para os usuarios.
+O sistema operacional Linux implementa um algoritmo de balanceamento de carga que utiliza estruturas chamadas de domínios de escalonamento.
+Essas estruturas são organizadas hierarquicamente para representar internamente a topologia da máquina, possibilitando ao sistema realizar o balanceamento de carga da forma mais adequada para cada tipo de arquitetura.
+Para computadores multiprocessados Em uma, em os quais os processadores e a memória são distribuídos em nodos e o tempo de acesso a memória depende do endereço acessado, o Linux constrói uma hierarquia de domínios de escalonamento com dois niveis:
+O primeiro representando os nodos e o segundo representando todo o sistema.
+No entanto, a indústria têm criado máquinas Em uma complexas, onde há mais de dois niveis de acesso a memória.
+Para esse tipo de arquitetura, a hierarquia de domínios de escalonamento de dois níveis criada por o atual algoritmo do Linux não representa corretamente a topologia da máquina, o que pode resultar num balanceamento de carga inapropriado.
+Com o objetivo de superar essa limitação atual, o trabalho apresenta a proposta e implementação de um novo algoritmo para construção dos domínios de escalonamento, de forma que arquiteturas Em uma multiníveis possam ser representadas corretamente.
+Também é apresentada uma avaliação do balanceamento de carga do Linux quando esse algoritmo e utilizado.
+Palavras chave:
+Máquinas Em uma, balanceamento de carga, escalonamento de processos, sistemas operacionais, Linux.
+O crescimento da demanda por poder computacional nos ultimos anos impulsionou o surgimento de diversas arquiteturas compostas por múltiplos processadores.
+Exemplos dessas arquiteturas são os clusters, grids computacionais e máquinas multiprocessadas com memória compartilhada.
+Em todos os casos, o desempenho do sistema é determinado diretamente por a gerência dos processadores, realizada através de uma política de escalonamento que determina quando e por quanto tempo cada tarefa pode utilizar um determinado processador.
+Uma política de escalonamento adequada deve distribuir as tarefas de maneira uniforme, não sobrecarregando nenhum processador em particular e não permitindo que processadores fiquem ociosos enquanto existem tarefas pendentes.
+Esse comportamento garante a otimização do tempo médio de resposta das tarefas do sistema, melhorando seu desempenho global No caso de multicomputadores como clusters e grids, não ha compartilhamento físico de memória.
+Esses sistemas são compostos por Varias máquinas independentes e o compartilhamento de dados é feito através da troca de mensagens, que e um procedimento muito mais demorado que o acesso à memória local.
+Mesmo com a utilização de uma camada DSM (Distributed Shared Memory), que implementa uma memória compartilhada virtual e disponibiliza para as aplicações um espaço de endereçamento único, fisicamente esse mecanismo e implementado através de troca de mensagens.
+Como cada máquina possui seu próprio sistema operacional, o balanceamento de carga nesses sistemas e realizado no nível da aplicação, através de algoritmos que se baseiam em informações do ambiente distribuído e das tarefas a serem executadas.
+Ja em sistemas multiprocessados com memória compartilhada, existe um único espaço de endereçamento, acessível a todos os processadores do sistema, e um único sistema operacional, responsavel por gerenciar a utilização dos recursos compartilhados.
+Essas características possi bilitarn que 0 escalonador de processos do sistema operacional implemente algoritmos eficientes visando reduzir o tempo medio de execução dos processos.
+Um exemplo de escalonador de processos que procura reduzir o tempo medio de execução das tarefas eIn máquinas rnultiprocessadas e o escalonador do sistema operacional Linux.
+Esse escalonador mantem uma fila de processos para cada processador e seu algoritmo de balanceamento de carga é capaz de mover processos de um processador para outro, visando minimizar a diferença entre o número de tarefas associadas a quaisquer dois processadores, o que mantem a carga bem distribuída no sistema.
+Esse algoritmo basicamente verifica periodicamente a distribuição de tarefas e, caso haja desequilíbrio, migra tarefas de processadores mais sobrecarregados para outros com menor carga.
+Alem disso, esse algoritmo suporta arquiteturas multiprocessadas NUNIA (Non-Uniform Memory Access), em as quais os tempos de acesso a memoria não são constantes.
+Em essas máquinas, os processadores são agrupados em nodos, e cada nodo possui uma parte da memória principal.
+Apesar de as memórias de todos os nodos formarem um único espaço de endereçamento, o acesso a endereços locais (na parte da memória que esta no mesmo nodo do processador) e mais rapido que o acesso aos demais endereços de memória.
+Por essa razão, em arquiteturas Em uma o algoritmo de balanceamento de carga deve evitar que os processos executem em processadores que estão num nodo diferente daquele onde a memória do processo esta alocada, pois o tempo de acesso aos dados será maior.
+Para atingir esse objetivo, o Linux implementa estruturas chamadas domínios de escalonamento, que são organizadas hierarquicamente para representar internamente a topologia da máquina, de forma que o balanceamento de carga procure sempre migrar tarefas para processadores mais próximos da sua area de memória No entanto, a atual versão do kernel do Linux constrói apenas dois níveis de domínios de escalonamento para máquinas Em uma.
+Em arquiteturas onde ha mais de dois níveis de acesso a memória, ou seja, o tempo de acesso a memória remota também varia de acordo com o nodo em o qual esta memória esta localizada, essa estrutura não representa adequadamente a topologia do sistema, o que pode prejudicar o desempenho dos processos e, por conseqüência, do sistema como um todo.
+Visando solucionar esse problema, essa dissertação apresentará a proposta, implementação e avaliação de um novo algoritmo para construção dos domínios de escalonamento.
+Esse algoritmo é genérico, podendo ser utilizado em diversas máquinas multiprocessadas, independentemente de quantos níveis de acesso a memória existem.
+0 algoritmo proposto constrói um nível na hierarquia de domínios de escalonamento para cada nível de acesso a memória.
+De essa forma, a hierarquia final representa corretamente a topologia do sistema.
+Essa dissertação esta organizada da seguinte forma:
+Multicomputadores e multiprocessadores.
+Escalonamento de Processos e Balanceamento de Carga Em esse capítulo é discutido o problema do escalonamento de processos e balanceamento de carga em máquinas paralelas.
+Esses computadores podem ser classificados em multicomputadores ou multiprocessadores, Conforme o compartilhamento da memória.
+Apesar de essas máquinas terem caracteristicas diferentes, técnicas de escalonamento e balanceamento de carga desenvolvidas para uma arquitetura específica podem ser adaptadas para outros sistemas.
+O capitulo traz, então, uma revisão bibliográfica sobre máquinas paralelas, focando no escalonamento de processos e balanceamento de czarga, apresentando conceitos, definições e trabalhos recentes relacionados ao balanceamento de carga em multicomputadores como clusters e gríds computacionais e em máquinas multiprocessadas Uma e Em uma.
+Em as últimas décadas, a demanda por poder computacional tem crescido rapidamente, resultando no surgimento de sistemas compostos por múltiplos processadores, chamados de computadores paralelos.
+Existem diferentes arquiteturas paralelas, cada uma com suas caracteristicas específicas, e a literatura oferece varias classificações possíveis.
+De acordo com o compartilhamento da memória, essas máquinas podem ser classificadas em multiprocessadores e multicomputadores Quando a memória não é compartilhada, ou seja, existem múltiplos espaços de endereçamento, o sistema e denominado multicomputador.
+Como exemplos de multicomputadores tem- se os clusters e grids computacionais, que são ambientes distribuídos formados por diversos Computadores independentes conectados através de uma rede.
+Em esse caso, cada computador possui um espaço de endereçamento próprio, inacessível aos demais.
+A comunicação entre processos ocorre através da troca de mensagens.
+Os multicomputadores oferecem um alto poder computacional a um baixo custo, mas seu uso implica num esforço de programação especializada.
+É necessario portar aplicações existentes para esses ambientes e novas aplicações devem ser desenvolvidas utilizando Apis (Application Programming Interface) específicas, como por exemplo o MPI (Message Passing Interface).
+No caso de arquiteturas onde a memória do sistema é compartilhada por todos os processadores, formando um único espaço de endereçamento, nem sempre e necessario realizar rnodificações na programação de aplicações, pois a gerência dos recursos é feita por o sistema operacional.
+Essas máquinas são chamadas de rnultiprocessadores e possuem corno principal desvantagem o alto custo.
+Dependendo do tipo de acesso a memória compartilhada, esses computadores ainda podem ser classificados como Uma (Uniform Memory Access) ou Em uma (Non-Uniform Memory Access).
+Em máquinas Uma a memoria e centralizada e a distancia entre essa memória e os processadores do sistema e a mesma, independentemente o rocessador e da area de memória acessada.
+Por essa razão, o tempo de acesso à memória é uni orme.
+Um exemplo desse tipo de arquitetura, mostrada na Figura 2.1, são as máquinas SW 3 Symmetric Multiprocessor).
+A arquitetura de um computador Unia e bastante simples, mas a escalabilidade do sistema é limitada.
+Como os processadores acessam a memória principal através de um barramento compartilhado, a medida que são adicionados mais processadores esse barramento se torna um gargalo no sistema.
+Para resolver esse problema, surgiram as máquinas multiprocessaclas Em uma.
+Em esse tipo de arquitetura (Figura 2.2) a memória e distribuída em múltiplos módulos, que se localizam em diferentes nodos.
+Assim, cada nodo possui um módulo de memória e um ou mais processadores associados.
+Apesar de distribuída, a memória forma um único espaço de endereçamento.
+A topologia dessas máquinas permite o acesso simultaneo a diferentes módulos de memória, eliminando a limitação de um único barramento compartilhado.
+No entanto, o tempo de acesso a memória depende do módulo de memória acessado (acesso não uniforme), ja que a distancia entre processadores e memória varia.
+Se um processador acessa um endereço de memória pertencente ao mesmo nodo em que esta, o tempo de acesso sera menor que o de acessar um endereço que se encontra num outro nodo do sistema.
+O algoritmo de escalonamento de processos e responsavel por determinar que tarefa sera executada num determinado processador e por quanto tempo.
+Em esse sentido, existem duas linhas de pesquisa relacionadas ao problema do escalonamento de processos em máquinas paralelas.
+Em a primeira li11ha, o escalonamento é tratado no nível da aplicação, através de algoritmos que utilizam informações sobre o ambiente disponível e as tarefas a serem executadas para determinar a melhor distribuição dessas tarefas.
+Essa abordagem permite um balanceamento otimizado para a aplicação, mas possui como desvantagem o fato de que, como o balanceamento de carga foi determinado para um ambiente específico, portar a aplicação para executar em outro ambiente paralelo implica muitas vezes em modificar a programação da mesma.
+É importante salientar que o escalonamento de tarefas de uma aplicação paralela e um problema reconhecidamente Nllcompleto (computacionalmente intratavel), ou seja, não existe um algoritmo polinomial conhecido que ofereça a solução ótima para esse problema, exceto para casos específicos.
+Existem algoritmos que buscam o escalonamento ótimo dessas tarefas (e que executam em tempo polinomial), mas que, na maioria dos casos, impõem muitas restrições, o que afasta o problema tratado de situações reais.
+Como exemplos dessas restrições, pode- se citar:
+Número de processadores limitado, tempo de execução das tarefas constante, atraso de comunicação ignorado Para problemas gerais, algoritmos de escalonamento que utilizam heurísticas são mais utilizados.
+Em esse caso, não existe garantia de que o escalonamento ótimo será encontrado, mas o algoritmo encontrara soluções próximas da ótima, sem restrições ao problema, num tempo admissível.
+Além disso, diversos trabalhos resultantes das muitas pesquisas realizadas propõem tecnicas baseadas em diferentes heurísticas, como por exemplo Tabu Search, algoritmos genéticos e híbridos, para esse tipo de escalonamento.
+Uma segunda abordagem refere- se ao escalonamento realizado por uma entidade externa às aplicações a serem executadas.
+Em esse caso, o esforço de programação é reduzido e as aplicações podem ser portadas facilmente, mas e possível que não se obtenha o mesmo desempenho para aplicações específicas, já que a entidade responsavel por o escalonamento conhece o ambiente, mas não possui informações sobre as aplicações.
+Em sistemas multiprocessados, essa entidade e o sistema operacional.
+Para multicomputadores existem diversas ferramentas disponíveis, como por exemplo o NIyGrid, que gerência o escalonamento de tarefas em grids computacionais.
+É importante observar que o escalonador de processos é responsavel por garantir um balanceamento de carga adequado.
+Uma importante questão que deve ser considerada no desenvolvimento de um escalonador de processos para máquinas paralelas refere- se a organização da fila de processos a serem executados A complexidade do algoritmo de balanceamento de carga depende diretamente da maneira como o sistema operacional organiza os processos.
+As formas de organização mais comuns são manter uma única fila de processos ou criar uma fila para cada processador.
+Quando o escalonador mantem apenas uma fila de processos, todos os processos poderão ser executados em qualquer processador. Quando
+um processador e liberado, o escalonador seleciona o próximo processo a ser executado nessa fila.
+De essa forma, nenhum processador ficara ocioso e o balanceamento de carga ocorre naturalmente No entanto, essa fila de processos única se torna um gargalo a medida que o número de processadores aumenta, já que o acesso à fila deve ser realizado por um processador por vez.
+Por outro lado, ter uma fila de processos para cada processador implica em escolher previamente o processador em o qual cada processo sera executado.
+Quando um processador e liberado, e escolhido um processo que esta na fila desse processador para ser executado.
+A utilização de múltiplas filas de processos exige um algoritmo de balanceamento de carga mais complexo do que quando ha uma única fila, para evitar grandes diferenças r1as cargas dos processadores camanhos das filas de processos).
+Existem ainda outras propostas para organização das filas de processos.
+Especificamente para multiprocessadores, em e proposta uma organização hierárquica, onde existe uma fila compartilhada em a qual novas tarefas são inseridas e cada processador possui uma fila individual.
+Quando o processador busca uma nova tarefa na fila compartilhada, traz diversas tarefas que são inseridas em sua fila particular.
+No entanto, segundo Zhu essa organização hierárquica ainda resulta num desbalanceamento de carga indesejado.
+Em o seu trabalho, Zhu propõe urna nova estrutura onde os processadores são agrupados em clusters e as tarefas são designadas a clusters, e não processadores.
+Em, o sistema operacional UnlxWare 7 é alterado para implementar uma fila de processos para cada nodo em máquinas Em uma e seu desempenho e avaliado.
+Ja o sistema operacional Linux, ate a versão 2.4 do kernel trabalhava com uma única fila de processos.
+A partir de a versão 2.5 o escalonador foi modificado e passou a implementar urna fila por' processador, com o objetivo de melhorar a escalabilidade do sistema.
+Conforme discutido na seção anterior, a eficiência do algoritmo de balanceamento de carga e determinante para o desempenho de um sistema executando em máquinas paralelas.
+Esse algoritmo tem como objetivo distribuir' adequadamente a carga do sistema entre os processadores disponíveis, de forma a reduzir o tempo médio de execução das tarefas.
+Algoritmos de balanceamento de carga podem ser classificados como estaticos ou dinâmicos.
+No caso de o balanceamento de carga estático a distribuição das tarefas entre os processadores (ou máquinas, no caso de multicomputadores) e definida antes da execução da aplicação.
+Cada tarefa só sera executada no processador/ máquina a qual foi designada, não havendo migração de processos.
+Como o balanceamento de carga estatico e definido previamente, não acrescenta nenhum overhead ao sistema No entanto, para que seja possível a distribuição prévia de todas as tarefas e necessario que se tenha conhecimento sobre as mesmas, como por exemplo seus tempos de processamento.
+Em é apresentado um algoritmo de balanceamento de carga estático para gnids.
+Esse algoritmo baseia- se em informações sobre as máquinas que compõem o grid e sobre as tarefas a serem executadas para fornecer uma distribuição ótima através de um esquema de &quot;pagamento», Visando promover a participação voluntária de agentes do grid.
+Um outro algoritmo de ba lanceamento estatico, desenvolvido para clusters, é descrito em Em esse caso, são utilizadas lieurísticas para fornecer o balanceamento ótimo, tambem baseado em informações sobre cada tarefa a ser executada.
+No entanto, nem sempre informações sobre as tarefas estão disponíveis.
+Em sistemas de propósito geral, multiusuarios, como por exemplo no caso de multiprocessadores onde 0 escalonamento de processos e o balanceamento de carga são realizados por o sistema operacional, não e possível determinar quantas e quais tarefas serão executadas previamente.
+Em esses casos, são utilizados algoritmos de balanceamento de carga dinâmicos, em os quais as tarefas são alocadas em tempo de execução com base 11 as condições do sistema.
+Esses algoritmos são bem mais complexos e tentam manter a carga dos processadores bem distribuída através da migração de tarefas Uma proposta de um algoritmo para realização de &quot;rebalanceamento «de carga, ou seja, migração de tarefas para garantir uma distribuição adequada, e apresentada em.
+Esse trabalho se propõe a balancear a carga do sistema realizando o minímo de migrações possíveis, e pode ser aplicado em diferentes ambientes paralelos, utilizando como um dos critérios o tamanho dos processos.
+Em e apresentado um algoritmo de balanceamento de carga dinamico para clusters que utilizam uma camada DSM (Distributed Shared Memory).
+Como a camada DSM cria uma memória compartilhada virtual (espaço de endereçamento único), esse algoritmo pode ser adaptado para multiprocessadores Em uma, que possuem uma memória Compartilhada real.
+Em, uma das modificações feitas no sistema operacional UnizWare 7 para executar em máquinas Em uma refere- se ao balanceamento de carga.
+Esse trabalho propõe dois tipos de balanceamento:
+Os algoritmos de balanceamento de carga dinâmicos devem considerar algumas questões que podem impactar no desempenho do sistema antes de migrar tarefas para outros processadores.
+Uma dessas questões esta relacionada com o aproveitamento da memória cache.
+Cada processador tem sua memória cache, de acesso muito mais rápido que a memória principal do sistema.
+Se os dados de um processo ainda estão na cache do processador o11de esse processo executou por a última vez, é mais interessante manter- lo nesse processador, de forma a aproveitar a cache.
+Se esse processo e movido para outro processador, tera que acessar a memória principal novamente para trazer seus dados para a cache do novo processador.
+Se isso ocorre com freqüência, o tempo de execução do processo pode ser seriamente afetado.
+Quando se trata de uma máquina multiprocessada NUNIA, ha ai11da outro ponto a ser considerado por o balanceamento de carga.
+Se a memória de um processo esta alocada no mesmo nodo do processador em o qual esse processo está executando, e o algoritmo de balanceamento migra esse processo para um processador em outro nodo, o tempo de acesso aos dados na memória principal será comprometido, ja que a área de memória alocada para esse processo estara ainda no nodo original.
+Existem diversos trabalhos que avaliam a possibilidade de migração de paginas de memória.
+Assim, quando um processo for migrado, sua memória tambem pode ser movida para o nodo destino.
+No entanto, a migração de paginas pode ser uma operação muito custosa dependendo do sistema e da freqüência com que e realizada.
+O algoritmo de balanceamento de carga deve, portanto, considerar todas essas questões:
+Um balanceamento pouco eficiente pode afetar o desempenho de todo o sistema.
+Atualmente, pesquisas relacionadas ao escalonamento em arquiteturas paralelas utilizam uma diversidade de heurísticas na busca de um escalonamento tão próximo de o ótimo quanto possível, restringindo- se de forma geral a uma determinada classe de problemas.
+Sistemas de propósito geral não focam nessas questões, mas devem implementar escalonadores que atendam, da melhor forma possível, as necessidades dos seus usuários.
+Por essa razão, os sistemas operacionais atuais estão investindo em otimizações relacionadas ao escalonamento em sistemas multiprocessados, que estão se tornando cada vez mais populares.
+Algumas importantes questões devem ser consideradas na construção de escalonadores para sistemas multiprocessados.
+Uma de elas refere- se ao escalonamento de threads de um mesmo processo.
+Teoricamente, executas- las em processadores diferentes (paralelamente) traria ganhos de desempenho, ja que o processo terminaria mais rapidamente.
+No entanto, se essas threads compartilham dados entre si, existe o problema da invalidação das caches dos processadores.
+Ou seja, cada vez que uma thread modificasse algum dado compartilhado, as caches de todos os outros processadores que possuíam o dado antigo seriam invalidadas, e as demais threads teriam que acessar a memória principal (cujo tempo de acesso é muito maior que o da cache) para obter o novo dado.
+Em outras palavras, existe uma relação entre grau de paralelismo entre as threads e quantidade de dados compartilhados que precisa ser analisada para que se possa tomar a melhor decisão no que se refere a onde executar as threads.
+Como processos diferentes possuem características diferentes, essa questão torna- se bastante complexa e deve ser bem estudada.
+Um outro ponto importante que deve ser observado é a possibilidade de manter processos num mesmo processador (capacidade chamada de afinidade de processador), por a rnesma razão de melhorar o aproveitamento da cache.
+Migrar processos de um processador para outro constantemente influência negativamente na execução dos processos, já que Cada vez que o sistema troca um processo de processador seus dados devem ser lidos novamente da memória principal para a cache do novo processador.
+Deve- se ainda considerar a afinidade de nodo para sistemas Em uma.
+Em esses sistemas, é interessante alocar memória para um processo (seja na criação do processo, ou no swap m de uma de suas paginas) no nodo em que esse processo está executando, para minimizar o tempo de acesso.
+Por outro lado, para que este esforço faça sentido, o algoritmo de balanceamento de carga deve procurar manter o processo no mesmo nodo (afinidade de nodo).
+Apesar de oferecerem melhorias de desempenho ao sistema operacional, todas as questões e sugestões levantadas aqui acrescentam Certa Complexidade aos algoritmos de escalonamento e balanceamento de carga.
+No entanto, a experiência de sistemas como o Linux, por exemplo, mostram que os benefícios oferecidos Compensarn a Complexidade adicionada.
+O escalonador do Linux é tema dos capítulos seguintes, que descrevem em detalhes como essas questões, entre outras, são tratadas por esse sistema.
+Escalonador de Processos do Linux O sistema operacional Linux foi criado em 1991 por Linus Torvalds, na epoca um estudante de Ciência da Computação da Universidade de Helsinki, na Finlandia.
+O objetivo do estudante era criar um sistema de uso pessoal, mais poderoso que o Minixl, para atender melhor suas necessidades.
+A comunidade acadêmica se interessou por o novo sistema, de código aberto e distribuição gratuita, e atualmente diversas pessoas contribuem para a melhoria constante do Linux, em esforços coordenados por alguns desenvolvedores.
+Hoje o kernel do Linux encontra- se em sua versão 2.6 e um sistema operacional mundialmente conhecido e aceito devido a sua robustez e estabilidade.
+O escalonador de processos implementado por o Linux e preemptivo e baseia- se numa política de escalonamento por prioridades.
+Até a versão 2.4 do kernel, esse escalonador apresentava problemas de escalabilidade em relação a o número de processadores em máquinas multiprocessadas.
+Devido a popularização desse tipo de arquitetura (especialmente sistemas SMP), os desenvolvedores do Linux empenharam grandes esforços na melhoria do seu escalonador de processos.
+O resultado foi um novo escalonador, oferecido a partir de a versão 2.5 do kernel, conhecido por O, já que todas as rotinas de escalonamento executam em tempo constante, independentemente do número de processos e/ ou processadores existentes no sistema.
+Além disso, o escalonador da atual versão do kernel do Linux suporta arquiteturas Em uma e processadores SMT (Simultaneoils Multlthreading).
+Esse capítulo descreve o funcionamento desse novo escalonador do Linux.
+As informações aqui apresentadas foram obtidas a partir de o livro, dos artigos e de estudos do código fonte do Linux¡ Sistema operacional baseado no Unix, desenvolvido por A. Tanembaum e utilizado no ensino de sistemas operacionais.
+O escalonador do Linux implementa uma política de filas de prioridades dinamicas.
+Ou seja, cada processo possui um valor de prioridade associado, que pode mudar durante o tempo de vida do mesmo, e os processos são escalonados de acordo com suas prioridades De essa forma, processos de uma dada prioridade só executam se não existir nenhum outro processo com maior prioridade na fila de processos prontos para executar.
+Entre processos de mesma prioridade, a política utilizada e 0 escalonamento Round-Robin.
+A prioridade de um processo e calculada em função de dois parâmetros:
+O valor nice e o tipo do processo.
+O valor nice de um processo e mapeado numa faixa de prioridades de 100 a 140, que representa sua prioridade inicial, tambem chamada de prioridade estática.
+Esse valor e nulo por default, mas pode variar de 20 a 19 e, quanto maior o valor nice de um processo, menor a sua prioridade.
+Usuários comuns podem alterar o nice de seus processos, mas apenas para aumentas- lo, o que e uma maneira do sistema prevenir que todos os usuarios definam o menor valor nice possível, garantindo assim prioridade maxima aos seus processos.
+O administrador do sistema (superusuario ou root) pode redefinir o valor nice dos processos sem restrições.
+Existe ainda urna outra faixa de prioridades que varia de 0 a 99, dada a processos de tempo real.
+Apesar de não ser um sistema operacional de tempo real, o Linux permite que tarefas com privilégios de superusuario sejam assim definidas, sem entretanto oferecer quaisquer garantias em relação a quando essas tarefas terminarão sua execução.
+Processos de tempo real tem sempre prioridades maiores que os demais processos do sistema.
+Assim, enquanto houver processos de tempo real para serem executados, nenhum outro processo poderá ocupar a CPU Outro parâmetro utilizado no calculo da prioridade dinamica é o tipo do processo, que é definido por o seu grau de interatividade com o usuario.
+Basicamente, os processos podem ser classificados em IO-bound ou CPU-bound.
+Processos IO-bound executam muitas operações de entrada e saída, bloqueando constantemente e utilizando a CPU por curtos períodos.
+São em geral interativos e, portanto, espera- se que o tempo de resposta do sistema a esse tipo de processo seja imediato.
+Processos CPU-bound, ao contrário, não são interativos, tendendo a esgotar suas fatias de tempo numa única utilização da CPL'.
+Em o Linux, processos IO-bound são favorecidos com maiores prioridades, garantindo um rapido tempo de resposta para os usuários do sistema.
+Assim, processos IO-bound executam por menos tempo, porem mais freqüentemente, enquanto que processos CP U-baund executam menos freqüentemente, mas por um período maior, mantendo dessa forma um escalonamento justo.
+A inetrica utilizada por o Linux para determinar o tipo de um processo e a diferença entre o tempo que o processo passa bloqueado (sleeping) e o tempo que passa executando.
+Sabe- se que alguns processos são mais interativos que outros, e essa métrica permite classificar processos 11 ão apenas em I O--bound ou CP U-bound, mas em outros tipos intermediários, representando melhor a realidade.
+De essa forma, processos que ficam bloqueados por longos periodos ganham urna maior prioridade que processos que também são interativos, mas que bloqueiam menos freqüentemente, ou por menos tempo.
+Como o período em que o processo fica bloqueado não e pre-determinado e pode variar muito ao longo de o seu tempo de vida, a prioridade desse processo também varia, sendo por isso chamada de dinamica.
+Por se tratar de um sistema operacional preemptivo, cada processo no Linux recebe, alem do valor de prioridade, uma fatia de tempo cimeslice), que indica por quanto tempo o processo podera utilizar a CPL' sem ser interrompido.
+Esgotado esse tempo, o processo e preemptado, ou seja, é retirado do processador para que um outro processo possa ser executado.
+É importante observar que um processo pode não consumir toda a sua fatia de tempo de uma só vez.
+Um processo que esta executando pode bloquear, por exemplo, devido a uma operação de leitura em disco.
+De essa forma, quando a operação de entrada e saída for concluída, o processo voltará para a fila de prontos para continuar sua execução durante a fatia de tempo que ainda possui.
+A fatia de tempo de um processo e calculada em função de a sua prioridade estatica:
+Processos com maior prioridade podem utilizar o processador por mais tempo que processos com menor prioridade Existem alguns criterios que devem ser atendidos por qualquer escalonador de processos, como justiça, baixo tempo de resposta, máxima utilização do processador, entre outros.
+Alem desses requisitos basicos, o escalonador do kernel 26.11.12 do Linux oferece:
+Escalonamento completamente O;
+Afinidade de processador;
+Escalabilidade em relação a o número de processadores e processos no sistema;
+Suporte a Arquiteturas Em uma;
+As subseções a seguir descrevem cada uma dessas funcionalidades.
+A o contrario das antigas versões do kernel, onde havia urna única fila de processos que eram escalonados entre todos os processadores do sistema, no escalonador O cada processador possui sua própria mnqueue.
+A runqueue é uma estrutura de dados que mantém os processos daquele processador.
+De essa forma, um processo está associado a uma e somente uma runqueize e o escalonador executa de forma independente em cada processador do sistema.
+Quando um processo e criado, a fatia de tempo do pai é dividida entre o processo pai e o processo filho.
+Essa operação impede que processos criem processos filhos visando aumentar suas fatias de tempo.
+O processo pai pode recuperar a fatia de tempo original após esgotar a atual, quando o escalonador realiza o recalculo de prioridade e fatia de tempo do processo.
+O valor nice do novo processo, que define sua prioridade inicial, e igual ao do pai.
+Além disso, esse processo e inicialmente inserido na mesma runqueue do processo pai.
+Basicamente, uma runqueite e composta por dois vetores de prioridades, um de processos ativos e outro de processos ewpirados.
+Um processo e inserido no vetor de processos ativos quando é criado e enquanto ainda possui fatia de tempo.
+Após executar durante toda a sua fatia de tempo, o processo e preemptado, sua prioridade e fatia de tempo são recalculadas, e o processo e retirado do vetor de ativos e inserido no de processos expirados, de onde não pode ser escalonado.
+No caso de processos altamente interativos (IO-bound), e possível que os mesmos sejam reinseridos na fila de processos ativos mesmo após o término de suas fatias de tempo, desde que isso não atrase os demais processos por mais tempo do que um limite máximo préestabelecido.
+Quando o vetor de processos ativos fica vazio, os vetores são trocados, ou seja, o vetor de processos expirados passa a ser o de processos ativos e vice-versa.
+Como os vetores de prioridades são referenciados por a runqueue por dois ponteiros, basta trocar esses ponteiros para efetuar essa troca.
+Assim, todos os processos poderão ser novamente escalonados.
+É importante observar que, em versões anteriores do kernel, o recalculo das prioridades e fatias de tempo dos processos era realizado apenas após todos os processos consumirem suas fatias de tempo.
+Ou seja, quando o vetor de processos ativos ficava vazio, o vetor de expirados era percorrido para que cada processo tivesse sua prioridade e fatia de tempo recalculadas e fosse reinserido no vetor de ativos.
+Como era necessario percorrer toda a lista de processos, o tempo de execução desse algoritmo era linear (complexidade O (n)), ou seja, variava de acordo com o número de processos na runqueue.
+Alem disso, esse recalculo exigia que a runqueue fosse bloqueada, impedindo que outros processadores a acessassem.
+Em a versão atual do kernel, a prioridade e fatia de tempo dos processos são recalculadas assin1 que o processo esgota sua fatia de tempo atual.
+De essa forma não ha bloqueio da fila de processos.
+Essa tecnica também permite que a niudailça entre os vetores de prioridade seja efetuada apenas por a troca de dois ponteiros.
+Essas modificações garantiram um algoritmo mais eficiente.
+Cada vetor de prioridades possui uma fila de processos por nível de prioridade, isto é, cada posição do vetor representa um valor de prioridade e aponta para uma fila de processos com essa prioridade.
+A rotina responsavel por encontrar o próximo processo a ser escaloiiado e uma das mais importantes do escalonador e também e executada em tempo médio constante, através da utilização de um bitmap de prioridades.
+Esse bitmap possui pelo menos n bits, oi1de n e o número maximo de níveis de prioridades do sistema e tem por default o valor 140.
+Cada bit representa um nivel de prioridade e indica se existe ou não (bit O) algum processo com aquela prioridade no vetor.
+De essa forma, para encontrar o próximo processo a ser executado, inicialmente o escalonador percorre esse bitmap para encontrar o primeiro bit igual a 1, que indica qual o maior nível de prioridade para o qual existe um processo na fila.
+Esse valor determina a posição do vetor de prioridades que aponta para a fila de processos daquele nível de prioridade.
+O próximo processo a ser executado é então o primeiro processo dessa fila.
+Em o pior caso, o esealonador pesquisara entre n, bits.
+Esse algoritmo, mostrado ria Figura 3.1, possui complexidade Ou), garantindo a execução da rotina de escalonamento em tempo constante.
+Lista de todos os processos prontos para rodar, ordenados por prioridade Bitmap com 140 bits de prioridade Bit.
+Lista de todos os processos prontos Executa o primeiro processo da lista Para rodar com prioridade 7.
+Quando um processo troca de processador, possívelmente os dados que esse processo referência não estarão na cache desse novo processador e terão que ser lidos da memória.
+Essa busca se fara necessaria a cada troca de processador, o que e muito custoso para o sistema.
+De essa forma, manter o processo no mesmo processador diminui a necessidade de acessos a memória principal e melhora o desempenho do sistema como um todo.
+Alem disso, sempre que inn processo escreve um dado na cache de um determinado processador, todas as demais caches que contêm aquele dado são invalidadas.
+É interessante, portanto, que threads serializadas ou com pouco grau de paralelismo que compartilham dados executem num mesmo processador, para evitar invalidação de caches constantemente, Quando um sistema operacional implementa essa Capacidade de manter processos executando num mesmo processador, diz- se que ele oferece afinidade de processador.
+Como mostrado no parágrafo anterior, o grande benefício oferecido por a afinidade de processador e a otimização do aproveitamento da cache.
+Versões anteriores do kernel do Linux não possuíam essa propriedade.
+Como havia uma única fila de processos, cada vez que um processador era liberado o primeiro processo dessa fila era escalonado para o processador ocioso, 11 ão importando em qual processador ele havia executado anteriormente.
+Esse problema foi resolvido a partir de a versão 2.5 do kernel, que provê afinidade de processador devido a existência de uma runqueue por processador.
+Como ja na sua criação o processo é inserido numa runqueue, esse processo só será escalonado para o processador associado a essa runqueue.
+Processos só migram de processador caso seja necessario realizar um balanceamento de carga no sistema.
+Essa afinidade de processador implementada por o sistema operacional e chamada de hard ajfinity (ou natural ajfinity).
+Alem disso, o Linux também suporta soft ajinity, ou seja, é permitido ao usuario, através de uma chamada de sistema, definir em qual (is) processador (es) seus processos devem ser executados.
+Um sistema operacional que oferece escalabilidade em relação a o número de processadores e capaz de manter sua eficiência a medida que são adicionados novos processadores ao sistema.
+Versões anteriores do kernel não escalavam, ou seja, quanto maior o número de processadores, menor o incremento de desempenho obtido com a adição de novos processadores.
+Em outras palavras, pode- se dizer que a relação entre desempenho e quantidade de processadores se afastava do ideal a medida em que se aumentava o número de processadores (idealmente essa relação seria linear).
+Isso ocorria devido a existência de uma única fila de processos no sistema, que eram escalonados entre todos os processadores.
+Essa fila era portanto uma variável compartilhada, e para nranter sua consistência, apenas um processador poderia alteras- la por vez.
+Por exemplo, cada vez que era necessário escalonar um processo, essa fila era bloqueada e só liberada quando o escalonamento terminasse.
+Um outro processador que precisasse acessar a fila de processos enquanto o sistema estivesse executando o escalonamento deveria esperar até que a fila fosse liberada.
+Em esse caso, quanto mais processadores no sistema, maior a concorrência por o acesso à fila de processos, maior o tempo de espera médio para acessar essa fila e, conseqüentemente, pior o desempenho do sistema operacional em função de o overhead gasto nas rotinas de escalonamento.
+A partir de a versão 2.5, o kernel do Linux provê escalabilidade, ja que cada processador possui sua própria runqueire.
+Assim, as rotinas de escalonamento só acessam a runqueize do processador em o qual o escalonamento esta sendo executado, eliminando o problema de concorrência no acesso a fila de processos.
+Runqueues só podem ser bloqueadas por processos que estejam executando num outro processador quando o balanceamento de carga e realizado, o que ocorre com freqüência muito menor do que o escalonamento.
+Quando o escalonador O (l) do Linux foi projetado, as principais melhorias propostas eram relacionadas ao desempenho de sistemas rnultiprocessados SNIP.
+No entanto, pesquisadores que trabalham com máquinas Em uma desenvolveram patches específicos para esse tipo de arquitetura.
+Muitas dessas funcionalidades foram inseridas no kernel, e a versão 2.6.1112 já suporta essas arquiteturas.
+O Linux mantém informações sobre os nodos do sistema e a que nodo cada processador pertence.
+Essas informações são utilizadas no balanceamento de carga, que a princípio tenta manter processos no mesmo nodo.
+Esse balanceamento sera melhor detalhado na Seção 3.4.
+Além disso, a distância entre processadores e módulos de memória também e conhecida, informação que pode ser utilizada na alocação de memória para um determinado processo, em função de a runqizeue em que este esta inserido.
+Aplicações de tempo real são aquelas que possuem algum requisito de tempo para concluir sua execução, e precisam ter a garantia de que serão processadas em tempo hábil, o que varia conforme a natureza da aplicação.
+No entanto, por não ser um sistema operacional de tempo real, o Linux não oferece essa garantia.
+Em o Linux, tarefas de tempo real são escalonadas utilizando políticas de escalonamento específicas para esse tipo de aplicação, que oferecem um comportamento soft real-time, ou seja, o escalonador tenta respeitar os deadlincs das aplicações tanto quanto for possível, através da garantia de que nenhum outro processo sera executado enquanto existirem tarefas de tempo real pendentes no sistema.
+Para atingir esse objetivo, o Linux oferece duas políticas de escalonamento de tempo real:
+SCHED_ FIFO e SCHED_ RR.
+A primeira, SCHED_ FIFO, não atribui fatias de tempo aos processos, que conseqüentemente não são preemptados, só deixando o processador quando bloqueiam, liberam voluntariamente ou quando terminam sua execução.
+O escalonamento entre os processos de mesma prioridade que utilizam essa política e o jirst-in, first-out, ou seja, os processos são atendidos na ordem em que chegam na fila.
+A segunda política, SCHED_ RR, é idêntica a SCHED_ FIFO, exceto por o fato de utilizar fatias de tempo.
+De essa forma, processos SCHED_ RR são preemptaveis.
+Uma tarefa pode ser definida como de tempo real através da chamada de sistema sched_ setscheduler, que pode ser executada apenas por processos com privilégio de superusuario.
+As prioridades de processos que utilizam essas políticas de escalonamento são estaticas, ou seja, não são recalculadas por o escalonador durante o tempo de vida do processo.
+Alem disso, são sempre maiores que as prioridades de processos comuns, assumindo valores entre 0 e 99.
+O objetivo do balanceamento de carga em máquinas multiprocessadas e manter a carga do sistema bem distribuída entre os processadores disponíveis.
+De essa forma, enquanto houver tarefas para serem executadas, nenhum processador deve ficar ocioso.
+Um born balanceamento de carga melhora o desempenho do sistema, já que o tempo medio de execucão das tarefas e ininimizado.
+Conforme descrito na Seção 3.2, o escalonador de processos do Linux mantem uma fila de processos para cada processador do sistema.
+De essa forma, quando criado, cada processo e inserido na fila de processos de um determinado processador e só podera ser escalonado naquele processador.
+Como não ha como predizer o tempo de execução de cada tarefa num sistema de propósito geral, é possível que num dado momento todos os processos de um determinado processador tenham terminado sua execução, enquanto os demais processadores do sistema ainda possuem tarefas a serem executadas.
+Ou seja, um processador estaria ocioso, mesmo ainda havendo processos esperando para serem executados no sistema.
+Outra possível situação indesejada seria alguns processadores terem uma quantidade de processos para executar muito maior que outros, o que prejudicaria o tempo medio de execução de tarefas.
+Para impedir essas situações, o Linux implementa um algoritmo de balanceamento de carga que atua na ocorrência de determinados eventos, como quando um processador fica ocioso.
+Alem disso, esse algoritmo verifica a distribuição da carga do sistema periodicamente, realizando o balanceamento quando necessario.
+Esse algoritmo de balanceamento de carga, implementado por o Linux a partir de a versão 2.6.7 do kernel, baseia- se no conceito de domínios de escalonamento e grupos de CPUs.
+A estrutura que representa os domínios de escalonamento foi criada com o objetivo de tornar o balanceamento de carga mais eficiente, suportando diferentes arquiteturas.
+Um dominio de escalonamento e composto por um ou mais grupos de CPUs, que determinam os processadores pertencentes ao domínio e definem o escopo para que o balanceamento de carga seja realizado nesse domínio.
+Os diversos domínios de escalonamento do sistema são organizados hierarquicamente, de forma a representar a topologia da máquina Para exemplificar a utilização dos domínios de escalonamento por o algoritmo de balanceamento de carga, pode- se considerar a máquina Em uma mostrada na Figura 3.2.
+Essa máquina possui oito processadores distribuídos em quatro nodos.
+Devido a a caracteristica própria de máquinas\ IUMA de tempos de acesso à memória depen dentes da localização da mesma, e partindo o rincípio de que a memória de um processo é alocada no mesmo nodo do processador em que es, e processo sera executado, e interessante que o algoritmo de balanceamento de carga tente manter 0 processo no mesmo nodo, garantindo assim o menor tempo de acesso aos dados.
+Em outras palavras, deve- se evitar a migração de processos entre nodos.
+Por essa razão, nessa máquina são criados cinco domínios de escalonamento:
+Um para cada nodo, chamados de domínios de CPU, e um para todo o sistema, que é pai dos demais, chamado de domínio de nodo, como apresentado na Figura 3.3.
+Conforme descrito anteriormente, o balanceamento de carga do Linux atua na ocorrência de determinados eventos, além de ser executado eriodicamente.
+O balanceamento periódico cambém chamado de balanceamento ativo) é independente de qualquer 'tarefa do sistema e tem como objetivo garantir que os processadores tenham uma carga similar, evitando que haja sobrecarga de alguns processadores enquanto outros possuem poucas tarefas para executar'.
+Com esse propósito, para cada domínio de escalonamento, o sistema operacional define a periodicidade em que esse balanceamento sera executado.
+Assim, a cada interrupção do timer do escalonador' num processador (chamada de timer_ tic/ c), o algoritmo de balanceamento de carga verifica, para cada domínio de escalonamento ao qual esse processador pertence (iniciando no domínio de menor nível hierárquico), se o balanceamento deve ser realizado naquele instante.
+Se for o caso, a carga e balanceada considerando- se apenas os processadores que compõem o domínio atual.
+No caso de o balanceamento de carga orientado a eventos, na atual versão do kernel são considerados os seguintes eventos:
+Processador ocioso, tarefa que estava bloqueada e volta ao estado de pronta ceady) e processo que executa as chamadas de sistema clone ou exec.
+Para cada dominio de escalonamento o sistema define em quais eventos o balanceamento pode ser realizado naquele domínio.
+Por 'exemplo, no caso de um processador ficar ocioso, é interessante migrar' para esse processador tarefas de um outro processador que esteja no mesmo nodo, para manter o menor' tempo de acesso aos dados.
+Por isso, por default, para esse evento o Linux permite apenas o balanceamento nos domínios de CPU.
+Ja no caso de uma tarefa executar a chamada de sistema erec (ou clone), em a qual uma nova área de memória é alocada para o processo, não ha problema em migrar essa tarefa para qualquer outro processador do sistema, ja que a memória sera alocada no mesmo nodo para o qual a tarefa foi migrada.
+De essa forma, quando um processo executa uma dessas chamadas de sistema, o balanceamento de carga pode ser realizado tanto nos domínios de CPU quanto no domínio de nodo.
+Assim, quando um dos quatro eventos citados ocorre num dado processador, o algoritmo de balanceamento de carga verifica para cada domínio de escalonamento ao qual o processador pertence (partindo do de menor nível na hierarquia de domínios) se o balanceamento pode ser realizado naquele domínio.
+O algoritmo para realização do balanceamento de carga implementado por o Linux pode ser descrito basicamente em quatro etapas:
+Procurar o processador mais sobrecarregado.
+Como o objetivo desse balanceamento e manter a carga do sistema tão bem distribuída quanto possível, o passo inicial e encontrar um processador sobrecarregado, de o11de tarefas serão migradas para o processador que esta executando o balanceamento de carga.
+Como o escopo do balanceamento e determinado por o domínio de escalonamento que esta sendo balanceado, o algoritmo procura o grupo de CPUs mais sobrecarregado do domínio e, dentro desse grupo, o processador mais sobrecarregado.
+Para cada domínio de escalonamento é determinada a diferença mínima entre o número de tarefas de dois processadores para que estes sejam considerados desbalanceados.
+Em geral, essa diferença mínima e de 25%.
+De essa forma, tarefas só serão migradas se o número de processos do processador mais sobrecarregado for maior que l e respeitar essa diferença nlínima de quantidade de processos eIn relação ao processador corrente.
+Caso contrario, o sistema assume que a carga dos processadores já esta balanceada.
+Escolher o vetor de prioridades de onde os processos serão migrados.
+Preferencialmente, processos são migrados do vetor de processos expirados, já que estes estão ha mais tempo sem executar.
+Além disso, provavelmente seus dados não se encontram na memória cache, e portanto migras- los de processador não compromete o aproveitamento da cache.
+Caso· vetor de processos expirados esteja vazio, a única alternativa é utilizar o de processos ativos.
+Escolher os processos que serão migrados.
+Para que um processo possa ser migrado para outro processador, e necessario que os seguintes requisitos sejam atendidos:
+O processo não pode estar executando;
+O processo não pode estar impedido de executar no processador destino devido a afinidade de processador;
+O processo não pode ter sido executado há pouco tempo (esse intervalo e determinado por o domínio de escalonamento), pois nesse caso ha grandes chances de que os dados desse processo ainda estejam na cache do processador (cache-hot); (
+4) processos de maior prioridade tem preferência na migração, ja que precisam ser executados mais rapidamente.
+Apesar de o conceito da hierarquia de domínios de escalonamento ser bastante simples, a implementação é um pouco mais complexa.
+Um domínio de escalonamento, alem de possuir grupos de CPUs que definem os processadores que pertencem ao domínio, mantém outras informações.
+Os domínios de CPU apontados por os processadores P] e P2 na Figura 3.4 são instâncias diferentes de um mesmo domínio de escalonamento, que possui como grupos de CPUs os processadores do nodo N] (processadores P] e P2).
+De a mesma forma, os domínios apontados por as CPUs P3 e P4 são cópias de um segundo domínio de escalonamento, cujos grupos de CPUs são compostos por os processadores P3 e P4, que estão no nodo NPJ.
+Analogamente, os domínios de CPU dos processadores P5 e P6 são cópias iguais, assim como o dos processadores P7 e P8.
+Finalmente, existem oito cópias do domínio de escalonamento que abrange todo o sistema, uma cópia para cada processador.
+O conjunto de processadores formado por os grupos de CPUs desse domínio engloba as oito CPUs do sistema.
+Ou seja, apesar de conceitualmente só existirem cinco domínios de escalonamento (um para cada nodo e outro, pai desses quatro, para todo o sistema), o11de cada CPU pertence a dois domínios, na realidade são criados dezesseis domínios de escalonamento, dois para cada CPU, pois cada CPU possui uma cópia única dos domínios aos quais ertence.
+É importante observar que os processadores possuem apenas cópias dos domínios de escalonamento de os quais fazem parte, não existindo nenhuma referência aos demais domínios do sis ema.
+O tempo de execução do algoritmo de balanceamento de carga descrito nesta seção e dependente do número de processadores e de processos existentes no sistema, razão por a qual sua complexidade e O (n).
+Isso acontece porque, inicialmente, o algoritmo pesquisa todos os processadores do sistema (ou do nodo atual), para definir o mais sobrecarregado.
+Em seguida, um dos vetores de prioridades desse processador sera percorrido para que sejam escolhidos os processos que serão migrados.
+Quanto maior o numero de processos no vetor, maior o tempo gasto nessa pesquisa.
+Tratando especificamente de máquinas Em uma, pode- se notar na rotina de balanceamento de carga que, uma vez que os processos são migrados de um nodo para outro, não existe nenhum esforço por parte de o escalo11ador para que este Volte para o nodo de origem.
+É sabido que para que se obtenha um melhor desempenho nesse tipo de arquitetura, é importante que os processos executem no mesmo nodo onde foram alocadas suas areas de memória.
+Muitos pesquisadores e programadores do Linux têm se empenhado nessa questão, e alguns patches específicos para sistemas Em uma buscam melhorar a afinidade de nodo oferecida por o Linux, seja a partir de o escalonador do sistema, seja a partir de o gerente de memória.
+Um desses patches, por exem plo, acrescenta na estrutura task_ structure do Linux, que representa os processos, um campo home_ node, que indica 0 nodo o11de 0 processo foi criado e em o qual deve estar alocada sua área de memória.
+De essa forma, caso o processo seja migrado de nodo por o balanceamento de carga, sera atraído de volta para 0 nodo inicial por o escalonador.
+A forma como o sistema operacional gerência a memória irnpacta diretamente no desempenho do sistema.
+O esforço por manter um processo no mesmo nodo para diminuir 0 tempo de acesso à memória, por exemplo, assume que a área memória alocada para este processo está no banco de memória pertencente a esse nodo.
+Por essa razão, o Linux oferece um gerente de memória capaz de identificar os diferentes nodos e alocar memória num nodo específico.
+Quando um processo e criado e cada vez que solicita mais memória, o gerente de memória tentará alocar uma área de memória no mesmo nodo do processador em o qual esse processo está executando Caso um processo migre de nodo devido a o balanceamento de carga, o swap m de paginas solicitadas por esse processo será feito, se possível, também no módulo de memória do nodo o11de o processo está localizado no momento da falta de página (page fault).
+Uma descrição detalhada de como e realizado 0 gerenciamento de memória do Linux para máquinas Em uma pode ser encontrado em Grande parte do escalonador de processos do Linux foi reescrito para a versão 2.5 do kernel.
+As alterações realizadas trouxeram um grande ganho de desempenho, especialmente no que se refere a máquinas rnultiprocessadas.
+Apesar de o foco do projeto e implementação do escalonador 0 ter sido sistemas SMP, a atual Versão encontra- se bastante madura no que se refere ao suporte a máquinas Em uma.
+No entanto, para esse tipo de arquitetura, existe uma interdependência entre o escalonador e o gerente de memória.
+Explorar essa relação, refiilando a afinidade de nodo, pode resultar em ganhos substanciais no desempenho do sistema como um todo.
+Balanceamento de Carga Multinível: Proposta e Implementação Esse capítulo descreve um algoritmo para construção da hierarquia de domínios de escalonamento capaz de representar a topologia de máquinas Em uma multiníveis.
+As características desse tipo de arquitetura são apresentadas neste czapítulo, bem como as modificações propostas para a construção dos domínios de escalonamento e os passos necessarios para a implementação desse novo algoritmo.
+O objetivo do algoritmo proposto é melhorar o desempenho do balanceamento de carga do Linux através da utilização de uma hierarquia multinível que represente melhor a topologia de diferentes arquiteturas.
+Conforme descrito no Capitulo 2, ein arquiteturas Em uma a memória e distribuída entre nodos, apesar de compor um único espaço de endereçamento.
+Basicamente, um nodo e composto por um banco de memória e um ou mais processadores.
+O tempo de acesso de um processador de um nodo n ao banco de memória que esta nesse mesmo nodo n é menor que o tempo de acesso a uma area de memória localizada ein um outro nodo do sistema.
+Inicialmente, as máquinas Em uma possuíam apenas dois niveis de acesso a memória:
+Acesso local, com uma distancia x entre o processador e a memória local, e acesso remoto, com distancia y entre o processador e a memória remota, onde:
+A máquina Em uma mostrada na Figura 3.2 possui apenas dois níveis de acesso a memória.
+Em aquela figura pode- se observar que a distância entre um processador num nodo n e um banco de memória localizado em qualquer outro nodo do sistema e sempre a mesma, ou seja, a distância entre qualquer par de nodos é constante.
+No entanto, a necessidade de criar sistemas cada vez maiores resultou no desenvolvimento de arqui eturas mais complexas, em as quais a istância entre nodos não é constante.
+Um exem o é apresentado na Figura 4.1.
+Em a Figura 4.1, a distancia entre o processador P] e o banco de memória M] e igual a 10 (acesso local), Inas as distâncias para acesso remoto variam.
+A distância entre o processador P1 e o banco de memória do nodo N é igual a 20, enquanto que a distancia desse mesmo processador aos bancos de memória localizados nos nodos Ná e N4 e igual a 70.
+Ou seja, acessar a memória do nodo N?
+É mais rapido que acessar a memória dos nodos Ns e N4.
+Como a distancia entre os nodos do sistema não e constante, apresentando mais de um nível de acesso a memória remota, arquiteturas desse tipo são chamadas nesse trabalho de arquiteturas Em uma multmíseis.
+Em a atual versão do kernel do Linux, existe uma implementação específica da função que constrói os domínios de escalonamento apenas para a arquitetura 21164.
+De acordo com essa implementação, para essa arquitetura são construídos três níveis de domínios de escalonamento caso o sistema possua mais de 6 nodos.
+As demais arquiteturas utilizam a função padrão, ou seja, tanto para 0 sistema NUNIA mostrado na Figura 3.2, quanto para 0 apresentado na Figura A diferença entre a hierarquia de domínios de escalonamento criada por o Linux para 0 exemplo da máquina Em uma multinível mostrada na Figura 3.3 e a hierarquia correspondente a topologia da máquina apresentada na Figura 4.2 é a existência de um 11 íVel de domínios de escalonamento entre os domínios de CPU e o domínio de nodo que engloba todo o sistema, presente na Figura nodos que estão mais próximos uns dos outros.&amp;&amp;&amp;
+Ou seja, observando a Figura 4.1, nota- se que a distância entre os nodos N] e N?
+É menor que a distância entre esses dois nodos e os nodos Ns e N4.
+O mesmo é valido entre os nodos Ns e N4.
+De essa forma, quando a carga de P] esta baixa em relação a outros processadores do sistema, migrar processos de P3 ou P4 (que estão no nodo N?
+Nodos Ná' e N4).
+Com esses domínios de nodo intermediários, o algoritmo de balanceamento de carga tentará equilibrar a carga entre nodos próximos antes de realizar o balanceamento entre todos os processadores.
+Apenas com os dois domínios de escalonamento criados por o Linux (Figura estão no mesmo domínio de CPU e, caso o nodo N] permanecesse com a carga baixa em relação a os demais nodos do sistema, o algoritmo de balanceamento de carga escolheria o nodo mais sobrecarregado entre os demais para migrar tarefas do processador com maior carga nesse nodo para P1, ignorando a diferença de distâncias entre os diversos nodos do sistema.
+Esse trabalho propõe uma modificação na função que constrói os domínios de escalonamento, visando superar essa limitação da atual versão do kernel do Linux.
+O objetivo do algoritmo proposto e construir hierarquias de domínios de escalonamento multiníveis, de acordo com a topologia do sistema, permitindo ao Linux realizar um balanceamento de carga mais eficieilte em máquinas Em uma multiníveis.
+Multinível Para possibilitar a Criação de uma hierarquia de domínios de escalonamento multinível em máquinas Em uma é necessario que o sistema conheça as distâncias entre os nodos.
+A partir de essa informação, e possível determinar quantos níveis de acesso a memória existem na máquina e construir os domínios de escalonamento correspondentes.
+Cada vez mais os sistemas operacionais precisam acessar informações sobre o hardware da máquina para trabalhar eficientemente.
+Para tanto, diversas empresas desenvolveram em conjunto a especificação de uma interface padrão chamada ACPI (Advanced Configuration and Power Interface).
+Através da ACPI, os sistemas operacionais podem obter dados sobre a configuração de todo o hardware do sistema e realizar gerenciamento de energia de dispositivos.
+As informações disponibilizadas por a ACPI são organizadas na forma de tabelas de descrição construídas por o firmware do sistema.
+As diversas tabelas fornecidas por a ACPI compõem uma hierarquia específica.
+A referência para a primeira tabela dessa hierarquia esta contida numa estrutura chamada RSDP (Root System Description Pointer), que é armazenada no espaço de endereçamento do sistema e inicializada por a BIOS.
+De essa forma, o sistema operacional acessa a RSDP, le a referência para a primeira tabela, chamada RSDT (Root System Description Table) e, a partir de esta, acessa as demais tabelas caminhando na hierarquia para obter as infor mações niecessárias.
+Maiores detalhes referentes a0 suporte a ACPI oferecido por o Linux podem ser obtidos em.
+Uma das tabelas fornecidas por a ACPI, chamada SLIT (System Localltg Information Table), Contem informações sobre distâncias entre localidades cambem chamadas de domínios de proximidade).
+No caso de máquinas Em uma, cada nodo e uma localidade, portanto a tabela SLIT fornece distâncias relativas entre nodos.
+O valor de cada posição HJ da tabela SLIT representa a distância entre as localidades z'e j.
+Distâncias entre processadores do mesmo nodo cambém Chamadas de distâncias SMP) possuem sempre o Valor 10.
+Assim, a distância entre um nodo e ele mesmo é igual a 10.
+As demais distâncias entre nodos são relativas a distância SMP.
+A Tabela 4.1 mostra um exemplo da tabela SLIT referente a arquitetura Em uma multinível apresentada na Figura 4.1.
+De acordo com essa tabela, a distância entre o nodo N] e o nodo N2 é igual a 20, o que significa que o tempo que um processador em N] acessa o banco de memória em N E duas vezes maior que o tempo de acesso a memória local, enquanto que a distancia entre o mesmo nodo N] e os nodos NK?
+E N4 é igual a 70 cempo de acesso sete vezes maior).
+Em a maioria das arquiteturas existentes atualmente, essa tabela é simétrica, ou seja, a distancia entre dois nodos e igual em ambas as direções.
+No entanto, existem máquinas em as quais essas distâncias diferem.
+Por exemplo, um processador do nodo N] possui tempo de acesso a memória do nodo N?
+Igual a 20, enquanto que um processador do nodo N?
+Acessa a memoria do nodo N] com tempo de acesso igual a 40.
+Essa assimetria é possível e tratada por o algoritmo proposto nesse capítulo.
+A partir de as informações fornecidas por a tabela SLIT, e possível construir a hierarquia de dominios de escalonamento de forma otimizada para a arquitetura da máquina.
+A quantidade de níveis de acesso a meniória de uma máquina específica e determinada por a quantidade de diferentes distâncias fornecidas por a tabela SLIT.
+Por exemplo, de acordo com a Tabela 4.1, a máquina Em uma da Figura 4.1 possui tres níveis de acesso a meniória, ja que existem tres valores distintos para distâncias entre nodos.
+Para que os domínios de escalonamento sejam criados corretamente, as seguintes etapas devem ser realizadas:
+Para cada nodo N: (
+a) Escolher um processador P do nodo N. Criar um novo domínio de escalonamento para o processador P. Se o novo domínio criado não é o primeiro domínio desse processador, este é pai do último domínio de escalonamento criado.
+Criar uma lista de grupos de CPUs para o domínio construído no item anterior.
+Se d:
+10 (distância do nodo N para ele mesmo), essa lista tera um grupo de CPUs para cada processador do nodo N. Caso contrario, a lista devera conter um grupo de CPUs para cada nodo cuja distancia para o nodo N seja menor ou igual ad.
+O algoritmo apresentado na Seção 4.3 permite a criação de hierarquias de n níveis, suportando uma grande variedade de arquiteturas.
+Essa seção apresenta um estudo de caso de uma máquina Em uma com tres níveis de acesso à memoria.
+Fabricado por a Hewlett--Packard, 0 servidor Hp Intcgrity Supcrdome mostrado na Figura máquina, cada processador apresenta três niveis de acesso à memóriat:
+Para construir uma hierarquia de domínios de escalonamento multinível de acordo eom o algoritmo proposto e necessário obter as informações da tabela SLIT da ACPI.
+A tabela SLIT da máquinzt utilizada nesse estudo de caso ó apresen ada na Tabelzt 4.2.
+Os dados da tabela SLIT (Tabela 4.2) confirrnarn que existem três níveis de acesso à memória, pois apresentam três (lifnrrentnzs distâncias entre nodos.
+Partindo dessa tabela o utilizando o algoritmo proposto na Seção 4.3, tem- se:
+Para o nodo N: (
+a) P $= 1, que e 0 primeiro processador do nodo Nl.
+Cria o primeiro domínio de escalonamento do processador 1.
+A lista de grupos de CPUs para o domínio criado deve conter um grupo de CPU para cada processador do nodo Nl.
+A Figura 4.4 mostra a hierarquia de domínios de escalonamento do processador 1 até agora.
+Cria outro domínio de escalonamento para o processador 1, que é pai do domínio de escalonamento criado anteriormente.
+A lista de grupos de CPUs para esse novo domínio é composta por quatro grupos, cada um contendo os processadores de um nodo específico.
+Os quatro nodos são Nl, N2, N3 e N4, pois estes se encontram a uma distancia de Nl menor ou igual a 17.
+A hierarquia de domínio de escalonamento criada até então pra o processador 1 e mostrada na Figura 4.5.
+Cria 0 último domínio de escalonamento para 0 processador 1, que e pai do domínio de escalonamento criado anteriormente.
+A lista de grupos de CPUs para esse novo domínio possui dezesseis grupos, um para cada nodo do sistema.
+Todos os nodos são inseridos nessa lista, ja que 29 e a maior A hierar istancia na tabela SLIT.
+Dominio do CPU 1 -- CPL'&quot;¤ U 2+ cP PU 4 j e domínios de esca onarnento para o processador 1.
+O mesmo processo é repetido para os demais nodos do sistema.
+Para cada processador num nodo N, a hierarquia de domínios de escalonamento sera criada seguindo o mesmo padrao:
+N, o segundo nível contem os processadores dos nodos que estão a uma distancia de N menor ou igual a 17 e o nível mais alto é composto por todos os processadores do sistema.
+Para essa mesma máquina, a rotina padrão do Linux constrói para os processadores do nodo N 1 a hierarquia de c omínios de escalonamento apresentada na Figura 4.7.
+Observando a hierarquia de domínios de escalonamento criada na atual versão do Linux (Figura 4.7), pode- se notar que esta não representa a topologia da máquina, o que acaba por prejudicar o desempenho do balanceamento de carga.
+Por exemplo, supondo que o balanceamento seja invocado no processador 1.
+O algoritmo atual do Linux primeiro tentará migrar para este processador tarefas do processador mais sobrecarregado do domínio de escalonamento de mais baixo nível, que possui os processadores 1, 2, 3 e 4.
+Como estes processadores pertencem ao mesmo nodo que o processador 1, mover tarefas entre eles não implicará em nenhuma queda de desempenho, pois a distancia entre as tarefas e a area memória onde estão seus dados permanecerá a mesma.
+No entanto, quando executado no domínio de escalonamento de mais alto nível, que contem todos os processadores, o algoritmo migrara tarefas do nodo mais sobrecarregado de todo o sistema para o processador 1, independentemente das distâncias entre nodos, o que pode resultar num aumento no tempo de execução das tarefas migradas que poderia ser minimizado.
+O problema descrito acima não ocorre na hierarquia de domínios de escalonamento construída com o algoritmo proposto, ja que nesse caso e criado um domínio para cada nível de acesso à memória.
+De essa forma, o algoritmo de balanceamento de carga tentara sempre migrar tarefas entre processadores mais próximos, aumentando a distancia gradativamente, o que é um comportamento mais adequado para a topologia da máquina.
+O tempo para construção dos domínios de escalonamento a partir de o algoritmo proposto certamente sera maior que o atual, dada a complexidade do mesmo.
+No entanto, esse tempo adicional r1ão afetará o desempenho geral do sistema, ja que os domínios são construídos apenas no momento de inicialização do sistema.
+O algoritmo descrito na Seção 4.3 foi implementado para a versão 26.11.12 do kernel do Linux.
+A função responsavel por a construção da hierarquia de domínios de escalonamento chamase arciLmit_ sched_ domains e está localizada no arquivo kernel/ schedc O Código 1 mostra como essa função esta estruturada na atual versão do Linux.
+Apesar de o Linux fornecer uma implementação padrão para essa função, e possível que haja implementações de arquiteturas particulares.
+Esse é o caso das arquiteturas 21164 na atual versão do kernel.
+Para as arquiteturas que possuem implementação específica é definida uma macro chamada ARCH_ HAS_ SCHED_ DOMAINS, para que o sistema operacional compile e execute a função correta.
+Essa verificação é realizada entre as linhas 1 e 3 do Código 1.
+Confígura os grupos de CPUs para os domínios de escalonamento de CPU&amp; ifdef Configura os grupos de CPUs para o domínio de escalonamento de nodo&amp; endif Em seguida, todos os domínios de escalonamento e grupos de CPUs que serão configurados são declarados, para que seja alocada a memória necessária.
+As linhas 6 e 7 declaram os domínios de CPU e os grupos de CPUs para esses domínio e, caso o sistema seja Em uma, são declarados também os domínios de nodo e os grupos desses domínios.
+Conforme descrito no Capítulo 3, cada processador possui uma cópia dos domínios de escalonamento ao qual pertence, enquanto que os grupos de CPUs são compartilhados.
+Por essa razão, a configuração dos domínios de escalonamento e realizada para cada processador i (linhas 16 a A variavel nodemask, do tipo cpumask_ t é utilizada na criação dos domínios.
+O tipo cpumask_ t pode ser definido como uma mascara composta por um conjunto de n bits, onde n é o numero de processadores do sistema.
+Se nodemaski $= 1, o processador i pertence a mascara.
+Em a linha 19 é atribuída a essa variavel a mascara do nodo ao qual o processador 2', pertence.
+As linhas 21 a 27 do Código 1 configuram 0 domínio de nodo para um processador i.
+Esse domínio e o de mais alto nível na hierarquia e é composto por todos os processadores do sistema.
+Os parametros do domínio de escalonamento de nodo que são iguais para todos os processadores são definidos em SD_ N Ode_ INI T (linha 24).
+Os demais parametros são setados individualmente.
+Por exemplo, o campo spam, que é uma máscara do tipo cpumask_ t que indica quais processadores pertencem a esse domínio, recebe o mesmo valor de cpu_ default_ map, que contem todos os processadores do sistema (linha 25).
+Ja o domínio de CPU é configurado entre as linhas 28 e 34.
+Em esse caso, os parametros comuns a todos os domínios de CPU são definiidos em SD_ CPU_ INIT.
+Ja o campo span recebe o valor de¡ Lodemask (linha 32), que contém todos os processadores que se encontram no mesmo nodo do processador 2', para o qual o domínio de escalonamento esta sendo criado.
+É importante observar também que o campo parem desse domínio de CPU recebe o domínio de nodo criado anteriormente (linha 33), construindo dessa forma uma hierarquia.
+Assim, de acordo com a rotina padrão do Linux, numa máquina Em uma são criados dois domínios de escalonamento para cada processador i, organizados hierarquicamente:
+O domínio de nível mais baixo na hierarquia é composto por os processadores que estão no mesmo nodo de i, enquanto que o de nível mais alto contém todos os processadores do sistema.
+A implementação do algoritmo proposto na Seção 4.3 foi realizada através de modificações na função arch_ mu_ sched_ domains e da criação de algumas funções auxiliares.
+O Código 2 mostra as principais modificações realizadas na função padrão do Linux.
+Código 2 Nlodificações na função arch_ mu_ sched_ donzams static Define_ PER_ CPU (struct sched_ domain, phys_ domains);
+Confígura os grupos de CPUs para fínd_ next_ best_ nodes (node, ànodemask);
+Confígura os grupos de CPUs para o dominio de escalonamento de nodo&amp; endif os domínios de escalonamento de CPU Seguindo o algoritmo proposto, o número de domínios de nodos que devem ser criados varia de acordo com o número de níveis de acesso a memória que o sistema possui.
+Ainda assim, inicialmente apenas um domínio de nodo é declarado para cada processador (linha 5).
+Esse domínio sera o domínio de nodo de mais baixo nível.
+Os demais domínios são alocados dinamicamente e acessados através do campo parent.
+Em o Código 2, a forma como o domínio de escalonamento de CPU (de menor nível hierárquico) e criado não foi alterada.
+No entanto, na função modificada é o primeiro dominio criado.
+O código entre as linhas 24 e 43 é responsável por a configuração de todos os demais domínios de escalonamento.
+A variável nodemask e responsável por armazenar quais os processadores que foram inseridos no filtimo domínio de escalonamento criado.
+De essa forma, o laço entre as linhas 26 e 42 sera repetido ate que todos os processadores tenham sido inseridos num dominio de escalonamento (último dominio da hierarquia).
+A função find_ next_ best_ nodes, invocada na linha 27, é responsavel por determinar quais os nodos que devem Compor o próximo domínio de escalonamento a ser criado e setar os bits referentes aos processadores desses nodos na variavel nodemask.
+Essa função acessa os dados da tabela SLIT para encontrar quais os nodos mais próximos do processador atual que ainda não estão inseridos em nodemask.
+Assim, após a execução da função find_ next_ best_ nodes a variavel nodemdsk definirá o campo.
+Spdn do próximo domínio a ser criado.
+Como ja foi mencionado, o primeiro dominio de nodo tem sua memória alocada previamente.
+Portanto, o comando condicional na linha 30 verifica se o domínio que sera configurado e o primeiro domínio de nodo.
+Se for o caso, este utilizará a area de memória ja alocada.
+Caso contrario, sera alocada uma nova area de memória (linha 35).
+A organização hierarquica é garantida na linha 40, onde o campo parent do dominio criado anteriormente é setado para esse novo dominio.
+De essa forma, para uma máquina com n níveis de acesso à memória, a função arch_ init_ sched_ domains constrói uma hierarquia de dominios de escalonamento com n níveis, representando corretamente a topologia da máquina.
+Em a implementação do algoritmo proposto, foram criadas duas funções auxiliares.
+A pri meira de elas chama- se find_ next_ best_ nodes e, conforme descrito anteriormente, é responsavel por determinar a mascara de processadores que devem ser inseridos no próximo domínio de escalonamento a ser criado.
+Essa função (Codigo 3) recebe dois parâmetros:
+O nodo do processador para o qual esta sendo construída a hierarquia de domínios de escalonamento e um ponteiro para a mascara que deve ser utilizada para indicar os processadores que devem ser inseridos no próximo dominio a ser criado (nodemask).
+O algoritmo implementado por essa função é bastante simples.
+Inicialmente, ele procura a menor distancia entre o nodo recebido como parâmetro e os demais nodos do sistema cujos processadores ainda não foram inseridos em nenhum domínio criado (não estão setados em nodcmask).
+Essa pesquisa é realizada entre as linhas 10 e 21.
+O laço da linha 10 percorre todos os possíveis nodos no sistema.
+Em seguida, e verificado se o atual nodo n do laço ja foi inserido num domínio ja criado.
+Para tanto, é suficiente verificar se o primeiro processador do nodo n já esta setado na mascara nodcmask.
+Se for o caso, o algoritmo passa para o próximo nodo do laço.
+Caso contrario, o algoritmo acessa a distância entre o nodo n e o nodo do processador para o qual o domínio sera criado, através da função node_ distance.
+Essa função e disponibilizada por o Linux e retorna as distâncias da tabela SLIT da ACPI.
+Em seguida, verifica- se se essa distancia e a menor ja encontrada.
+O mesmo procedimento e repetido para todos os nodos.
+Em o final do laço, a variavel min_ val contera a menor distância entre o nodo node passado como parametro e os demais nodos que não estão inseridos em nodemask.
+Em a segunda parte da função find_ next_ best_ nodes os bits referentes aos processadores dos nodos que se encontram a uma distancia igual a min_ val do processador, para o qual os domínios de escalonamento estão sendo construídos, são setados em nodemask.
+O laço entre as linhas 23 e 27 percorre todos os processadores e verifica para cada um se a distancia entre o nodo desse processador e o nodo recebido como parâmetro e igual a menor distância encontrada (linhas 24 e 25).
+Se for o caso, o bit de nodemask referente a esse processador é setado (linha 26).
+Assim, ao término dessa função, a variavel nademask contera os processadores de todos os nodos que estão a uma distância do processador, para o qual os domínios estão sendo criados, menor (que já estavam setados) ou igual a menor distancia ainda não visitada, de acordo com o determinado por o algoritmo proposto na Seção 4.3.
+Após a configuração dos domínios de escalonamento, o Linux configura os grupos de CPUs, que foram previamente declarados e são compartilhados por os diversos domínios.
+Essa confi guração não foi apresentada no Codigo 1 devido a sua simplicidade.
+No entanto, ao contrário comNmcxu\&gt; bawH da função padrão, na implementação da hierarquia multinível os grupos de CPUs dos domínios de nodo não são declarados antecipadamente.
+Como estes são dependentes das distâncias entre nodos e do número de domínios de nodo Criados, são alocados dinamicamente.
+Por essa razão, foi necessario criar uma função auxiliar específica para a criação desses grupos de CPUs, chamada mit_ sched_ build_ groups_ numa.
+Código 3 Função 13m l_ next_ best_ nodes cpumask_ t cpu_ default_ map;
+O Código 4 mostra o trecho da função principal arch_ mu_ sched_ domains modificada, onde os grupos de CPUs são configurados e essa função auxiliar é invocada.
+Corno os processadores que estão no mesmo nodo possuem a mesma hierarquia de domínio de escalonamento, os grupos de CPUs são criados apenas para o primeiro processador de cada nodo.
+Os demais processadores apenas recebem referencias para os grupos Criados.
+O laço entre as linhas 16 e 34 é repetido para cada nodo z'do sistema.
+Inicialmente, a função identifica o primeiro processador do nodo z', que é armazenado na variavel jírst_ cpu.
+Em seguida, para cada processadorj do nodo 2' (linhas 22 a 33), os grupos de CPUs são configurados.
+Em a linha 23, o domínio de nodo de mais baixo nível na hierarquia de domínios de escalonamento do processador e armazenada na variavel sd.
+Analoganleilte, na linha 24 a Variável sd_ fi7 minutest recebe 0 domínio de nodo de mais baixo nível do primeiro processador do nodo i (jírst_ cpu).
+Em seguida, todos os níveis da hierarquia do processador j são percorridos no laço entre as linhas 25 e 32, para que os grupos de CPUs sejam configurados.
+Se o processador j e o primeiro processador do nodo i, a função auxiliar mu_ sched_ groups_ numa e chamada para construir os grupos de CPUs do domínio atual (linhas 26 e 27).
+Caso contrario, o campo groups do domínio recebe uma referência para os grupos de CPUs criados para o primeiro processador do nodo i.
+Em as linhas 30 e 31 é feita a modificação para um nível acima na hierarquia de escalonamento, para que o laço possa ser repetido em todos os domínios.
+Código 4 Configuração dos grupos de CPUs para os domínios de nodo static&amp; ifdef static Define_ PER_ CPU (struct sched_ domain, phys_ domains);
+Define_ PER_ CPU (struct sched_ domain, node_ domains);
+Retum cpu_ te o_ node (cpu);
+A o término do laço entre as linhas 16 e 34 do Código 4 os grupos de CPUs de todos os domínios de escalonamento de todos os processadores do sistema terão sido Criados e configurados adequadamente para a hierarquia multinível proposta.
+A função auxiliar mu_ srt/ red_ build_ groups_ numa, responsavel por alocar memória e configurar os grupos de CPUs para o primeiro processador de cada nodo do sistema, é apresentada no Código õ.
+Essa função recebe como parâmetros:
+O processador ao qual o domínio de escalonamento pertence (cpu);
+O campo spam do domínio de escalonamento, que é uma mascara do tipo cpumask_ t que indica quais os processadores que fazem parte do domínio (span);
+Um ponteiro para o domínio de escalonamento para o qual a lista de grupos de CPUs será criada (Kd);
+E um ponteiro para a função cpu_ te o_ node_ group, que retorna o nodo do processador passado como parâmetro.
+Código 5 Criação dos grupos de CPUs para o primeiro processador de cada nodo struct sched_ group* first NULL,* last for_ each_ cpu_ mask (i, span) Í continue;
+Em a linha 4 do Código 5, são declarados dois grupos de CPUs auxiliares para a construção da lista.
+A mascara covered (linha 6) tambem e uma variavel auxiliar, responsavel por armazenar os processadores que ja foram inseridos na lista de grupos de CPUs.
+Como a variavel spam indica os processadores que devem fazer parte da lista de grupos a ser criada, 0 laço entre as linhas 8 e 29 percorre todos os processadores i dessa mascara.
+Em a 1i11ha 9 a variável node recebe o nodo do processador 2'.
+Caso esse processador ja tenha sido inserido em algum grupo de CPUs, a execução do laço recomeça para o próximo processador.
+Caso contrario, um novo grupo de CPUs é criado para o domínio de escalonamento, composto por todos os processadores que estão no mesmo nodo do processador i.
+Em a linha 19, os processadores que foram inseridos no grupo criado são setados na variavel covered para que não seja criado um outro grupo para o mesmo nodo.
+O primeiro grupo para o qual o campo groups do domínio de escalonamento aponta deve ser aquele em que o processador ao qual o domínio pertence esta inserido.
+Essa verificação e feita nas linhas 21 e 22.
+A construção da lista e realizada entre as linhas 24 e 28, através do campo next da estrutura de grupos de CPUs.
+Finalmente, na linha 30 é garantido que a lista seja circular, de acordo com o padrão utilizado por o Linux.
+Quando a execução dessa função for finalizada, terá sido construída uma lista circular de grupos de CPUs, com um grupo para cada nodo que pertence ao domínio de escalonamento atual, conforme a especificação da proposta.
+Apesar de a estrutura de dominios de escalonamento ter sido criada para que o algoritmo de balanceamento de carga do Linux pudesse representar a topologia da máquina através dessa estrutura e assim realizar um balanceamento de carga mais eficiente, na implementação atual do kernel são criados apenas dois níveis de domínios de escalonamento em máquinas Em uma.
+Esse capítulo apresentou a proposta e implementação de um algoritmo para a criação de uma hierarquia de domínios de escalonamento multinível para representar corretamente a topologia da máquina, baseado nas informações de distancia entre nodos da tabela SLlT da ACPI.
+A partir de a implementação apresentada foi gerado um patch para a atual Versão do Linux, para que os membros da comunidade Linux possam verificar' a eficiência do balanceamento de carga resultante desse algoritmo em seus ambientes.
+Esse patch esta disponível para download na pagina do projeto PeSO Resultados Esse capítulo descreve os modelos utilizados para a avaliação do algoritmo para construção de hierarquias de domínios de escalonamento multiníveis apresentado no Capítulo 4 e apresenta os resultados obtidos.
+Esses resultados traçam um comparativo entre o desempenho do balanceamento de carga do Linux utilizando a hierarquia construída na atual versão do kernel e a construída por o algoritmo proposto, considerando diferentes arquiteturas, sob diferentes cargas.
+Apesar de o algoritmo proposto no Capítulo 4 ter sido implementado no Linux, não foi possível efetuar uma avaliação completa do mesmo através de benchmarking devido a indisponibilidade de máquinas Em uma com mais de dois níveis de acesso à memória durante o desenvolvimento desse trabalho.
+Por essa razão, a avaliação foi realizada através de um modelo simulado, desenvolvido a partir de a ferramenta de simulação JaUaSim, e de um modelo analítico, que e resultado de um outro trabalho de mestrado realizado no projeto PeSO.
+Os resultados obtidos a partir desses modelos mostram que e possível obter melhoras de ate 10% no tempo medio de execução das tarefas quando a hierarquia de domínios de escalonamento multinível é utilizada.
+Além desses dois modelos, foi utilizado um benchmark para comprovar que a utilização do algoritmo proposto em máquinas com dois níveis de acesso a memória não acrescenta nenhuma sobrecarga ao sistema.
+O modelo construído para a simulação do escalonador de processos do Linux utiliza a ferramenta de simulação JavaSim O J aUaSim é um framework para o desenvolvimento de modelos simulados de tempo contínuo e eventos discretos.
+O escalonamento de eventos e orientado a para o cessos, ou seja, a gerência dos eventos é realizada inlplicitamente na gerência de processos Modelos de sistemas específicos podem ser construídos estendendo as classes do JavaSrím.
+O escalonador do JavaSim possui uma fila de processos (objetos da classe SimulationProcesxs), ordenados por o tempo de ativação, atributo que indica em que tempo da simulação cada processo deve ser executado.
+Uma vez selecionado, um processo executa até terminar ou invocar a função Hold (tempo), que suspende esse processo até o tempo passado como parâmetro, que será seu novo tempo de ativação.
+Assim, um outro processo pode ser selecionado para executar e o tempo da simulação avança para o tempo de ativação do próximo processo da fila.
+De essa forma, e possível simular operações paralelas, determinando o mesmo tempo de ativação ara diferentes processos.
+Código 6 Código dos processos P1, P2, P3 e P4 wmumcxwwmu ClasseX extends SimulationProcessf comando comando comando Ho1d;
+Como o tempo de ativação de P2 tambem e igual a 10, o tempo da simulação não e alterado.
+Esse comportamento simula os processos P1 e P2 executando simultaneamente.
+O próximo processo a ser selecionado é P3, e o tempo da simulação e atualizado para 50.
+Em seguida, Pl e novamente ativado, já que é o próximo processo da fila, e o tempo de simulação passa a ser escalonador do JavaSinL fique vazia.
+Em esse ponto, a simulação e finalizada.
+O modelo construído simula o funcionamento do escalonamento de processos e balanceamento de carga do Linux para diferentes arquiteturas e cargas de trabalho.
+A Figura 5.3 apresenta o diagrama de classes desse modelo.
+Entre as classes apresentadas nesse diagrama, três estendem a classe SimulationProcexss do JavaSim, sendo portanto processos escalonados por o simulador da ferramenta.
+São elas:
+NumaMachme, Arrivals e Processor.
+As demais classes são utilizadas durante a simulação por os objetos do tipo SimulationProcess.
+A classe NumaMachme representa a máquina que sera simulada.
+Assim, numa dada simulação, existe um único objeto dessa classe, que controla a execução da simulação e a criação e ativação inicial de todos os outros processos da simulação.
+Exis e tambem uma única instancia da classe Arm/ als, responsavel por criar objetos do tipo Tal9 k7 que representam os processos do Linuxl.
+Como o simulador não implementa os conceitos de processo pai e processo filho, cada tarefa, ao ser criada, e designada para o processador com menor carga naquele instante.
+Esse comportamento reflete a ação do Linux quando o processo executa as Chamadas de sistema exec ou clone, ou seja, não são modelados processos que compartilham memória chreads).
+A taxa de criação das tarefas é definida por uma distribuição exponencial, cuja media deve ser fornecida ao modelo.
+Cada processador do sistema e representado por um objeto da classe Processor.
+Os processadores são os principais processos da simulação, pois implementam todo o funcionamento dos algoritmos de escalonamento e balanceamento de carga, que é o objetivo do modelo.
+Assim como no Linux, cada processador possui uma fila de processos ativos e uma de processos expirados (instâncias da classe Queue), e executa independentemente dos demais processadores.
+A interação entre processadores ocorre apenas na execução do balanceamento de carga (LoadBalanccr), onde tarefas podem ser movidas da fila de um determinado processador para a fila de outro processador.
+Como mencionado anteriormente, os processos do Linux são representados por objetos da classe Task.
+O valor nice das tarefas e determinado de acordo com uma distribuição uniforme que assume valores entre~ 20 e 19.
+A prioridade dinamica e a fatia de tempo cimeslice) de Cada tarefa são calculadas em função de o valor nice e de outros parametros utilizados por o Linux,¡ Note a diferença entre processos do Linux, específicos ao nosso modelo, e processos do simulador, escalonados por o JauaSivn.
+Conforme descrito no Capítulo 3.
+Existem ainda três atributos da classe Task que são definiidos por distribuições exponenciais:
+Tempo de execução da tarefa (ezecuting_ time), que determina o tempo total em que a tarefa terminaria se não perdesse 0 processador;
+Tempo de processamento (processing_ time), que define por quanto tempo a tarefa ocupa o processador ininterruptamente (igual ou menor que sua fatia de tempo, significando que o processo foi preemptado ou bloqueado para realizar alguma operação de I/ O, respectivamente);
+E tempo de espera (waiting_ time), que define por quanto tempo a tarefa ficarã bloqueada, uma vez que esta realizando uma operação de l/ O. As diferentes latencias de memória em arquiteturas Em uma são consideradas no momento em que o balanceamento de carga move uma tarefa de processador.
+Considera- se que 50% do tempo que resta para que a tarefa termine sua execução sera gasto com acesso à memória.
+Portanto, quando a tarefa é migrada para outro nodo, metade desse tempo (atributo timeToFínish) e recalculado em função de a distância entre o novo nodo e o nodo em o qual a tarefa foi criada (onde sua memória foi alocada).
+De essa forma, se o processo e movido para um nodo mais distante, levará mais tempo para terminar sua execução.
+Analogamente, quando movido para um nodo próximo de a sua memória, o tempo para terminar diminui.
+Número total de tarefas que devem ser criadas e executadas por os processadores.
+Número de processadores e nodos da máquina simulada.
+Tipo de balanceamento de carga:
+Utilizando algoritmo padrão do Linux, com hierarquias de domínios de escalonamento de dois níveis, ou utilizando hierarquias multiníveis, de acordo com o algoritmo proposto no Capítulo 4.
+S. Média para o tempo de espera das tarefas.
+O simulador descrito na seção anterior foi utilizado para verificar 0 tempo medio de resposta das tarefas em diferentes arquiteturas.
+O tempo medio de resposta e definido como o tempo de vida do processo, ou seja, 0 tempo decorrido desde sua Criação ate o término de sua execução.
+Foram consideradas cargas variando entre 50 e 500 processos.
+Para cada carga considerada, foram realizadas 1000 simulações para o algoritmo padrão do Linux e outras 1000 simulações para o algoritmo proposto.
+Todos os resultados apresentados nos em essa seção possuem erro máximo entre 0,46% e 2,36%, com um grau de Confiança de 99%.
+Os parâmetros das simulações foram definidos de forma a refietirem o ambiente considerado no modelo analítico apresentado na Seção· Dez processos de maior prioridade (nice igual a O) e os demais processos com valores nice entre 1 e 19.
+Média para o tempo de execução das tarefas igual a 500 milisegundos.
+Média para o tempo de processamento de cada tarefa igual a sonia da sua fatia de tempo e valor nice.
+Ou seja, processos com menores prioridades (maiores maes) ocupam o para o cessador por mais tempo (processos CPU-bound).
+Média para o tempo de espera das tarefas igual a l segundo.
+Em o primeiro experimento realizado, consideramos uma máquina de exemplo com quatro níveis de acesso a memória, composta por quatro nodos e dezesseis processadores (Figura 5.4).
+A Tabela 5.1 apresenta os dados da tabela SLIT dessa máquina.
+A Figura 5.5 mostra os tempos médios de resposta das tarefas obtidos por o modelo simulado para essa máquina.
+De acordo com o gráfico, para todas as cargas simuladas, o tempo medio de resposta das tarefas foi menor quando o algoritmo proposto foi utilizado, oferecendo ganhos entre 3% e 6,5%.
+As máquinas utilizadas nos exemplos acima possuem quatro processadores por nodo, e os resultados das simulações mostraram que o algoritmo proposto reduziu o tempo medio de resposta das tarefas nesses sistemas para as cargas utilizadas.
+No entanto, nas simulações realizadas considerando computadores com apenas dois processadores por nodo, pode- se observar uma queda de desempenho a medida que o número de tarefas aumenta.
+Esse resultado pode ser observado em simulações que consideram a máquina da Figura 5.7, que possui a mesma arquitetura do computador utilizado no primeiro exemplo (Figura 5.4), mas com cada nodo composto por apenas dois processadores.
+De acordo com o gráfico da Figura 5.8, à medida que o número de processos aumenta, ocorre uma queda de desempenho no sistema quando o algoritmo proposto, que constrói uma hierarquia de domínios de escalonamento com 4 níveis, é utilizado.
+Esse comportamento se deve ao pequeno número de processadores por nodo no sistema.
+Como ha poucos processadores por nodo, e cada nível da hierarquia de dominios de escalonamento possui apenas dois processadores a mais que o nível anterior, conforme o número de tarefas cresce, o sistema acaba sendo forçado a migrar processos para processadores mais distantes.
+É importante observar que, quando a hierarquia multinível é utilizada, a probabilidade de um processo ser movido para um processador distante diminui, mas uma vez movido, a chance desse processo retornar para o nodo original também e menor que quando utilizado o algoritmo padrão.
+Por essa razão, o tempo de execução das tarefas aumenta nessa máquina.
+Em a média, a queda de desempenho ficou em torno de 5%.
+Ainda com o objetivo de verificar essa limitação, foram executadas simulações para dois sistemas reais, ambos servidores SG ] 3000.
+O primeiro servidor considerado nas simulações ossui 16 nodos 32 rocessadores e 6 níveis de acesso à memória Fi ura 5.9.
+A tabela SLIT utilizada para esse Computador e apresentada na Tabela 5.2.
+Assim como na máquina de exemplo apresentada na Figura 5.7, os servidores S GI Altiw.
+Assim, a partir de o um determinado número do processos, o desempenho do sistema quando a hierarquia multinível e utilizada e pior que a obtida com a utilização de uma hierarquia do dois níveis, discutido antcriorincnto.
+Como so trata de uma máquina com mais processadores, e possível manter um melhor desempenho para um maior número do processos.
+No caso de o computador da Figura 5.7 a queda do dosornporiho pode ser xverifícada nas simulações com carga a partir de 150 processos.
+Ja para o servidor SGI Altiz 3000 osso problema só ocorre a partir de o 300 processos, como mostra o gráfico da Figura a hierarquia multinível foi utilizada.
+O segundo servidor SG ] 3000 considerado nas simulações é apresentado na Figura indicado ern sua tabela SLIT (Tabelas 5.3 e 5.4).
+No entanto, na media houve melhora de desempenho eom a utilização da hierarquia multinível.
+Esse resultado pode ser observado no gráfico da Figura 5.12.
+De acordo eom esse grafieo, apesar de a queda de desempenho a partir de 400 processos, o tempo de resposta dos processos reduziu em media 7,9% quando a hierarquia multinível foi utilizada.
+Os gráficos das Figuras 5.13 e 5.14 mostram os resultados obtidos nas simulações.
+Para ambos os casos, a melhora obtida com a utilização da hierarquia multinível foi ainda maior que nos testes em que foram criados processos com diferentes valores de nice:
+Para a máquina Hp Superdome houve uma melhora media de 2,2% e para o computador SCI Altix 3000 essa melhora foi de 10%.
+É importante observar que para a máquina SG ] 3000, que possui apenas dois processadores por nodo, irão foi verificado nenhum caso em que o tempo de resposta das tarefas quando a hierarquia multinível foi utilizada por o balanceamento de carga foi maior que o obtido com o balanceamento de carga atual.
+Para todas as cargas testadas, nossa proposta apresentou um melhor desempenho, diferentemente do resultado das simulações realizadas para a mesma máquina, mas com processos de diferentes prioridades.
+E possível que esse comportamento observado se Tempo de vssuosta médio (segundos) Hwevarqum de 2 niveis_ e Hwevamuia de m níveis.
+Os resultados da simulação mostraram que, para alguns casos, a proposta de utilização de uma hierarquia de domínios de escalonamento multinível que represente corretamente a topologia da máquina resulta num pior desempenho que a estratégia atualmente adotada por o Linux, de construção de uma hierarquia de dois níveis.
+Essa situação foi verificada nos casos em que os computadores utilizados nos testes possuíam um pequeno número de processadores por nodo e os processos tinham diferentes prioridades devido a distribuição uniforme utilizada para atribuição do valor nice dos mesmos.
+Existem diferentes alternativas para tentar solucionar ou minimizar esse problema.
+Uma de elas seria definir um número ideal de níveis na hierarquia de domínios de escalonamento para a máquina utilizada, considerando o número de processadores e possívelmente a carga do sistema.
+Essa abordagem exigiria uma pesquisa para a identificação de heurísticas que possibilitem ao sistema determinar' o número de níveis e os critérios utilizados para selecionar os nodos que deveriam ser inseridos em cada nível.
+Em uma implementação inicial, e possível ainda permitir que o usuario defina esses parâmetros como opções de configuração do kernel.
+Uma proposta enviada para listas de discussão do Linux (linux- iam) adiciona uma opção de configuração que permite ao usuario definir' o número de nodos em cada dominio de nodo construído.
+No entanto, essa proposta constrói apenas hierarquias de tres níveis ein arquiteturas de 64 bits.
+Outra possível abordagem é a migração da area de memória do processo quando este é movido de nodo, de forma a garantir sempre o menor tempo de acesso aos seus dados.
+De essa forma, a hierarquia multinível tentaria mover os processos para nodos sempre mais próximos, minimizando o tempo de cópia das paginas de memória, e, caso ocorresse a migração para processadores mais distantes, 0 overhead adicionado seria apenas o da migração da memória, eliminando o problema da pequena probabilidade do processo voltar ao seu nodo original.
+Duas propostas para imigração de páginas no Linux estão sendo pesquisadas num outro trabalho de mestrado dentro de o ro' eto PeSO.
+A rimeira ro osta mais sim les move toda a area de memória do recesso quando ocorre a migração.
+Ja na segunda abordagem as páginas são migradas sob demanda, a medida que o processo tenta acessas- las.
+O mecanismo de migração de páginas deve considerar alguns aspectos importantes, como por exemplo paginas compartilhadas por varios processos, que podem estar em diferentes nodos.
+Essas questões fogem do escopo desse trabalho e portanto não serão tratadas aqui.
+A descrição e avaliação inicial dessas propostas podem ser encontradas em.
+Ainda com o objetivo de comparar 0 desempenho da proposta de utilização de hierarquias de domínios de escalonamento multiníveis no algoritmo de balanceamento de carga do Linux, foi utilizado um modelo analítico.
+Esse modelo foi desenvolvido como parte de um outro trabalho de mestrado, também dentro de o escopo do projeto PeSO.
+O modelo foi construído utilizando o formalismo SAN (Stochastic Automata Networks).
+O modelo analítico descreve o comportamento de um processo em particular no Linux, considerando a influência de outros processos.
+A Figura 5.15 mostra o modelo SAN de um processo numa máquina com 2 processadores e sua tabela de taxas de transição.
+O autômato Process e composto dos seguintes estados:
+Rm representando que o processo esta na fila de processos ativos, esperando ser escalonado no processador im;
+Epm representando que o processo está na fila de processos expirados, ou seja, ja executou durante toda a sua fatia de tempo;
+Eani «indicando que o processo esta executando no processador correspondente;
+10m indicando que o processo está bloqueado, esperando uma operação de I/ O;
+E En representando que o processo terminou sua execução.
+Em a Figura 5.15 o processo pode executar em apenas dois processadores (PW e Pal).
+Para representar uin maior número de processadores e necessario replicar os estados Rm,[ Om, Exit) e Epi «e suas transições correspondentes.
+A Figura 5.16 apresenta um processador modelado usando SAN e as taxas de transição correspondentes.
+Um processador pode estar num dos seguintes estados:
+BW representando que o processador não possui processos para executar e por isso esta realizando o balanceamento de carga, Sem representando que o processador esta executando o algoritmo de escalonamento, PBÚst Praca.
+O primeiro teste refere- se a um computador com três níveis de acesso a memória e 4 nodos.
+O gráfico mostrado na Figura 5.17 apresenta a probabilidade de término do processo observado quando o balanceamento de Carga utiliza uma hierarquia de domínios de escalonamento de dois níveis (procedimento padrão do Linux) e quando utiliza uma hierarquia de três níveis.
+De acordo com 0 gráfico, considerando que 0 processo observado execute por 30 segundos, quando 0 balanceamento utiliza a hierarquia de três níveis proposta a probabilidade desse processo terminar num dado instante cresce até 0,8%, em comparação com o mesmo algoritmo utilizando a hierarquia de dois níveis.
+O segundo computador considerado nos testes realizados com 0 modelo analítico também é composto por 4 nodos, mas possui 4 níveis de acesso à memória.
+Para esse caso, a melhora obtida foi de 1% na probabilidade do processo de interesse terminar sua execução quando o balanceamento de carga reconhece os quatro níveis de acesso à memória existentes na arquitetura, conforme indica o gráfico da Figura 5.18.
+Finalmente, a última máquina de exemplo considerada nos testes com o modelo analítico possui 6 11 odos e 6 11 íVeis de acesso a memória.
+A diferença entre a probabilidade do processo terminar quando a hierarquia multinível é utilizada por o balanceamento de carga e quando a hierarquia de apenas dois níveis é considerada é ainda maior que nos dois testes acima (em torno 2,4%).
+Os resultados obtidos em 30 segundos de execução do processo observado são mostrados no gráfico da Figura 5.19.
+Alem dos dois modelos descritos nesse Capitulo, nossa proposta também foi avaliada através da execução do benchmark kembench num computador Hp Supcrdome com 4 nodos, 16 processadores e dois níveis de acesso a memória.
+O kernbench é um benchmark que executa compilações paralelas do kernel do Linux e fornece algumas estatísticas sobre os resultados dessas compilações.
+Como a máquina utilizada nesse teste possui dois níveis de acesso a memória, a hierarquia de domínios de escalonamento construída por o algoritmo proposto e a mesma que a construída por o atual algoritmo do Linux.
+Por essa razão, a utilização do novo algoritmo não deve acrescentar nenhuma sobrecarga ao sistema.
+O kcmbench foi executado com 4, 8 e 12 processos concorrentes e, de acordo com o esperado, os resultados mostraram que o desempenho do sistema não foi alterado quando o algoritmo proposto foi utilizado para construção dos domínios de escalonamento.
+Esse capítulo descreveu os resultados obtidos em avaliações da proposta apresentada nesse trabalho.
+Em todos os resultados apresentados foi feita uma comparação com o atual algoritmo de balanceamento de carga utilizado por o Linux, com o objetivo de demonstrar que a utilização de hierarquias de domínios de escalonamento multiniveis pode melhorar o desempenho geral do sistema.
+Em os casos considerados nos cenários de testes em que a máquina possuía poucos processadores por nodo e uma grande variação nas prioridades dos processos, nossa proposta apresentou um pior desempenho em comparação com o comportamento atual do Linux.
+No entanto, foram discutidas alternativas para a solução desse problema, como a utilização de heurísticas na construção dos domínios de escalonamento e a migração de paginas de memória quando um processo é movido para outro nodo por o algoritmo de balanceamento de carga.
+Apesar de a impossibilidade de traçar uma comparação direta entre os resultados obtidos com o modelo simulado e o analítico devido a ambos oferecerem resultados em função de diferentes parametros, é importante observar que os testes realizados com o modelo analítico também apresentaram melhoras no desempenho do sistema quando a proposta apresentada nesse trabalho é utilizada.
+Certamente uma melhor analise poderia ser feita através da execução de benchmarks em computadores reais, com diferentes arquiteturas.
+No entanto, não foi possível realizar esse tipo de teste devido a a indisponibilidade de máquinas Em uma com mais de dois níveis de acesso à memória durante o período em que esse trabalho foi desenvolvido.
+O único teste possível de ser realizado foi numa máquina com dois níveis de acesso a memória, que mostrou que a utilização do algoritmo proposto não acrescentou nenhuma sobrecarga ao sistema, em comparação com o atual algoritmo do Linux.
+O patch gerado a partir de a implementação realizada foi divulgado em listas de discussão interessadas em escalabilidade do Linux e no site do projeto PeSO Alguns pesquisadores têm demonstrado interesse em testar a proposta em seus ambientes, o que pode vir a beneficiar a comunidade Linux de forma geral.
+Conclusão Esse trabalho tratou do problema de balanceamento de carga em máquinas Em uma, com foco no escalonador de processos e algoritmo de balanceamento implementados por o sistema operacional Linux.
+O Linux utiliza as estruturas de domínios de escalonamento organizadas hierarquicamente para representar internamente a topologia do sistema, o que permite realizar um balanceamento de carga otimizado para diferentes arquiteturas.
+No entanto, para máquinas multiprocessadas Em uma, a versão atual da função responsável por construir esses domínios cria apenas dois níveis na hierarquia, não representando corretamente sistemas que possuem mais de dois níveis de acesso a memória.
+Esse traballio descreveu a proposta, implementação e avaliação de um novo algoritmo para construção dos domínios de escalonamento no Linux.
+Esse novo algoritmo cria um nível na hierarquia de domínios para cada nível de acesso a memória da máquina.
+Portanto, a hierarquia final representa corretamente a topologia da máquina, independentemente de quantos níveis de acesso a memória essa máquina possui.
+O objetivo dessa proposta e possibilitar um balanceamento de carga mais eficiente, minimizando o tempo de resposta dos processos.
+A avaliação foi realizada através de utilização de um modelo simulado e um modelo analítico, Considerando diferentes arquiteturas e cargas no sistema.
+Os testes para máquinas com quatro processadores por nodo mostraram uma melhora de até 10% no tempo de resposta dos processos quando o balanceamento de carga foi executado utilizando a hierarquia multinível proposta por esse trabalho, em comparação com o mesmo algoritmo utilizando a hierarquia de dois níveis criada por a atual versão do Linux.
+No entanto, os resultados apresentados mostraram que para máquinas com poucos processa dores por nodo e grande variação nas prioridades dos processos, a medida que a carga cresce, o balanceamento de carga considerando os múltiplos níveis de acesso a memória da máquina não oferece um born desempenho.
+Um possível trabalho futuro com o objetivo de superar essa limitação seria a inlplementação de algoritmos de migração de paginas de memória que atuem em conjunto com o balanceamento de carga.
+Assim, quando um processo for migrado para outro nodo, o gerente de memória migraria também as páginas de memória desse processo de acordo com algum algoritmo especifico.
+Essa abordagem já vein sendo estudada dentro de o projeto PeSO num outro trabalho de mestrado.
+Outra proposta seria a utilização de heurísticas para determinar quantos níveis devem ser construídos na hierarquia de domínios de escalonamento de forma a garantir o melhor desempenho para o sistema.
+Seria interessante ainda realizar uma avaliação da proposta apresentada em sistemas reais, através da execução e analise de benchmarks.

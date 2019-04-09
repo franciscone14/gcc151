@@ -1,0 +1,700 @@
+O formalismo Redes de Autômatos Estocásticos (SAN) se caracteriza por representar um modelo de forma compacta e modularizada, definindo para isso primitivas de sincronismo e paralelismo.
+
+Os métodos de agregação em SAN visam a redução do número de autômatos do modelo trazendo com isto diversas vantagens numéricas para a sua solução.
+
+Basicamente dois métodos de agregação são conhecidos para o formalismo SAN, agregação algébrica e agregação semântica.
+
+O método de agregação algébrica aplica propriedades da álgebra tensorial generalizada para efetuar tal redução.
+
+O método de agregação semântica explora a relação entre autômatos replicados para realizar o agrupamento de autômatos.
+
+Esta dissertação define estes dois métodos de agregação após apresentar o formalismo SAN formal e informalmente.
+
+A definição informal do formalismo introduz uma visão geral do mesmo, assim como técnicas e primitivas de modelagem utilizadas.
+
+A definição formal elimina qualquer equívoco sobre o formalismo e apresenta as regras para a criação do descritor markoviano do modelo.
+
+As principais contribuições desta dissertação são a descrição formal de ambas as formas de agregação e o detalhamento de suas implementações na ferramenta de software PEPS2003.
+
+Adicionalmente, os benefícios teóricos (redução do espaço de estados) e práticos (redução do tempo de processamento e quantidade de memória requerida) de tais métodos são comprovados pelos resultados obtidos a partir da resolução de alguns modelos SAN pela ferramenta PEPS2003.
+
+O início dos estudos sobre métodos analíticos para avaliação de desempenho e confiabilidade de sistemas não está bem definido, visto que muitos métodos e teorias utilizados atualmente já eram conhecidos e utilizados para outras finalidades antes de serem empregados para este propósito.
+
+Um exemplo disto é um dos mais antigos e também mais conhecido estudos da área, datando do início do século XX com a pesquisa de Andrei Andreyevich Markov em Teoria dos Números e Análise.
+
+Pesquisa que viria posteriormente a resultar no formalismo chamado de Cadeias de Markov.
+
+Entretanto, apenas em 1930 essa pesquisa foi mencionada como tal por Andrei Kolmogorov e aplicada a avaliação de desempenho através de métodos analíticos.
+
+As pesquisas em métodos analíticos ficaram praticamente estagnadas e atreladas às Cadeias de Markov até quase meados do século XX.
+
+A dificuldade de manipulação e armazenamento do grande volume de dados gerados pela descrição de sistemas mais complexos, e conseqüentemente, do cálculo de índices de desempenho do sistema, tornava o uso dos métodos analíticos praticamente inviável para a avaliação de desempenho.
+
+Com o surgimento dos sistemas de computação na década de 40 e 50, surgiu a possibilidade de uso de tais sistemas para acelerar a resolução destes métodos.
+
+Essa possibilidade fez com que as pesquisas para avaliação de sistemas através de métodos analíticos fossem alvo de numerosos estudos nas áreas de ciência da computação e matemática aplicada.
+
+A abordagem de métodos analíticos para avaliação de sistemas consiste em modelar um sistema real através das relações matemáticas existentes no funcionamento deste sistema.
+
+Através destas relações matemáticas pode-se descrever o sistema como um conjunto de estados possíveis e transições entre estes estados com um comportamento aleatório definido.
+
+Abordagens alternativas aos métodos analíticos para a avaliação de desempenho de sistemas são a monitoração e a simulação.
+
+Entretanto essas abordagens pecam em quesitos importantes, para uma boa avaliação, como por exemplo, tempo de observação e principalmente a confiabilidade das amostras utilizadas.
+
+Já, a não utilização de um conjunto de amostras na modelagem de uma realidade representa uma das principais vantagens dos métodos analíticos sobre a simulação e monitoração.
+
+Porém a complexidade dos modelos analíticos tende a ser maior do que nos modelos de simulação.
+
+Dentre os métodos analíticos, as Cadeias de Markov são naturalmente empregadas como formalismo para descrever e buscar soluções estacionárias para os mais diversos tipos de realidades.
+
+O poder de descrição praticamente ilimitado e a grande simplicidade de compreensão permitem a utilização freqüente deste formalismo, que não se resume apenas à área de avaliação de desempenho e confiabilidade.
+
+No entanto, a simplicidade das Cadeias de Markov é também a raiz do principal obstáculo na sua utilização.
+
+O conhecido problema de explosão do espaço de estados torna os modelos markovianos inviáveis para a manipulação de sistemas complexos, mesmo para resolução através de sistemas computacionais.
+
+O drástico aumento no número de estados quando se adicionam componentes em uma cadeia de Markov dificulta a construção de modelos.
+
+Adicionalmente, o armazenamento de um modelo fica prejudicado, pois uma matriz quadrada (da ordem do número de estados do sistema), deve ser utilizada.
+
+A representação do sistema pode ser feita com a utilização de uma matriz esparsa o que reduz o espaço de armazenamento para matrizes com grande número de elementos nulos.
+
+Além do armazenamento, há a necessidade da solução do modelo ser feita através da resolução do sistema linear representado por esta matriz, o que prejudica também a obtenção de resultados numéricos.
+
+No intuito de evitar este problema das Cadeias de Markov enquanto solucionadas como sistemas de equações lineares, as soluções à forma-produto têm sido largamente empregadas tanto pela comunidade científica como por projetistas de sistemas em geral.
+
+As redes de filas de espera (Queueing Networks) são o principal exemplo deste tipo de abordagem, principalmente devido aos eficientes algoritmos desenvolvidos na década de 70.
+
+A limitação intrínseca desta abordagem é a impossibilidade de descrever realidades mais complexas.
+
+Modelos com alocação simultânea de recursos, por exemplo, não podem ser descritos por QN com solução à forma-produto.
+
+Outra limitação importante das QN com solução à forma-produto é a necessidade de que as filas não tenham capacidade realmente limitada, o que foge a características de vários sistemas.
+
+Tentando manter a liberdade de escopo das Cadeias de Markov, abordagens como as Redes de Petri Estocásticas(Stochastic Petri Nets) propõem um formalismo compacto e eficiente para descrever problemas complexos com primitivas de sincronismo e paralelismo.
+
+Infelizmente, abordagens como esta freqüentemente se limitam a resolver as dificuldades de modelagem, sem adicionar um ganho real ao problema da busca da solução estacionária, a qual permanece o mesmo das Cadeias de Markov tradicionais.
+
+Recentemente, a comunidade de pesquisa das Redes de Petri Estocásticas tem buscado remediar este problema com o uso de álgebra tensorial clássica, porém os resultados obtidos ainda são insipientes.
+
+Neste sentido o formalismo das Redes de Autômatos Estocásticos (SAN, Stochastic Automata Networks), foco central deste trabalho, busca proporcionar uma forma compacta de descrever realidades complexas, além de otimizar a busca de soluções estacionárias.
+
+O princípio de modelagem das SAN é descrever um sistema complexo como um conjunto de subsistemas que interagem ocasionalmente.
+
+Logo, esta abordagem, além de ser modular, permite descrever primitivas de paralelismo (quando autômatos não interagem) e sincronismo (quando autômatos interagem).
+
+O formalismo SAN possui uma equivalência de escopo de aplicação com as Cadeias de Markov, mas ao contrário destas, SAN permite uma estruturação do modelo baseada na álgebra tensorial generalizada que facilita a sua solução estacionária.
+
+O formalismo SAN foi inicialmente proposto por Plateau em 1984.
+
+No início da década de 90 as primeiras soluções foram formalizadas para modelos em escala de tempo contínua e discreta.
+
+Na virada do século, o formalismo SAN foi novamente revisto face aos eficientes algoritmos para modelos a escala de tempo contínua, na mesma ocasião foi disponibilizada a versão a0 a12 a1 da ferramenta PEPS, a qual implementa métodos iterativos para resolução de modelos SAN.
+
+A ferramenta de software PEPS (Performance Evaluation of Parallel Systems) é uma ferramenta acadêmica para descrição e resolução de modelos SAN.
+
+A primeira versão da ferramenta foi proposta por Plateau, Fourneau e Lee em 1988, desde então a ferramenta tem incorporado novos métodos e facilidades, como por exemplo, métodos de solução iterativa, funções integrações, definição do modelo em alto nível entre outros.
+
+Entretanto, a utilização do formalismo SAN nem sempre é suficiente para conter a explosão do espaço de estados e mesmo com a utilização de métodos numéricos eficientes, a quantidade de memória requerida e o tempo de resolução podem ser bastante grandes.
+
+Para amenizar tal problema, técnicas de agregação foram desenvolvidas para reduzir o número de estados de um modelo.
+
+A idéia básica das técnicas de agregação é representar em apenas um estado um conjunto de estados.
+
+Inicialmente as técnicas de agregação foram desenvolvidas sobre o formalismo de Cadeias de Markov, visto que em geral as cadeias tinham um série de componentes idênticos ou replicados.
+
+Explorando essas replicações foram propostas técnicas para efetuar uma agregação exata e para agregação fraca, essa última dependente do estado inicial do modelo.
+
+Vários estudos sobre as condições de agregação e relações de equivalência foram definidos.
+
+Em SAN as primeiras técnicas de agregação e desagregação de autômatos foram propostas por Buchholz e Siegle, porém tais técnicas não exploram todas as potencialidades do formalismo SAN, como por exemplo a utilização de funções, e principalmente as características e relações de equivalência em SAN com autômatos replicados.
+
+Esta dissertação tem como objetivo principal a apresentação de métodos de agregação em SAN e sua implementação na ferramenta PEPS.
+
+Para isso, inicialmente este trabalho apresenta o formalismo SAN de maneira informal, dando uma visão geral e introduzindo novas primitivas ou mesmo modificando definições anteriores de modo a facilitar a modelagem por parte do usuário.
+
+Tal redefinição do formalismo visa adequar o mesmo para futuros modelos de simulação e teste de software em SAN.
+
+A mesma redefinição do formalismo feita inicialmente de maneira informal é feita de maneira formal.
+
+A definição formal visa apresentar as regras e restrições para a criação de uma SAN, além de definir a construção do Descritor Markoviano que representa tal SAN.
+
+A apresentação do formalismo SAN formal e informalmente prepara a base teórica para a definição dos métodos de agregação em SAN.
+
+Visa-se neste trabalho o estudo dos métodos de agregação algébrica e de agregação semântica.
+
+Neste trabalho entende-se por agregação algébrica a simples aplicação de propriedades de álgebra tensorial sobre os autômatos do modelo.
+
+Por agregação semântica entende-se o agrupamento de vários estados com a mesma semântica em um único estado agregado.
+
+Neste último tem-se especial interesse, apresentando em maiores detalhes as definições e condições para tal agregação.
+
+Além das definições teóricas, o lado prático deste trabalho consiste na implementação de tais técnicas de agregação na ferramenta PEPS2003.
+
+Para validar a implementação e comprovar os benefícios teóricos e práticos conseguidos com os métodos agregação são apresentados alguns modelos SAN.
+
+Baseado nos objetivos definidos para esta dissertação, no Capítulo 2 é apresentada a definição informal do formalismo SAN.
+
+Esta definição informal dá uma visão geral do formalismo e introduz conceitos e primitivas utilizados na descrição de um modelo SAN.
+
+Já redefinindo os conceitos de eventos locais e sincronizantes.
+
+O capítulo seguinte descreve formalmente os conceitos e definições apresentadas no Capítulo 2, bem como as restrições a uma SAN bem definida e as regras para a criação do descritor markoviano.
+
+Estes dois capítulos servem de base para os conceitos e técnicas de agregação algébrica e semântica que são apresentados no Capítulo 4.
+
+O Capítulo 5 descreve a implementação de tais técnicas na ferramenta PEPS2003, focando principalmente na implementação do método de agregação semântica.
+
+Neste capítulo situa-se a principal contribuição desta dissertação.
+
+O Capítulo 6 apresenta exemplos de modelos SAN com autômatos replicados bem como os modelos agregados que validam os algoritmos propostos no Capítulo 4 e implementados na ferramenta PEPS2003.
+
+Para tais exemplos são apresentados também os resultados numéricos obtidos na resolução dos modelos.
+
+Por fim, a conclusão tece um panorama de pesquisa onde se inserem os conteúdos apresentados e vislumbra trabalhos futuros referentes ao tema.
+
+Após as referências bibliográficas, dois apêndices expõem os conceitos de álgebra tensorial clássica e generalizada e a descrição de gramática definida para descrever modelos SAN na ferramenta PEPS2003.
+
+No decorrer deste capítulo é apresentado uma definição informal do formalismo de Redes de Autômatos Estocásticos (Stochastic Automata Network) através da descrição das primitivas utilizadas no formalismo.
+
+Essa definição informal inicia-se com uma visão geral do formalismo SAN e da notação utilizada no decorrer desse trabalho.
+
+Na Seção 22 é dada uma definição também informal de autômato estocástico.
+
+A Seção 23 explica o conceito de eventos locais e sincronizantes bem como a representação gráfica dos mesmos.
+
+A Seção 24 explica a utilização de funções na representação de taxas e probabilidades funcionais, além de outras funções interessantes ao modelo.
+
+SAN é um formalismo para modelagem de sistemas com grande espaço de estados.
+
+A idéia central do formalismo SAN é modelar um sistema como vários subsistemas, ou seja, um sistema composto de módulos -quase independentes-.
+
+A expressão -quase independente- denota a possibilidade de ocorrer interação entre cada subsistema.
+
+Essa modularização definida pelas SAN permite o armazenamento e a solução eficiente de sistemas complexos por evitar os prejuízos da explosão do espaço de estados que ocorre nas Cadeias de Markov, formalismo com as quais SAN tem equivalência de representação.
+
+Cada subsistema é definido por um autômato estocástico e por transições entre os estados deste autômato.
+
+As transições entre os estados de cada autômato são modeladas por um processo estocástico na escala de tempo contínua ou discreta definidas por distribuições exponenciais ou geométricas, respectivamente.
+
+É interessante ressaltar que toda SAN pode ser representada por um único autômato estocástico que contém todos os estados possíveis do sistema.
+
+Esse único autômato corresponde a cadeia de Markov equivalente ao modelo SAN.
+
+Note que a visão geral de modelagem em SAN apresentada nesse capítulo se aplica tanto para a escala de tempo contínua como para a escala de tempo discreta.
+
+Entretanto, por SAN à escala de tempo contínua ser o foco principal deste trabalho, as explicações e exemplos apresentados ao longo deste trabalho fazem referência à escala de tempo contínua (taxas de ocorrência) e não à escala de tempo discreta (probabilidades de ocorrência).
+
+A diferenciação entre as duas escalas de tempo dá-se apenas na construção do Descritor Markoviano de cada modelo.
+
+Enquanto um modelo SAN à escala de tempo contínua gera uma cadeia de Markov à escala de tempo contínua (Continuous Time Markov Chain), um modelo SAN descrito na escala de tempo discreta gera uma cadeia de Markov à escala de tempo discreta (Discrete Time Markov Chain).
+
+As probabilidades alternativas de rotação são utilizadas quando um evento tem duas ou mais alternativas de transição, dessa maneira probabilidades de rotação são utilizadas para indicar em que proporções o evento seguirá por uma transição ou por outra.
+
+A probabilidade de rotação pode ser omitida caso esta seja igual a a10a13a12 a1.
+
+Outro ponto importante que deve ser destacado é que o somatório das probabilidades de rotação de um evento deve ser sempre igual a a10a13a12 a1.
+
+Autômato estocástico é um modelo matemático de um sistema que possui entradas e saídas discretas.
+
+O sistema pode encontrar-se em qualquer um dentre o número finito dos estados do sistema ou das configurações internas.
+
+O estado interno em que o sistema se encontra sumariza as informações sobre entradas anteriores e indica ainda o que é necessário para determinar o comportamento do sistema para as entradas seguintes.
+
+Baseado nessa definição pode-se descrever um autômato estocástico como um conjunto finito de estados e um conjunto finito de transições entre esses estados.
+
+A denominação de estocásticos atribuída a esses autômatos dá-se pela razão do tempo ser tratado como uma variável aleatória, a qual obedece a uma distribuição exponencial na escala de tempo contínua e geométrica no caso de escala de tempo discreta.
+
+O estado do modelo SAN, chamado de estado global do sistema é definido pela combinação dos estados locais de todos os autômatos que compõem o modelo.
+
+O estado local por sua vez é o estado individual de cada autômato do modelo.
+
+A mudança do estado global do sistema dá-se pela mudança do estado local de qualquer um dos autômatos do modelo.
+
+A mudança de um determinado estado local para outro estado local é feito através de transições.
+
+As transições são construções que indicam a possibilidade de mudança entre um estado e outro.
+
+No entanto, cada transição necessita ter ao menos um evento associado a ela para que essa possa ser disparada.
+
+Modelo SAN com 2 autômatos independentes.
+
+Neste primeiro exemplo, o autômato A(1) do modelo possui três estados 0(1), 1(1) e 2 enquanto o autômato A(2) possui apenas dois estados 0(2) e 1(2).
+
+Dos cinco eventos que são modelados neste exemplo, três eventos (e1,e2 e e3) que ocorrem no autômato A(1), enquanto outros dois eventos (e4 e e5) ocorrem no autômato A(2).
+
+Atribuindo-se taxas de ocorrência, apresenta-se a CTMC equivalente ao modelo SAN.
+
+Note que no modelo não há interação entre os dois autômatos, ou seja, existe apenas eventos locais em cada um deles.
+
+Na seção seguinte é vista a definição e os tipos de eventos que podem ser utilizados em SAN.
+
+Taxa de ocorrência de cada evento do modelo SAN.
+
+Cadeia de Markov à escala de tempo contínua equivalente ao modelo SAN com 2 autômatos.
+
+Evento é a ocorrência de uma transição que muda o estado global do modelo.
+
+Seja pela mudança do estado local de um único autômato (eventos locais) ou pela mudança sincronizada de dois ou mais autômatos (eventos sincronizantes).
+
+Cada transição pode ter associado um ou mais eventos e é disparada quando ocorre qualquer um dos eventos a ela associados.
+
+Dois tipos de eventos podem ser modelados no formalismo SAN.
+
+Cada evento pode ser classificado como evento local ou como evento sincronizante.
+
+Os eventos locais são utilizados em SAN para alterar o estado local de um único autômato, sem que essa alteração ocasione uma mudança de estado em qualquer outro autômato do modelo.
+
+Esse tipo de evento é particularmente interessante, pois permite que vários autômatos tenham um comportamento paralelo, trabalhando independentemente sem que haja interação entre eles.
+
+Pode-se ver exemplos de eventos locais, a qual é composta exclusivamente por esse tipo de evento.
+
+Um pouco mais sofisticados, os eventos sincronizantes trocam o estado local de dois ou mais autômatos simultaneamente, ou seja, a ocorrência de um evento sincronizante em um autômato força a ocorrência deste mesmo evento nos outros autômatos envolvidos nesse evento.
+
+Através dos eventos sincronizantes é possível então fazer a interação entre autômatos.
+
+Essa interação dá-se sob a forma de sincronismo no disparo das transições.
+
+A classificação de cada evento (local ou sincronizante) é dada pela aparição do identificador do evento (ej) no conjunto de transições de um autômato.
+
+Caso o identificador do evento apareça apenas no conjunto de transições de um autômato, o evento é classificado como evento local, caso o mesmo identificador apareça no conjunto de transições de vários autômatos o evento é considerado como evento sincronizante.
+
+Cada evento deve ter uma taxa de ocorrência e uma probabilidade de rotação associada ao mesmo.
+
+Tanto a taxa de ocorrência como a probabilidade de rotação podem ter associados valores constantes ou valores funcionais.
+
+Taxas e probabilidades funcionais assumem valores diferentes conforme os estados dos outros autômatos do modelo.
+
+Taxas e probabilidades funcionais constituem a segunda possibilidade de interação entre autômatos nos modelos SAN, a outra possibilidade é a utilização de eventos sincronizantes.
+
+A utilização de funções para definir taxas e/ou probabilidades permite associar a um mesmo evento diferentes valores conforme o estado global do modelo.
+
+As taxas e probabilidades funcionais são expressas por funções que levam em consideração os estados atuais dos autômatos do modelo, podendo desta forma variar seu valor conforme os estados em que se encontram os autômatos envolvidos na função.
+
+Apresenta um modelo SAN com 2 autômatos de 3 e 2 estados, respectivamente.
+
+Da mesma forma que o modelo SAN, cinco eventos são utilizados, entretanto o evento e4 deixou de ser um evento local e passou a ser sincronizante, visto que envolve os dois autômatos e ainda com probabilidades associadas a diferentes transições no autômato a0 a1a7a6a8a4.
+
+Outra mudança nos eventos do modelo ocorreu por parte do evento e5 que passou a ter a função f1 associada a taxa de ocorrência do evento.
+
+Modelo SAN com 2 autômatos, 1 evento sincronizante e uma taxa funcional Evento Taxa de Ocorrência, Taxa de ocorrência dos eventos do modelo SAN.
+
+A função a23 a6 por sua vez é definida e apresenta a CTMC equivalente ao modelo SAN dada as taxas de ocorrência.
+
+Da mesma maneira que as taxas de ocorrência, as probabilidades alternativas de rotação de cada evento podem ser expressas por funções.
+
+A definição de funções usadas para expressar as probabilidades funcionais de rotação são exatamente iguais as funções usadas para definir as taxas de ocorrência.
+
+Outros dois tipos de funções ainda são utilizadas em SAN, a Função de Atingibilidade e as Funções de Integração.
+
+As expressões que definem a função de atingibilidade e as funções de integração são descritas da mesma forma que as taxas e probabilidades funcionais.
+
+Porém esses dois tipos de funções desempenham papeis diferenciados como explicados a seguir.
+
+Cadeia de Markov à escala de tempo contínua equivalente ao modelo SAN com 2 autômatos, 1 evento sincronizante e 1 taxa funcional.
+
+Devido a representação em SAN ser de forma modular e o autômato global (equivalente a cadeia de Markov) se dar pela combinação de todos os autômatos do modelo, é necessário especificar uma função que defina quais os estados deste autômato global que representa a SAN podem ser atingidos.
+
+A definição de quais destes estados podem ser atingidos ou alcançados em SAN é dado pela função de atingibilidade.
+
+Essa função é definida usando-se as mesmas regras adotadas para a definição de taxas e probabilidades funcionais, como já mencionado.
+
+A noção de função de atingibilidade (reachability) fica mais clara se pensarmos, por exemplo, em um modelo de compartilhamento de recursos, onde se tem a0 clientes disputando a7 recursos.
+
+Este sistema pode ser modelado em SAN usando um autômato com dois estados para cada cliente.
+
+O estado 0 representa que o cliente i não está usando um recurso e o estado 1 que o cliente i está usando o recurso.
+
+É fácil imaginar que, tendo um número a7 de recursos menor do que o número N de clientes tentando utilizá-lo, o estado global que representa todos os clientes utilizando um recurso.
+Ou seja, todos os autômatos no estado a10 1, não pode ser atingido, pois não corresponde a realidade do modelo, visto que, esse conjunto de estados que foge a realidade do modelo são chamados estados inatingíveis e devem ser eliminados do modelo através da função de atingibilidade, pois a probabilidade do modelo encontrar-se em algum destes estados é igual a 00.
+
+Da mesma maneira que as taxas e probabilidades funcionais e a função de atingibilidade, define-se funções de integração para a obtenção de resultados numéricos sobre o modelo SAN.
+
+As funções de integração avaliam qual a probabilidade do modelo SAN encontrar-se em um determinado estado.
+
+Com isso, pode-se compor funções de integração que levem em conta a probabilidade do modelo se encontrar num conjunto de estados, podendo assim obter índices de desempenho e confiabilidade do modelo.
+
+Essas funções de integração são avaliadas sobre o vetor de probabilidades que contém a probabilidade do modelo de se encontrar em cada um dos estados pertencente a ele.
+
+Um exemplo de função de integração, tendo em mente o modelo de compartilhamento de recursos exposto na seção anterior, é dado na função a25, onde se quer descobrir a probabilidade do autômato A(1) não estar usando o recurso, ou seja, encontrar-se no estado A(1).
+
+Via de regra, todas as funções são modeladas em SAN da mesma forma, o que as diferenciam é como a função é empregada no modelo.
+
+A definição informal de SAN feita neste capítulo apresentou os conceitos e informações necessários à utilização de SAN na modelagem de um sistema qualquer.
+
+Os princípios teóricos que dão suporte ao formalismo apresentado são definidos no capítulo seguinte.
+
+Este capítulo apresenta a definição formal de SAN à escala de tempo contínua englobando os conceitos definidos informalmente no Capítulo 2.
+
+Para isso são apresentados a definição dos termos necessários a um modelo SAN.
+
+Além disso, apresenta-se as restrições para uma SAN bem definida e as regras para a criação do Descritor Markoviano que representa o modelo SAN.
+
+Será considerada nesse trabalho a formalização de uma SAN compreendendo N autômatos e E eventos.
+
+Sejam A conjunto de autômatos, E conjunto de eventos, F função de atingibilidade.
+
+A definição de uma SAN deve ser não ambígua, o que quer dizer que um único gerador infinitesimal markoviano pode ser obtido a partir de uma SAN.
+
+Para isso algumas restrições devem ser feitas.
+
+As SAN que obedecem a estas restrições são denominadas SAN bem definidas.
+
+Os métodos de agregação em SAN consistem na redução do número de autômatos de um modelo transformando este num modelo SAN equivalente, porém com menos autômatos.
+
+Dois métodos de agregação em SAN são expostos neste capítulo.
+
+O método de agregação algébrica aplica a propriedade associativa da soma e do produto tensorial para agrupar vários autômatos em um só e portanto pode ser aplicado a qualquer modelo SAN.
+
+O método de agregação semântica é aplicado apenas sobre autômatos idênticos e explora esta relação de igualdade para representar em um único estado um conjunto de estados equivalentes.
+
+Tais métodos são expostos na Seção 41, a qual se inicia com algumas definições básicas relativas aos dois métodos.
+
+Esta seção apresenta ainda técnicas de otimização sobre o modelo agregado.
+
+Essas técnicas incluem a redução do espaço de estados e eliminação de eventos sincronizantes e elementos funcionais desnecessários ao modelo agregado.
+
+Levando em consideração os dois métodos de agregação (algébrica e semântica) apresentados neste trabalho, algumas definições básicas são comuns aos dois.
+
+Define-se uma SAN com N autômatos agrupados em G grupos de autômatos.
+
+Define-se uma SAN agregada como o agrupamento de autômatos, de acordo com um mapa de agregação G, onde todos os autômatos pertencentes ao mesmo grupo G(k) são agregados.
+
+Para que uma SAN seja efetivamente agregada, pelo menos um dos grupos deve ter dois ou mais autômatos, visto que uma SAN que agrupa apenas um autômato por grupo em todos os grupos é igual a SAN original.
+
+Note-se que independente do método de agregação aplicado sobre a SAN original o formato do descritor markoviano do modelo agregado é sempre o mesmo, ou seja, a diferenciação entre cada método de agregação não se dá pelo formato do descritor markoviano, mas sim pelo formato de cada autômato agregado GA(k), o qual por sua vez gera tensores (locais e sincronizantes) também diferenciados.
+
+Apesar da agregação de autômatos em SAN trazer alguns ganhos na resolução do modelo em relação à SAN original, esses ganhos são apenas uma parte de um conjunto de otimizações possíveis sobre o modelo agregado.
+
+Algumas otimizações possíveis são eliminação de eventos sincronizantes, eliminação de elementos funcionais, redução do espaço de estados dos autômatos agregados.
+
+Entretanto, é importante ressaltar que essas otimizações dependem das características de cada modelo podendo não produzir efeito sobre este.
+
+Cada otimização é apresentada com maiores detalhes nas Seções 413, 414 e 415.
+
+Como já mencionado, a agregação de autômatos consiste em transformar um modelo SAN com N autômatos num modelo SAN com apenas G autômatos.
+
+No método de agregação algébrica o autômato resultante da agregação de um grupo representa com seus estados todas as combinações de estados possíveis e atingíveis dos autômatos agregados.
+
+Neste tipo de agregação nos interessa o estado individual de cada autômato agregado.
+
+Os tensores representando o autômato resultante da agregação algébrica são dados pela soma tensorial da parte local e pelo produto tensorial das partes sincronizadas (positiva e negativa) dos autômatos envolvidos.
+
+Ao contrário do método de agregação algébrica, o qual pode ser aplicado a qualquer conjunto de autômatos, o método de agregação semântica apresentado pode ser aplicado somente sobre autômatos idênticos, mencionados neste trabalho como réplicas.
+
+Esse método de agregação explora a igualdade dos autômatos a serem agregados, representando em um único estado agregado todas as permutações possíveis dos autômatos agregados no grupo.
+
+Em outras palavras, cada um dos estados resultantes representa o número de autômatos agregados em cada um dos estados originais, ou seja, neste método não nos interessa o estado individual de cada autômato do grupo, mas sim quantos dos autômatos agregados encontram-se em um determinado estado.
+
+Visto que cada estado no autômato agregado representa um conjunto de estados da SAN original, algumas condições precisam ser respeitadas para que a SAN agregada se mantenha fiel ao modelo original.
+
+Para isso, as seções que seguem apresentam técnicas para a detecção dos autômatos idênticos (réplicas), as condições necessárias de agregação em SAN e criação do autômato agregado.
+
+Detecção de Réplicas Posto que a condição da agregação semântica só poder ser aplicada sobre réplicas faz-se necessário estabelecer critérios para a detecção de quais conjuntos de autômatos são iguais.
+
+Para a agregação semântica, cada grupo de autômatos deve ser formado unicamente por autômatos idênticos.
+
+Dessa maneira pode ocorrer grupos com apenas um autômato, caso este não seja idêntico a nenhum outro autômato da SAN.
+
+No outro extremo, pode-se ter uma SAN com um grupo que engloba todos os autômatos do modelo, ou seja, todos os autômatos são iguais.
+
+É interessante ressaltar que a igualdade entre autômatos precisa ser respeitada somente entre os autômatos pertencentes ao mesmo grupo.
+
+Para que todos autômatos englobados em um grupo sejam iguais entre si deve-se ter os mesmos eventos locais associados ao mesmo conjunto de transições, os mesmos eventos sincronizantes associados ao mesmo conjunto de transições.
+
+Todos elementos funcionais não devem alterar seu valor pela permutação dos autômatos englobados no grupo.
+
+Além da igualdade entre os autômatos envolvidos em um grupo, a qual deve obedecer as regras acima definidas, outras condições precisam ser satisfeitas para a agregação semântica dos autômatos, como é entendida nesta dissertação.
+
+Condições de Agregação Semântica Por a agregação semântica ser mais sofisticada que a agregação algébrica, algumas condições são impostas para que o modelo agregado continue fiel ao original.
+
+Partindo-se das condições de agregação forte definidas para as Cadeias de Markov, prova-se que tais condições também são satisfeitas em SAN.
+
+Dada as condições necessárias para uma agregação forte de uma cadeia de Markov, mostra-se a seguir que uma SAN com um conjunto de réplicas pode ser fortemente agregada em uma partição do espaço de estados respeitando as condições do Teorema de Rosenblatt.
+
+PEPS (Performance Evaluation of Parallel Systems) é uma ferramenta acadêmica para descrição e resolução de modelos SAN.
+
+A primeira versão da ferramenta foi proposta por Plateau, Fourneau e Lee em 1988.
+
+Outras três versões da ferramenta já foram propostas antes da versão atual (PEPS2003).
+
+Cada versão integrou novos métodos e facilidades à ferramenta, como, métodos de solução iterativa, funções de integração, definição do modelo em alto nível entre outros.
+
+Entre os métodos já implementados tem-se especial interesse nos métodos de agregação (algébrica e semântica).
+
+A implementação do método de agregação algébrica é descrita na Seção 51 enquanto a implementação do método de agregação semântica é detalhado na Seção 52.
+
+O método de agregação algébrica implementado na ferramenta PEPS segue o algoritmo apresentado neste capítulo, ou seja, realiza a soma ou o produto tensorial entre os termos do descritor markoviano.
+
+A implementação inicial foi realizada por Fernandes na versão 20 da ferramenta.
+
+Esta seção retoma brevemente tal implementação, relatos mais detalhados podem ser encontrados na referência citada ou na documentação do código fonte da ferramenta.
+
+Definição dos Grupos de Autômatos A agregação algébrica inicia-se pela determinação dos autômatos que serão agregados em um mesmo grupo.
+
+Essa determinação é iterativa, ou seja, o usuário deve informar quais os grupos de autômatos, pela definição de um mapa de agregação.
+
+A ferramenta PEPS pergunta para o usuário em que grupo deve colocar cada autômato.
+
+Uma limitação da ferramenta é que esses grupos devem ser contíguos para que a agregação seja corretamente efetivada.
+
+A criação do espaço de estados do grupo na agregação algébrica tem uma implementação bastante simples, ao contrário da agregação semântica.
+
+Como na agregação algébrica todas as combinações de estados entre os autômatos são representadas, para a criação do mapa de estados (espaço de estados do grupo) basta percorrer todos os estados de cada autômato do grupo.
+
+Por exemplo, num grupo com três autômatos com a0, a6 e a0 estados, as combinações do mapa de estados seriam ordenadas de cima para baixo e da esquerda para a direita.
+
+Mapa de estados para três autômatos.
+
+A agregação efetiva dos autômatos é bastante simples, visto que a ferramenta PEPS prove métodos que realizam a soma e a produto tensorial de um conjunto de matrizes.
+
+Tais métodos não serão detalhes neste trabalho, mas podem ser encontrados em detalhes na documentação do código fonte da ferramenta.
+
+Com tais métodos a disposição, inicialmente os termos locais referentes aos autômatos pertencentes ao grupo são copiados para um vetor de termos (vetor de matrizes), o termo local resultante da agregação recebe a soma tensorial dos termos deste vetor.
+
+Procedimento semelhante é realizado para os termos sincronizados, ou seja, o termo sincronizado positivo recebe o produto tensorial dos termos sincronizados positivos agora no vetor, logo após termo sincronizado negativo recebe o produto tensorial dos termos sincronizados negativos copiados para o vetor de termos.
+
+A implementação dos métodos de eliminação de elementos funcionais, eliminação de eventos sincronizantes e redução do espaço de estados seguem as definições feitas nas Seções 413, 414 e 415.
+
+A implementação do método de agregação semântica detalhado a seguir é baseado na implementação do método de agregação algébrica, porém inserindo modificações importantes quanto a detecção de réplicas, criação do espaço de estados de cada grupo, agregação da parte local e da parte sincronizante.
+
+A implementação dos métodos de eliminação de eventos sincronizantes, de elementos funcionais e de redução do espaço de estados foram aplicados sobre a agregação semântica conforme definido nas Seções 413, 414 e 415.
+
+Portanto, não houve necessidade de alterações às rotinas já utilizadas na agregação algébrica.
+
+A detecção de réplicas na ferramenta PEPS é feita na fase de compilação do modelo.
+
+O modelo descrito em alto nível, conforme a gramática definida pela ferramenta, é compilado e gera uma descrição dos tensores locais e sincronizados para cada autômato.
+
+Entretanto a detecção não é feita pela comparação dos tensores representantes de cada autômato.
+
+O usuário deve declarar no modelo quantas vezes um autômato deve ser replicado.
+
+A ferramenta PEPS permite então ao usuário definir o número de vezes que o autômato será replicado através da declaração de um intervalo, como demonstrado no trecho de código a seguir.
+
+Replicação de autômatos.
+
+A partir das declarações de réplicas feitas por parte do usuário, a ferramenta PEPS cria um mapa de agregação que diz a qual grupo cada autômato pertence.
+
+Esse mapa nada mais é que um vetor de índices.
+
+Os índices iguais pertencem ao mesmo grupo.
+
+Dessa maneira quando se encontra uma declaração de a17 réplicas, preenchem-se as a17 posições do vetor correspondente aos autômatos replicados com o mesmo índice de grupo.
+
+Este mapa de agregação é usado como parâmetro das rotinas de agregação.
+
+Um dos passos mais complexos na implementação do algoritmo de agregação semântica na ferramenta PEPS é a criação do espaço de estados.
+
+A criação do espaço de estados engloba basicamente duas funções cálculo do número total classes de equivalência (número total de estados locais do autômato agregado), geração do mapa de estados agregados (equivalência entre estados locais dos autômatos replicados e os estados locais do autômato agregado).
+
+Para uma maior clareza nas explicações que seguem, quando se refere a composições de estados define-se estado global como a composição de estados locais de todos os autômatos do modelo.
+
+Para um modelo de cinco autômatos, cada autômato com dois estados tem-se a6 a0 estados globais, com as composições iniciando em (0,0,0,0,0) e terminando em a(1,1,1,1,1), composição de estados do grupo, composição de todos os estados locais dos autômatos de um grupo.
+
+Tendo com base o modelo descrito no item anterior e tendo um grupo formado por três autômatos, há a0 composições possíveis neste grupo (0,0,0),(0,1,0),(0,1,1),(1,0,0),(1,0,1),(1,1,0) e (1,1,1).
+
+Estado agregado, composição ordenada de estados locais dos autômatos de um grupo.
+
+Cada estado agregado corresponde a um conjunto de composições de estados do grupo, onde as composições de estados diferem entre si apenas pela permutação dos autômatos do grupo.
+
+Esse conjunto de estados do grupo representa uma classe de equivalência e conseqüentemente um estado agregado.
+
+Para o exemplo do item anterior há apenas a1 estados agregados possíveis (0,0,0),(0,0,1),(0,1,1) e (1,1,1).
+
+O número total de composições de estados agregados é facilmente calculado pela Equação 42, entretanto a geração do mapa de estados é um pouco mais sofisticada.
+
+O mapa de estados agregados informa quais composições de estados do grupo são correspondentes a cada um dos estados agregados.
+
+Porém, como foi visto anteriormente, cada estado agregado é equivalente a um conjunto de composições de estados do grupo que diferem entre si apenas por permutações dos autômatos do grupo, por exemplo, o estado agregado a14 a1 a1 a1 a1 a10 a20, corresponde a classe de equivalência que contém as seguintes composições de estados do grupo (0,0,1),(0,1,0) e (1,0,0).
+
+Deste conjunto apenas uma composição de estados do grupo, correspondente a uma permutação é armazenada.
+
+Para facilitar a detecção das permutações idênticas apenas a permutação ordenada, ou seja, os estados dos autômatos em ordem crescente, foi armazenada.
+
+Essa permutação ordenada corresponde a um estado agregado.
+
+A geração do mapa de estados agregados é feita analisando-se cada uma das composições de estados do grupo, a análise das composições de estados do grupo é feita em ordem crescente.
+
+Um nova composição de estados do grupo é incluída no mapa de estados agregados quando o conjunto de estados locais da composição estiver ordenado.
+
+Note-se que o conjunto de estados locais ordenados representa sempre a primeira aparição de uma determinada composição de estados do grupo (classe de equivalência), com isso tem-se a certeza de que esta composição de estados do grupo que está sendo incluída ainda não está no mapa de estados agregados com uma permutação diferente.
+
+Por outro lado, se a composição de estados do grupo não estiver ordenada, ou seja, se já foi incluída uma permutação equivalente no mapa de estados agregados, esta composição de estados do grupo é marcada como inatingível no espaço de estado produto.
+
+Dessa maneira resta apenas uma composição de estados do grupo para cada classe de equivalência para cada estado do grupo.
+
+Note-se que a marcação das composições de estados do grupo desordenadas é apenas um artifício para eliminar composições de estados repetidas, visto que, tal composição já está representada pela composição de estados ordenados (estado agregado).
+
+O Algoritmo 51 apresenta a implementação deste método.
+
+Para isso define-se a0a9 a5 como uma composição de estados do grupo.
+
+Geração do mapa de estados agregados com a eliminação das permutações Seguindo o algoritmo para agregação semântica proposto neste capítulo a idéia básica para a agregação da parte local (soma tensorial) é que, de um estado agregado, o qual representa um conjunto de composições de estados do grupo, soma-se todas as possibilidades de transição deste estado para outro estado agregado.
+
+Em outras palavras, analisa-se o tensor local de cada autômato original buscando as transições possíveis a partir do estado agregado.
+
+Mais formalmente, para todos os estados agregados do mapa de estados agregados e para todos os autômatos do grupo analisa-se as possíveis transições do estado local do autômato em questão para outro estado local deste autômato.
+
+Para cada transição encontrada, altera-se a composição de estados do grupo substituindo o estado local do autômato em questão pelo estado local destino no mesmo autômato.
+
+A nova composição de estados é re-ordenada e uma nova transição agregada é inserida, partindo do estado agregado analisado (original) para o estado agregado final (composição re-ordenada).
+
+A taxa de ocorrência da transição local é adicionada a taxa de ocorrência da transição agregada.
+
+A taxa final de ocorrência da transição agregada é a soma de todas as taxas de ocorrências locais relacionadas a transição do estado agregado original para o estado agregado final.
+
+O algoritmo implementado na ferramenta PEPS inclui alguns detalhes de implementação omitidos no algoritmo 52 apresentado.
+
+Esses detalhes não apresentam ganhos específicos para a agregação em si, mas otimizam a resolução futura do modelo SAN por reduzir o tamanho e a complexidade das novas taxas e probabilidades funcionais geradas.
+
+Cabe lembrar que as taxas citadas podem ser funcionais e a adição de duas taxas funcionais resulta em uma nova função com o dobro do tamanho.
+
+O algoritmo otimizado segue a mesma idéia do algoritmo original, porém em vez de somar o valor original da transição local, esse valor é multiplicado pelo número de autômatos no mesmo estado, os quais por sua vez não serão mais analisados.
+
+Essa pequena modificação no algoritmo otimiza não apenas a geração do tensor agregado, pois não necessita-se analisar todos os autômatos do conjunto mas otimiza principalmente a resolução do modelo agregado, onde a função original teria de ser analisada a9 vezes sobre o mesmo conjunto de parâmetros.
+
+Desta forma, a função é analisada apenas uma vez e multiplicada pelo número de autômatos que poderia disparar a transição original.
+
+A análise de complexidade do Algoritmo 53 é mais laboriosa do que a análise do algoritmo 52.
+
+Isso por que o número de vezes que o segundo laço será executado depende das características de cada modelo e, principalmente, do estado agregado que está sendo analisado.
+
+Considera-se o pior caso possível quando um estado agregado tem apenas um autômato em cada estado local.
+
+A complexidade deste caso é igual a complexidade do Algoritmo 52 exposta na Equação 51.
+
+Entretanto, sabe-se que o pior caso ocorre apenas algumas vezes no conjunto de estados agregados.
+
+Sendo assim, a complexidade do Algoritmo 53 é com certeza menor do que a complexidade do seu antecessor, porém não se conhece uma fórmula que defina exatamente em que proporções cada caso é executado.
+
+Logo, não se sabe quão menor é a complexidade deste algoritmo.
+
+Pode-se notar que nenhum dos algoritmos apresentados faz o ajuste diagonal necessário ao tensor.
+
+Esse ajuste é feito após a geração de todas as transições do tensor agregado e consiste em somar todos os elementos de uma linha, com exceção do elemento diagonal, o qual receberá o valor negativo desta soma.
+
+A implementação da agregação semântica da parte sincronizada é um pouco mais sofisticada que a implementação da parte local.
+
+Isso se deve a possibilidade de existir diferentes probabilidades de rotação para um mesmo evento.
+
+Isso ocasiona uma explosão combinatorial, que dependendo do número de autômatos agregados no grupo e do número de probabilidades de rotação partindo de um mesmo estado pode dificultar a geração do tensor agregado dada a demora na geração.
+
+Outro fator que dificulta a geração do tensor diz respeito da dependência da ocorrência do evento em relação a combinação de estados onde este pode ser disparado.
+
+Para satisfazer os requisitos de implementação da parte sincronizada criou-se um algoritmo recursivo que deve ser executado para cada evento sincronizante do modelo.
+
+Esse algoritmo gera as combinações possíveis à ocorrência do evento a partir de um estado agregado e faz a inserção das transições no tensor agregado, caso o evento possa ser disparado deste estado agregado.
+
+Dessa maneira, o algoritmo para agregação da parte sincronizada pode ser dividido em duas partes.
+
+A primeira parte implementa os laços mais externos referentes a cada evento e a cada estado agregado, bem como a inicialização das variáveis necessárias ao algoritmo recursivo propriamente dito.
+
+A segunda parte do algoritmo de agregação da parte sincronizada é um algoritmo recursivo que consiste em, recebendo uma composição de estados do grupo, o índice de um autômato original pertencente ao grupo e uma taxa temporária de agregação, analisar as possibilidades de disparo do evento sincronizante a partir do estado local do autômato na composição.
+
+Quando uma possibilidade de transição é encontrada, a composição de estados do grupo é alterada substituindo-se o estado original pelo estado destino da transição local.
+
+A partir deste ponto duas situações são possíveis.
+
+Caso o autômato analisado não seja o último autômato pertencente ao grupo, o algoritmo recursivo é chamado novamente com a nova composição de estados do grupo, com o índice do próximo autômato do grupo e com a nova taxa temporária de agregação.
+
+Caso o autômato analisado seja o último autômato pertencente ao grupo, a composição de estados do grupo é re-ordenada, então uma transição é inserida no tensor agregado para o estado agregado correspondente.
+
+Caso um estado local da composição não esteja habilitado a disparar o evento, o estado do grupo correspondente a esta composição, conseqüentemente, não pode disparar tal evento, quebrando a recursão e não inserindo nenhuma transição a partir deste estado do grupo.
+
+A pesquisa desenvolvida nesta dissertação apresenta uma série de trabalhos teóricos e práticos sobre o formalismo SAN.
+
+Tais trabalhos envolvem a redefinição formal e informal do formalismo, a apresentação de métodos de agregação em SAN e a implementação na ferramenta PEPS2003, com ênfase na implementação do método de agregação semântica.
+
+Os trabalhos teóricos iniciam-se pela redefinição informal do formalismo SAN à escala de tempo contínua.
+
+Esta nova definição do formalismo modifica principalmente os conceitos de eventos locais e sincronizantes.
+
+No que se refere aos eventos locais, foi adicionada a possibilidade de usar mais de um evento local em uma mesma transição, além da possibilidade do uso de probabilidades neste tipo de evento.
+
+O uso de vários eventos locais em uma transição não altera as propriedades do formalismo, pois apesar de modificar a geração do descritor markoviano, esse não sofre alterações na sua representação final.
+
+Apesar do uso de vários eventos locais numa transição não modificar o descritor markoviano, estes, além de facilitar a modelagem do sistema, são uma necessidade para os casos de simulação e teste de software em SAN.
+
+Os eventos sincronizantes, por sua vez, sofreram modificações também no sentido de facilitar a modelagem do sistema.
+
+Foi removida a necessidade do usuário definir o autômato mestre (que levava a taxa de ocorrência do evento) e os autômatos escravos (que levavam uma taxa simbólica a10) de um evento sincronizante.
+
+Mesmo que esta escolha fosse arbitrária optou-se por uma simplificação, uma vez que as taxas de ocorrência de cada evento são definidas por evento e não pelo par transição-evento como anteriormente.
+
+A necessidade de indicar o autômato mestre do evento muitas vezes confundia o usuário e deixava margens para a ocorrência de erros de modelagem.
+
+Além disso, essa escolha introduzia dúvidas quanto ao comportamento do evento em relação ao sincronismo.
+
+No caso de SAN, o sincronismo das transições na ocorrência de um evento é do tipo rendez-vous e não do tipo mestre-escravo, como a definição anterior induzia a pensar.
+
+Com essa nova definição das primitivas referentes aos eventos locais e sincronizantes, a diferenciação sintática entre um ou outro tipo de evento praticamente desaparece para o usuário do formalismo.
+
+Dessa forma pode-se definir um evento como local se este aparece em apenas um autômato enquanto define-se como evento sincronizante o evento que aparece em mais de um autômato.
+
+Após redefinir informalmente as primitivas do formalismo, o Capítulo 3 formaliza tais definições para SAN à escala de tempo contínua.
+
+A definição formal de SAN descrita nesta dissertação define o conjunto de autômatos e o conjunto de eventos que compõem a SAN, bem como as relações entre autômatos e eventos.
+
+Além disso, a descrição formal define restrições a uma SAN bem definida, ou seja, as restrições para que um modelo SAN qualquer seja realmente um modelo markoviano.
+
+O descritor markoviano que representa o modelo não foi alterado, entretanto sua criação incorporou a nova definição de eventos locais e sincronizantes.
+
+Entretanto, as redefinições propostas para o formalismo não trazem ganhos a resolução do modelo.
+
+Tais redefinições apenas vêem facilitar a modelagem do sistema por parte do usuário.
+
+Os métodos de agregação de autômatos definidos nesta dissertação, ao contrário, reduzem a complexidade do modelo sem perda da generalidade do mesmo.
+
+As teorias apresentadas tanto para a agregação algébrica quanto para a agregação semântica provam a equivalência entre o modelo SAN original e os modelos SAN agregados (algébrico e semântico), bem como validam os métodos para construção do descritor markoviano agregado.
+
+Os métodos de agregação apresentados são baseados em outros métodos agregação aplicados às Cadeias de Markov, porém exploram as características dos modelos SAN.
+
+Mais especificamente, o método de agregação semântica, onde foi centrado este trabalho, explora os conjuntos de réplicas em modelos com grande espaço de estados.
+
+A redução do espaço de estados produto do modelo conseguido principalmente com a agregação semântica representa um ganho teórico considerável.
+
+Essa redução possibilita em primeira instância o armazenamento e a resolução de modelos antes impossíveis de serem tratados.
+
+É interessante ressaltar, no entanto, que a redução do espaço de estados, apesar de depender das características do modelo, aparece em todos os casos agregados semanticamente, enquanto tais casos agregados algebricamente só apresentam ganhos quando há estados inatingíveis no modelo.
+
+Esse pode ser considerado o principal ganho da agregação semântica sobre a agregação algébrica, a qual em certos modelos, como é o caso do exemplo das Fontes On/Off, no qual a agregação algébrica não apresenta nenhum ganho de redução do espaço de estados em relação ao modelo não agregado.
+
+Os trabalhos práticos realizados consistiram basicamente na implementação do método de agregação semântica sobre a ferramenta PEPS2003, o que incluiu a detecção dos conjuntos de réplicas, a criação do espaço de estados agregados e a agregação das partes local e sincronizante do descritor markoviano.
+
+A partir da implementação do método de agregação na ferramenta PEPS2003, foi possível observar que os ganhos teóricos obtidos, como a redução do espaço de estados, se refletem de modo prático na redução do tempo de CPU e da quantidade de memória requerida.
+
+Resultados esses que foram apresentados em maiores detalhes na Seção 65.
+
+Entretanto, cabe ressaltar que, como foi visto nos resultados obtidos, os dois métodos de agregação apresentam redução no tempo de CPU.
+
+O método de agregação semântica traz um ganho considerável mesmo sobre o método de agregação algébrica, porém apresenta a desvantagem de só ser aplicável sobre modelos SAN que possuam autômatos replicados enquanto o método de agregação algébrica pode ser aplicado sobre qualquer modelo SAN.
+
+Como conclusão é interessante ressaltar ainda, que além dos ganhos em relação a tempo de CPU e quantidade de memória requerida, outro benefício foi observado quando da comparação dos resultados obtidos da resolução do modelo agregado e da resolução do modelo original.
+
+Tal benefício refere-se a precisão do resultados obtidos.
+
+Nos modelos agregados há uma precisão maior dos resultados quando comparados aos resultados do modelo original.
+
+Isso pode ser explicado pelo fato de que o erro máximo aceito é observado para cada estado global do modelo e não para o modelo como um todo.
+
+Esse erro -local- é então acumulado no modelo.
+
+Em um modelo agregado, tem-se menos estados globais para acumular este erro residual e, portanto, o resultado final tende a ser mais preciso.
+
+Uma série de trabalhos podem ser vislumbrados em relação ao formalismo SAN.
+
+Tais trabalhos são inicialmente teóricos passando posteriormente a trabalhos práticos relacionados às implementações correspondentes.
+
+Os trabalhos teóricos nos levam principalmente no sentido de novos métodos de agregação que busquem um meio termo entre o método de agregação algébrica e o método de agregação semântica.
+
+Expondo isso mais claramente, busca-se um método que consiga os resultados obtidos pela agregação semântica, mas que sejam aplicáveis a qualquer conjunto de autômatos e não restrito a autômatos replicados.
+
+Em poucas palavras busca-se estabelecer novas relações semânticas entre autômatos.
+
+Seguindo ainda na linha de trabalhos teóricos, a definição de métodos eficientes de simulação em SAN possibilitaria uma resolução não-exata de modelos bem maiores do que os suportados pelos computadores atuais.
+
+A idéia de simulação de modelos SAN não é recente, entretanto nenhuma implementação eficiente foi integrada a ferramenta PEPS.
+
+Finalmente, em relação a trabalhos práticos, tem-se especial interesse na paralelização da ferramenta PEPS, visto que os algoritmos utilizados na resolução dos modelos sugerem uma paralelização natural através do tratamento distribuído de cada termo do descritor markoviano.

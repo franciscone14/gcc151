@@ -1,0 +1,574 @@
+O trabalho apresenta uma proposta para incorporação de aspectos temporais no projeto lógico de bancos de dados, considerando as atuais funcionalidades oferecidas, ao nível de gatilhos e de tipos de dados temporais, por os SGBDs relacionais mais avançados, como Oracle, Sybase e Ingres.
+A proposta buscou atender os seguintes objetivos:
+Implementar, de maneira automática, aspectos temporais no modelo de implementação de um banco de dados, e não interferir na forma de visualização do modelo de implementação, para aqueles usuários que não precisam (ou não devem) tomar conhecimento dos aspectos temporais do banco de dados.
+É feito um estudo sobre: (
+a) quais aspectos temporais poderiam ser implementados atendendo os objetivos acima, (b) as técnicas de implementação empregadas, com o uso de gatilhos e tipos de dados temporais, sobre os modelos de dados dos SGBDs Ingres e Sybase, e (c) os requisitos a serem atendidos por uma ferramenta de projeto de banco de dados para apoio à proposta.
+Áreas Relevantes: Bancos de Dados Temporais;
+Técnicas de Projeto de SGBDs.
+A necessidade de representar as características temporais dos dados em bancos de dados não é recente.
+Vários trabalhos têm sido desenvolvidos tanto ao nível de modelagem, como no nível de implementação em banco de dados.
+Há um esforço de padronização, inclusive (TSQL2).
+Entretanto, os SGBDs que dominam o mercado atualmente, como Oracle, Sybase e Ingres, pouco oferecem nesse sentido.
+Por outro lado, o fato dos SGBDs relacionais pouco oferecerem em termos de funcionalidades para o tratamento adequado de informações com características temporais não significa que os sistemas de informação deixem de tratar- las.
+O que tem ocorrido é que, sendo necessário, a modelagem de uma aplicação representa essas características de maneira empírica já no nível conceitual.
+Em a área de acompanhamento médico de pacientes, é fundamental manter tanto as informações presentes como as anteriores de, por exemplo, exames laboratoriais (hemograma, qualitativo de urina, etc.), exames radiológicos, diagnósticos, etc..
+Em um sistema de controle acadêmico de graduação, interessa não somente as notas finais de aprovação do alunos mas também os eventuais históricos de reprovações para efeitos de ordenamento de matrícula e de avaliação de desempenho.
+Em este último exemplo, pode- se detectar que existem usuários que somente se interessam por a situação mais atual, como os alunos formados (histórico escolar), e usuários que precisam avaliar as situações passadas, como os coordenadores de curso (para planejamento de turmas, aconselhamento de alunos, etc.).
+Portanto, nem todos os usuários necessitam visualizar as características temporais do modelo de dados de uma aplicação.
+A necessária convivência do modelo de implementação do banco de dados temporal com o conjunto de usuários que o vê como um modelo instantâneo, fica evidenciada ao constatar- se o volume de programação desenvolvida que faz uso do banco de dados, mesmo sendo tais programas aplicativos implementados em Cobol ou PL/ I (ainda em quantidades bastante significativas) ou em Delphi, Visual Basic ou PowerBuilder (ferramentas mais em voga, atualmente).
+Como o processo de conversão, migração ou até de reengenharia de um sistema de informação (Si) sempre ocasiona algum grau de &quot;traumatismo», soluções que possibilitem evoluir Si para bancos de dados com modelos temporais, permitindo a convivência com os modelos instantâneos originais, podem ser de grande valia.
+Argumenta nesse sentido, no contexto de reengenharia de sistemas de informação legados (legacy systems).
+Este trabalho propõe uma maneira de incorporar aspectos temporais no projeto lógico de bancos de dados, considerando as atuais funcionalidades oferecidas por os SGBDs relacionais dominantes do mercado.
+O objetivo é viabilizar o tratamento temporal dos dados sem interferir no trabalho daqueles que não precisam (ou não devem) tomar conhecimento desses aspectos temporais no banco de dados.
+Para tanto, a solução automatiza a manipulação da parcela temporal do banco de dados.
+O trabalho está organizado da seguinte maneira.
+Em o capítulo 2 é discutido o aspecto tempo em banco de dados e, em especial, em bancos de dados relacionais.
+Em o capítulo 3 é feito um estudo na linguagem padrão dos bancos de dados relacionais, a SQL, e também é mostrada a atual sintaxe para gatilhos (triggers) tanto no esboço de padrão SQL3 como em alguns SGBDs relacionais.
+Em o capítulo 4 são apresentados alguns modelos de dados temporais, bem como o padrão TSQL2.
+Em o capítulo 5 é descrita a proposta de incorporação de aspectos temporais em SGBDs relacionais e, no capítulo 6, são discutidas as diferentes possibilidades de recuperação de informações sobre um banco de dados com tal incorporação proposta.
+Em o capítulo 7 é apresentada a especificação de uma ferramenta de projeto lógico do banco de dados para dar apoio ao modelo proposto.
+Por fim, no capítulo 8, são apresentadas as conclusões.
+A modelagem do aspecto tempo é um tópico de suma importância na modelagem de sistemas de informação, pois através dos aspectos temporais são representadas as características dinâmicas das aplicações.
+Quando de a verificação dos requisitos de um sistema, a qual fornece os elementos necessários à posterior modelagem, devem ser identificados também os requisitos temporais da aplicação em questão.
+O modelo utilizado na modelagem do sistema de informação correspondente à aplicação deve permitir que todos os aspectos temporais sejam identificados e representados.
+Em os aspectos da modelagem temporal em banco de dados, nos interessamos, além de as propriedades temporais, nas transformações de estado que as entidades sofrem por ação dos eventos.
+Um banco de dados que possui a capacidade de armazenar dados passados, presentes e futuros é chamado banco de dados temporal.
+Conforme, os sistemas temporais diferem dos sistemas convencionais nos seus modelos de dados, suas linguagens de consulta e seu projeto.
+Os SGBDs são sistemas que representam e gerenciam os dados das aplicações.
+Para estes sistemas representarem situações do mundo real com a maior fidelidade possível, é necessário introduzir a dimensão de tempo a esses, para que os mesmos possam atender às aplicações que tratam os aspectos temporais dos fenômenos.
+Dados Em bancos de dados convencionais a realidade é representada somente por o estado presente.
+Quando o mundo real muda, os novos valores são incorporados no banco de dados substituindo os valores antigos.
+Em banco de dados temporais, quando o mundo real muda é inserido um novo fato no base de dados, continuando armazenados também os valores antigos.
+A implementação do conceito de tempo pode ser realizada de três formas, de acordo com o grau de integração crescente do conceito de tempo no SGBD.
+Estas formas são:
+A manipulação dos dados temporais é realizada explicitamente por o usuário, O SGBD só pode armazenar dados dos tipos tradicionais como strings, inteiros, reais, etc..
+Toda a semântica associada ao tempo está contida na lógica dos programas de aplicação.
+Em este nível, o usuário deve conhecer a semântica associada ao tempo e assegurar a validade das operações sobre os dados temporais;
+A manipulação dos dados temporais é realizada por meio de ações associadas a propriedades definidas como temporais, Isto corresponde à extensões semânticas de tipos de dados normais.
+Esta solução pode ser aplicada em SGBDs estensíveis por a definição de ações semânticas associadas a tipos de dados temporais.
+Em este caso, todas as aplicações compartilham o código associado aos novos tipos de dados.
+O ponto crítico deste tipo de implementação é o isolamento entre as operações e o esquema conceitual.
+É impossível representar as propriedades temporais no esquema conceitual, pois a semântica temporal é definida como modificação na manipulação de dados tradicionais (reais, strings, etc.);
+As propriedades temporais são tratadas por uma extensão do modelo de dados e da linguagem de manipulação, Em este caso a semântica temporal, se torna estrutural, isto é, ela pertence ao modelo de dados e, portanto, não pode ser alterada por as aplicações.
+A definição de um esquema conceitual inclui as propriedades temporais.
+O principal inconveniente consiste na necessidade de ser desenvolvida uma nova versão do SGBD, incluindo as extensões.
+Com a introdução do fator tempo, a ser tratada por as aplicações em SGBDs, foi necessário acrescentar aos conceitos de banco de dados o aspecto da temporalidade dos dados.
+Tempo O tempo, segundo Tansel, é uma seqüência de &quot;pontos de tempo «NOW é o tempo presente.
+Entre dois pontos consecutivos de pontos ti e ti+ 1 existe um período de tempo que é equivalente a uma unidade de tempo (chronon).
+Esse período é indivisível, a menos que uma unidade menor de tempo seja usada.
+Um intervalo de tempo é um conjunto consecutivo de &quot;pontos de tempo», e representa um período de tempo.
+A representação de um intervalo é através do limite inferior (l), e do limite superior (u).
+O intervalo que inclui o NOW, como seu limite superior, é um caso especial, onde ele é fechado em ambos os limites.
+Os intervalos que incluem NOW, expandem- se com o passar do tempo, sendo assim diferentes de outros tipos de intervalos que são fixos na sua duração.
+Existem diversas formas para a representação do aspecto tempo em sistemas de informação e conforme a forma utilizada para tal, os conceitos referentes ao aspecto tempo podem variar.
+Devido a isto, viu- se necessário apresentar os principais conceitos relativos a bancos de dados temporais.
+As denominações utilizadas foram apresentadas em, resultado de um esforço conjunto da comunidade de banco de dados temporais no intuito de estabelecer uma nomenclatura de consenso para a área.
+Banco de Dados Temporal Um banco de dados temporal é aquele que apresenta alguma forma de representação de informações temporais, além de o tempo definido por o usuário.
+Evento O evento é uma ocorrência instantânea que representa algum fato, ação ou condição satisfeita.
+A representação de um evento que ocorreu num instante t pode ser das seguintes formas:,
+onde o intervalo é fechado em ambos os limites (inferior e superior), ou --, onde o intervalo é fechado no limite inferior e aberto no superior.
+Variação Temporal Duas formas basicamente diferentes podem ser consideradas:
+Tempo contínuo e tempo discreto.
+O tempo é contínuo por natureza.
+Entretanto, sem grande perda de generalidade, o tempo pode ser considerado como discreto.
+Esta segunda forma de representação simplifica grandemente a implementação de modelos de dados.
+Intervalo Temporal É o tempo decorrido entre dois instantes.
+O intervalo depende da forma de representação temporal definida no modelo.
+Quando é considerado tempo contínuo, o intervalo consiste de infinitos instantes de tempo.
+Em a variação discreta um intervalo é representado por um conjunto finito de chronons consecutivos.
+Um intervalo é representado por os dois instantes que o delimitam.
+Elemento Temporal É a união finita de todos os intervalos temporais disjuntos.
+Elemento temporal é mais uma forma de representação da informação temporal, como o ponto no tempo e intervalo temporal.
+Tempo de Transação, Tempo Válido e Tempo Definido por o Usuário Três diferentes conceitos temporais podem ser identificados em aplicações de banco de dados:
+Tempo de transação, o tempo em o qual é feita a atualização do banco de dados;
+Tempo válido, representando o período de validade da informação armazenada;
+E tempo definido por o usuário, consistindo de propriedades temporais definidas explicitamente por os usuários num domínio temporal e manipuladas por os programas de aplicação.
+É hoje consenso na comunidade de banco de dados temporal, de que tanto a representação do tempo de validade de uma informação como o do seu tempo de transação devem ser consideradas.
+Estes dois tempos são ortogonais, podendo ser tratados separadamente ou em conjunto.
+Estes dois tempos podem ser representados de formas distintas, dependendo do elemento temporal básico utilizado no modelo.
+Quando for utilizado o elemento temporal ponto no tempo, o tempo pode ser representado:
+Através de um ponto no tempo indicando o início da validade ou da transação, permanecendo o valor até que inicie o tempo de validade ou de transação de outro valor;
+Granularidade Temporal A granularidade temporal, consiste na duração de um chronon.
+Mas muitas vezes, dependendo da aplicação é necessário considerar simultanenamente diferentes granularidades (minutos, dias, anos) para permitir uma melhor representação da realidade.
+Embora o chronon do sistema seja único, é possível manipular estas diferentes granularidades através de funções e operações disponíveis nos SGBDs que implementam o modelo.
+O tempo é mensurável, logo um sistema de medidas é necessário para sua representação.
+Assim um tempo possui uma realização física -- que é um padrão de medida -- e uma interpretação -- que é o significado de cada unidade desse padrão.
+O relógio define o significado de cada unidade de medida de padrão de tempo, na realização física de um tempo.
+É assumido que cada unidade de medida padrão pode ser denotada por:
+Um inteiro (granularidade simples), onde, por exemplo se for assumida relativamente a um segundo da meia-noite de 01/01/1980, então o inteiro -- uma seqüência de inteiros (granularidade aninhada), onde, por exemplo, se for assumida relativamente a (ano, mês, dia, hora, minuto, segundo) do mesmo tempo anterior é denotada por a seqüência.
+Medida de Tempo O conceito de medida deve ser introduzido nos sistemas temporais para realizar operações sobre o tempo.
+Por exemplo, saber a data de um dia da semana a partir de hoje.
+O conceito de medida de tempo inclui a definição de uma distância de tempo sobre pares de elementos temporais, a possibilidade de especificação de calendários de tempo e o gerenciamento de diferentes granularidades de tempo.
+Durações temporais podem ser basicamentes de dois tipos, dependendo do contexto em que são definidas:
+Fixas e variáveis.
+Uma duração fixa independe do contexto de sua definição.
+Um exemplo de duração fixa é uma hora que tem sempre 60 minutos.
+Já a duração variável depende do contexto, sendo um exemplo típico a duração de um mês que pode ser 28,29,30 e 31 dias.
+Representação Temporal Explícita e Implícita A definição de tempo pode ser feita de forma explícita, através por exemplo da associação de um instante de tempo a uma informação (timestamping), ou de forma implícita através da utilização de uma lógica temporal.
+Timestamp Valor de tempo associado a algum objeto.
+Tempo de Vida Tempo durante o qual um objeto do banco de dados está definido.
+Relação Instantânea É uma relação manipulada por um SGBD relacional convencional que não incorpora tempo de validade e de transação.
+Relação de Tempo de Validade É uma relação que incorpora somente o tempo de validade que é suportado por o sistema.
+Não há restrições no que diz respeito à representação da relação, podendo assim ser representada por um único atributo ou por um par de atributos correspondendo a um intervalo de tempo.
+Relação de Tempo de Transação É uma relação que incorpora somente o tempo de transação que é suportado por o sistema.
+Assim como no caso de uma relação de tempo de validade, o tempo de transação também pode ser representado por um ou mais atributos.
+Relação Bitemporal É uma relação que incorpora o tempo de transação e o tempo de validade, sendo ambos suportados por o sistema.
+Aqui também não há restrições quanto a a forma de representação de ambos os tempos numa relação.
+Valores futuros (previsões) podem ser definidos através do tempo de validade, sendo possível recuperar o instante em que estes valores foram definidos, através do tempo de transação, para eventuais alterações.
+Um banco de dados temporal armazena vários estados dos dados, assim como os instantes em que estes diferentes estados são válidos.
+Segundo, conforme a forma utilizada para armazenar valores temporais, os bancos de dados podem ser classificados em quatro tipos diferentes:
+Banco de Dados Instantâneos -- Banco de Dados de Tempo de Transação -- Banco de Dados de Tempo de Validade -- Banco de Dados Bitemporais -- Banco de dados instantâneos -- neste tipo de banco de dados, os únicos valores perceptíveis são os valores presentes.
+Cada modificação no valor de uma propriedade pode ser percebida como uma transição do banco de dados.
+Em uma transição o valor anteriormente armazenado é destruído e somente o último valor está disponível.
+O estado atual do banco de dados, composto por os valores atuais de todas as propriedades, é o único existente.
+Os estados anteriores são perdidos, a menos do registro das transações anteriores feito para permitir a recuperação de erros de processamento (&quot;log&quot;).
+Entretanto esta informação é utilizada apenas para procedimentos operacionais não sendo acessível à linguagem de manipulação de dados.
+Em esta forma de representação, o banco de dados representa o mundo como uma fotografia para um tempo particular, ou seja, uma nova informação sobrepõe a antiga.
+Banco de dados de tempo de transação -- neste tipo de banco de dados, o valor definido é associado ao instante temporal em que foi realizada a transação, sob forma de um rótulo temporal.
+Uma relação que utilize esta abordagem pode ser vista como tendo três dimensões (tuplas, atributos, tempo de transação).
+Os bancos de dados de tempo de transação permitem a recuperação de informações definidas em algum instante do passado, pois todos os dados passados estão armazenados associados ao seu instante de definição (tempo de transação).
+Os bancos de dados de tempo de transação possuem uma limitação, pois armazenam a história das transações e não história do mundo real.
+Uma tupla passa a ser válida no momento em que é inserida na base de dados.
+O tempo de transação é contínuo.
+Alterações retroativas não podem ser executadas, bem como erros em tuplas passadas não poderão ser corrigidos.
+Banco de dados de tempo de validade -- corresponde ao tempo que uma informação é verdadeira no mundo real.
+Ou seja, a cada informação é associado o seu tempo de validade.
+Este tempo deve ser fornecido por o usuário.
+Este tipo de banco de dados registra a história relativa aos dados e não às transações.
+Permite a correção de erros através da modificação de dados.
+Portanto, dados errados não são registrados.
+Este tipo de banco de dados admitem no seu contexto intervalos de tempo não válidos.
+Os bancos de dados de tempo de validade também permitem a recuperação de informações passadas, porém possuem a vantagem de representar melhor a semântica da realidade em relação a os bancos de dados de tempo de transação.
+Permitem a recuperação de informações válidas em momentos passados, presente e futuros.
+Banco de dados bitemporais -- neste tipo, o banco de dados combina as propriedades dos banco de dados de tempo de transação e de tempo de validade, ou seja, ele trata as duas dimensões de tempo.
+Toda a história do banco de dados é armazenada.
+É possível ter acesso a todos os estados passados do banco de dados, tanto a história das transações realizadas como a história da validade dos dados.
+O estado atual do banco de dados é constituído por os valores atualmente válidos.
+Valores futuros podem ser definidos através do tempo de validade, sendo possível recuperar o momento em que estes valores foram definidos para eventuais alterações.
+Por a classificação de, para que se tenha uma solução automatizada da parcela temporal do banco de dados (sem intervenção do usuário), o mesmo deve ser do tipo banco de dados de tempo de transação.
+Em os últimos anos diversos modelos de dados temporais foram propostos, traduzindo a preocupação da comunidade científica com a representação temporal na modelagem de dados.
+A o tratarmos o conceito de tempo neste trabalho não foi considerado nenhum modelo de dados específico, podendo- se aplicar os diversos conceitos em qualquer modelo de dados.
+Como no presente trabalho propomos a implementação de características temporais em bancos de dados relacionais, será feita uma análise das formas de representação temporal em SGBDs relacionais.
+Em os sistemas de bancos de dados relacionais, os dados estão armazenados em tabelas de duas dimensões, onde as linhas são as tuplas e as colunas os atributos.
+A o introduzirmos o fator tempo associado ao dado estas tabelas podem ser vistas como possuindo mais uma dimensão, o tempo.
+Para a implementação de bancos de dados temporais em SGBDs relacionais existem duas abordagens.
+A primeira é estender a semântica do modelo relacional para a incorporação do fator tempo.
+A outra é implementar o banco de dados temporal sobre o modelo relacional básico com o tempo aparecendo como atributos adicionais.
+Como exemplo da primeira abordagem temos os modelos relacionais estendidos HRDM, TRM, HSQL e TSQL2, que no capítulo 4 serão estudados mais detalhadamente.
+Em a segunda abordagem o tempo não é suportado completamente por o SGBD, cabendo ao projetista do sistema a tradução de consultas e atualizações que envolvam tempo para a linguagem de manipulação de dados.
+A incorporação do aspecto tempo nos SGBDs relacionais, conforme a segunda abordagem, pode ser feita da seguinte forma:
+Inclusão de um atributo adicional que represente o tempo de transação ou o tempo de validade de uma relação;
+Inclusão de dois atributos adicionais que representem o início e o fim do tempo de transação ou de validade de uma relação;
+Inclusão de dois atributos adicionais que representem o tempo de transação e o tempo de validade da relação;
+Inclusão de quatro atributos adicionais, os quais irão representar o início e fim do tempo de validade e o início e fim do tempo de transação de uma relação.
+Em as formas de representação que utilizam o tempo de transação, ainda poderá ser adicionado mais um atributo representando a operação efetuada na transação.
+Em este capítulo foi feito um estudo das possíveis formas de representação temporal em bancos de dados e dos principais conceitos referentes a bancos de dados temporais.
+Este estudo foi feito com o intuito de apresentar diversos conceitos que serão utilizados no decorrer de o trabalho.
+A grande maioria dos SGBDs da atualidade são relacionais.
+De fato um número expressivo de sistemas não apenas são relacionais, como são especificamente sistemas SQL;
+Isto é, contém algum dialeto da linguagem relacional SQL.
+Partindo- se deste fato e da fundamental importância que o SQL possui para o trabalho, é elaborado neste capítulo um estudo sobre esta linguagem.
+Partiremos de seu histórico, passando por a sua subdivisão, por os padrões publicados e o que se espera do próximo padrão, o SQL-3.
+A este último padrão é dada uma atenção especial, pois certamente já virá com a padronização dos triggers (gatilhos), visto que estes já estão implementados na maioria dos SGBDs comerciais disponíveis no mercado.
+Para o trabalho, o conceito de trigger é de grande importância no desenvolvimento das implementações utilizandose um sistema gerenciador de banco de dados relacional.
+Existem inúmeras versões do SQL.
+A versão inicial foi desenvolvida no Laboratório de Pesquisa da IBM San Jose (hoje o Centro de Pesquisa Almaden).
+Esta linguagem originalmente chamada Sequel, foi implementada como parte do projeto System R no início dos anos 70.
+A linguagem Sequel evoluiu desde então, e seu nome foi modificado para SQL (Structured Query Language).
+Encorajados por o endosso da IBM a esta linguagem, inúmeros outros fabricantes passaram a produzir sistemas com base na SQL ou similares.
+Alguns destes outros produtos foram anunciados e postos no mercado antes dos próprios produtos da IBM.
+Atualmente, numerosos produtos suportam a linguagem SQL.
+Embora as versões do produto SQL difiram em diversos detalhes de linguagem, as diferenças são, em sua maioria, secundárias.
+Segundo, a SQL estabeleceu- se claramente como a linguagem padrão de banco de dados relacional.
+A linguagem SQL tem as seguintes partes:
+Data definition language (DDL) (Linguagem de definição de dados).
+A SQL DDL fornece comandos para definição de esquemas, remoção de relações, criação de índices e modificação de esquemas.
+Interactive data manipulation language (DML) (Linguagem de manipulação de dados interativa).
+A SQL DML inclui uma linguagem de consulta baseada na álgebra relacional e no cálculo relacional de tupla.
+Compreende também comandos para inserir, remover, modificar tuplas num banco de dados.
+Embedded data manipulation language (Linguagem de manipulação de dados embutida).
+A forma embutida da SQL é projetada para utilização em linguagens de programação de uso geral como C, Pascal.
+View definition (Definição de visões).
+A SQL DDL inclui comandos para definição de visões.
+Authorization (Autorização).
+A SQL DDL inclui comandos para especificação de autorização de acesso a relações e visões.
+Integrity (Integridade).
+A linguagem Sequel do System R original incluía comandos para especificação de restrições complexas de integridade.
+Novas versões da SQL, incluindo a padrão ANSI, fornecem apenas uma forma limitada de verificação de integridade.
+Produtos e o futuro padrão já incluem recursos avançados para verificação a integridade.
+Transaction control (Controle de Transações).
+A SQL inclui comandos para especificação de início e fim das transações.
+Diversas implementações permitem o trancamento explícito de dados para o controle de concorrência.
+Em 1986, o American National Standard Institute (ANSI) publicou um padrão SQL que provia este de uma linguagem básica para definição e manipulação dos dados na tabela;
+Uma revisão em 1989 adicionou ao padrão uma extensão da linguagem para tratar a integridade referencial e restrições de integridade de domínio;
+A mais recente revisão em 1992 incorporou ao padrão novas facilidades para manipulação de esquemas e administração dos dados, facilitando assim a definição e manipulação dos dados.
+Para o padrão SQL3 (sem data prevista para publicação), estão previstas a inclusão de orientação a objeto, arquitetura cliente/ servidor, interface de programação de aplicação e de triggers.
+O estudo feito em constatou que o padrão SQL vigente já trata uma pequena parte dos requisitos para a representação e manipulação de dados temporais, tais como os tipos de dados DATETIME e INTERVAL e suporte a uma linha de tempo (tempo definido por o usuário).
+Tal fato pode ser considerado como um grande avanço, pois os padrões anteriores nada tratavam sobre aspectos temporais no seu contexto.
+Ainda, o SGBD Ingres possui operadores para a manipulação de dados temporais, bem como tipos de dados para a representação do aspecto tempo.
+Um trigger (gatilho) é um comando executado automaticamente por o sistema como um efeito colateral de uma modificação no banco de dados.
+Para projetarmos um gatilho, precisamos:
+Especificar as condições sob as quais o gatilho deve ser acionado;
+Especificar as ações a serem tomadas quando o gatilho é executado.
+O padrão SQL não inclui os gatilhos, embora a SQL do System R original incluísse um recurso limitado de gatilho.
+Diversos sistemas existentes têm seus próprios recursos não-padrão de gatilho.
+Triggers no Padrão SQL3 A consciência da necessidade de padronização da linguagem de regras surgiu com a crescente proliferação de dialetos na SQL dos SGBDs comerciais, nos últimos anos, e por força de a demanda gerada por novas aplicações requerendo capacidade ativa.
+Infelizmente, o último padrão aprovado, a SQL-92, não incluiu triggers, por perda de prazo.
+O atual esforço conjunto Iso-ANSI de revisão do padrão, conhecido como SQL3, procura resolver a diversidade de triggers que existem hoje nos produtos relacionais A seguinte sintaxe ilustra o atual estágio do esforço de padronização:
+On da tabela\&gt; WHEN (de procedimentos SQL\&gt; NEW As da tupla com valor novo\&gt;| OLD_ TABLE As da tabela com valor antigo\&gt;| NEW_ TABLE As da tabela com valor novo\&gt; A semântica dos triggers segue o paradigma das regras ECA (Evento-CondiçãoAção), onde o evento é uma operação do banco de dados, a condição é um predicado em SQL e a ação é uma seqüência de comandos de procedimentos SQL.
+Sua execução pode ser antes (BEFORE), depois (AFTER) ou ao invés de (INSTEAD Of) uma operação que causa um evento.
+A prioridade de execução é definida por a cláusula opcional ORDER, sendo obedecida a ordem de definição dos triggers se não for especificada.
+As referências aos valores de transição, antes e depois da operação que causa o evento, são definidas por meio de a cláusula REFERENCING, que associa um nome ao valor antigo ou novo de uma dada tupla ou tabela.
+Duas granularidades de processamento são EACH STATEMENT), sendo este último o modo &quot;default».
+Segundo, algumas limitações ainda a serem resolvidas no processo de padronização podem ser apontadas, entre outras:
+Só é permitida uma operação (evento simples) por trigger.
+Os modos de execução alternativos (seis ao todo) devido a a combinação de granularidade (tupla ou comando) e tempo de execução (antes, depois, ao invés de) podem ter interpretações diversas.
+Falta a noção de modos de acoplamento que permitiria explorar o paralelismo no processamento dos triggers.
+Triggers nos Produtos Relacionais A maioria dos SGBDs relacionais de ponta disponíveis no mercado suporta regras ativas sob a forma de triggers.
+O primeiro foi o Sybase e, mais recentemente, o Oracle, o Informix e o Ingres.
+A maioria dos grandes fornecedores, incluindo a IBM que ainda não liberou os triggers nas versões comerciais do DB2, toma parte ativa no esforço de padronização, buscando um denominador comum que minimize o impacto das mudanças quando de a adoção do padrão SQL3.
+Todos os sistemas mencionados acima, exceto o Ingres, utilizam uma sintaxe que é uma variante do trigger proposto na SQL3.
+Rules no Sistema Ingres É dada uma ênfase maior ao conceito de triggers (rules) no Ingres, por o motivo de ser ele o SGBD utilizado para as implementações necessárias para a execução deste trabalho.
+O sistema Ingres foi desenvolvido inicialmente como um projeto de pesquisa na Universidade da Califórnia.
+Hoje, este sistema é vendido comercialmente e possui como principal característica a possibilidade de definição de regras e procedimentos associados a estas.
+Uma rule (regra) Ingres executa um determinado procedimento quando ela detecta uma especificada alteração no banco de dados.
+Ou seja, quando uma mudança é detectada por o SGBD, a rule é &quot;disparada «e um procedimento associado a ela é executado.
+As rules podem ser utilizadas para o cumprimento de restrições de integridade referencial e geral, entre outras tantas funções possíveis.
+Abaixo, é apresentada a sintaxe das regras ativas no Ingres, que possui uma modularidade bem definida através de regras (&quot;rules&quot;) e procedimentos (&quot;procedures&quot;) armazenados:
+Create rule_ condition execute procedure proc_ name[ (parameter $= value A sintaxe de table_ condition é:
+Rulename especifica o nome da rule e não pode conter mais do que 32 caracteres.
+Este nome, deve ser único dentro de o conjunto de rules pertencente a um determinado usuário.
+Table Conditions Especifica a ação a qual &quot;dispara «uma rule.
+Esta ação pode ser:
+Um insert, update ou delete (statement_ type) executados sobre alguma coluna de uma tabela especificada.
+Um update executado sobre uma determinada coluna numa tabela.
+Pode- se especificar até 300 colunas numa cláusula update, a rule é &quot;disparada «toda a vez que uma ou mais de uma coluna é alterada.
+Para a declaração de um update ou um delete, o SGBD executa uma rule por vez para cada linha da tabela em a qual encontra a condição que satisfaça o &quot;disparo «da rule.
+Database Procedure Proc_ name é o nome do procedimento que é executado toda a vez que uma rule dispara.
+Este procedimento tem que existir quando a rule é criada.
+Para executarmos um procedimento que seja de posse de um outro usuário, devemos possuir o direito de execução de tal procedimento.
+O parameter (parâmetro) especifica um ou mais valores para serem passados para o procedimento associado a rule, e o número e o tipo dos parâmetros devem ser consistentes com o número e o tipo definidos no procedimento chamado.
+Os values (valores) podem ser constantes, expressões ou referências para valores na linha da tabela a qual a rule irá &quot;disparar». (
+&quot;Old «e &quot;New «referem- se a valores na tupla, antes e depois das alterações especificadas).
+Um valor constante não pode ser a expressão de uma função, tal como date ('now').
+Toda a vez que value referir- se à um valor numa linha da tabela, ele deve ser referenciado por um nome de correlação.
+A cláusula referencing permite- nos escolher o nome da correlação.
+Em este capítulo, apresentamos a linguagem SQL, padrão de banco de dados relacionais.
+Foi feito um estudo nos aspectos que dizem respeito ao seu surgimento, sua evolução e na padronização da linguagem.
+A o tratarmos da padronização da SQL, constatamos que os triggers ainda não foram padronizados.
+Mesmo assim, não fazendo parte do padrão, muitos SGBDs comerciais suportam regras ativas na forma de triggers.
+Em o trabalho, deu- se uma maior ênfase as rules do Ingres, por o fato deste ser o SGBD escolhido para o desenvolvimento das aplicações, as quais darão suporte ao modelo de dados temporal a ser proposto.
+Temporais Em os últimos anos, foram propostos diversos modelos de dados temporais[ Cli93, Nav93, Sar93, Sil92], o que nos mostra uma grande preocupação da comunidade científica com a representação do fator tempo na modelagem de sistemas.
+Os modelos de dados dos sistemas temporais devem representar as propriedades semânticas das informações temporais, tais como, a ordenação de tempo e a granularidade.
+A maioria dos modelos de dados temporais desenvolvidos têm seguido a opção de estender modelos já existentes e a grande parte de eles é baseada no modelo relacional.
+Em este capítulo, será feito um estudo nos principais modelos de dados relacionais, os quais foram estendidos para tratar a dimensão temporal e a existência ou não de uma linguagem de consulta associada a cada modelo.
+O modelo HRDM, é uma extensão do modelo de dados relacional, para a incorporação do fator tempo às duas dimensões usuais (valor x atributo).
+Este modelo, nos permite a definição dos dados variando no tempo, agrupamento temporais e até um determinado limite, a evolução temporal de esquemas.
+O HRDM utiliza para a representação da informação temporal o tempo de validade.
+Os modelos relacionais representam relações entre elementos;
+Mas quando considerado um modelo histórico estas relações devem ser representadas ao longo de o tempo, possibilitando a definição do início de uma relação, de sua variação com o passar do tempo, e de seu término.
+Em o HRDM, é utilizado o conceito de duração de vida (lifespan) associado a objetos para a representação da dimensão temporal.
+O lifespan de um objeto consiste de todos os instantes no tempo em os quais hajam informações relevantes para este objeto.
+Estes lifespans são representados através de intervalos fechados.
+Porém é permitido que um dos limites seja o momento atual (now).
+Em um modelo relacional, um banco de dados é considerado como sendo composto de um conjunto de relações, sendo cada relação composta de um conjunto de tuplas.
+Este conjunto de relações e suas tuplas são uma instância do banco de dados.
+Segundo, os lifespans podem ser associados em qualquer um dos três níveis desta hierarquia:
+A o banco de dados, sendo que todas as relações e todas as tuplas teriam o mesmo lifespan;
+A as relações, onde poderíamos ter relações com diferentes lifespans, mas com todas as tuplas da relação apresentando o mesmo valor de lifespan;
+A as tuplas, onde cada tupla pode ter um lifespan diferente.
+A opção de qual o nível deve ser feita a associação de lifespan é condicionada à relação de custo de manter um maior ou menor número de informações em contrapartida à flexibilidade proporcionada por um maior detalhamento.
+A associação de lifespans às tuplas permite uma representação mais detalhada das informações.
+A associação de um lifespan a um banco de dados indica o período de tempo em que banco de dados esteve operacional, o que não acrescenta muito à modelagem.
+A associação de lifespans a cada atributo de um esquema relacional permite ao usuário a indicação do tempo em o qual o atributo está definido na relação.
+Utilizando esta última forma de representação temporal, o lifespan do esquema relacional seria a união dos lifespans de todos os atributos do esquema.
+Segundo, o valor de um atributo fica constante até o momento em que um novo valor é definido, passando este novo valor a valer a partir deste momento.
+São denominados atributos-chaves, os atributos que não variam com o passar do tempo.
+Para o modelo HRDM, foi definida uma álgebra relacional histórica, através de a qual é feito o acesso às informações armazenadas.
+Esta álgebra apresenta um operador unário para cada dimensão usual:
+Select para a dimensão de valores e project para a dimensão de atributos.
+Para a dimensão temporal foi definido o operador time-slice.
+Para a recuperação de informações temporais foi acrescentado o operador when, e o operador join foi estendido para ser aplicado a relações históricas.
+Abaixo serão detalhados os operadores:
+Time-slice O operador unário time-slice faz a redução de uma relação histórica na dimensão temporal a um intervalo de tempo.
+Pode ser utilizado nas seguintes formas:
+Time-slice estático:
+Restringe o lifespan das tuplas da relação aos tempos especificados;
+Time-slice dinâmico:
+Pode ser aplicado somente em relações que incluem em seu esquema um atributo cujo domínio consiste de funções parciais do conjunto de tempos para este mesmo conjunto, sendo o resultado definido não com base em um lifespan definido e fixo, mas sim utilizando um subconjunto de lifespans que pode ser determinado por a imagem do valor de um atributo especificado para esta tupla.
+O operador binário join é utilizado para combinar duas relações através da concatenação de uma tupla de cada uma de elas, toda vez que os atributos especificados das duas tuplas apresentam um determinado relacionamento.
+O operador unário when mapeia relações a lifespans.
+Retorna o conjunto de tempos de tempo em os quais a relação é definida.
+Quando utilizado em conjunto com outros operadores, fornece como resposta os lifespans em que determinadas condições são satisfeitas.
+O modelo de dados da linguagem HSQL utiliza uma visão orientada a estados do banco de dados histórico em lugar de uma terceira dimensão que represente o tempo.
+Um estado de um banco de dados é definido por o valor de seus atributos.
+Cada alteração feita no valor de um dos atributos determina um novo estado do banco de dados.
+Um estado tem uma determinada duração, que é o intervalo de tempo durante o qual nenhum valor de atributo foi alterado.
+Portanto, é adotada a rotulação de instâncias com intervalos temporais.
+Este modelo apresenta um tipo especial de objeto denominado evento.
+Um evento persiste somente por uma unidade de tempo.
+O conceito de história não se aplica a este tipo de objeto e também não podem ocorrer atualizações sobre ele (senão deixa de existir no momento seguinte à sua ocorrência).
+Por exemplo, cita &quot;se a granularidade escolhida for a correspondente a um dia, eventos ocorridos em horas diferentes deste dia serão tratados como ocorrendo ao mesmo tempo.»
+Os objetos do tipo estado e os do tipo evento são representados através de relações históricas.
+Uma relação histórica é definida por o conjunto de seus atributos.
+A linguagem de definição de dados é da forma de um SQL estendido.
+Como exemplo da sua utilização temos:
+A o ser feita esta definição o sistema de gerência de banco de dados histórico (SGBDH) acrescenta a esta definição mais dois atributos:
+From e Te o, cujos valores estão no domínio Time e que juntos definem um intervalo fechado, não-nulo, de tempo.
+Aluno será armazenado em dois segmentos definidos por os seguintes esquemas:
+O primeiro contém somente as tuplas que pertencem somente aos estados correntes e o segundo, as tuplas que representam dados históricos.
+O valor do atributo Te o em CURRENT-ALUNO será sempre o momento atual (now).
+Esta segmentação não é definida para as relações históricas do tipo evento.
+Para estas os valores de From e Te o serão iguais, uma vez que os eventos duram somente uma unidade de tempo.
+Em este modelo, somente o tempo de transação é representado, pois ele se destina à modelagem de sistemas de tempo real, em os quais o tempo de transação geralmente corresponde ao de validade.
+É definida uma álgebra relacional histórica que estende a álgebra relacional convencional através de dois operadores:
+Expand -- Operador unário que transforma uma tupla com rótulo temporal do tipo intervalo num conjunto de tuplas com rótulos temporais instantâneos, fazendo uma réplica desta tupla para cada instante contido no intervalo;
+Coalesce -- Operador unário, que combina um conjunto de tuplas que apresentem os mesmos atributos e intervalos de tempo consecutivos ou com intersecção, resultando numa única tupla com um intervalo que inclui os intervalos de todas as tuplas combinadas.
+Estes novos operadores, utilizados em conjunto com os operadores padrão da álgebra relacional, podem definir outros operadores úteis para a manipulação de relações históricas.
+A linguagem de consulta para este modelo é denominada HSQL (Historical SQL) e vem a ser uma extensão do SQL.
+Esta linguagem apresenta facilidades para definição, armazenamento, recuperação e atualização de relações históricas, mantendo a estrutura básica de um comando SQL, acrescido de operadores adicionais.
+Esta linguagem suporta operações sobre intervalos e comparações entre tempos de diferente granularidade.
+Em HSQL geralmente uma consulta irá possuir as seguintes cláusulas:
+O modelo TRM apresenta em cada esquema relacional temporal dois atributos obrigatórios:
+Tempo_ de_ início (Ts) e tempo_ de_ fim (Te).
+Estes atributos temporais correspondem aos limites inferior e superior de um determinado intervalo.
+Por exemplo, o currículo de uma determinada faculdade é válido durante o período compreendido entre Ts e Te..
+As relações temporais representam o tempo de validade e cada relação possui duas chaves candidatas (TIK, Ts) e (TIK, Te), onde TIK é uma chave primária de uma versão invariante no tempo.
+O valor Ts de cada tupla é preciso, mas o valor de Te não é conhecido no instante da criação da tupla.
+Se NOW\&gt; $= Ts, NOW é definido como valor default, caso contrário, NULL é definido como valor default.
+No entanto, se um evento inicia no passado e seu término é desconhecido, o valor de Te é definido válido somente até o presente, pois o uso de um valor infinito poderia ter a significação errônea de que este valor é válido em qualquer tempo no futuro.
+Se o início de um evento ocorrer no futuro e seu término é desconhecido, o mesmo assume o valor NULL.
+Eventos instantâneos podem ser modelados com Ts $= Te..
+Assim sendo, a utilização de intervalos fechados permitem modelar os conceitos de intervalo e de ponto no tempo.
+Em este modelo, o tempo de validade constitui- se numa parte integral das relações temporais, enquanto o tempo definido por o usuário e de transação podem ser acrescentados por a definição de propriedades temporais.
+A linguagem de consultas do modelo TRM é a linguagem TSQL (Temporal SQL), que segundo é um superconjunto da SQL que nos permite fazer consultas num banco de dados temporal.
+Esta linguagem introduz novas construções sintáticas e semânticas ao SQL com a finalidade de garantir uma maior capacidade a este, no que se refere a recuperação de informações temporais.
+A TSQL possui as seguintes construções adicionais:
+Recuperação de Timestamps Para a recuperação de timestamps, a cláusula SELECT deve conter os operadores Time-START (Ts) ou Time-END (Te), também é definido um operador inter que produz a intersecção de dois intervalos.
+Este operador pode ser utilizado na cláusula SELECT.
+Ordenação Temporal Como as tuplas de uma relação temporal possuem duas chaves candidatas (TIK, Ts) ou (TIK, Te), é possível classificar todas as tuplas de modo temporal por um de seus timestamps.
+Como para TIK os períodos não são sobrepostos, existe uma ordenação total, esta ordenação pode ter intervalos de descontinuidade.
+A referência a estes períodos disjuntos é realizada por o uso das funções ordinais FIRST, SECOND, THIRD, Nth e LAST.
+Caso seja executada uma consulta solicitando um período descontínuo, e não exista a tal interrupção é retornado o valor NULL.
+Janela Móvel Consiste na definição de um intervalo de tempo móvel especificado por a sua duração, esta janela pode ser vista como a aplicação de uma função de agregação sobre as tuplas contidas no intervalo levado em consideração.
+GROUP By e Agregação Em banco de dados temporal apenas os instantes de início e de fim são armazenados.
+A duração do intervalo decorrido entre os dois instantes é computado por a função Sobre esta função os operadores de agregação (max, min, avg, sum, count) podem ser utilizados.
+A cláusula GROUP By é ampliada para permitir o emprego de timestamps.
+Cláusula Time--SLICE Esta cláusula especifica um período ou ponto no tempo, significando que serão consideradas apenas as tuplas que estiverem consideradas neste período.
+Consultas deste tipo devem incluir a palavra reservada Time-SLICE e um indicador de período.
+Cláusula WHEN A cláusula WHEN é similar a cláusula WHERE da SQL especificando condições temporais.
+Os seguintes operadores de comparação temporais são definidos:
+BEFORE, AFTER, FOLLOW, Precedes, OVERLAP, DURING, EQUIVALENT e ADJACENT.
+Em a cláusula WHEN, todas as operações são definidas sobre intervalos.
+A definição desta linguagem, se deu através do esforço da comunidade de banco de dados temporais em definir uma linguagem padrão para tratar os aspectos temporais das aplicações em banco de dados.
+Primeiramente, foram definidas características que esta linguagem deveria suportar e a partir de estas, guiou- se o projeto de construção até a especificação da linguagem.
+Tipos de dados suportados por TSQL2 Os tipos de dados datetime e interval do SQL-92 são substituídos com maior precisão por os tipos instants, intervals, e spans de tamanho e precisão especificáveis.
+O tipo de dado surrogate é utilizado no TSQL2.
+Estes surrogates são utilizados na identificação de objetos que possuem atributos variando no tempo.
+Linhas de Tempo O TSQL2 suporta três linhas de tempo:
+Tempo definido por o usuário, tempo válido e tempo de transação.
+O tempo de transação é limitado por inception, quando o banco de dados é criado, e until changed, quando ocorre uma alteração na base de dados.
+Além disso, o tempo válido e o tempo definido por o usuário possuem dois valores especiais beginning e forever (início e fim da relação), que são o menor e o maior valor na ordem.
+O tempo de transação possui o valor especial until changed.
+Em cada tabela, cada tupla é rotulada temporalmente com um elemento temporal, o qual é composto por todos os intervalos temporais.
+Como exemplo, a tabela empregados com os atributos nome, salário e gerente contendo a seguinte tupla.
+O elemento temporal rotulado neste registro será o conjunto de intervalos que Paulo irá receber R$ 10.000 e terá João como seu gerente.
+Informações sobre outros salários e outros gerentes de Paulo serão armazenados em outras tuplas.
+O rótulo temporal é implicitamente associado com cada tupla.
+Ortogonalmente para tempo válido, o tempo de transação pode ser associado com tabelas.
+O tempo de transação de uma tupla, a qual é um elemento temporal, especifica quando a tupla foi considerada para ser logicamente armazenada no banco de dados.
+Se a tupla foi armazenada no banco de dados em 15 de Março de 1992 (com uma sentença APPEND) e removida deste banco de dados no dia 15 de Junho de 1992 (com uma sentença DELETE), então o tempo de transação desta tupla é o intervalo compreendido entre os dias 15 de Março de 1992 e 15 de Junho de implementação e são determinados (ver tabela 4.2).
+Quando as linhas de tempo válido e tempo de transação são representadas numa mesma tabela, esta tabela é classificada como bitemporal (ver tabela 4.3).
+Tabela 4.3 -- Representação do tempo de transação e de validade (bitemporal) na TSQL2 Especificação de Esquema As sentenças CREATE TABLE e ALTER são estendidas para permitirem a especificação dos aspectos de tempo válido e de tempo de transação das relações temporais.
+A escala e a precisão de timestamps válidos podem ser especificadas e depois alteradas.
+Similaridade com o SQL-92 Muitos aspectos do TSQL2 são puras extensões do SQL-92 para tratar o aspecto tempo de determinadas aplicações, segundo, &quot;estas extensões constituem um estrito superconjunto do SQL-92».
+Em este capítulo, foram estudadas algumas extensões do modelo relacional para o tratamento de dados temporais.
+Abaixo, faremos uma análise comparativa dos aspectos estendidos nos modelos de com o padrão SQL atual, o Esta comparação será feita em termos de que os modelos e o padrão vigente suportam ou não em termos de dados temporais, linhas de tempos, esquemas temporais.
+Verificação dos modelos e do SQL-92 quanto a a:
+Suporte a Tipos de Dados Relativos a Tempo Suporta Algum Tipo de Sim Sim Sim Sim Sim Dado Temporal Linhas de Tempo Suportadas:
+Sim Não Sim Sim Sim Tempo Válido Sim Não Sim Sim Sim Tempo de Transação Não Sim Não Tempo Definido por o Usuário Especificação de Esquemas:
+Em o capítulo acima, foram apresentados os modelos de dados de Clifford, Sarda e Navathe, todos eles extensões do modelo relacional para tratar a dimensão tempo e a disponibilidade de acesso às informações temporais armazenadas.
+Foi constatado, que todos os modelos estudados permitem o acesso aos dados temporais, seja através de uma linguagem de consulta (HSQL e TRM), ou através de uma álgebra relacional específica para tal função (HRDM), em a qual nem todos tipos de consulta são disponibilizados.
+Qualquer um destes modelos de dados e linguagens de consulta são extensões da SQL, do padrão existente no momento da sua especificação, e nenhum de eles se faz utilizar somente dos recursos do padrão para realizar as operações necessárias para o suporte às informações temporais, desde sua representação até a sua recuperação.
+Também neste capítulo, foram descritas as formas de como a extensão temporal do SQL-92 trata os procedimentos que necessitam a representação temporal no seu contexto.
+Podemos notar, que grande parte dos dados temporais necessitam da extensões ao padrão SQL para serem definidos e manipulados de forma coerente, com a finalidade de garantir ao usuário a sua veracidade quando utilizados para fins de consulta.
+Partindo das informações obtidas na análise comparativa, notou- se que apesar de a sua evolução, o padrão SQL ainda não possui capacidade de suportar, na sua totalidade, os aspectos temporais em banco de dados relacionais.
+Os critérios relativos a aspectos temporais utilizados na construção da análise, foram selecionados a partir de o estudo feito em cada modelo estendido.
+Primeiramente, identificou- se os aspectos de caráter temporal e depois selecionou- se os que eram de relevada importância para a representação dos dados relativos ao tempo.
+Esta análise, comprova que o padrão vigente já se preocupa com aspectos temporais em termos de tipos de dados, onde suporta os tipos interval, datetime.
+Em a parte de linhas de tempo, o modelo suporta apenas o tempo definido por o usuário, o que de algum modo já serve para o tratamento do dado temporal.
+Embasado nas constatações descritas acima, surgiu- nos a motivação de propor um modelo para representação de informações temporais em bancos de dados relacionais utilizando- se somente dos recursos (sem a utilização de extensões) que serão disponibilizados no SQL3, e que já encontram- se disponíveis nos SGBDs comerciais de primeira linha.
+Aspectos Temporais a Bancos de Dados Relacionais Em bancos de dados convencionais os únicos valores perceptíveis são os valores presentes.
+Cada modificação no valor de uma propriedade pode ser percebida como uma transição do banco de dados.
+Em uma transição o valor anteriormente armazenado é destruído e somente o valor atual está disponível Em este capítulo é proposto um modelo que tem por objetivo incorporar aspectos da representação temporal a banco de dados do tipo relacional, visto que estes são providos apenas de tipos de dados para a representação temporal, e.
+g datetime, timestamp, e do suporte ao tempo definido por o usuário do banco de dados.
+Para a representação dos aspectos temporais dos dados utilizamos o conceito de estados do banco de dados, onde cada estado é definido por o valor de um atributo.
+Qualquer alteração efetuada no valor do atributo gera um novo estado no banco de dados.
+Cada estado possui uma determinada duração, que é representada por um intervalo de tempo em o qual não é feita nenhuma alteração no valor do atributo.
+Portanto, cada instância do banco de dados é rotulada com um intervalo temporal.
+Para a construção do modelo, buscou- se utilizar uma maneira por a qual o usuário do banco de dados não manipulasse diretamente o dado temporal, ou seja, que ele continuasse visualizando (e manipulando) o banco de dados como uma base de dados instantânea.
+Por as formas possíveis de representação temporal num banco de dados, concluiu- se que no modelo a ser proposto o aspecto temporal teria de ser representado por o tempo de transação, pois utilizando- se esta linha de tempo o dado temporal não precisaria ser manipulado diretamente por o usuário, visto que ele utiliza o tempo do SGBD.
+Em este trabalho, optou- se por a representação temporal na forma de intervalos de tempo, pois facilita a recuperação de informações.
+Portanto, para representarmos o tempo de transação teremos que acrescentar dois atributos adicionais:
+Em bancos de dados temporal, as operações de atualização devem ser tratadas de forma diferente das atualizações em bancos de dados convencionais, pois devem garantir que nenhum dado que se torne antigo venha a ser perdido.
+Portanto, todas as operações de atualização devem ser seguidas de operações para a manutenção do valor antigo.
+Para tais atualizações foram desenvolvidas rotinas que atualizam automaticamente o tempo de transação.
+Estas rotinas ficam totalmente transparentes aos usuários convencionais do banco de dados.
+A granularidade de tempo utilizada no modelo pode ser definida por o projetista do sistema a ser implementado.
+Para efeito de validação do trabalho, a granularidade utilizada foi a de segundos.
+A implementação de um banco de dados temporal utilizando um SGBD relacional requer uma estratégia específica para sua representação de modo a tornar o gerenciamento dos dados históricos independente da intervenção do usuário ou do programador das aplicações.
+Por se tratar de um banco de dados temporal, o modelo deverá guardar toda a história das transações efetuadas na base de dados.
+Estes dados históricos não interessam a todo o contingente de usuários do banco de dados, e sim a uma parte destes que necessita ter conhecimento do aspecto temporal das informações.
+Dividiu- se os usuários do sistema em dois tipos:
+Usuário convencional, e· usuário temporal O usuário convencional, visualiza o banco de dados como um instantâneo, onde cada alteração no valor de um atributo é uma transição do banco de dados.
+Em esta transição o valor armazenado é destruído e somente o último valor está disponível.
+O exemplo de como o usuário convencional visualiza o banco de dados é encontrado na tabela 5.1.
+Por sua vez, o usuário temporal possui acesso a todos os valores armazenados (anteriores e atuais) na base de dados, tendo assim acesso a todas as tabelas que constituem o sistema.
+Um exemplo da visualização do usuário temporal no banco de dados é encontrado nas tabelas 5.1, 5.2, 5.3, e 5.4.
+Chave Nome Data Nasc. A o definirmos o modelo de dados preocupamos- nos** em desenvolver este de uma maneira em a qual o aspecto temporal ficasse &quot;transparente «ao usuário convencional do banco de dados, de forma que este continuasse visualizando os dados como se fosse um banco de dados instantâneo.
+Duas alternativas mostraram- se interessantes de serem seguidas:
+Modalidade tabela instantânea, e modalidade visão.
+As duas formas de desenvolvimento do modelo de dados e suas respectivas rotinas de atualizações são descritas a seguir.
+Como primeira alternativa para o desenvolvimento do modelo após a concepção do modelo conceitual, definimos uma relação somente com os atributos a serem representados no banco de dados, sem a presença dos atributos referentes ao aspecto tempo, a qual chamamos tabela instantânea.
+Em esta tabela, todos os atributos não-chave são totalmente dependentes da chave primária e mutuamente independentes, caracterizando assim uma tabela normalizada na terceira forma normal (3 NF).
+Após a definição desta tabela, classificou- se os atributos como estáticos (que não variam com o correr do tempo) e temporais (os quais variam com o correr do tempo), pois conforme a classificação, o atributo será tratado de diferentes formas.
+Para os atributos classificados como estáticos é definida uma só tabela, chamada tabela estática, a qual contém o atributo chave da tabela instantânea, todos os atributos estáticos e mais os atributos adicionais referentes ao tempo de transação (I_ TT e F_ TT).
+Para cada atributo temporal da tabela instantânea, é definida uma nova tabela, composta do atributo chave da tabela instantânea, o atributo temporal em questão e mais os atributos adicionais referentes ao tempo de transação (I_ TT e F_ TT).
+Note- se que cada tabela com o atributo temporal e mais a tabela com os atributos estáticos são rotuladas com o intervalo de tempo durante o qual foram (ou estão sendo) válidas para a base de dados.
+Os usuários do banco de dados (convencional e temporal) irão utilizar para as suas atualizações a tabela instantânea, sem necessitar saber que os dados temporais serão atualizados automaticamente nas tabelas onde são armazenados juntos com a rotulação temporal do fato na base de dados (Tempo de Transação).
+O usuário temporal possui acesso a todas as tabelas componentes do sistema, mas somente para fins de consulta.
+Esta alternativa, modalidade tabela instantânea, foi validada utilizando- se o Ingres.
+O esquema relacional resultante do modelo é o seguinte:
+Primary key); AtTemp1, I_ TT, F_ TT, AtTempn, I_ TT, F_ TT, primary key);
+Onde: Tabela instantânea;
+I_ TT -- é o atributo que representa o início de um intervalo temporal, ou seja, momento que a informação foi incluída na base de dados.
+F_ TT -- é o atributo que representa o fim de um intervalo temporal, ou seja, o momento que a informação deixa de ser válida para a base de dados.
+Chaven e I_ TT.
+Em o Ingres, o modelo de dados apresenta- se da seguinte forma:
+AtTemp1 de Dado\&gt;, AtEstat de Dado\&gt;, primary key (Chave)); atEstat
+de Dado\&gt;, date, primary key (Chave, I_ TT);
+AtTemp1 de Dado\&gt;, date, primary key (Matric, I_ TT);
+Em o modelo de dados, o usuário trabalha diretamente com a tabela instantânea, ou seja, todas alterações, inserções e remoções são feitas diretamente nesta tabela.
+As rotinas utilizadas para a manipulação do tempo de transação (nas tabelas estáticas e temporais) foram desenvolvidas utilizando- se triggers (gatilhos) e procedures (procedimentos) dos SGBDs.
+As rotinas de manipulação do dado temporal apresentam- se assim descritas:
+A Operação INSERT A o usuário inserir um novo fato na base de dados instantânea, a rotina responsável por a inserção irá inserir cada atributo classificado como temporal na sua respectiva tabela, e os atributos estáticos na tabela estática.
+Tanto nas tabelas temporais como na tabela estática será inserido também o tempo em que o novo registro foi armazenado no banco de dados.
+O tempo referente a inserção do fato na base de dados é representado por I_ TT.
+Uma desvantagem deste tipo de inserção é o aumento no volume de dados do sistema, visto que ele insere duas vezes a mesma informação (tabela instantânea e tabelas estáticas e temporais) a fim de garantir a integridade temporal dos dados.
+A rotina de inserção é descrita na figura 5.4.
+As begin insert into Tabela_ Estatica values;
+A generalização da rotina de inserção acima é obtida:
+Passando como parâmetro para a rotina de inserção (Insere) todo o conjunto de atributos da tabela, incluindo no comando insert de Tabela_ Estatica todos os atributos estáticos values;
+A Operação UPDATE A o alterar o valor de um atributo num banco de dados convencional, o usuário estará destruindo o antigo valor do atributo e atribuindo a este atributo um novo valor.
+Em banco de dados temporais ao alterar o valor de um atributo o usuário estará pondo fim a história deste, e inserindo um novo valor que dará início a uma nova história na base de dados.
+A rotina responsável por a operação update, a cada alteração, atribui um valor` NOW' (o valor do momento no SGBD) a F_ TT (final do intervalo de validade da informação) na tupla da tabela temporal, onde o atributo está armazenado e gera uma nova tupla com o novo valor do atributo, atribuindo o valor` NOW' a I_ TT (início do intervalo de validade da informação).
+Quando de a alteração do valor de um atributo estático, a rotina responsável apenas altera o valor na tabela estática, sem alterar o início da validade (I_ TT) daquela informação.
+Assim, continuando o mesmo tempo de transação de quando o fato foi realmente inserido na base de dados.
+A rotina de alteração é descrita na figura 5.5.
+AtTemp1 create Atualiza_ TT_ AtTemp1) as begin insert into Tabela_ Temp1 values;
+Atualiza_ TT_ AtEstat1 (Chave $= new.
+Chave, commit;
+F_ TT is null;
+End; A generalização das rotinas de alteração acima é obtida:
+Criando um par rule-procedure para cada atributo adicional, seja -- A Operação DELETE Em banco de dados convencionais ao ser removido um registro da base de dados, este torna- se inexistente ao usuário.
+Em banco de dados temporais, a operação delete não remove um registro da base de dados, e sim mantém armazenados os valores dos atributos do registro excluído associados a uma rotulação temporal, a qual representa o tempo em que os valores foram válidos na base de dados.
+Em o modelo proposto ao excluir- se um registro da base de dados, a rotina responsável por a operação delete irá atribuir o valor` NOW' ao atributo F_ TT na tabela estática e em todas as tabelas temporais em que o registro até o momento era válido.
+Em a tabela instantânea o registro é realmente removido.
+A rotina de exclusão de registro é exemplificada abaixo:
+A generalização da modalidade Tabela Instantânea para um esquema de uma aplicação implica em ter um conjunto de tabelas instantâneas (e as correspondentes tabelas com atributos estáticos e tabelas temporais) com os correspondentes pares ruleprocedure para as operações de inserção, alteração e exclusão.
+O inconveniente disso é o grande número de nomes a definir:
+Nomes de tabelas e de gatilhos (rule-procedure).
+É recomendável que seja adotado um padrão para a construção de nomes de tabelas e gatilhos, de maneira que facilite o trabalho de manutenção do esquema da aplicação por parte de o administrador de banco de dados (DBA).
+Como uma tentativa de padronização para nomes de tabelas e gatilhos, sugere- se que adote- se a seguinte nomenclatura.
+Para a (s):
+Tabela Instantânea tabela:
+T_ I_ -- Tabelas Temporais tabela:\&gt; --
+Tabela Estática tabela:
+Te_ -- Rotina de Inserção em Tabelas Temporais rule:
+INS_ T_ procedure:
+INS_ T_ -- Rotina de Alteração em Tabelas Temporais rule:
+UPD_ T_ procedure:
+UPD_ T_ -- Rotina de Exclusão em Tabelas Temporais rule:
+DEL_ T_ procedure:
+DEL_ T_ -- Rotina de Inserção na Tabela Estática rule:
+INS_ E_ procedure:
+INS_ E_ -- Rotina de Exclusão na Tabela Estática rule:
+DEL_ E_ procedure:
+DEL_ E_ Como segunda opção para a resolução do problema, pensou- se em utilizar o conceito de visões de banco de dados com a finalidade de garantir a transparência do modelo de dados e a manipulação automática do dado temporal e, também minorar a redundância de dados ocasionada por a modalidade anterior.
+O usuário do banco de dados teria o direito de acesso apenas as visões, onde toda e qualquer atualização teria de ser feita através destas.
+Primeiramente, define- se a estrutura das relações que comporiam a resolução do problema da seguinte maneira:
+Uma tabela estática, composta por todos os atributos que não variam com o correr do tempo e mais a rotulação temporal (I_ TT e F_ TT) e uma tabela para cada atributo temporal (que varia com o correr do tempo) juntamente com os atributos referentes a rotulação temporal.
+O esquema relacional resultante foi o seguinte:
+E a visão correspondente ao esquema relacional seria descrita da seguinte forma:
+Definiu- se, também, os gatilhos (triggers) responsáveis por as atualizações em cada uma destas tabelas, tanto nas temporais como na tabela estática.
+Por último, era definida a visão com cada atributo temporal e estático, para que o usuário do banco de dados visualizasse e manipulasse o banco de dados como um banco de dados instantâneo.
+Um exemplo de como o usuário convencional visualizaria o banco de dados através de visões é encontrado na tabela 5.1.
+A Experiência utilizando Visões Como experiência prática, o SGBD Ingres não permitiu a atualização através de visões.
+O Sybase permitiu atualizar, desde que a mesma ficasse restrita a uma tabela.
+Em estes SGBDs, portanto, não foi possível a utilização de visões para garantir a transparência do dado temporal.
+É mostrada a experiência feita em Sybase pois, a nosso ver, não ocorrem os conhecidos problemas de atualizações por visões, como relatados, por exemplo, que de fato inviabilizam essas atualizações.
+Não cabe a definição de gatilho para a alteração de AtEstat1 (atributo estático) pois não interessa guardar a história de valores passados do mesmo.
+Quando de a aplicação do modelo proposto em situações do dia-a-dia em bancos de dados, o projetista do sistema com certeza irá se deparar com modelos de dados que já tratam, empiricamente ou não, o aspecto tempo no seu contexto.
+A verdade é que a maioria dos sistemas de bancos de dados existentes no mundo que tratam do dado temporal possuem a manutenção deste dado através de programas manipulados diretamente por o usuário final do banco de dados, ou seja, utilizam a linha de tempo definida por o usuário.
+Quando de a definição da utilização do modelo proposto, é de grande importância que se identifique na fase de projeto em quais situações se aplicam o tratamento empírico do aspecto temporal, para que possam ser posteriormente substituídos por o tratamento automático da informação temporal do modelo a ser utilizado.
+A eficiência de um sistema de banco de dados está bastante relacionada com a facilidade de recuperação das informações armazenadas.
+Através da linguagem de consulta do banco de dados o usuário deve ser capaz de expressar um conjunto de restrições e selecionar as informações que desejar.
+Esta linguagem deve possuir um grande poder de expressão sem ser muito complexa.
+A linguagem de consulta pode ser entendida como um conjunto formalmente bem definido de operadores que podem ser combinados para expressar consultas em banco de dados.
+O processo de formulação da consulta é realizado em três etapas· localização -- o usuário seleciona o conjunto de informações do seu interesse, ou seja, os objetos que farão parte do seu conjunto de resposta ou que serão utilizados para restringir o conjunto de valores da resposta;
+Definição de requisitos -- sobre os objetos selecionados na fase anterior, são aplicadas algumas restrições que determinam as condições a serem satisfeitas para que os mesmos possam fazer parte do resultado da consulta;
+Visualização do resultado -- o resultado da consulta é apresentado ao usuário.
+Um mesmo conjunto de informações pode ser apresentado de diferentes formas, mas a escolha da representação adequada possibilita uma melhor interpretação dos resultados por parte de o usuário.
+A consulta pode ser realizada através de uma linguagem textual ou de uma linguagem visual.
+A linguagem textual exige que o usuário possua conhecimento da sintaxe e da organização das informações.
+A linguagem visual de consultas, por sua vez, apresenta um ambiente mais confortável para a recuperação de informações permitindo que usuários não familiarizados com a sintaxe da linguagem de consulta textual formulem suas consultas de forma mais simples.
+Uma linguagem textual permite a formulação de consultas através de uma expressão textual que possui uma sintaxe e um conjunto de regras bem definidas.
+Uma consulta na linguagem SQL é expressa através de um conjunto de palavras chaves e referências a elementos do esquema do banco de dados.
+Em o modelo relacional, o relacionamento entre os objetos é feito através da replicação de chaves:
+O usuário precisa comparar explicitamente estas chaves para relacionar os elementos envolvidos na consulta.
+A estrutura básica da linguagem SQL é descrita da seguinte maneira:
+SELECT de especificação\&gt; From de identificação\&gt; WHERE de busca\&gt; cláusula de especificação -- determina quais os elementos do esquema devem ser apresentados no resultado da consulta;
+Uma consulta SQL pode ser construída de diferentes maneiras, pois o usuário determina quais os elementos devem participar da consulta e as restrições sobre eles, sem definir a forma como a consulta será executada.
+Comandos de recuperação de informações (consultas) que possuam no seu contexto o fator tempo, são um tipo especial de consulta.
+O aspecto tempo pode ser envolvido de três formas diferentes nestes comandos:
+Recuperar valores cujo domínio é temporal;
+Se referir a um determinado instante ou intervalo temporal;
+Recuperar valores com base em restrições temporais.
+As consultas que envolvem o fator tempo no seu contexto não dependem somente da especificação da informação, dependem também:
+De o tipo de banco de dados implementado, por o modelo de dados utilizado, e da história considerada.
+Em esta seção foi feito um estudo na taxonomia para consultas temporais proposta em.
+Em esta taxonomia, foram considerados somente banco de dados bitemporais, em os quais o tempo de transação e o tempo de validade são associados a cada informação armazenada.
+Esta taxonomia foi baseada nas diferentes possibilidades de combinações entre os componentes da consulta e a história do banco de dados.
+Classifica componentes de consulta e histórias de banco de dados da seguinte forma:
+Consultas de seleção sobre dados -- consultas de seleção temporal -- consultas de seleção mixta De acordo com o componente de saída de uma consulta, estas podem ser classificadas em:
+Consultas de saídas de dados -- consultas de saídas temporal -- consultas de saída mixta Analisando as possíveis combinações entre os componentes de seleção e de saída de uma consulta, observamos que a única combinação que não pode ser utilizada é a de seleção temporal com saída temporal -- devemos ter algum dado envolvido com pelo menos um dos componentes.
+Cinco diferentes histórias podem ser identificadas num banco de dados bitemporal, representando diferentes interpretações dos dados armazenados:
+Dados instantâneos atuais, representados por todas as informações válidas no momento presente;
+Dados instantâneos passados, representados por os dados válidos num determinado instante do passado, de acordo com a atual percepção da história do banco de dados;
+Dados instantâneos de história passada, considerando todas as informações de um determinado momento no passado, de acordo com a história válida naquele momento;
+Dados históricos, em os quais estão incluídas todas as informações armazenadas (presentes, passadas e futuras) de acordo com a presente história de dados válidos;
+E -- dados históricos de história passada, análogos aos anteriores porém considerando uma história anterior à atual, definida por um determinado tempo de transação.
+Em um banco de dados bitemporal os relacionamentos possíveis entre os componentes de uma consulta e as histórias do banco de dados são representados na tabela 6.1 por as células brancas.
+Para fins de validação do trabalho, foi feito um estudo no intuito de encontrar (e implementar) as possíveis combinações de consultas que poderão vir a ser fielmente representadas num banco de dados de tempo de transação, mais especificamente no modelo proposto.
+A história relativa aos dados instantâneos atuais é representada por a célula A1, onde só é possível selecionar e recuperar dados, visto que o elemento temporal é o momento atual.
+O usuário convencional do banco de dados só poderá usufruir deste tipo de consultas no banco de dados.
+As possíveis combinações de uma consulta para dados instantâneos passados são representadas por a célula D2 e F2 -- pois para este tipo de história é necessária uma seleção temporal para fixar o instante de tempo considerado, sendo que somente dados podem ser recuperados.
+Todas as combinações dos componentes são possíveis em se tratando de dados históricos (A4, B4, C4, D4, E4, F4, G4, H4), pois se recupera a informações tendo por referencial o momento atual (now).
+Em se tratando dos dados instantâneos de história passada e dados históricos de história passada nenhuma das combinações dos componentes são fielmente representadas no modelo.
+Em banco de dados de tempo de transação não é possibilitado deslocamento por o eixo de tempo por ele ser contínuo, assim sendo este tipo de banco de dados não permite atualizações retroativas e correção de erros em tuplas passadas.
+Portanto, para fins de consultas que envolvam a história passada, qualquer que seja a história passada considerada a resposta da consulta será o mesmo do que se fosse considerada a história atual dos dados, pois todas as alterações feitas na base de dados serão rotuladas apenas com os atributos referentes ao seu tempo de transação.
+Para estes tipos de consulta possuírem algum efeito em termos de consulta temporal o modelo de representação do aspecto tempo deverá conter os atributos referentes a tempo de transação e tempo de validade, ou seja, um modelo bitemporal.
+Em o modelo de dados bitemporal, apresentado anteriormente, são possíveis além de as combinações possibilitadas no modelo proposto os seguintes tipos de consultas:
+D3 e F3 (pois a seleção deve ser temporal para fixar o instante de tempo da consulta e somente dados podem ser recuperados), e -- D5, E5, F5, G5 e H5 (pois também deve haver uma seleção temporal para fixar o instante em o qual a história passada deve ser considerada).
+A seguir são apresentados exemplos de consultas para cada uma das combinações apresentadas na tabela 6.2:
+Dado o esquema relacional:
+Aluno (Matric, Nome, Dt_ Nasc, Ender) Aluno_ ESTATICO (Matric, Dt_ Nasc, I_ TT, F_ TT) Aluno_ ENDER (Matric, Ender, I_ TT, F_ TT) Aluno_ NOME (Matric, Nome, I_ TT, F_ TT) Considerando ALUNO a tabela instantânea, Dt_ Nasc um atributo estático, e Nome e Ender como podendo ter variação temporal.
+Com isso, excetuando- se a consulta A1, todas as que fazem referência à aluna Maria da Silva, descritas a seguir, devem considerar que a aluna tem presentemente tal nome, ou que o teve em algum momento do passado.
+A1: Selecione o endereço (atual) da aluna (hoje) chamada Maria da Silva.
+Select ender A4:
+Selecione todos os endereços da aluna Maria da Silva.
+B4: Selecione todos os períodos em que a aluna Maria da Silva residiu na Rua Ipiranga, 30.
+C4: Selecione todos os endereços da aluna Maria da Silva, juntamente com suas respectivas datas de transação.
+D2: Selecione o nome de todos os alunos em 01/01/97.
+Select aluno_ nome.
+Nome from aluno_ nome where aluno_ nome.

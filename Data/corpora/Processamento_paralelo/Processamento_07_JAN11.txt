@@ -1,0 +1,1337 @@
+Os ambientes paralelos distribuídos tornaram-se de grande importância devido às vantagens que podem prover, bom desempenho, flexibilidade, baixo custo de aquisição e de manutenção, entre outras.
+
+Nesses ambientes, o bom desempenho é proporcional à eficiência do escalonamento de processos, e, caso este efetue o balanceamento de cargas, o desempenho pode ser ainda maior.
+
+Não obstante, o balanceamento de cargas não é uma tarefa trivial, sobremaneira quando se tratar de ambientes heterogêneos (tanto em sua forma configuracional quanto na arquitetural), porquanto há necessidade de utilização coerente da potência computacional dos recursos de todos os hosts que compõem o ambiente, sem que se sobrecarreguem alguns, deixando outros ociosos.
+
+A utilização de índices de desempenho no balanceamento de cargas pode trazer grandes benefícios, reduzindo o impacto da heterogeneidade, no entanto, a freqüência em que são coletados pode gerar tráfego na rede, ou mesmo um balanceamento de cargas incorreto.
+
+Este trabalho apresenta uma contribuição no tocante à otimização do balanceamento de cargas a partir da instrumentação da biblioteca de passagem de mensagem JPVM e do desenvolvimento de uma estratégia de escalonamento que possua um tratamento de heterogeneidade do ambiente por meio da utilização de índices de desempenho.
+
+Para a coleta dos índices de desempenho dos hosts do ambiente paralelo distribuído, utilizou-se um agente móvel.
+
+Os resultados foram satisfatórios quando efetuada análise de desempenho de aplicações paralelas, escalonadas com a estratégia de escalonamento desenvolvida utilizando-se agente móvel.
+
+No início de sua era, os computadores eram grandes, não flexíveis e com alto custo de aquisição e de manutenção.
+
+Com o passar do tempo, os computadores tiveram reduzidos seu custo e seu tamanho, tornando-se cada vez mais rápidos e foram capacitados para se comunicar por meio de redes de intercomunicação.
+
+Com o desenvolvimento tecnológico, surgiram as arquiteturas paralelas, os sistemas distribuídos e, posteriormente, a convergência dessas tecnologias, a nomeada computação paralela distribuída.
+
+Junto a esse novo paradigma, surgiram diversas possibilidades de pesquisa, dentre as quais, as taxonomias para classificação da arquitetura de computadores.
+
+O crescente avanço deu-se pela busca por maior desempenho, confiabilidade, flexibilidade quanto ao crescimento da potência computacional, custo acessível para aquisição e manutenção.
+
+Dentre as taxonomias existentes na literatura, uma das que se destaca, é a proposta por Flynn, que se baseia em fluxos de instruções e fluxos de dados e possui quatro combinações possíveis.
+
+Neste estudo, enfatiza-se apenas uma delas, visto que se enquadra à topologia utilizada na pesquisa.
+
+A convergência de sistemas paralelos, que podem prover um bom desempenho, com sistemas distribuídos, que visam a fornecer confiabilidade, flexibilidade, transparência, custo acessível, entre outros, trouxe bons resultados.
+
+Para que um sistema computacional paralelo distribuído tenha alto desempenho não basta um grande número de hosts (elementos de processamento ou nós).
+
+Faz-se necessário também que todos tenham um alto grau de participação na execução da aplicação.
+
+Deste modo, divide-se a aplicação em processos, os quais são distribuídos entre esses hosts.
+
+O responsável por efetuar a distribuição de processos e determinar em que ordem serão executados é o escalonador de processos.
+
+O escalonador de processos pode atingir diversos objetivos a partir das políticas e mecanismos implementados em seu algoritmo.
+
+Um de seus objetivos é efetuar o balanceamento de cargas entre os vários hosts, que consiste em selecionar uma tarefa e definir o local onde será executada.
+
+Utiliza-se este objetivo para que todos os hosts tenham a capacidade de seus recursos explorada de forma coerente e equilibrada entre si.
+
+A tarefa atribuída a um elemento de processamento gera uma carga de trabalho e, para quantificar essa carga e distinguir o estado do recurso analisado, podem-se utilizar os índices de cargas.
+
+O processo de obtenção desses índices de carga se dá nas políticas de escalonamento e, dependendo da freqüência com que é feita a coleta das informações das cargas, pode-se gerar um tráfego maior do que o esperado, prejudicando o desempenho do sistema, ao invés de melhorar.
+
+A utilização de políticas, mecanismos e índices de carga adequados para um determinado sistema pode proporcionar um desempenho elevado e satisfatório, mas há um paradigma importante a se ressaltar, é mais simples obter essa resultante em ambientes homogêneos do que em ambientes heterogêneos.
+
+Normalmente, um sistema computacional paralelo distribuído compõe-se de hosts heterogêneos, tanto referentes à arquitetura quanto às configurações.
+
+Essa característica afeta nas resultantes dos índices de cargas e de seus dependentes, como o escalonamento com balanceamento de cargas.
+
+Branco propôs um índice de desempenho que pode fornecer informações da carga de trabalho e da situação de operação de cada um dos hosts do sistema envolvido no processo, considerando todos os tipos de heterogeneidades.
+
+O propósito deste trabalho é oferecer alternativas para coleta dos índices de carga e de desempenho de um ambiente paralelo distribuído, objetivando um escalonamento balanceado e confiável para se obter um bom desempenho referente ao tempo de execução de aplicações apropriadas para essa caracterização de ambiente.
+
+Estruturalmente, o trabalho compõe-se de sete capítulos, sendo o primeiro esta introdução, e os demais detalhados a seguir.
+
+No CAPÍTULO 2 faz-se uma revisão bibliográfica a respeito da computação paralela distribuída.
+
+Descrevem-se ainda os conceitos de escalonamento de processos bem como seus objetivos, onde se enfatiza o balanceamento de carga.
+
+Apresentam-se no CAPÍTULO 3, os fatores que influenciam na avaliação de desempenho, como os índices de carga e de desempenho.
+
+No CAPÍTULO 4 foi estabelecido o histórico teórico dos códigos móveis, em que se colocam em evidência as características dos agentes móveis.
+
+Apresentam-se no CAPÍTULO 5, motivadores para o desenvolvimento deste trabalho, detalhes do projeto implementado, incluindo as contribuições que pode prover.
+
+No CAPÍTULO 6 aborda-se o método utilizado de avaliação de desempenho do projeto desenvolvido e os resultados a que se chegou, com o intuito de demonstrar a viabilidade do mesmo.
+
+Finalmente, no CAPÍTULO 7, tece-se a conclusão do presente trabalho, sugerem-se possíveis trabalhos futuros e apresentam-se as principais publicações relacionadas a este projeto.
+
+No início da era dos computadores, as máquinas eram muito grandes e caras.
+
+Em função disso, apenas grandes organizações possuíam computadores e os mesmos operavam de forma independente por falta de uma forma confiável de interligá-los.
+
+Com o passar do tempo, cresceu a busca por menor custo, maior processamento e maior desempenho, e o fator alto custo com supercomputadores representou um obstáculo para sua disseminação.
+
+Por algum tempo, utilizaram-se somente máquinas multiprocessadoras paralelas de alto custo (supercomputadores), que oferecem alto desempenho.
+
+No entanto, não eram flexíveis quanto à escalabilidade, ampliação da potência computacional e de configuração.
+
+Assim, devido ao crescente avanço tecnológico e a busca por maior desempenho computacional, surgiram novos conceitos e novas idéias.
+
+A partir dos anos 80 dois avanços na tecnologia mudaram essa situação.
+
+O primeiro foi o desenvolvimento de microprocessadores com a potência de processamento cada vez maior e de custo menor.
+
+O segundo foi a comunicação de computadores em redes locais de alta velocidade chamadas de LANs (Local Area Network).
+
+A partir desses avanços surgiram os conceitos de sistemas distribuídos, e a classificação das arquiteturas paralelas.
+
+A computação paralela explora a existência de tarefas que podem ser executadas em paralelo, para que se obtenha um tempo de resposta menor.
+
+Para isso, utilizam-se múltiplos hosts capazes de se comunicar e cooperar para resolver grandes problemas de forma ágil.
+
+Utiliza-se o termo tarefas concorrentes para definir a rotina de dois ou mais processos inicializados disputando entre si para utilizar o processador para sua execução.
+
+A concorrência pode ocorrer tanto em sistemas paralelos quanto em sistemas com um único processador.
+
+Em sistemas uniprocessados tem-se um pseudoparalelismo, que é a execução de cada processo em pequenos intervalos de tempo, dando a impressão de que os processos executam simultaneamente.
+
+Para que haja paralelismo real é preciso que dois ou mais processos executem no mesmo intervalo de tempo.
+
+Com o intuito de reduzir os custos com a aquisição e manutenção de supercomputadores e aumentar a flexibilidade, realizaram-se estudos para o desenvolvimento de tecnologias com grande potência computacional a custos razoáveis.
+
+Propuseram-se várias maneiras para se conectarem os recursos computacionais, originando diferentes arquiteturas.
+
+Cada arquitetura apresenta características visando ao melhor desempenho sob um dado enfoque.
+
+Para acompanhar o desenvolvimento das arquiteturas paralelas e agrupar os equipamentos com características comuns, propuseram-se algumas taxonomias, dentre as quais a de Flynn.
+
+A taxonomia proposta por Flynn baseia-se em fluxos de instruções e fluxos de dados.
+
+O fluxo de instruções está relacionado com o programa que o processador executa, enquanto o fluxo de dados se relaciona com os operandos manipulados por essas instruções.
+
+O fluxo de instruções e o fluxo de dados são independentes, e, por isso, existem quatro combinações possíveis, SISD (Single Instruction Stream/ Single Data Stream), SIMD (Single Instruction Stream/ Multiple Data Stream), MISD (Multiple Instruction Stream/ Multiple Data Stream) e MIMD (Multiple Instruction Stream/ Multiple Data Stream).
+
+Taxonomia de Flynn.
+
+Essas definições permitem que várias topologias de máquinas paralelas e de redes de computadores sejam enquadradas como arquitetura MIMD.
+
+Faz-se a diferenciação entre as diversas topologias MIMD pelo tipo de organização da memória principal, da memória cache e da rede de interconexão.
+
+Quando vários hosts são interconectados, a forma como cada um visualiza a memória é decisiva para a definição dos modelos de comunicação.
+
+A questão que se destaca entre as variantes desse modelo é o espaço de endereçamento de memória.
+
+Há possibilidade de os processadores compartilharem a mesma memória (shared memory ou memória compartilhada) e denominarem-se de fortemente acoplados (tightly coupled), ou dos processadores possuírem sua própria memória e serem chamados de fracamente acoplados (loosely coupled).
+
+Em decorrência de ser uma extensão natural do modelo de programação seqüencial, a memória compartilhada popularizou-se.
+
+Caracteriza-se por possuir um único espaço de endereçamento virtual compartilhado entre todos os processadores que se comunicam por meio de load e store (carrega e armazena) nos endereços de memória.
+
+Um espaço de endereçamento distinto para cada processador caracteriza a memória distribuída ou privada, ou seja, ela possui seu próprio espaço de endereçamento, além de expor a plataforma paralela como uma coleção de hosts conectados a uma rede de alta velocidade, que se comunicam por meio de troca de mensagens com as primitivas send e receive.
+
+Os dois modelos são bem aceitos e possuem vantagens e desvantagens.
+
+Ao mesmo tempo em que o modelo compartilhado não precisa lidar com o problema da comunicação, este possui um limite em sua potência de processamento, além dos problemas de compartilhamento de variáveis entre os processadores.
+
+Em contrapartida, o modelo distribuído não possui um limite para sua potência de processamento, bastando que mais uma host seja conectado, mas exige uma atenção especial com a comunicação e o sincronismo.
+
+Essa primeira distinção refere-se aos aspectos lógicos da memória e, dependendo desse aspecto, a arquitetura MIMD pode dividir-se em dois grupos (em se tratando dos aspectos físicos), memória distribuída (distributed memory), memória composta por vários módulos, cada um dos quais está próximo de um processador, e memória centralizada (centralized memory), memória que se encontra à mesma distância de todos os processadores e pode ser implementada com um ou vários módulos.
+
+Em estudos mais avançados da taxonomia de Flynn, chegou-se ao consenso de que a categoria MIMD pode ser dividida em dois grupos, multiprocessadores e multicomputadores.
+
+Os multiprocessadores são as arquiteturas que utilizam memória compartilhada.
+
+Essa estrutura é semelhante à colocação de múltiplos processadores em uma máquina Von Neumann tradicional.
+
+Os múltiplos processadores são conectados à memória por meio de uma rede de interconexão.
+
+Arquitetura Multiprocessador.
+
+Diferente dos multiprocessadores, os multicomputadores caracterizam-se por utilizar memória distribuída e, em decorrência disso, também podem ser chamados de sistemas de troca de mensagens (message passing systems).
+
+Por conseguinte, essas máquinas paralelas podem ser implementadas por meio de um conjunto de máquinas autônomas, ou seja, computadores tradicionais fazendo o uso de uma biblioteca de passagem de mensagem para se comunicarem.
+
+Exibe-se um exemplo da arquitetura de multicomputador.
+
+Arquitetura Multicomputador.
+
+Além da subdivisão com relação à organização da memória, existe uma divisão que toma por base a arquitetura da rede de interconexão, podendo se basear em barramento (bus-based), ou em comutação (switch-based).
+
+Interpreta-se a arquitetura da rede baseada em barramento como uma rede principal que apenas possui ramificações desta para interconectar os nós.
+
+Arquitetura da Rede Baseada em Barramento.
+
+Na arquitetura da rede baseada em comutação, todos os nós são interconectados entre si de forma individual, como uma rede pública de telefonia.
+
+As mensagens caminham pela rede carregando a informação do trajeto que devem seguir para chegar a seu destino.
+
+Arquitetura da Rede Baseada em Comutação.
+
+A taxonomia de Flynn é muito útil e bastante difundida, mas se limita às quatro categorias citadas, que não são suficientes para acomodar de forma adequada vários computadores modernos.
+
+Assim, mantiveram-se os elementos dessa classificação e incluíram-se outros em taxonomias mais abrangentes como, por exemplo, a taxonomia de Duncan.
+
+Segundo Duncan, uma arquitetura paralela fornece uma estrutura explícita e de alto nível para o desenvolvimento de soluções utilizando o processamento paralelo, por meio de múltiplos processadores, simples ou complexos, que cooperam para resolver problemas por meio de execução concorrente.
+
+Com o objetivo de classificar e incluir arquiteturas que a taxonomia de Flynn não aborda com tanta clareza (por exemplo, processadores vetoriais com pipeline), Duncan apresentou uma taxonomia mais abrangente, que consiste em dividir as arquiteturas em síncronas e assíncronas.
+
+Processos em um Sistema Fisicamente Paralelo.
+
+Processos em um Sistema Logicamente Paralelo.
+
+As arquiteturas síncronas coordenam suas operações concorrentes sincronamente em todos os processadores, ou seja, utilizam-se relógios globais, unidades únicas de controle ou controladores de unidade vetorial.
+
+Apresentam pouca flexibilidade para a expressão de algoritmos paralelos.
+
+Esse grupo é composto pelas arquiteturas SIMD da taxonomia de Flynn, pelas arquiteturas vetoriais e sistólicas.
+
+Nas arquiteturas assíncronas, não há controle centralizado mantido por hardware, isto é, os processadores podem operar de maneira autônoma.
+
+Esse grupo é composto, basicamente, pelas arquiteturas MIMD da taxonomia de Flynn, sejam elas convencionais (MIMD com memória distribuída ou compartilhada) ou não-convencionais (MIMD/SIMD, Fluxo de Dados, Redução ou Dirigidas à demanda e Frente de Onda).
+
+Apesar de a taxonomia de Duncan ser bastante abrangente, grande parte dos autores prefere utilizar a taxonomia de Flynn, porquanto enfatizar apenas as arquiteturas paralelas mais utilizadas atualmente.
+
+Baseando-se em todas as informações citadas anteriormente, estão relacionadas as taxonomias elaboradas por Duncan, Tanenbaum e Flynn.
+
+Relacionamento Existente entre as Taxonomias.
+
+As redes de comunicação entre os hosts podem variar tanto relacionadas ao tipo (barramento ou comutação) quanto à dimensão (redes locais, LAN, Local Area Network, redes metropolitanas, MAN, Metropolitan Area Network, ou redes muito amplas, WAN, Wide Area Network).
+
+A interconexão dessas redes pode formar um sistema computacional distribuído se apresentar algumas características. 
+
+Encontram-se muitas definições de sistemas distribuídos na literatura, como a de Tanenbaum, que define sistemas distribuídos como um conjunto de computadores independentes que aparecem para os usuários do sistema como um único computador, e de Coulouris, que define como um sistema em que componentes de hardware e software localizados em computadores em rede se comunicam e coordenam suas ações por meio de passagem de mensagens.
+
+Ao interpretar essas definições, conclui-se que os sistemas distribuídos permitem agrupar a potência computacional de diversos hosts interligados por uma rede de comunicação, para processar colaborativamente determinada tarefa de forma coerente e transparente, ou seja, como se apenas um único e centralizado computador estivesse executando a tarefa.
+
+Essas definições implicam o hardware formado por máquinas autônomas e o software, fornecendo a abstração de uma única máquina.
+
+Dessa maneira, podem trazer algumas vantagens, econômica, aproveita máquinas potencialmente ociosas com microprocessadores, pois oferecem melhor relação preço/desempenho que os supercomputadores.
+
+Velocidade, um sistema distribuído pode ter uma potência de processamento maior que um supercomputador.
+
+Distribuição inerente, algumas aplicações são distribuídas por natureza.
+
+Confiabilidade, em caso de falha de uma máquina, o sistema como um todo pode continuar executando a aplicação, apresentando possivelmente uma degradação de desempenho.
+
+Crescimento incremental, há possibilidade da potência computacional aumentar com a inclusão de novos equipamentos.
+
+Embora os sistemas distribuídos tenham muitas vantagens em relação aos centralizados, existem alguns aspectos a serem analisados com cuidado antes de empregá-los.
+
+São eles, software, pouca disponibilidade de software para sistemas distribuídos, segurança, dificuldades para evitar acesso indevido, rede de intercomunicação, pode não dar vazão à demanda.
+
+Segundo alguns autores, em aspectos de projeto, os sistemas distribuídos devem apresentar as seguintes características, transparência, figura-se como se apenas um único e centralizado computador estivesse executando a tarefa.
+Flexibilidade, representa a facilidade de fazer reconfigurações (inter-operabilidade).
+Confiabilidade, que caracterizam-na a disponibilidade, tolerância a falhas e a segurança, performance, é a avaliação do paralelismo e da comunicação para obter o nível de granularidade, escalabilidade, refere-se à capacidade do sistema expandir-se com o mínimo de degradação de desempenho.
+
+Os sistemas distribuídos podem ser homogêneos ou heterogêneos.
+
+Sistemas homogêneos são compostos de multicomputadores interconectados por uma rede, onde todos utilizam a mesma tecnologia, ou seja, todos os elementos de processamento possuem a mesma potência de processamento, de memória, de disco, entre outros.
+
+Por outro lado, os sistemas heterogêneos são mais comuns e possuem uma grande diversidade de tecnologia em relação à rede de comunicação, hardware, software, linguagens de programação, entre outros.
+
+Os processos em um sistema distribuído, assim como nos sistemas centralizados, precisam comunicar e sincronizar suas ações.
+
+Devido à ausência de memória compartilhada, mecanismos como semáforos e monitores não podem ser utilizados.
+
+Nos sistemas distribuídos a comunicação entre processos (IPC InterProcess Communication) é realizada por meio de passagem de mensagens, utilizando o suporte provido pela rede.
+
+Embora sistemas para computação paralela e distribuída tenham sido tradicionalmente desenvolvidos com objetivos diferentes, o aumento na velocidade das redes de comunicação de uso geral tem possibilitado o uso de sistemas distribuídos para o processamento paralelo de diversos problemas.
+
+Da mesma forma, técnicas para o processamento paralelo podem muitas vezes oferecer benefícios para sistemas distribuídos.
+
+Descrevem-se as características, vantagens e desvantagens da convergência da programação paralela com os sistemas distribuídos, e a origem da computação paralela distribuída.
+
+A utilização dos microcomputadores com um só processador, onde o modelo de Von Neumann prevaleceu desde o princípio-, aliada à disponibilidade de tecnologias de redes de computadores de alto desempenho (sistemas distribuídos), motivou a origem da computação paralela distribuída.
+
+A utilização da computação paralela distribuída aumenta diariamente e pode ser aplicada às mais diversas áreas, na solução de problemas simples ou complexos, com o propósito de obter um retorno mais rápido do que se estivessem sendo solucionados de forma seqüencial.
+
+Para que um sistema computacional possa ser considerado um sistema paralelo distribuído, faz-se necessária a utilização de bibliotecas (APIs Application Program Interface) com rotinas para passagem de mensagens (exemplo, PVM Parallel Virtual Machine e MPI Message Passage Inteface).
+
+Utilizando-se dessas bibliotecas, tem-se a chamada máquina paralela virtual que provê transparência para o usuário.
+
+Os ambientes de passagem de mensagens não foram desenvolvidos especificamente com o intuito de utilizar os sistemas distribuídos para o desenvolvimento de aplicações paralelas.
+
+Desenvolveram-se inicialmente para máquinas com processamento maciçamente paralelo (Massively Parallel Processing MPP), onde, devido à ausência de um padrão, cada fabricante desenvolvia seu próprio ambiente sem se preocupar com portabilidade.
+
+Com o passar dos anos, muita experiência foi adquirida, porquanto os diversos projetos de interfaces de passagem de mensagens enfatizavam aspectos diferentes para o seu sistema.
+
+E essas bibliotecas passaram a ser aplicadas com o propósito de utilizar computadores pessoais para a composição da máquina paralela virtual.
+
+É possível observar que não existe endereçamento global, cada processador tem sua memória local (fracamente acoplado).
+
+Dessa forma, a memória não é acessada diretamente por todos os processadores do sistema, o que acarreta um custo mais elevado de comunicação (trocas de mensagens) e de sincronização.
+
+Sistema Computacional Paralelo Distribuído.
+
+Sabendo-se que os sistemas computacionais distribuídos têm convergido para a busca de um melhor desempenho e, para que esse objetivo seja alcançado, não basta apenas existirem sistemas com grande número de processadores ou de estações de trabalho, fica clara a necessidade de garantir que todos os hosts pertinentes ao sistema sejam bem aproveitados.
+
+Para isso, a aplicação é dividida em processos (tarefas ou tasks), e estes, por sua vez, são distribuídos entre os hosts que compõem a máquina paralela virtual.
+
+Este procedimento é chamado de escalonamento de processos.
+
+Quando mais de um processo precisa ser executado em um uniprocessador, o sistema operacional precisa decidir qual deles deve ser executado primeiro.
+
+Denomina-se escalonamento de processos a escolha de qual processo deve executar naquele determinado instante.
+
+Em ambientes paralelos distribuídos, o escalonamento consiste em atribuir processos aos hosts e determinar em que ordem esses processos serão executados.
+
+O escalonador é de vital importância para sistemas paralelos distribuídos e pode ser considerado um dos problemas mais desafiantes nessa área.
+
+Segundo Casavant e Kuhl o escalonamento refere-se à atividade de alocar os recursos disponíveis entre as tarefas que compõem cada aplicação.
+
+Por conseguinte, o escalonador é responsável pelo gerenciamento dos recursos (processador, memória, disco, rede, entre outros) e, ao utilizar as regras de uma política de escalonamento, o escalonador atribui aos recursos disponíveis os consumidores (processos ou tarefas que compõem uma aplicação).
+
+Tanto sistemas paralelos distribuídos quanto sistemas maciçamente paralelos necessitam de técnicas para escalonamento de processos e, em ambos, pode ocorrer degradação de desempenho pelo congestionamento da comunicação, caso ocorra escalonamento inadequado.
+
+O escalonador de processos faz sua decisão baseado em uma política de escolha, utilizando os algoritmos de escalonamento e implementando mecanismos, ou seja, as políticas determinam quais, quando e como os mecanismos serão empregados para que o escalonamento seja efetuado.
+
+Nas políticas e nos mecanismos são definidos os objetivos do escalonamento.
+
+Dentre os objetivos, podem-se destacar a diminuição do tempo médio de resposta, a diminuição dos atrasos na comunicação, a maximização da utilização dos recursos disponíveis, e o balanceamento das cargas entre os elementos de processamento.
+
+As políticas de escalonamento definem critérios e regras para a ordenação das tarefas a serem realizadas para que ocorra o escalonamento.
+
+Dividem-se da seguinte forma, política de transferência, política de seleção, política de localização, e política de informação.
+
+A política de transferência determina se um host está capacitado a participar de uma transferência como transmissor ou como receptor, conforme a carga do mesmo.
+
+A política de seleção está relacionada à escolha de qual tarefa será transferida após a definição de qual host será o transmissor (geralmente é a tarefa iniciada mais recentemente).
+
+Assim que tenha decidido qual host é emissor ou receptor, a política de localização se responsabiliza por definir quais hosts serão parceiros de transferência.
+
+A política de informação é responsável por decidir em que momento as informações a respeito do estado dos hosts devem ser coletadas, de onde serão coletadas, e quais informações serão coletadas (utilizadas).
+
+Existem três tipos de políticas de informação, política orientada à demanda, onde uma máquina coleta o estado das demais somente quando ela se torna emissora ou receptora, política periódica, as informações são coletadas de tempos em tempos, política orientada à mudança de estado, as informações das máquinas são coletadas de acordo com a mudança de seu estado.
+
+Os mecanismos respondem pela definição de como o escalonamento deverá ser efetuado.
+
+Dividem-se em três categorias, mecanismo de métrica da carga, mecanismo de comunicação da carga e o mecanismo de migração.
+
+O mecanismo de métrica da carga define o método utilizado para medir a carga de cada elemento de processamento.
+
+O mecanismo de comunicação da carga determina o método por meio do qual será efetuada a comunicação das informações de cargas entre as máquinas disponíveis.
+
+E o mecanismo de migração delibera o protocolo que deverá ser utilizado quando ocorrer migração de processos entre máquinas.
+
+A classificação hierárquica da composição dos algoritmos de escalonamento é representada.
+
+Classificação Hierárquica da Composição dos Algoritmos de Escalonamento.
+
+Grande parte das políticas de escalonamento tem levado em consideração as características da aplicação executada, procurando tratar adequadamente aplicações com diferentes requisitos.
+
+As aplicações normalmente consideradas no escalonamento de aplicações paralelas distribuídas são, CPU-Bound, aplicações que possuem alta demanda por processamento e pouca atividade de entrada e saída (I/O).
+
+Memory-Bound, aplicações que possuem alta demanda por memória.
+
+I/O-Bound, aplicações que possuem alta demanda por entrada e saída.
+
+Essas aplicações podem ser chamadas também de aplicações Disk-Bound, que possuem alta demanda por disco, ou seja, necessitam muito acesso ao disco, tanto para leitura quanto para escrita.
+
+Network-Bound, aplicações que possuem alta demanda por comunicação entre processos, o que implica grande tráfego na rede.
+
+As classificações e taxonomia dos escalonadores de processos não possuem um padrão a ser seguido, portanto os algoritmos de escalonamento podem ser classificados de várias maneiras.
+
+Para unir o maior número possível de características existentes dos algoritmos de escalonamento, diversos autores têm sugerido taxonomias para a área de escalonamento de processos.
+
+A estratégia de escalonamento baseia-se no tipo de informações utilizadas para que as tarefas sejam escalonadas, no local onde as tarefas serão alocadas quando efetuado o re-escalonamento, na forma em que serão efetuadas as tomadas de decisão (centralizadas e distribuídas), e na obtenção das informações.
+
+A taxonomia proposta por Casavant e Kuhl se destaca por ser mais abrangente e de grande aceitação.
+
+Divide-se em uma classificação hierárquica, e em classificação plana, em que os termos se relacionam de modo independente.
+
+A classificação hierárquica é dividida em escalonamento local e global.
+
+No escalonamento local, os períodos de tempo de utilização de um único host são atribuídos aos processos em execução por meio da política de compartilhamento de tempo (time-sharing).
+
+Portanto, o tempo é segmentado em pequenas fatias chamadas de time-slices.
+
+Em um sistema com vários elementos de processamento (multiprocessador ou multicomputador), o escalonamento global é a atividade que determina para qual elemento o processo será alocado e executado.
+
+Essa atividade pode ser feita de forma centralizada, em que as tarefas e as responsabilidades da distribuição são feitas por apenas um processador, ou de forma distribuída, em que as tarefas e responsabilidades são feitas por diversos hosts.
+
+A estratégia de distribuição fisicamente distribuída é a alternativa preferida quando as tarefas podem ser iniciadas em qualquer elemento do sistema.
+
+O escalonamento global divide-se em estático e dinâmico, isso de acordo com o momento em que as decisões do escalonador são tomadas.
+
+No escalonamento estático, tomam-se as decisões no momento da compilação da aplicação (antes que se inicie a execução).
+
+Para que isso seja possível, faz-se necessário que as informações acerca do sistema estejam disponíveis, ou seja, há um conhecimento prévio do tempo de execução das tarefas e dos recursos de processamento.
+
+Esta técnica de escalonamento não permite preempção.
+
+A modelagem da aplicação pode utilizar grafos, programação matemática e teoria das filas.
+
+Para resolver um modelo são empregados algoritmos que buscam uma solução ótima ou, quando algumas informações não estão disponíveis, sub-ótima.
+
+As soluções sub-ótimas empregam o uso de heurísticas ou resultados aproximados na busca de uma solução aceitável para o problema.
+
+No escalonamento dinâmico, há pouca informação a respeito dos recursos necessários, desconhece-se o ambiente em que a aplicação será executada, ou as características do ambiente podem mudar dinamicamente.
+
+As informações sobre o estado do sistema são coletadas em tempo de execução para auxiliar nas decisões do escalonamento, dando maior flexibilidade e aumentando o desempenho global.
+
+Neste caso, o escalonamento dinâmico é preemptivo, pois permite que, por exemplo, haja re-alocação de cargas entre os elementos de processamento durante a execução da aplicação.
+
+Quando as decisões do escalonamento dinâmico são fisicamente distribuídas entre diversos elementos de processamento, o escalonamento pode ser cooperativo ou não cooperativo.
+
+No cooperativo, os escalonadores interagem durante a alocação de recursos na busca da melhor alocação dos recursos do sistema.
+
+Também podem ser classificadas como soluções ótimas ou sub-ótimas.
+
+As soluções sub-ótimas empregam o uso de heurísticas ou resultados aproximados na busca de uma solução aceitável para o problema.
+
+No escalonamento não cooperativo os mesmos trabalham isoladamente, tendo autonomia para decidir como alocar seus próprios recursos.
+
+A classificação plana engloba características do escalonamento que não têm relação de hierarquia (são independentes) como, a atribuição de tarefas (atribuição inicial e re-atribuição dinâmica), o compartilhamento de carga, o balanceamento de carga, e o escalonamento adaptativo.
+
+Na atribuição inicial, um processo inicia e termina sua execução no mesmo elemento de processamento para o qual foi atribuído (mesmo sob altas variações de carga).
+
+Na re-atribuição dinâmica, um processo que já foi atribuído a um elemento de processamento e, possivelmente, já iniciou sua execução, pode ser migrado para outro elemento de processamento.
+
+O compartilhamento de carga (load sharing) e o balanceamento de carga (load balancing) são mecanismos utilizados para a distribuição de carga.
+
+O compartilhamento de carga busca evitar que os elementos de processamento fiquem sobrecarregados, enquanto outros elementos de processamento possam estar disponíveis.
+
+O balanceamento de carga estende o mecanismo de compartilhamento de carga, buscando manter a mesma carga em cada elemento de processamento.
+
+Pode-se obtê-lo por meio do escalonamento com re-atribuição dinâmica.
+
+Abordam-se mais detalhes a respeito do balanceamento de cargas.
+
+Os algoritmos de escalonamento adaptativos estão capacitados a se adaptarem dinamicamente às mudanças no contexto do ambiente, em função dos estados anteriores e atuais do sistema, para que exista uma referência à tomada de decisões.
+
+Em outros termos, utiliza o histórico dos estados para a tomada de decisão, e suas políticas de escalonamento são alteradas também em função desse histórico.
+
+O termo adaptativo pode-se confundir com o termo dinâmico, mas denotam conceitos distintos.
+
+O escalonamento dinâmico utiliza o estado atual do sistema, ao passo que o adaptativo utiliza, por meio da avaliação do histórico de estados das cargas, os parâmetros que julga serem consistentes e relevantes para a tomada de decisão.
+
+Em um ambiente paralelo distribuído, na maioria das vezes, pode acontecer de alguns hosts completarem suas tarefas antes de outros, tornando-se ociosos, por conseguinte.
+
+A causa geradora dessa ocorrência pode-se relacionar ao fato de alguns serem mais rápidos que os demais, e/ou a carga não ter sido distribuída de forma balanceada e coerente com o potencial do host.
+
+O escalonamento de processos tem como um de seus objetivos propostos o balanceamento de carga, o que consiste em selecionar uma tarefa e definir o local onde esta será executada, buscando manter a mesma carga em cada host.
+
+Quando se almeja o balanceamento de cargas, é extremamente indesejado, que existam alguns processadores com carga de processamento muito elevada e outros em estado quase ocioso.
+
+Sistema Distribuído sem Balanceamento de Carga.
+
+Sistema Computacional Paralelo Distribuído com carga desbalanceada.
+
+Apresentam-se como fator que pode dificultar a execução de um mesmo código em diferentes máquinas tanto a heterogeneidade arquitetural quanto a heterogeneidade configuracional, pois as características das máquinas são diferentes, fato que pode torná-las incompatíveis, ou até mesmo gerar inconsistências.
+
+Deve-se considerar a heterogeneidade ao efetuar uma alocação de tarefa, uma vez que existem hosts com diferentes potências computacionais.
+
+É imprescindível escolher o que melhor se aplica às restrições de determinada tarefa.
+
+Para obter o melhor aproveitamento em ambientes heterogêneos a distribuição de carga deve ser suficiente e compatível com a capacidade total do sistema de maneira que todos os hosts tenham uma carga equilibrada entre si (nem sobrecarregados, nem ociosos).
+
+Para isso, o escalonador de processos faz a distribuição de processos (tarefas) entre os hosts e utiliza o balanceamento de carga para diminuir o efeito das diferenças de velocidade e da capacidade dos hosts heterogêneos.
+
+O resultado desta administração e redistribuição é uma possível melhora do desempenho e da eficiência de execução da aplicação.
+
+No escalonamento dinâmico realizam-se (re)distribuições de processos nos hosts segundo o que este elemento pode oferecer de hardware e de software.
+
+Adota-se como objetivo do escalonamento de processos o balanceamento de carga entre os elementos, com o objetivo de melhorar o desempenho e a eficiência da aplicação.
+
+Esses métodos realizam a distribuição de processos entre os hosts quando possui sobrecarga, ou mesmo ociosidade, retirando o trabalho dos que estão sobrecarregados e transferindo para os que possuem menos tarefas.
+
+Decorre daí uma rede balanceada.
+
+Esse escalonamento pode ser classificado como centralizado e descentralizado.
+
+Conseguir essa distribuição ideal não é uma tarefa simples e caracteriza o problema de balanceamento de carga.
+
+Várias são as causas da falta de balanceamento de carga entre os hosts quando se executa uma aplicação paralela em um sistema computacional distribuído.
+
+Entre elas, podem-se citar, a falta de conhecimento sobre a carga de trabalho que envolve cada tarefa, a criação dinâmica de novas tarefas, a variação da carga externa à aplicação em um ambiente não dedicado, além da própria heterogeneidade da arquitetura e do sistema operacional.
+
+Neste capítulo fez-se uma revisão bibliográfica sobre sistemas paralelos, sistemas distribuídos e uma síntese da convergência de ambos, denominada computação paralela distribuída.
+
+Citaram-se e classificaram-se características desses ambientes.
+
+Além disso, enfatizou-se o escalonamento de processos, seus componentes, suas taxonomias e seus objetivos, em especial ao balanceamento de carga e suas dificuldades.
+
+Importa destacar que, independentemente do tipo de escalonamento a ser considerado (estático, dinâmico, entre outros), um elemento essencial para a política de escalonamento é a aferição da carga, o que é efetuado por meio dos índices de carga e de desempenho, a serem abordados no próximo capítulo.
+
+Os sistemas computacionais, em geral, surgiram para auxiliar e agilizar as execuções e as soluções de tarefas.
+
+Para que não haja gastos desnecessários e tempo perdido, visa-se, sobremaneira, ao desempenho de cada máquina que compõe o sistema, bem como o desempenho do sistema como um todo.
+
+A obtenção de desempenho de sistemas computacionais, simples ou complexos, é uma área que oferece grande abertura para exploração por não ser trivial.
+
+Uma avaliação feita sem critérios pode causar efeito contrário ao esperado.
+
+Para avaliar o desempenho de um sistema, podem-se utilizar métricas para aferir e quantificar as cargas de trabalho submetidas a cada recurso dos elementos de processamento (se está sobrecarregado, moderado, ou ocioso).
+
+A essa métrica dá-se o nome de índice de carga.
+
+Outra métrica utilizada para obter desempenho, diretamente relacionada ao índice de carga, é o índice de desempenho.
+
+Em algumas literaturas, são abordadas como se fossem sinônimos.
+
+No entanto, o índice de desempenho analisa, além da heterogeneidade das configurações, a heterogeneidade arquitetural e temporal do ambiente avaliado.
+
+A avaliação de desempenho depende do sistema em estudo, da carga de trabalho que lhe é imposta, do algoritmo de escalonamento e da métrica de desempenho.
+
+Assim, a escolha da métrica adequada tem grande relevância na obtenção de resultados conclusivos de uma avaliação de algoritmos de escalonamento de processos para aplicações paralelas distribuídas.
+
+Existem dois grandes grupos de técnicas para avaliação de desempenho, as técnicas de modelagem e as técnicas de aferição.
+
+As técnicas de modelagem são utilizadas nos casos em que não se deseja interferir no sistema existente ou, em sistemas que ainda não foram desenvolvidos.
+
+Essas técnicas baseiam-se na representação do sistema computacional por meio de modelos, que podem ser resolvidos utilizando soluções analíticas ou soluções por simulação.
+
+Os modelos possuem abstrações das características mais relevantes do sistema desejado, e quanto mais objetivo o modelo, mais fácil torna-se sua avaliação de desempenho.
+
+As técnicas mais utilizadas são, Redes de Filas, Redes de Petri, Statecharts e Cadeia de Markov.
+
+As técnicas de aferição são aplicadas a sistemas computacionais reais, sejam completos, sejam seus protótipos.
+
+Essas técnicas proporcionam maior precisão, mas podem influenciar no comportamento do sistema, uma vez que disputam por recursos do sistema avaliado.
+
+As técnicas de aferição mais utilizadas são, construção de protótipo, coleta de dados e benchmarking.
+
+Indica-se a construção de protótipo para obter informações precisas a respeito de um sistema computacional que virá a existir, ou que já existe.
+
+Considera-se protótipo uma simplificação do sistema computacional, que constitui-se de suas mesmas funcionalidades e características, podendo possuir dimensões bem menores, ter menor custo e possibilitar maior facilidade de alteração quando comparado à implementação do sistema computacional real.
+
+Entretanto, se comparado com as demais técnicas de aferição, o protótipo pode apresentar maior custo.
+
+A coleta de dados é indicada para sistemas computacionais reais e para validar modelos, devendo ser executada de forma muito criteriosa.
+
+Devido a isso, é considerada a técnica mais precisa dentre as demais.
+
+A coleta pode ser realizada com a utilização de monitores de hardware e de software.
+
+O benchmarking, por sua vez, é indicado para avaliar e comparar as informações obtidas por meio de análises das cargas de trabalho impostas ao hardware, software, ou mesmo ao sistema computacional completo.
+
+Quando utilizado para análise de desempenho do escalonamento de processos, o benchmarking impõe uma carga de trabalho.
+
+Ao final deste processo é possível saber qual estratégia obteve melhor desempenho sobre determinada carga de trabalho.
+
+Caracteriza-se carga de trabalho (workload) pela demanda de recursos dos elementos de processamento, e pode ser classificada como real (natural) ou sintética (artificial).
+
+A carga de trabalho real é gerada pelo sistema, e não é possível controlá-la, razão pela qual ela não é frequentemente utilizada para efetuar a caracterização da carga apud.
+
+A carga de trabalho sintética possui características similares à carga de trabalho real, mas pode ser utilizada repetidamente e de maneira controlada, além de poder ser facilmente modificada sem afetar a operação do sistema, ser facilmente reproduzida e possuir maior flexibilidade.
+
+Outra vantagem apresentada pela carga de trabalho sintética é a possibilidade de ser elaborada especificamente para o experimento a ser executado.
+
+No entanto, para isso, exige que o ambiente seja dedicado ao experimento apud.
+
+Isso quer dizer que o objetivo é avaliar o desempenho de uma política de escalonamento voltada às aplicações com grande utilização de CPU.
+
+Essa avaliação torna-se inviável para caracterizar outros tipos de carga, como as aplicações voltadas à memória.
+
+Os recursos analisados com maior relevância na literatura são, CPU, memória, disco e a rede de intercomunicação.
+
+As cargas do sistema, dependendo da aplicação, alteram-se rapidamente.
+
+Portanto, as informações obtidas destas cargas tendem a tornar-se obsoletas.
+
+Desse modo, a freqüência com que às informações das cargas são verificadas é outro fator importante no desempenho do sistema.
+
+Analisando-se a carga atribuída ao recurso, observa-se que o recurso é definido ocioso, quando sua carga de trabalho é inexistente, ou possui um valor muito pequeno.
+
+Por conseguinte, pode estar apto a receber carga.
+
+Quando o recurso é considerado moderado, a carga de trabalho é regular.
+
+Decorre daí a possibilidade de o recurso ainda receber alguma carga de trabalho.
+
+E, por fim, um recurso é tido como sobrecarregado quando a carga de trabalho a ele imposta ultrapassa um determinado limite e, dessa maneira, ele deve transferir, e não mais estar apto a receber carga.
+
+A informação da carga de trabalho de um recurso é fator importante e decisivo para melhoria do desempenho de um sistema computacional.
+
+O índice de carga é uma métrica que quantifica a carga de trabalho submetida a um recurso do sistema, e tem por objetivo indicar se o recurso analisado está ocioso, moderado, ou sobrecarregado.
+
+Alguns autores definem índice de carga como uma variável numérica, inteira e não negativa que possui valor zero quando o recurso está ocioso e, à medida que a carga deste recurso aumenta seu valor é acrescido.
+
+A qualidade do índice de carga está diretamente relacionada com o desempenho do escalonador de processos, porquanto se volta ao objetivo proposto pelo algoritmo de escalonamento.
+
+Dessa forma, o modo de coleta e de utilização das informações das cargas do sistema e a periodicidade com as quais são coletadas influenciam na eficiência do balanceamento de cargas.
+
+Sobremaneira em sistemas paralelos distribuídos, faz-se necessária uma grande cautela com a comunicação e, se a freqüência de verificação das cargas nos elementos de processamento não for coerente com a real necessidade, provavelmente serão obtidos resultados indesejáveis.
+
+Caso a carga seja atualizada com grande freqüência, ocorre uma sobrecarga na rede de interconexão e o desempenho geral do sistema diminui, caso seja pouco atualizada, o balanceamento de cargas não terá as informações corretas e será efetuado de maneira incorreta, prejudicando mais uma vez seu desempenho.
+
+Por conseguinte, a finalidade do índice de carga é prever o comportamento futuro das cargas, com base no comportamento atual/passado, e fornecer essa informação para o escalonador, para que o balanceamento de carga seja efetuado.
+
+É possível citar uma grande variedade de índices de carga, entre os quais comprimento da fila da CPU (instantâneo), comprimento médio da fila da CPU em um determinado tempo, utilização da CPU, tempo de resposta, tempo de resposta normalizado, quantidade de memória disponível, taxa de mudança de contexto, entre outros.
+
+De modo geral, esses índices podem-se dividir em grupos baseados no tamanho da fila de acesso ao recurso, no percentual de utilização do recurso e no tempo de execução/resposta.
+
+A utilização de um índice de carga pode gerar carga extra no sistema e, em conseqüência, a obtenção de resultados imprecisos.
+
+Para que a carga gerada seja a mínima possível, devem-se utilizar índices adequados para cada sistema individualmente.
+
+A maioria dos índices de carga existentes na literatura destina-se a ambientes com configurações e arquiteturas homogêneas.
+
+Encontra-se pouco na literatura sobre índices de carga para ambientes com heterogeneidade configuracional e homogeneidade arquitetural, e até mesmo para ambientes totalmente heterogêneos.
+
+A heterogeneidade configuracional e arquitetural são fatores que exigem tratamento diferenciado na utilização de índices de carga.
+
+Para compreender essa afirmação, utiliza-se o seguinte exemplo na literatura, um ambiente composto de dois computadores com potências computacionais diferentes e que possuam cargas semelhantes.
+
+Em dado instante, um dos computadores apresenta dois processos de baixa ocupação em sua fila de CPU, e o outro, um processo que ocupa cerca de 99% da CPU.
+
+Na técnica de índice de carga baseado no comprimento da fila de processos, o resultado no primeiro computador citado é um índice de valor 2, e no segundo é um índice de valor 1.
+
+Por ter obtido um menor índice, o segundo computador recebe os novos processos mesmo não possuindo recursos disponíveis, enquanto isso, o primeiro computador encontra-se semi-ocioso, o que degradará o desempenho do sistema como um todo.
+
+Na literatura, há modelos para cálculo de índices de carga consagrados, tanto para ambientes homogêneos quanto para ambientes heterogêneos.
+
+Para ambientes configuracionalmente homogêneos e arquiteturalmente heterogêneos, não são encontradas referências na literatura dessas métricas.
+
+Para ambientes compostos por máquinas configuracionalmente e arquiteturalmente homogêneas, Ferrai e Zhou propõem a utilização de um índice de carga, obtido por meio da combinação linear do tempo de serviço sj requerido para a execução de uma tarefa em um determinado recurso rj, em que o comprimento da fila do recurso rj é dado por qj, de tal modo que se obtém o índice de carga por meio da Equação 1, onde N representa o número total de recursos que possuem filas.
+
+Segundo Kunz, o desempenho obtido pelo escalonador, ao efetuar o balanceamento de carga com qualquer índice de carga linear, é superior ao que não efetua o balanceamento.
+
+Por meio de experimentos em ambientes homogêneos, avaliou-se que índices de carga agregados não acrescentam melhoria no desempenho do sistema quando comparados com índices de carga lineares, e que, por outro lado, ocasionavam sobrecarga na obtenção dos diversos índices lineares que comporiam os índices agregados.
+
+Zhou propõem que os índices de carga variem conforme a natureza do recurso a ser avaliado, isso é, que sejam específicos para cada recurso.
+
+Obtêm-se índices por meio da média do comprimento de fila da CPU, quantidade de memória livre, média da taxa de transferência de um disco para todos os outros discos quando efetuado um I/O, quantidade de espaço disponível em disco para troca de páginas e o número de usuários existentes no sistema.
+
+Branco propôs um índice de desempenho que leva em consideração a heterogeneidade do sistema, fundado no índice de carga e em uma medida Euclidiana.
+
+Por meio de modelagem e simulação foi aplicado e testado esse novo índice na implementação do escalonamento de processos.
+
+Os resultados obtidos, analisados estatisticamente, comprovaram que, ao utilizar o novo índice de desempenho em ambientes computacionais paralelos distribuídos heterogêneos pode-se atingir um desempenho superior a ambientes que não o utilizam.
+
+Por ser foco de estudo desse trabalho esse índice será melhor explicado na seção.
+
+Para suprir a lacuna encontrada na literatura no tocante a índice de carga para ambientes heterogêneos, Branco propôs um índice de desempenho que fornece informações da carga de trabalho e da situação de operação de cada um dos hosts do sistema, levando em consideração as heterogeneidades configuracional, arquitetural e temporal.
+
+Lacunas Existentes na Literatura Quando Levado em Consideração os Níveis Arquiteturais e Configuracionais.
+
+Um bom índice de desempenho, assim como os índices de carga, deve possuir meios de estimar o futuro por meio de valores atuais e fatores do passado.
+
+Portanto, para que se possa obter um bom índice de desempenho, suas bases devem estar fundadas nos índices de carga.
+
+Outra característica importante do índice de desempenho é seu tempo de uso.
+
+As cargas são voláteis, conseqüentemente, os índices de cargas e de desempenho também o são.
+
+Apresenta-se uma visão macroscópica do Modelo De Índice de Desempenho em Ambientes heterogêneos (MEDIDAh) proposto por Branco.
+
+Nota-se que, para a compreensão e a obtenção do MEDIDAh, faz-se necessário um conhecimento prévio a respeito dos diferentes tipos de aplicações e do hardware envolvido, bem como dos índices de cargas existentes.
+
+Modelo De Índice de Desempenho em Ambientes heterogêneos (MEDIDAh).
+
+Exibe-se a estratégia para obtenção do índice de desempenho.
+
+Estratégia para Obtenção do Índice de Desempenho.
+
+O índice de desempenho baseia-se na distância euclidiana1 entre o ponto de origem (onde a máquina está ociosa) e o ponto resultante entre os valores de carga da máquina antes de receber uma determinada aplicação e o vetor da carga imposta por essa aplicação.
+
+A máquina mais adequada para receber a aplicação é a que obtém a menor distância euclidiana.
+
+Denomina-se VIP (Vector for Index of Performance) o índice baseado em vetor de carga.
+
+Considerando a relação existente entre os diferentes recursos que compõem uma máquina e permitindo que a alocação dos processos se efetue de maneira equilibrada, é possível obter o índice de desempenho (ID) como visto, onde, ID representa o valor do índice de desempenho, o I refere-se ao índice de carga do recurso.
+
+No exemplo utilizado por Branco, adotam-se duas máquinas distintas, mas que estão igualmente carregadas.
+
+O recurso 1 está mais carregado na máquina M1, enquanto o recurso 2 está mais carregado na máquina M2 em termos de utilização.
+
+Um processo P, que utiliza apenas o recurso 1 (R1 bound), pode ser alocado para M1 e M2.
+
+Para determinar em qual situação se obtém melhor resultado, pode ser adotada a distância Euclidiana entre o ponto e a origem, isto é, o comprimento do vetor da origem ao ponto.
+
+Dessa forma, obtêm-se os vetores C1 e C2, e o resultado do comprimento C2 é menor que o de C1.
+
+Por conseguinte, o processo P deve se alocado em M2.
+
+Embora as máquinas estejam igualmente carregadas, a distinção de carga quanto aos recursos que estão sendo utilizado e o tipo de tarefa que será alocada permite uma melhor alocação da tarefa.
+
+Espaço bidimensional formado pelos recursos 1 e 2, e duas máquinas com cargas iguais (processo limitado por um recurso).
+
+Considera-se, na Equação 2, que os pesos de todos os recursos são iguais.
+
+Em uma variante do VIP, estabelece-se um peso para cada recurso, denominado PVIP (Ponderated Vector for Index of Performance).
+
+Deste modo, o PVIP pode apresentar melhores resultados em casos que se tenha conhecimento prévio do tipo de aplicação a ser considerada.
+
+Obter bom desempenho em um sistema computacional é essencial, mas não trivial, uma vez que há dependência de uma série de fatores.
+
+Dentre esses fatores, apresentam-se o algoritmo de escalonamento, o modo de coleta e utilização das informações das cargas do sistema, os índices de carga, a periodicidade com que são coletadas, as métricas para quantificar e determinar as cargas, características dos recursos (homogêneos ou heterogêneos), entre outros.
+
+A complexidade desses fatores muda para cada ambiente e, caso ocorram falhas na definição destes fatores, um desempenho não aceitável pode ser obtido.
+
+Dentre os fatores que auxiliam na obtenção de um bom desempenho computacional destaca-se o índice de carga.
+
+Caso a utilização desses índices não seja bem estruturada, pode piorar o desempenho ao invés de contribuir para sua melhora.
+
+Uma vez que a coleta de carga e a periodicidade desta coleta afetam o uso dos índices de carga, a utilização de agentes móveis pode prover uma melhora na etapa de coleta e de cômputo desses índices.
+
+O estudo dessa utilização é objetivo deste trabalho, destarte, o próximo capítulo apresenta informações relevantes sobre agentes.
+
+Os sistemas distribuídos, em particular os sistemas computacionais paralelos distribuídos, tornaram-se foco de pesquisa, como abordado no CAPÍTULO 2.
+
+Em decorrência da evolução, surgiu uma nova abordagem para esses ambientes, denominada sistemas de código móvel.
+
+Uma das motivações para o surgimento de código móvel baseou-se no escalonamento de processos efetuado em sistemas distribuídos, sobremaneira quando ocorre a migração de processos durante sua execução.
+
+Os sistemas computacionais paralelos distribuídos exigem preocupações relacionadas ao tempo de execução, utilização de recursos e comunicação na rede de intercomunicação para essa comunicação não influencie de modo indesejado no desempenho.
+
+Como a migração de processos faz o uso da rede de intercomunicação, a utilização de agentes torna-se algo motivador.
+
+Na literatura não há consenso em relação a código móvel, metodologia terminológica para sua estrutura, ou mesmo um padrão.
+
+Todavia, código móvel é definido informalmente como a capacidade de mudar dinamicamente as ligações entre fragmentos de código e a localidade de sua execução.
+
+Fuggetta propuseram um arcabouço teórico que identifica os diversos mecanismos de mobilidade, que podem ser diferenciados por meio das unidades em execução e pelos recursos.
+
+Apresenta-se um esquema resumido dos mecanismos de mobilidade.
+
+Mecanismos de Mobilidade.
+
+O mecanismo de mobilidade mais simples é denominado de mobilidade fraca, em que apenas o código é transferido a diferentes ambientes computacionais.
+
+Possivelmente, o código faz-se acompanhar de alguns dados de inicialização, entretanto não há migração de estado de execução.
+
+Denomina-se mobilidade forte ao mecanismo mais complexo, e é indicado para sistemas distribuídos heterogêneos, pois o código e o estado de execução de uma unidade de execução são transferidos para diferentes ambientes computacionais, isto é, o código pode ser interrompido em um host e continuar sua execução em outro, a partir do ponto em que foi interrompido.
+
+A mobilidade forte é dividida em outros dois mecanismos, migração e clonagem remota.
+
+O mecanismo de migração suspende a unidade de execução e transmite-a para o ambiente computacional destino, onde retoma sua execução exatamente do ponto em que foi interrompida.
+
+O mecanismo de clonagem remota cria uma cópia exata da unidade de execução em um outro ambiente computacional, não suspendendo a original de seu ambiente, ou seja, o clone executa em paralelo com a unidade de execução original.
+
+Os mecanismos de migração e de clonagem remota podem ser do tipo pró-ativa ou reativa.
+
+Quando a unidade de execução decide de maneira autônoma o momento e o destino da migração, considera-se mobilidade do tipo pró-ativa.
+
+Por outro lado, quando a transferência é requerida por outra unidade de execução, diz-se que ocorre a mobilidade reativa.
+
+Existem diversos fatores relacionados ao antes e depois da execução do código móvel, os quais determinam os elementos que compõem o sistema e a forma pela qual se interagem.
+
+As interações exigem cuidados com latência, desempenho, tolerância à falhas, entre outras.
+
+Os principais paradigmas são, execução remota, código sob demanda, e agentes móveis, sendo este último o de maior relevância para este trabalho.
+
+Para compreendê-los, utiliza-se na literatura um exemplo que os compara com o paradigma cliente/servidor de um sistema distribuído.
+
+No exemplo, utiliza-se um componente computacional A, localizado no local LA, que precisa do resultado da execução de uma tarefa, e um componente computacional B, localizado no local LB, para assistência.
+
+Para cada paradigma exibe-se a localização dos componentes antes e depois da realização da tarefa, além de demonstrar qual componente é responsável pela execução das instruções, e o local onde a tarefa de fato se realiza.
+
+Comparações entre Paradigmas de Código Móvel.
+
+No paradigma cliente/servidor, o componente computacional A (cliente) faz requisição de serviço ao componente computacional B (servidor), que possui um conjunto de serviços, B realiza o serviço utilizando suas instruções e recursos e envia a resposta para A.
+
+Na execução remota, o componente computacional A detém as instruções necessárias para realizar o serviço, mas não possui recursos, então, envia suas instruções para LB, B executa-as com seus recursos e devolve o resultado ao A.
+
+O código sob demanda, o componente A possui acesso aos recursos em LA, mas as instruções necessárias para manipular os recursos se encontram em LB.
+
+A solicita ao B que lhe envie suas instruções.
+
+Após o envio, A as executa com seus recursos.
+
+Um agente móvel é representado pelo componente A, inicialmente em LA.
+
+A possui as instruções, mas é B que possui o recurso para executá-las.
+
+A migra para B, levando consigo suas instruções e possivelmente o resultado de alguma computação realizada anteriormente.
+
+Estando em LB, A utiliza o recurso de B para poder completar ou continuar o serviço.
+
+O paradigma agente móvel mostrou-se eficiente no desenvolvimento de sistemas distribuídos.
+
+Ao passo que os paradigmas código sob demanda e execução remota têm como foco a transferência de instruções (código) entre os componentes, o agente móvel efetua a transferência de instruções e o estado da execução.
+
+A tecnologia de agentes pode ser aplicada comercial e academicamente nos mais diversos campos, em que se destacam inteligência artificial, engenharia de software, e sistemas distribuídos.
+
+Pesquisadores não chegaram a um consenso a respeito da exata definição de agentes.
+
+Após comparações feitas nas definições, Franklin e Grasser elaboraram uma definição extremamente abrangente, um agente é um sistema limitado por um ambiente, que nele percebe e atua continuamente em busca de sua própria agenda, a fim de aplicar o que percebeu em um momento futuro, isto é, capaz de monitorar e executar o controle sobre suas próprias ações a partir de sua própria experiência.
+
+Os agentes podem ser classificados de acordo com o subconjunto de propriedades que possuem, ou seja, de acordo com as tarefas que cumprem, pelo alcance, sensibilidade, e efetividade de suas ações, pela quantidade de estados internos que possui, ou ainda pelo ambiente onde o agente atua e se localiza.
+
+Apresenta as principais propriedades dos diferentes tipos de agentes.
+
+Maiores detalhes dessas propriedades podem ser encontradas em e em.
+
+Principais Propriedades de Agentes.
+
+Um agente móvel pode ser caracterizado como um programa que age de forma autônoma, em busca de um objetivo programado anteriormente.
+
+Para isso, ele pode utilizar interações com outros agentes ou ambientes móveis, se necessário.
+
+Em outras palavras, dispõe de liberdade para transitar entre os hosts de uma rede de intercomunicação transportando seu código para outro ambiente, onde retoma sua execução.
+
+A motivação e o interesse pelos agentes móveis devem-se aos benefícios alcançados no desenvolvimento de sistemas distribuídos ao utilizá-los.
+
+Em estudos empreendidos por encontram-se os benefícios sintetizados a seguir, redução no tráfego de rede, os sistemas distribuídos utilizam protocolos de comunicação que geralmente envolvem trocas de mensagens, o que resulta em tráfego indesejado na rede.
+
+Com a utilização de agentes móveis pode ser feito um empacotamento das instruções e seu estado, e em seguida sua migração para o host destino, onde, dessa forma, as instruções são realizadas localmente.
+
+Portanto, ao utilizar agentes móveis, o tráfego pode ser reduzido, superação à latência, o fato da redução de tráfego gerada na utilização de agentes móveis tem como conseqüência a superação à latência, por efetuar interações localmente, execução autônoma e assíncrona, ao migrar para outro host, um agente móvel pode se tornar independente da aplicação que o criou, podendo executar uma tarefa de forma autônoma e assíncrona.
+
+Não é necessário manter conexões abertas entre os hosts, suporte à heterogeneidade, as redes de computadores são, normalmente, heterogêneas, tanto em perspectiva de hardware quanto de software.
+
+Os agentes móveis são projetados de forma a lidar com essa heterogeneidade, fazendo que o agente seja dependente apenas de um ambiente de execução que é criado em cada combinação de hardware e software.
+
+Portanto, ao utilizar agentes móveis um sistema distribuído ganha uma forma de integrar sistemas heterogêneos, robustez e tolerância a falha, as características de execução autônoma e assíncrona e de adaptação dinâmica, favorecem a construção de sistemas tolerantes a falhas, pois permitem que um agente tome uma atitude quando se encontra em situações desfavoráveis.
+
+Exemplificando, caso uma máquina precisar ser desligada, seus agentes são avisados para migrarem para outra máquina da rede (espera-se que seja em tempo hábil), para que possam continuar o seu trabalho, extensão instantânea de serviços, os agentes móveis podem ser utilizados para estender as capacidades de aplicativos, por exemplo, fornecer serviços.
+
+Essa característica permite o desenvolvimento de sistemas extremamente flexíveis.
+
+As desvantagens de agentes móveis listadas na literatura referem-se à segurança e complexidade.
+
+Os problemas com segurança podem ser de três tipos, exposição de informação, negação de serviço e corrupção de informação.
+
+Exemplo, um agente móvel pode atacar um sistema consumindo uma quantidade excessiva dos recursos da máquina.
+
+Esse ataque pode ocorrer intencionalmente explorando vulnerabilidades do sistema, mas também pode ocorrer sem intenção, causado por um erro de programação do agente.
+
+Na literatura encontram-se investigações baseadas na utilização de agentes móveis para implementação de diversos mecanismos em ambientes de grande escala, como por exemplo, para o gerenciamento de recursos, descoberta de recursos e serviços.
+
+Arquitetura do CoordAgent.
+
+O Laboratório de Sistemas Distribuídos da Universidade de Washington, Bothell desenvolveu um middleware de Grade que agrega a potência computacional de computadores pessoais conectados à Internet, denominado CoordAgent.
+
+Sua infra-estrutura é composta por agentes móveis que realizam todas as funções pertinentes à Grade, como, a busca por recursos disponíveis e a execução de aplicações.
+
+O administrador da infra-estrutura da Grade, chamado de moderador, criou um Internet Group, que é responsável por manter as informações das máquinas conectadas à Grade por meio de uma base de dados.
+
+Múltiplos Internet Group podem ser criados e conectados, utilizando o MDS (Globus Metacomputing Directory Service).
+
+Para participar é necessário criar uma conta de usuário, executar um servidor web na máquina que será integrada, registrar as informações no Internet Group e baixar o mecanismo de execução de aplicações (desenvolvido com agente móvel).
+
+Depois de entrar no Internet Group o usuário requer o agente móvel, que exibe a janela que permite solicitar a execução de aplicações.
+
+Estas aplicações podem ter sido desenvolvidas utilizando as linguagens C/C++ e Java.
+
+Ademais, o CoordAgent permite a execução de aplicações paralelas desenvolvidas com as linguagens de programação C/C++ utilizando MPI ou PVM, e Java utilizando JPVM (Java Parallel Virtual Machine).
+
+Ao receber a requisição de execução, o agente móvel migra até a base de dados do Internet Group, procura computadores que possam satisfazer a requisição do usuário (cliente).
+
+Caso não encontre máquinas com requisitos adequados à execução da aplicação no grupo local, o agente visita bases de dados de outros Internet Group para atender à solicitação.
+
+Na migração, o agente utiliza a técnica de tunelamento HTTP (HyperText Transfer Protocol), em que o agente é entregue como uma mensagem HTTP e, depois, é recriado por um servlet no destino.
+
+Quando o agente móvel encontra a máquina que satisfaz a solicitação do usuário, este copia todos os arquivos necessários à execução da aplicação da máquina cliente para a máquina destino.
+
+Caso seja uma aplicação que requeira mais de uma máquina para sua execução, como o caso de uma aplicação paralela, o agente cria novos agentes filhos e os envia às outras máquinas.
+
+Assim, todos os agentes lançam as aplicações nas máquinas de destino e passam a monitorar suas execuções.
+
+Utiliza-se um sistema de ponto de verificação (check-pointing) que armazena as máquinas da Grade que participaram da execução juntamente com o estado dessa execução.
+
+Por conseguinte, caso uma máquina se torne indisponível durante a execução de uma aplicação, o agente deve migrar sua aplicação correspondente para uma outra máquina disponível.
+
+Esse processo requer que o estado de execução da aplicação seja capturado, migrado e recuperado no destino.
+
+O mecanismo também é utilizado para prover tolerância à falhas, em que o estado de execução é periodicamente salvo em um repositório que resiste a falhas do sistema.
+
+A Universidade de Ohio desenvolveu um projeto de Grade oportunista, chamado de Organic Grid, em que propõe uma abordagem completamente descentralizada, sem a presença de componentes que mantenham informações a respeito de todos os recursos presentes no sistema.
+
+Além disso, utiliza um esquema de escalonamento autônomo, inspirado na organização de complexos sistemas biológicos.
+
+Por meio desse esquema de escalonamento é possível atingir um alto grau de escalabilidade, agregando ao sistema milhões de computadores, o que não é possível quando utilizada uma abordagem centralizada.
+
+O esquema de escalonamento descentralizado baseou-se em um trabalho anterior proposto por Kreaseck Ambos os trabalhos organizam as computações em redes overlay estruturadas como árvores.
+
+Redes overlay são estruturas lógicas que representam topologias virtuais, não representam a rede como ela está organizada fisicamente.
+
+Estruturadas sobre o protocolo de transporte utilizado, facilitam, por exemplo, buscas determinísticas na rede.
+
+As redes overlay representam, em suas estruturas, os hosts da rede, seus vizinhos e as ligações lógicas existentes entre eles.
+
+A presença de uma ligação lógica entre dois hosts em uma rede overlay indica que eles podem comunicar-se diretamente um como o outro.
+
+Essas redes são consideradas uma alternativa escalável às atuais redes peer-to-peer.
+
+O Organic Grid encapsula as aplicações submetidas à Grade em agentes móveis, ou seja, todas as aplicações na Grade têm um agente responsável por efetuar sua execução.
+
+Os agentes móveis, além de executar as aplicações, permitem que os hosts da Grade sejam liberados, caso os usuários reclamem o seu uso, por meio da transmissão da aplicação encapsulada juntamente com o estado de execução da mesma para outra máquina da Grade.
+
+Esta capacidade é fornecida por meio de arcabouço para migração forte de aplicações multithreading.
+
+Os agentes móveis do Organic Grid também são responsáveis por implementar um esquema de escalonamento autônomo.
+
+A árvore overlay, que constitui a base do escalonamento no Organic Grid, é mantida por estes agentes sendo cada um deles mapeado como um nó da árvore.
+
+O algoritmo de escalonamento funciona do seguinte modo, uma aplicação é submetida a um nó A, este divide a tarefa em sub-tarefas menores e passa a executar uma delas.
+
+As outras sub-tarefas são enviadas aos hosts amigos do host A (host com endereços previamente conhecidos) para a execução das mesmas.
+
+Portanto, formam-se uma hierarquia, pois o nó A inicia a montagem da árvore overlay, sendo ele mesmo sua raiz, e os nós amigos tornam-se seus filhos.
+
+A cadeia prossegue com os filhos de A até que toda a árvore seja montada.
+
+Deste modo, os nós que recebem solicitações de execução tornam-se filhos dos solicitantes.
+
+Configurações Iniciais de um Organic Grid.
+
+As resultantes das execuções das sub-tarefas são enviadas para o respectivo nó pai, e os nós filhos ainda podem solicitar aos seus pais mais sub-tarefas.
+
+Após obter os resultados de todos os filhos, o nó pai deverá escolher o filho que obteve o maior throughput, obteve o resultado da execução mais rapidamente, para movê-lo a um nível acima na árvore, juntamente com suas sub-arvores, se existirem.
+
+Ao assumir uma nova posição na árvore, este nó ganha de seus novos pais o estado de "filho em potencial" e permanece neste estado até ser avaliado pelo seu novo pai.
+
+De maneira análoga, o filho com menor throughput será removido da árvore, e poderá, no futuro, tentar voltar a compor a árvore.
+
+Como se pode notar, o algoritmo de escalonamento do Organic Grid tende a fazer que os nós mais rápidos fiquem mais próximos ao nó que solicitou a execução da aplicação, e que os nós lentos sejam removidos da estrutura, melhorando assim o tempo de resposta da grade às solicitações de execução de aplicações.
+
+Esse esquema é inspirado em sistemas biológicos compostos por milhões de organismos encontrados na natureza, que, de maneira autônoma, produzem complexos padrões de formação, organizando-se da melhor maneira para executarem seu trabalho.
+
+Organização Resultante após alguns Ciclos de Execução do Algoritmo de Escalonamento do Organic Grid.
+
+O Organic Grid propõe um esquema de escalonamento descentralizado em que as decisões de escalonamento independem da existência de conhecimento global sobre os recursos disponíveis na grade, mas seu desempenho depende diretamente da formação inicial da árvore.
+
+Esta abordagem cria um alto grau de escalabilidade ao sistema, uma vez que não há presença de elementos centralizados.
+
+O código móvel tem-se mostrado uma solução promissora para o desenvolvimento e, sobremaneira, para o aprimoramento de resultados do desempenho de sistemas distribuídos.
+
+O agente móvel, como se apresenta na literatura, possui muitas vantagens para ambientes de larga escala.
+
+Os sistemas distribuídos devem prover uma melhoria de desempenho, principalmente no tocante ao tempo de execução, utilização de recursos, comunicação na rede de intercomunicação, heterogeneidade de hardware e de software.
+
+Analisando as vantagens do uso de agentes móveis em ambientes distribuídos, vislumbrou-se que sua utilização na coleta de índice de desempenho nesses ambientes acarretasse a redução de tráfego na rede quando comparado ao uso de troca de mensagens e, conseqüentemente, uma melhoria no desempenho geral do sistema em questão.
+
+O próximo capítulo apresenta a utilização de índices de carga e desempenho em ambientes paralelos distribuídos fazendo uso de agente móvel.
+
+Os sistemas distribuídos devem prover uma melhoria de desempenho sobremaneira no tocante ao tempo de execução, utilização de recursos, comunicação na rede, e suporte à heterogeneidade de hardware e de software.
+
+Ademais, oferecer confiabilidade, escalabilidade, flexibilidade e custo acessível para aquisição e manutenção quando comparados a computadores intrinsecamente paralelos.
+
+Embora possua muitas qualidades e benefícios, a computação massiçamente paralela apresenta um alto custo de aquisição e manutenção quando comparada aos sistemas computacionais distribuídos, o que dificultou muito sua disseminação.
+
+Por meio de pesquisas a união da computação paralela com os sistemas distribuídos resultou em um bom desempenho a um custo acessível.
+
+Com a convergência de ambos não só as vantagens foram adicionadas a essa nova linha de pesquisa, mas também, suas desvantagens e problemáticas.
+
+Um dos problemas inerentes à junção dessas áreas é o escalonamento de processos, que foi, e ainda o é, um fator desafiador.
+
+O escalonador de processos é de vital importância para os sistemas paralelos distribuídos, e sua função é distribuir e determinar a ordem em que os processos serão executados.
+
+Dentre dos diversos objetivos do escalonamento de processos, destaca-se o balanceamento de cargas, que consiste em definir o local onde o processo deve ser executado, buscando manter a igualdade de carga em cada um dos recursos, de acordo com sua capacidade.
+
+Quando atribuída a um host, a tarefa gera uma carga de trabalho e a métrica que pode ser utilizada para quantificar essa carga e distinguir o estado do recurso analisado é o índice de carga, e, por extensão, o índice de desempenho.
+
+A utilização adequada dessas métricas no balanceamento de cargas pode fazer que o escalonamento de processos propicie uma melhoria de desempenho ainda maior no sistema como um todo.
+
+Em sistemas de grande escala, como sistema paralelo distribuído, a necessidade do escalonamento de processos é ainda maior.
+
+Deste modo, para se obter um escalonamento eficiente, faz-se uso de índices de carga e índices de desempenho.
+
+Entretanto, a freqüência com que é feita a coleta e a atualização dos índices de carga de cada recurso dos hosts (processador, memória, disco e rede) interfere de forma considerável no desempenho do sistema.
+
+Se as informações são frequentemente atualizadas, há um aumento no tráfego da rede.
+
+Caso contrário, o balanceamento de cargas pode ser efetuado de forma incorreta por utilizar cargas antigas para tomar decisão.
+
+O propósito deste trabalho é oferecer alternativas para coleta dos índices de carga e de desempenho para ambientes paralelos distribuídos, objetivando a um escalonamento balanceado e confiável para se obter um bom desempenho referente ao tempo de execução de aplicações.
+
+Com base nos estudos efetuados observa-se que manter as informações das cargas de trabalho (refletidas nos índices de carga e de desempenho) sempre atualizadas para o escalonador, geralmente, faz com que os hosts permaneçam com uma carga coerente a sua potência computacional, sem que o tráfego gerado na rede influencie significativamente no desempenho do sistema como um todo.
+
+Para se obter um ambiente paralelo distribuído faz-se necessária a utilização de APIs com rotinas para passagem de mensagem.
+
+Para prover passagem de mensagem, as APIs mais utilizadas são o MPI (Message Passing Interface) e o PVM (Parallel Virtual Machine), podendo, inclusive, ser utilizadas na implementação de aplicações desenvolvidas em linguagens como Fortran, C e C++.
+
+Propostas foram apresentadas para a utilização de bibliotecas a partir do surgimento da linguagem de programação Java.
+
+Dentre elas, citam-se o mpiJava e o JPVM (Java Parallel Virtual Machine).
+
+O JPVM é uma API implementada totalmente em Java que permite a passagem de mensagens explícitas baseadas em memória distribuída MIMD.
+
+Essa API combina as vantagens da linguagem Java, como portabilidade e interoperabilidade-, com as técnicas de troca de mensagem entre processos paralelos em ambientes distribuídos.
+
+Com o propósito de os programadores habituados ao PVM migrarem com maior facilidade para o JPVM, este apresenta uma interface de programação muito próxima, mas independente, do PVM.
+
+Contudo, adicionaram-se ao JPVM novas características, como segurança de threads, múltiplos pontos de comunicação por tarefa e roteamento padrão para mensagens diretas.
+
+A principal classe da biblioteca JVPM é a jpvmEnvironment, por meio da qual uma aplicação tem acesso às funções básicas, como a criação e eliminação de processos, a sincronização de tarefas, o envio e recebimento de mensagens.
+
+A comunicação é feita de forma direta, tarefa-para-tarefa, implementada sobre TCP sockets.
+
+A cada instância do jpvmEnvironment, cria-se um server socket que atribui o nome do host e um número de porta de conexão internamente para realizar passagem de mensagens e para gerenciar os threads.
+
+Para identificar as tarefas nas passagens de mensagens, utiliza-se um único número inteiro denominado jpvmTaskId.
+
+Quando uma tarefa X deseja se comunicar com uma tarefa Y ela simplesmente se conecta com Y, usando o nome do host e a porta contidos no identificador da tarefa Y.
+
+Caso a conexão seja aceita, cria-se um thread dedicada à sua gerência.
+
+O pacote JPVM pode ser utilizado em praticamente todas as plataformas que têm suporte à máquina virtual Java, como Unix e seus derivados, Windows e Macintosh.
+
+Desde que a rede de comunicação esteja devidamente instalada, não se apresenta dificuldade em integrar as máquinas de plataformas diferentes na máquina virtual.
+
+Após as configurações necessárias em cada host, a criação da máquina virtual paralela com o JPVM é dividida em duas etapas.
+
+A primeira etapa consiste em iniciar o jpvmDaemon em cada host que fará parte do ambiente.
+
+Execução do jpvmDaemon Após a execução dos daemons nos hosts, deve-se cadastrá-los à máquina virtual paralela.
+
+Portanto, a segunda etapa consiste em executar um console interativo do JPVM para cadastrar os hosts (utilizando o comando add).
+
+No console, também é possível listar os hosts já cadastrados (comando conf) e ter conhecimento de quais e quantas tarefas estão em execução em cada host (comando ps).
+
+É possível observar uma execução do jpvmConsole.
+
+Funcionalidades do jpvmConsole.
+
+Os processos daemons são responsáveis por favorecer a criação de tarefas e por coordená-las.
+
+Para distribuir e determinar a ordem em que os processos serão executados, o JPVM utiliza como padrão o escalonamento Round Robin.
+
+O escalonamento de processos Round Robin tem como função atribuir, de maneira cíclica, os processos aos hosts, até que não haja mais processo algum a ser escalonado.
+
+No Round Robin não é necessária a coleta de informações do sistema.
+
+No entanto, em Sistemas Distribuídos, a utilização da política de escalonamento Round Robin pode gerar um desbalanceamento de carga entre os hosts, principalmente se a plataforma for heterogênea, uma vez que hosts com baixa potência computacional podem receber a mesma quantidade de carga que hosts com maior potência computacional.
+
+Objetivando um escalonamento balanceado e confiável para se obter um bom desempenho em ambientes paralelos distribuídos, instrumentou-se a biblioteca de passagem de mensagem JPVM, a qual possui como padrão o escalonamento Round Robin, e adicionou-se a estratégia de escalonamento PRS (Performance Resource Scheduling).
+
+Por meio do índice de desempenho dos hosts, teve-se com produto deste trabalho a estratégia PRS, que determina que processo pode ser executado em cada um dos hosts, ou seja, efetua-se o balanceamento de cargas.
+
+Para se obter a carga dos recursos, efetuar o cálculo do índice de carga e o de desempenho, desenvolveu-se o PRM (Performance Resource Monitor).
+
+O nome designado ao JPVM instrumentado foi JPVM-PRM (Java Parallel Virtual Machine with Performance Resource Monitor).
+
+Analisadas as vantagens do uso de agentes móveis em ambientes distribuídos, deles se utilizou para efetuar a coleta do índice de desempenho em ambientes paralelos distribuídos, e comparou-se com o uso de passagem de mensagem exercendo a mesma função, tendo em vista um baixo tráfego na rede e, conseqüentemente, uma melhora no desempenho geral do sistema.
+
+O desempenho de um sistema é determinado pela eficiência com que os recursos são alocados ou compartilhados.
+
+Diversos são os recursos que podem ser considerados em um sistema.
+
+Não obstante, é possível dividi-los em quatro grupos que têm grande influência no desempenho, CPU, Memória, I/O de disco e de Rede.
+
+Com o intuito de avaliar a carga imposta a cada um desses recursos, desenvolveu-se um thread nomeado de PRM (Performance Resource Monitor).
+
+O PRM tem como incumbência obter a carga crua2 do processador, da memória, do disco e da rede, efetuar o cálculo dos índices de carga com o auxílio de benchmarks normalizados para tratar a heterogeneidade do ambiente, caso exista, calcular o índice de desempenho e disponibilizá-lo em um arquivo com o nome do host e porta de conexão utilizada pelo JPVM-PRM.
+
+Para obter a carga crua dos recursos, utiliza-se o pacote Dstat, que é oferecido pela maioria das distribuições Linux.
+
+Esse pacote tem como objetivo tratar as informações contidas no /proc para se obter de forma clara a carga dos recursos de uma máquina.
+
+O projeto de Dstat foi desenvolvido com a linguagem de programação Python, o que proporciona velocidade e precisão.
+
+É uma substituição versátil do iostat, vmstat e ifstat visando superar algumas de suas limitações e possui algumas características extras, como, organizar os resultados dos recursos em colunas, exibir apenas os recursos desejados, e, salvar os resultados em formato CVS (Comma Separated Value).
+
+O PRM executa o Dstat, salva as informações lidas em um vetor, e, depois extrai do vetor adquirido as informações de interesse com o intuito obter a carga de cada recurso.
+
+As informações utilizadas para calcular a carga de CPU são, porcentagem de CPU livre (idl) e números de processos na fila de CPU (wai).
+
+Relativo à Memória são, memória propriamente livre (used, buff, cach, free) e swap (used e free).
+
+Referente à Disco são, número de leituras (read) e número de escritas (writ).
+
+E respectivo à Rede são, número de pacotes que entram (recv) e número de pacotes que saem (send).
+
+Execução do Dstat.
+
+Os benchmarks são aplicações padronizadas que se empregam para medir o desempenho de diferentes recursos.
+
+Normalizam-se os valores neles obtidos, respectivamente a cada recurso analisado, com o propósito de mantê-los no intervalo de 0 a 1, dado que os valores mais próximos de 0 representam os melhores recursos, ao passo que os valores mais próximos de 1 representam os recursos com menor potência computacional.
+
+Uma vez obtidos os resultados referentes à execução dos benchmarks e efetuadas suas normalizações, podem-se comparar de igual para igual as máquinas do sistema paralelo distribuído heterogêneo.
+
+Utiliza-se a Equação 3 para normalizar os benchmarks, onde, BN representa o valor do benchmark normalizado.
+
+P refere-se ao potencial do recurso analisado, e maiorP é a melhor potência computacional encontrado.
+
+Calcular o índice de carga com base no valor obtido por meio da normalização dos benchmarks permite classificar o índice de desempenho das máquinas de modo relativo, ou seja, conforme a potência computacional dos recursos de cada máquina do ambiente.
+
+Assim, o escalonador que tomar como base o índice de desempenho para efetuar o balanceamento de cargas, atribuirá cargas de trabalho aos recursos de modo coerente, sem que fiquem ociosos ou sobrecarregados.
+
+Para se obter um índice de carga, utiliza-se a Equação 4.
+
+Onde, IC representa o valor do índice de carga, CR refere-se à carga do recurso, e o BN é o valor do benchmark normalizado do recurso analisado.
+
+Para o cálculo do índice de desempenho, utiliza-se a Equação 5, já abordada na seção onde, ID representa o valor do índice de desempenho, I refere-se ao índice de carga do recurso.
+
+Após o cálculo do índice de desempenho, o PRM salva o resultado no arquivo id txt localizado no diretório /tmp juntamente com o tid, nome do host e porta de conexão utilizada pelo JPVMD.
+
+Este procedimento é utilizado para disponibilizar o índice de desempenho para a estratégia de escalonamento PRS (Performance Resource Scheduling).
+
+Quando a aplicação do usuário lhe solicita a criação de um processo, o JPVMD faz uma requisição ao PRS para saber em que host este processo pode ser executado.
+
+Em suma, o PRS consiste em um thread incorporado no JPVM (denominado JPVM-PRM).
+
+O JPVM-PRM interage com o PRS sempre que houver necessidade de se realizar algum escalonamento.
+
+O PRS é instanciado pelo método init da classe jpvmDaemon em todos os hosts que participam do ambiente paralelo distribuído.
+
+No entanto, o thread só será disparado por meio do método start no JPVMD mestre a partir do momento em que o segundo host for adicionado ao ambiente, o que cria uma relação hierárquica mestre/escravo.
+
+Por conseguinte, ao iniciar o JPVMD no host mestre com o propósito de se utilizar a estratégia de escalonamento com base no índice de desempenho, é necessário informar o modo de obtenção do índice de desempenho e ter no mínimo um host escravo.
+
+Caso contrário, o escalonamento padrão Round Robin será utilizado.
+
+Coleta do Índice de Desempenho A obtenção do índice de desempenho, necessária para o PRS, pode ser efetuada por meio de um agente móvel (PAgent Performance Agent), ou por passagem de mensagem (PMessage Performance Message).
+
+O PRM é iniciado pelos JPVMDs quando se opta por utilizar o PRS, independentemente do modo de obtenção do índice.
+
+A mobilidade de código de um agente móvel deve ser provida por uma API.
+
+Duas merecem destaque, a API Aglets e a µCode (muCode).
+
+A mobilidade de código do PAgent provém da API muCode, que permite a mobilidade de código entre os MuServers remotos.
+
+O PAgent utiliza a classe MuAgent dessa API, fornecendo uma abstração natural para a implementação de agentes móveis.
+
+Para se utilizar o JPVM-PRM com o PAgent, executa-se o comando ilustrado na O primeiro argumento informa o JPVMD do modo de coleta das informações dos hosts (no caso de se empregar o PAgent, utiliza-se A), e o segundo argumento determina o período em que se efetuará a coleta.
+
+Execução do jpvmDaemon com Argumento para se Utilizar o PAgent.
+
+Ao adicionar um host escravo no host mestre do ambiente paralelo distribuído, quando se determina o modo de obtenção de índice PAgent, o JPVMD mestre dispara uma mensagem destinada ao escravo, solicitando o início do servidor muCode em uma determinada porta de conexão.
+
+Dispara-se o PAgent para realizar a coleta das informações a partir do momento em que o segundo host (primeiro escravo) for adicionado ao ambiente, e seu percurso de coleta define-se por um vetor que contém o nome do host e a porta de conexão do muCode.
+
+Após o segundo host ser adicionado, ao acréscimo de um novo host, o JPVMD mestre gera o arquivo PAgent_conftxt no diretório /tmp com a palavra new, o nome do novo host e a porta de conexão do servidor muCode, para que PAgent adicione o novo host ao vetor de percurso.
+
+Cabe ao PAgent a coleta periódica das informações disponibilizadas pelos PRMs no arquivo id txt (contendo o ID e tid) dos hosts escravos, e o armazenamento posterior dessas informações no arquivo idHosttxt do diretório /tmp no host mestre.
+
+O PRS lê esse arquivo (idHosttxt) e cria uma lista ordenada, do menor índice de desempenho para o maior, com apenas os tids dos hosts.
+
+Dessa forma, os hosts com menor carga (melhor índice de desempenho) recebem processos antes daqueles com maior carga, o que implica em um ambiente balanceado.
+
+Ilustra-se a estrutura básica do JPVM-PRM PAgent.
+
+Estrutura Básica do JPVM-PRM PAgent.
+
+Como uma alternativa ao PAgent, desenvolveu-se o PMessage.
+
+Ao adotar o PMessage como modo de coleta do índice de desempenho, periodicamente, ocorrem os seguintes passos, 1º PRS solicita ao JPVMD mestre que envie uma mensagem para os hosts do ambiente requisitando o ID e o tid local desses hosts.
+
+JPVMD mestre envia a mensagem por broadcast.
+
+JPVMDs locais dos hosts escravos invocam seus PRMs.
+
+PRM retornam o ID do host ao seu respectivo JPVMD.
+
+JPVMDs escravos encapsulam as informações (ID e o seu tid) e as enviam ao JPVMD mestre.
+
+Conforme o recebimento das informações, o JPVMD mestre as adiciona ordenadamente em uma lista, do menor ID para o maior.
+
+Quando concluído o recebimento das informações de todos os hosts, o JPVMD mestre repassa a lista para o PRS, para que exerça sua função.
+
+Utiliza-se o argumento M para empregar o PMessage.
+
+O intervalo entre as requisições de informação pode ser determinado pelo usuário.
+
+Execução do jpvmDaemon com Argumento para se Utilizar o PMessage.
+
+Demonstra-se a estrutura básica do JPVM-PRM PMessage.
+
+Estrutura Básica do JPVM-PRM PMessage.
+
+Existem algumas diferenças entre PAgent e PMessage, dentre as quais é possível citar, na coleta PAgent, há necessidade de utilizar arquivos, o que não ocorre no PMessage, na utilização do PMessage é necessário enviar N mensagens (N é igual à quantidade de hosts) por broadcast e mais N mensagens de retorno, o que resulta em 2 N mensagens, e, conseqüentemente, em um tráfego significante na rede, necessário, no entanto, para manter um sincronismo na coleta das informações.
+
+Contrastando com o PMessage, o PAgent utiliza o equivalente a N mensagens, que representa o percurso do agente móvel de um host para outro.
+
+Estratégia de Escalonamento PRS No JPVM original o escalonamento de novos processos inicia-se quando a aplicação paralela do usuário invoca o método pvm_spawn( ) da classe jpvmEnviroment, que, por sua vez, solicita a execução de seus novos processos nos hosts disponíveis no ambiente paralelo distribuído.
+
+O método pvm_spawn( ) envia uma mensagem com o número de processos que devem ser criados para o JPVMD mestre, que recebe a solicitação por meio do método spawnTask.
+
+Baseando-se nos parâmetros enviados pelo pvm_spawn, o método spawnTask entra em um laço de repetição (loop) que, a cada ciclo, determina o host destino de um determinado processo com fundamentos em uma lista encadeada representada pela variável "hosts" (contém o tid de todos os hosts que estão aptos para receber processos).
+
+Caso o processo tenha sido atribuído ao JPVMD mestre, este invoca o método CreateTask localmente, caso seja atribuído a um JPVMD remoto, envia-se uma mensagem para o host remoto para ele invoque seu método CreateTask.
+
+Para realizar o escalonamento de processos fundamentados no índice de desempenho fez-se necessário realizar alterações no método spawnTask.
+
+Em vez de consultar a lista "hosts", solicita-se ao PRS, a cada laço de repetição, que informe um tid de um host para que seja atribuído um determinado processo.
+
+De forma ordenada, o PRS informa os tids por meio do índice de desempenho, partindo do menor índice para o maior índice, de modo que os hosts com menos carga (melhor índice de desempenho) recebam processos anteriormente àqueles com mais carga.
+
+Resulta daí um ambiente balanceado.
+
+Na estratégia PRS, consideram-se carregados os hosts com o índice de desempenho superior à média de todos os índices.
+
+Utiliza-se a média como parâmetro para determinar se o host está apto para participar do escalonamento ou não.
+
+Assim, enquanto o índice de desempenho do host fica acima da média aceitável (threshold), ele não participa do escalonamento.
+
+Denomina-se este procedimento como filtro de hosts.
+
+Atualiza-se a média de índices com a mesma freqüência em que se efetua a coleta dos índices de desempenho.
+
+Pode-se aumentar a tolerância do filtro, ou seja, acrescer uma porcentagem à média para permitir que hosts com índices de desempenho um pouco mais altos participem do escalonamento.
+
+O primeiro argumento informa o JPVMD o modo de coleta das informações dos hosts (A ou M).
+
+O segundo argumento determina o período em que se efetuará a coleta, e o terceiro diz respeito à porcentagem a ser acrescida na média do filtro de hosts.
+
+Neste exemplo são acrescidos 50% no valor da média dos índices de desempenho.
+
+Execução do jpvmDaemon com Argumento de Filtro de Hosts.
+
+O JPVM-PRM tem como função oferecer alternativas para a coleta dos índices de carga e de desempenho objetivando um escalonamento balanceado e confiável, de maneira a se obter um bom desempenho referente ao tempo de execução de aplicações apropriadas para ambientes paralelos distribuídos.
+
+Compõem a estrutura do JPVM-PRM, PRM, tem a incumbência de obter as cargas cruas dos recursos, efetuar o cálculo dos índices de carga com o auxílio de benchmarks normalizados, calcular o índice de desempenho e disponibilizá-lo em um arquivo.
+
+O PRM permite gerar o índice de desempenho com base no tipo da aplicação do usuário, PRS, responsável por informar ao JPVMD mestre, o host apto a receber determinado processo, para que ocorra o balanceamento de cargas.
+
+Auxiliam o PRS, o PAgent, coleta de índice de carga por meio de agente móvel, o PMessage, coleta de índice de carga por meio de passagem de mensagem.
+
+Para utilizar o JPVM-PRM, não há necessidade de re-compilar a aplicação paralela do usuário, pois todas as opções podem ser selecionadas na execução do JPVMD no host mestre.
+
+O próximo capítulo apresenta a avaliação de desempenho e os resultados do escalonamento de processos executado com e sem a utilização do agente móvel, uma vez efetuadas as instrumentações necessárias na API JPVM e implementados o agente móvel e o monitor de recursos.
+
+Com o intuito de se obter subsídios para avaliar o impacto da utilização de agentes móveis no escalonamento de processos em ambientes paralelos distribuídos, foram analisados diferentes estudos de caso.
+
+Realizaram-se execuções de experimentos no Laboratório de Arquitetura de Sistemas (LAS) do Centro Universitário "Eurípides Soares da Rocha" de Marília UNIVEM.
+
+Os experimentos foram realizados em uma rede padrão ethernet 100 Mbps interligada por um switch, e composta por 9 computadores pessoais, dois Pentium 3 800 MHz com 128 MB de memória (Las05 e Las06), um Pentium 3 800 MHz com 256 MB de memória (Les05), um Pentinum 3 730 MHz com 256 MB (Las04), um Pentium 4 160 GHz com 128 MB de memória (Les02), um Pentium 4 170 GHz com 256 MB (Les04), um Pentium 4 266 GHz com 1024 MB de memória (GMM), dois AMD Athlon MP 2400+ 2 GHz com 1024 MB (Las07 e Las08).
+
+O ambiente possibilitou a formação de uma arquitetura MIMD com memória distribuída por meio da API JPVM-PRM, tornando-se factível a execução de aplicações paralelas que aceitam esse tipo de plataforma.
+
+Para avaliar o desempenho do ambiente, realizaram-se diferentes testes reais em que se deu a execução de algoritmos paralelos, foram comparados os tempos de execução e efetuada a análise estatística dos resultados obtidos.
+
+Para executar os estudos de caso, selecionaram-se dois algoritmos que exigem uma grande potência computacional, o algoritmo paralelo de multiplicação de matriz e o SOR Red/Black.
+
+Para seu emprego, consideraram-se os seguintes argumentos, Multiplicação de Matriz 2000 x2000 com 9 processos.
+
+SOR Red/Black para uma Grade de 48 com 16 processos.
+
+Realizaram-se 30 execuções de cada algoritmo (com 9 e 16 processos) nos cenários elaborados em ambientes dedicados e também em ambientes não dedicados.
+
+Para avaliar o comportamento do JPVM-PRM em ambientes não dedicados, desenvolveram-se cargas sintéticas com o objetivo de gerar cargas externas às oriundas da aplicação paralela sobre os recursos.
+
+A carga de CPU consiste em um thread que realiza operações matemáticas pré-definidas, a de Memória é um thread cuja função é carregar um vetor de cem mil posições e aplicar o método de ordenação bubble-sort, e a de Disco é um thread que carrega um arquivo de 20 Mbs e, posteriormente, efetua a transferência deste para outro diretório.
+
+As cargas são iniciadas ao mesmo tempo em uma freqüência de execução aleatória.
+
+Ao fim de cada período de execução, os threads são colocados em pausa (sleep) por um período definido, duas vezes o período em que ficaram em execução.
+
+É possível observar que, nos cenários onde se fez o uso da estratégia de escalonamento PRS, utilizou-se o tempo de coleta de índice de desempenho de 3 segundos (3000 ms) e de 6 segundos (6000 ms), para avaliar a viabilidade de ambos.
+
+No primeiro cenário, aplicou-se o escalonamento padrão Round Robin, do segundo até o quinto cenário, fez-se o uso da estratégia de escalonamento PRS padrão, ou seja, sem indicar os pesos dos índices de carga.
+
+Para o tratamento específico de cada aplicação, além dos cenários básicos, criaram-se mais oito cenários com o uso de índices de carga com pesos distintos para cálculo do índice de desempenho (emprega-se PVIP).
+
+Cenários Elaborados para os Estudos de Caso.
+
+A ordem em que são adicionados os hosts no ambiente paralelo distribuído pode influenciar no desempenho quando utilizado o escalonamento Round Robin.
+
+Os estudos de caso efetuados com o algoritmo de multiplicação de matriz com 9 e 16 processos demonstraram que o PAgent proporciona um desempenho superior (porém próximo) ao PMessage, e que ambos possuem um desempenho consideravelmente maior que a política de escalonamento Round Robin.
+
+O tempo de atualização do índice de desempenho utilizado no PRS (PMessage e PAgent) de 6 segundos (6000 ms) apresentou um ganho superior ao de 3 segundos (6000 ms) em todos os casos avaliados, pois há um menor tráfego na rede e um consumo menor de recurso uma vez que as atualizações são executadas em uma freqüência maior.
+
+Quando utilizado o índice de desempenho específico para o algoritmo, PVIP, obtêm-se um ganho superior ao que não utiliza pesos para seu cálculo, VIP.
+
+Foram estes os pesos utilizados para cálculo do índice de desempenho em específico para o algoritmo de multiplicação de matriz, 60% CPU-Bound, 30% Memory-Bound, 0% Disk-Bound e 10% Network-Bound.
+
+Dimensionaram-se esses pesos pelo prévio conhecimento da aplicação.
+
+Os resultados obtidos com o algoritmo de multiplicação de matriz com 9 processos quando executado em um ambiente dedicado são apresentados (resultados obtidos com o mestre com maior potência computacional) e (resultados obtidos com o mestre com menor potência computacional).
+
+Observaram-se as diferenças de desempenho entre os cenários avaliados.
+
+
+Quando executados os estudos de casos do algoritmo de multiplicação de matriz com 9 processos com um mestre de pouca potência computacional, o ganho de desempenho obtido na utilização do JPVM-PRM foi em média de 42,97% com PMessage, e de 43,48% com PAgent, se comparados com o Round Robin.
+
+Apresentam-se, os resultados obtidos em ambiente carregado, isto é, os processos da aplicação concorrendo aos recursos juntamente com as cargas sintéticas desenvolvidas.
+
+Os resultados obtidos com o algoritmo de multiplicação de matriz com 16 processos quando executado em um ambiente dedicado são apresentados (resultados obtidos com o mestre com maior potência computacional) e (resultados obtidos com o mestre com menor potência computacional).
+
+Observaram-se as diferenças de desempenho entre os cenários avaliados.
+
+Pode-se observar que, quando executados os estudos de casos do algoritmo de multiplicação de matriz com 16 processos com um mestre de pouca potência computacional, o ganho de desempenho obtido na utilização do JPVM-PRM foi em média de 29,75% com PMessage, e de 30,70% com PAgent, se comparados com o Round Robin.
+
+Apresentam-se, os resultados obtidos em ambiente carregado, isto é, os processos da aplicação concorrendo aos recursos juntamente com as cargas sintéticas desenvolvidas.
+
+O método das sobre-relaxações sucessivas (SOR Successive Over-Relaxation) representa uma variação do método de Gauss-Seidel pela introdução de um fator de relaxação.
+
+Os estudos de caso efetuados com o algoritmo SOR com 9 e 16 processos demonstraram que o PAgent apresenta um desempenho superior (porém próximo) ao PMessage, e que ambos possuem um desempenho consideravelmente maior que o escalonamento Round Robin.
+
+O tempo de atualização do índice de desempenho utilizado no PRS (PMessage e PAgent) de 6 segundos (6000 ms) apresentou um ganho superior ao de 3 segundos (6000 ms) em todos os casos de teste, pois gera um menor tráfego na rede e um consumo menor de recurso uma vez que efetua um número menor de atualizações da carga.
+
+Quando aplicado o índice de desempenho específico para o algoritmo, PVIP, obtêm-se um ganho superior ao que não utiliza pesos para seu cálculo, VIP.
+
+Foram estes os pesos utilizados para cálculo do índice de desempenho em específico para o algoritmo SOR, 80% CPU-Bound, 0% Memory-Bound, 0% Disk-Bound e 20% Network-Bound.
+
+Dimensionaram-se esses pesos pelo prévio conhecimento da aplicação.
+
+Os resultados obtidos com o algoritmo SOR com 9 processos quando executado em um ambiente dedicado são apresentados (resultados obtidos com o mestre com maior potência computacional) e (resultados obtidos com o mestre com menor potência computacional).
+
+Observaram-se as diferenças de desempenho entre os cenários avaliados.
+
+Pode-se observar que, quando executados os estudos de caso do algoritmo SOR com 9 processos com um mestre de pouca potência computacional, o ganho de desempenho obtido na utilização do JPVM-PRM foi em média de 17,14% com o uso do PMessage, e de 18,29% com o PAgent, se comparados com o Round Robin.
+
+Apresentam-se os resultados obtidos em ambiente carregado, isto é, os processos da aplicação concorrendo aos recursos juntamente com as cargas sintéticas desenvolvidas.
+
+Os resultados obtidos com o algoritmo SOR com 16 processos quando executado em um ambiente dedicado são apresentados (resultados obtidos com o mestre com maior potência computacional) e (resultados obtidos com o mestre com menor potência computacional).
+
+Observaram-se as diferenças de desempenho entre os cenários avaliados.
+
+Pode-se observar que, quando executados os estudos de caso do algoritmo SOR com 16 processos com um mestre de pouca potência computacional o ganho de desempenho obtido na utilização do JPVM-PRM foi em média de 15,53% com PMessage, e de 16,28% com PAgent, se comparados com o Round Robin.
+
+Apresentam-se, os resultados obtidos em ambiente carregado, isto é, os processos da aplicação concorrendo aos recursos juntamente com as cargas sintéticas desenvolvidas.
+
+Baseando-se nos resultados obtidos, verifica-se que, independentemente do modo de coleta do índice de carga, existe um ganho considerável em utilizar-se dele para efetuar o balanceamento de cargas no escalonamento.
+
+Foi possível obter um ganho satisfatório no tempo de execução do algoritmo de multiplicação de matriz e do SOR em um ambiente paralelo distribuído heterogêneo utilizando o JPVM-PRM (PMessage e PAgent), devido ao tratamento de heterogeneidade implantado em seu código e a agilidade do coletor do índice de desempenho.
+
+Verificou-se a viabilidade do uso de agente móvel na coleta do índice de desempenho em ambientes paralelos distribuídos, se comparado com passagem de mensagem.
+
+Por meio das avaliações de desempenho, pode-se observar que o algoritmo SOR obteve uma diferença considerável entre o tempo de atualização de 3 segundos e à de 6 segundos, o que não ocorreu com tanto impacto no algoritmo de multiplicação de matriz.
+
+O motivo dessa diferença reside em que o algoritmo SOR consome muita CPU e rede.
+
+E, quando se faz o uso da atualização de 6 segundos, estes recursos são menos utilizados pelo JPVM-PRM (PMessage e PAgent), obtendo, assim, um melhor desempenho.
+
+Os pesos aplicados nos índices de carga para calcular um índice de desempenho específico para o algoritmo também contribuíram para se obter um desempenho ainda maior.
+
+Ao efetuar o balanceamento de cargas com base no índice de desempenho, o escalonador colaborou para que os hosts mantivessem seus recursos com uma carga coerente a sua potência computacional, o que permitiu um desempenho final superior ao obtido no escalonamento Round Robin.
+
+Objetivando o bom desempenho referente ao tempo de execução de aplicações paralelas em ambientes paralelos distribuídos, instrumentou-se a biblioteca de passagem de mensagem JPVM para efetuar o escalonamento de processos com base no índice de desempenho dos hosts constituintes do ambiente.
+
+Proveu-se, portanto, um escalonamento balanceado e confiável.
+
+Ao JPVM assim instrumentado, designou-se JPVM-PRM.
+
+Distinto do JPVM, que utiliza o escalonamento Round Robin, o JPVM-PRM dispõe de uma estratégia de escalonamento que possui tratamento da heterogeneidade do ambiente, por meio do PRM.
+
+Esta estratégia, denominada PRS, determina por meio do índice de desempenho do host qual processo pode ser nele executado, permitindo que a carga a ele atribuída seja relativa à sua potência computacional.
+
+Como abordado, o JPVM-PRM disponibiliza duas técnicas para coleta de índice de desempenho, a PAgent, que aplica agente móvel (foco do projeto), e a PMessage, que utiliza passagem de mensagem.
+
+A técnica PMessage foi implementada com o objetivo de se efetuarem comparações com a PAgent para verificar o impacto causado no ambiente pelo agente móvel e para demonstrar sua viabilidade.
+
+Com base nos resultados obtidos, pode-se verificar que existe bom ganho em se fazer o escalonamento de processos tomando como base o índice de desempenho no processamento de algoritmos paralelos.
+
+Ou seja, há uma considerável redução no tempo de resposta ao se utilizar o índice de desempenho, quando comparada ao escalonamento padrão Round Robin.
+
+Os resultados obtidos com índices de desempenho adequados à aplicação (PVIP) proporcionaram um desempenho ainda melhor.
+
+Constatou-se que, quando empregado um tempo de atualização de índices de desempenho muito pequeno, o escalonamento é mais preciso.
+
+Não obstante, o desempenho resultante pode não ser satisfatório por carregar o ambiente.
+
+E um tempo muito longo faz que o escalonador utilize índices de desempenho desatualizados e efetue o escalonamento baseando-se neles, podendo causar uma maior sobrecarga no ambiente, em conseqüência, um desempenho insatisfatório.
+
+O agente móvel apresentou um impacto inferior no ambiente àquele decorrente da passagem de mensagem, o que favoreceu um melhor desempenho.
+
+No entanto, ambos se mostraram adequados para manter as informações das cargas de trabalho, refletidas pelos índices de carga e de desempenho, convenientemente atualizadas, o que contribuiu para que o escalonamento fosse efetuado de forma balanceada, mantendo os recursos dos hosts com uma carga equilibrada a sua potência computacional.
+
+O fato da utilização de agente móvel não degradar o desempenho da plataforma vem ao encontro do que se pretende demonstrar, a viabilidade do uso do agente móvel.
+
+Uma vez demonstrada essa viabilidade pode-se implementar e avaliar a utilização de agentes mais robustos que venham a permitir ganhos ainda maiores de desempenho.
+
+Decorrentes dos experimentos, observações apuradas apontam que, comparado com o JPVM padrão, o JPVM-PRM contribuiu sobremaneira para a consecução de um bom desempenho.
+
+Como trabalhos futuros, sugerem-se avaliações de desempenho do ambiente proposto com outros tipos de aplicações paralelas, além do confronto entre os agentes móveis desenvolvidos com a API muCode e os agentes desenvolvidos com a API Aglets.
+
+Ademais, sugere-se, avaliar o desempenho do JPVM-PRM em um ambiente homogêneo, otimizar a estratégia de escalonamento do PRS por meio do uso de técnicas de inteligência artificial.
+
+Desenvolver um método para predizer o impacto a ser gerado em um determinado host, para que seja possível julgar se este suportará ou não a carga que lhe será atribuídaDesenvolver novas técnicas para a consecução de carga dos recursos, com o intuito de reduzir, no ambiente, a carga gerada pelo PRM.
+
+Implementar novas políticas de escalonamento.
+
+Implementar um modo de adaptar o tempo de atualização das cargas conforme a necessidade, sem que sobrecarregue o ambiente, ou deixe o escalonador desatualizado.
+
+Implementar e avaliar agentes mais robustos que possam inclusive colaborar para a escolha da política de escalonamento a ser utilizada provendo assim um ambiente inteligente.
+

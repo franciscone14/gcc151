@@ -1,0 +1,1366 @@
+Este trabalho trata do uso do formalismo das Redes de Petri Temporizadas para modelagem de desempenho de programas paralelos.
+
+Processamento paralelo é amplamente utilizado na indústria Petroquímica, Farmacêutica, Bioquímica, Medicina e Mecânica computacional, entre outras áreas.
+
+A sistematização da avaliação de desempenho destes programas é algo que vem sendo buscado há mais de vinte anos pela comunidade interessada em processamento de alto desempenho, uma vez que em suas áreas de aplicação a eficiência constitui um fator crítico.
+
+Por outro lado, têm-se procurado meios de prover mecanismos de programação paralela que permitam oferecer um maior nível de abstração sem que haja maiores penalidades no desempenho.
+
+O modelo # (pronuncia-se hash) de componentes procura atender estes requisitos propondo observar uma aplicação como um conjunto de componentes sobrepostos, sob uma perspectiva orientada a interesses.
+
+Esta separação de interesses e o fato da especificação das comunicações no modelo # se basearem em expressões regulares sincronizadas permitem que a mesma seja traduzida para Redes de Petri lugar/transição, para a qual já existe um esquema de tradução.
+
+Redes de Petri são um formalismo matemático que permite que sistemas concorrentes sejam analisados, revelando propriedades importantes para a compreensão de seu funcionamento.
+
+As suas extensões temporizadas permitem análise de desempenho do sistema modelado, em nosso caso, dos programas paralelos.
+
+Como estudo de caso, utilizamos um subconjunto dos NAS Parallel Benchmarks, um conjunto de aplicações de computação científica utilizado como referência para avaliação de desempenho em diversos trabalhos da área.
+
+A partir do comportamento do interesse de comunicação, foi traçada a Rede de Petri equivalente, baseada no esquema de tradução de programas # em Redes de Petri.
+
+Amostras dos tempos de comunicação foram retiradas e utilizadas como base na transformação para uma Rede de Petri Temporizada.
+
+Os resultados obtidos mostram que uso deste formalismo é bastante válido para a modelagem de desempenho de programas paralelos.
+
+Em diversas áreas da ciência, em especial em Ciência da Computação, podemos encontrar várias definições para o termo desempenho.
+
+De forma geral, pode ser visto como um tempo decorrido entre dois eventos, da mesma forma que pode estar associado a uma quantidade de operações processadas em uma dada unidade de tempo.
+
+Por outro lado, na área de Sistemas Inteligentes, desempenho pode estar associado a métricas relacionadas à sua função objetivo, como velocidade de convergência, ou taxa de acertos.
+
+Nota-se, porém, um fator comum a todos estes casos, a necessidade de encontrar uma forma de caracterizar o comportamento do sistema, no qual serão baseadas as decisões de projeto.
+
+Uma escolha correta de métricas de aferição de desempenho é fundamental para uma interpretação coerente dos resultados.
+
+Em particular, desempenho constitui um fator crítico no desenvolvimento de sistemas voltados ao Processamento de Alto Desempenho (PAD), escopo desta monografia, onde a maior preocupação encontra-se na questão da eficiência, medida em termos do tempo necessário a obter-se a solução de um problema.
+
+Nestes sistemas, a programação paralela emerge como uma técnica fundamental para atingir seus requisitos de eficiência.
+
+Nas próximas seções abordaremos momentos históricos na área de Processamento Paralelo, bem como o modelo # de componentes, utilizado como estudo de caso, as técnicas de avaliação de desempenho empregadas, principais objetivos e a estrutura geral da monografia.
+
+Por processamento paralelo entendemos a capacidade de sistemas computacionais executarem várias ações simultaneamente, com o objetivo de obter a solução de um problema de maneira mais rápida.
+
+Compreende um conjunto de técnicas, englobando hardware e software de um sistema computacional.
+
+Com respeito às arquiteturas paralelas de computadores, em 1966 foi publicada a conhecida Taxonomia de Flynn, propondo a seguinte classificação adequada para estas, SISD (Single Instruction, Single Data), Nesta arquitetura, uma instrução é executada por vez e cada instrução manipula um dado por vez.
+
+Segue o modelo de Von Newmann (entrada, processamento, saída) com um único processador.
+
+SIMD (Single Instruction, Multiple Data), Nesta arquitetura há um controle único das instruções, as quais são capazes de manipular conjuntos de dados.
+
+Como exemplo, temos as arquiteturas vetoriais, cujas instruções são capazes de realizar operações simultâneas sobre elementos de vetores e matrizes, com a vantagem de possuir paralelismo implícito, transparente ao programador.
+
+Tal arquitetura tem sido aplicada ou especializada para o processamento de alto desempenho.
+
+MIMD (Multiple Instruction, Multiple Data), Nesta arquitetura, várias linhas de instruções operam independentemente sobre conjuntos de dados possivelmente disjuntos.
+
+É a arquitetura utilizada em processadores super-escalares e sistemas distribuídos em geral.
+
+Cada processador, ou unidade de processamento, executa suas instruções independentemente dos demais, exigindo que o programador aponte explicitamente como o paralelismo é gerenciado.
+
+Outras classificações têm sido propostas para arquiteturas paralelas de computadores.
+
+Uma destas, bastante usual, considera a arquitetura de memória utilizada.
+
+Na arquitetura de memória compartilhada, por exemplo, os processadores atuam independentemente, porém compartilhando um único espaço de endereçamento físico.
+
+Somente um processador tem acesso a essa memória por vez, podendo causar o problema de contenção de memória, conhecido em controle de concorrência.
+
+Tal fato limita o número de processadores nestas arquiteturas.
+
+A arquitetura de memória distribuída é a mais difundida atualmente e consiste em manter processadores operando independentemente, cada qual com sua própria memória física.
+
+O compartilhamento de dados nesse caso é feito através de sincronização por passagem de mensagens.
+
+Isso permite um acesso irrestrito à memória, sendo o usuário responsável pelo sincronismo das mensagens.
+
+Ao contrário do uso de memória compartilhada, não há limite teórico para o número de processadores, porém, o overhead de comunicação é um fator que degrada o desempenho, fator este que não está presente na arquitetura de memória compartilhada.
+
+A programação em passagem de mensagens ainda pode ser do tipo MPMD (Multiple Program, Multiple Data), onde cada processador executa um programa diferente, ou SPMD (Single Program, Multiple Data) onde todos os processadores executam o mesmo programa.
+
+Nas décadas de 70 e 80, arquiteturas de processadores vetoriais dominaram o cenário da supercomputação, termo adotado para definir computadores cujo poder de processamento excedia em ordens de magnitude o poder computacional dos computadores pertencentes a sua classe diretamente inferior.
+
+Porém, ainda na década de 80, o uso de arquiteturas distribuídas emergiu como uma alternativa de maior escalabilidade, especialmente devido à evolução na tecnologia de interconexão de computadores em redes.
+
+Surgiram então arquiteturas distribuídas chamadas máquinas massivamente paralelas (MPPs), supercomputadores compostos de vários processadores independentes conectados em redes proprietárias de alta velocidade.
+
+Disseminaram-se ainda as arquiteturas multiprocessadas, onde os processadores compartilhavam memória.
+
+Arquiteturas de supercomputação destacavam-se pelo alto custo de aquisição e manutenção.
+
+Nos anos 90, devido ao sucesso de alguns projetos acadêmicos, como os Beowulfs, emergiram os clusters, redes de computadores de prateleira, como uma alternativa viável e mais barata aos supercomputadores, dando abertura às pesquisas sobre processamento paralelo em países em desenvolvimento.
+
+Embora o termo "supercomputador" tenha caído em desuso, o projeto de tais classes de arquiteturas não cessou devido aos clusters.
+
+Exemplos atuais desta classe de máquinas, segundo Dongarra adequadas ao que ele chama de capability computing, são o Earth Simulator e IBM Blue Gene's, etc, máquinas que tem liderado a lista do Top 500 (ranking dos 500 computadores mais rápidos do mundo) nos últimos anos.
+
+Em processamento paralelo, uma tendência nos últimos anos é a busca por um maior nível de abstração no nível de software e um maior desacoplamento no nível de hardware.
+
+A tecnologia de grades computacionais consiste em associar diversos computadores espalhados pelo mundo como um único supercomputador, oferecendo eficiência que não pode ser alcançada por arquiteturas de computador convencional, porém ainda limitada pela latência de redes de computadores geograficamente distribuídas.
+
+Grades computacionais oferecem algo mais que eficiência.
+
+O acesso a informações por uma maior quantidade de pessoas e a necessidade da oferta de serviços pela web constitui outras de suas motivações.
+
+Atualmente, o leque de interesses estende-se desde a questão militar a questões científicas como o avanço da Física, Biologia, Indústria, e-Commerce, entre outras áreas.
+
+Os esforços conduzidos pela comunidade interessada em processamento paralelo em termos de software, porém, levaram esta evolução a ter um ritmo bem diferente da evolução em termos de hardware.
+
+Na década de 80 (trinta anos de defasagem com relação ao surgimento das primeiras máquinas paralelas), quando os maiores esforços estavam concentrados na questão da eficiência, as técnicas predominantes no desenvolvimento de aplicações eram as interfaces de passagem de mensagens, conhecidas pelo seu baixo nível e falta de portabilidade.
+
+A necessidade de portabilidade levou à adoção de modelos como o PVM nos anos 90.
+
+A dificuldade de manutenção de programas paralelos deu abertura à pesquisa por novos paradigmas de programação, que buscassem oferecer um alto nível de abstração, com a adoção de técnicas de Engenharia de Software.
+
+Por ser uma questão bastante recente, ainda não existe um consenso em relação a este novo contexto.
+
+Em termos de modelagem de desempenho para programação paralela, ao longo das décadas a comunidade científica vem procurando formas de sistematizar este processo.
+
+Nos anos 60, Amdhal realizou estudos sobre os limites de desempenho de programas paralelos.
+
+Anos mais tarde surgiram modelos formais de desempenho, como o PRAM (Parallel Random Access Machine), extensivamente utilizado na época.
+
+Mais tarde surgiram os modelos BSP, o qual propunha uma separação entre computação e comunicação, e o LogP (baseado no BSP).
+
+Skillicorn em 1995 estabeleceu três critérios que um modelo de desempenho deveria possuir, independência arquitetural, congruência (o custo de um programa deve refletir no seu modelo correspondente), e simplicidade de descrição.
+
+O modelo # (leia-se "hash") de componentes teve origem na linguagem Haskell#, proposta no fim dos anos 90 por pesquisadores do Centro de Informática da Universidade Federal de Pernambuco.
+
+Está voltado à programação paralela orientada a interesses (concerns) e se contrapõe à tradicional perspectiva orientada a processos.
+
+Interesses relacionados à sincronização e computação são separados em dimensões ortogonais.
+
+Sob a perspectiva de modelos de coordenação, emprega conectores exógenos, onde o gerenciamento dos componentes é definido através de expressões de comportamento.
+
+Uma peculiaridade do modelo # é a não distinção entre componentes e conectores, sendo estes também tratados como componentes #.
+
+O modelo # permite conciliar alto nível de abstração, generalidade, portabilidade e eficiência.
+
+Esses requisitos têm sido discutidos e procurados pela comunidade interessada em programação paralela há mais de vinte anos, como podemos notar nesta citação de Skillicorn, "O grande problema com computação paralela hoje é encontrar o nível certo de abstração.
+
+Máquinas e arquiteturas mudam com freqüência.
+
+Há uma necessidade de se desenvolver software que possa ser executado em novas máquinas com alterações relativamente pequenas.
+
+Um bom nível de abstração deve ser embasado matematicamente.
+
+MPI facilita a construção de implementações eficientes mas não ajuda muito com as propriedades que os programadores desejam.
+
+O modelo# foi projetado tendo em vista a representação comportamental de programas paralelos utilizando Redes de Petri, com vistas à análise de propriedades formais.
+
+Adicionalmente, utilizando extensões temporizadas das mesmas, como as SPNs (Stochastic Petri Nets), podemos realizar análise de desempenho.
+
+O ambiente # de programação encontra-se em fase de desenvolvimento, procurando ser um meio comum, onde várias tecnologias de programação paralela poderão ser integradas sob a perspectiva de componentes, sendo possível acoplar, futuramente, ferramentas de análise quantitativa.
+
+Podemos destacar três tipos de abordagem em se tratando de avaliação de desempenho, medições, à qual será dado maior foco neste trabalho.
+
+A abordagem de medição, também conhecida como prototipação, consiste em retirar medições simples utilizando o sistema real como fonte direta de dados.
+
+Sua grande vantagem é a exatidão nos resultados, porém com o custo de obrigatoriamente já existir um sistema pronto e acessível para os seus analistas, o que nem sempre é possível.
+
+A simulação procura utilizar técnicas computacionais para imitar o funcionamento sistemas do mundo real com o objetivo de compreendê-los, antecipando os efeitos produzidos por possíveis alterações.
+
+Isto permite que questões sobre o sistema sejam respondidas sem que o sistema real sofra qualquer tipo de perturbação.
+
+A principal motivação para simulação é a possibilidade de análise mesmo que o sistema ainda não exista, ou quando sua utilização é dispendiosa ou não apropriada (simulação de desastres, por exemplo).
+
+Os simuladores podem ser de propósito geral, como as ferramentas ARENA e Microsaint, indicados para modelar sistemas industriais, de transporte e logística, ou de propósito específico, como o Network Simulator, uma ferramenta de simulação de redes, sobre a qual já existe um estudo sobre avaliação de desempenho de programas paralelos.
+
+Recentemente têm sido propostos simuladores voltados a Grids computacionais.
+
+A modelagem analítica, técnica enfatizada deste trabalho, abrange o uso da Teoria das Filas e Redes de Petri Estocásticas (Stochastic Petri Nets, SPNs).
+
+Destacaremos o uso de SPNs, utilizando como estudo de caso central o modelo # de componentes.
+
+As Redes de Petri Estocásticas são extensões às Redes de Petri lugar/transição, associando variáveis aleatórias exponencialmente distribuídas às transições, permitindo a análise de desempenho, além das já conhecidas análises formais, presentes na maioria das ferramentas desenvolvidas para a confecção destas redes.
+
+As SPNs têm sido aplicadas na análise de diversos sistemas, desde sistemas de manufatura.
+
+Maiores informações sobre modelagem analítica são encontradas na Seção 23 e no Apêndice B desta monografia.
+
+Este trabalho tem o objetivo de realizar um estudo voltado para a caracterização probabilística de programas paralelos segundo o modelo #.
+
+Um mapeamento do interesse de comunicação de programas # para SPNs deverá ser proposto utilizando como estudo de caso um subconjunto dos NAS Parallel Benchmarks (discutido no Capítulo 5), estendendo a tradução original para Redes de Petri lugar/transição com vistas à análise e verificação formal de programas paralelos.
+
+Esta extensão será um avanço na tradução automática de programas # para SPNs, o que facilitará o trabalho do usuário do ambiente de programação na tarefa de realizar análise de desempenho.
+
+Nesta monografia também discutiremos os principais aspectos relacionados a avaliação desempenho, destacando a técnica de modelagem analítica.
+
+Discutiremos também a importância de uma sistematização para o processo de análise de desempenho e os erros mais comumente cometidos.
+
+Este capítulo abordou as principais motivações para o desenvolvimento do trabalho, destacando a evolução dos modelos de programação, arquiteturas paralelas e as principais abordagens utilizadas em avaliação de desempenho.
+
+A seguir, no Capítulo 2, serão discutidos conceitos e idéias relacionados à avaliação de desempenho de uma forma geral, destacando uso da modelagem analítica.
+
+A partir do Capítulo 3 as Redes de Petri são introduzidas e exploradas em seus conceitos, propriedades e extensões, com foco nas variantes estocásticas.
+
+O Capítulo 4 é inteiramente dedicado ao modelo # de componentes, expondo motivações, impactos, conceitos básicos, sintaxe, e seu esquema clássico de tradução para Redes de Petri lugar/transição.
+
+O mapeamento de programas # em SPNs é mostrado em forma de estudo de caso, descrevendo todo o processo experimental e de análise de resultados no Capítulo 5.
+
+Finalmente, no Capítulo 6, teremos as conclusões e trabalhos propostos a partir dos resultados obtidos.
+
+Em geral, no processo de desenvolvimento de um sistema computacional tem-se como objetivo obter do mesmo o maior benefício possível ao menor custo.
+
+Em Processamento de Alto Desempenho entende-se por benefício a eficiência na utilização de recursos durante processamento de uma computação, o que deve resultar na minimização do tempo de resposta da aplicação.
+
+Esta área da computação é muito valorizada em diversos campos da ciência e engenharia, como na indústria Petroquímica, Farmacêutica, Bioquímica, na Medicina, Mecânica Computacional, entre outros.
+
+Em todas estas áreas a avaliação do desempenho é crucial para que sejam tomadas decisões de projeto e/ou implementação necessárias para a sua melhoria.
+
+Nas próximas subseções, as métricas de desempenho mais utilizadas, os passos necessários para o sucesso no processo de avaliação dessas métricas, a abordagem de modelagem analítica e erros comuns cometidos durante o processo de avaliação serão discutidos.
+
+Finalmente, daremos destaque às questões referentes à avaliação de desempenho de programas paralelos.
+
+A maioria dos conceitos a seguir está descrita em.
+
+As métricas de desempenho mais comumente encontradas são, Tempo de resposta, Definido como o intervalo entre uma requisição de um sistema (ou parte dele) e a sua resposta.
+
+Geralmente cresce em proporção com a carga computacional aplicada.
+
+É classificado como uma métrica Lower is Better (LB, menor é melhor).
+
+Em programação paralela é conhecido como tempo de execução, sendo o tempo que transcorre desde quando o primeiro processador começa a executar um problema até quando o último processador completa a execução.
+
+Throughput ou Vazão, Taxa em que as requisições são servidas pelo sistema.
+
+Em outras palavras, é a relação de atendimentos, pacotes, ou qualquer tipo de dado em uma unidade de tempo.
+
+Inicialmente cresce com a carga, tendendo a se estabilizar em certo valor de carga computacional.
+
+É classificado como uma métrica Higher is Better (HB, maior é melhor).
+
+Utilização, fração de tempo que um servidor está ocupado.
+
+Classificado como Nominal is Best (NB, nominal é o melhor).
+
+Confiabilidade, Medida como a probabilidade de erros ou tempo médio entre erros.
+
+Disponibilidade, Fração de tempo em que o sistema está disponível para receber novas requisições.
+
+Taxa custo/desempenho, Usada para comparar dois sistemas, um exemplo é a comparação entre dois sistemas de processamento de transações, comparados em termos de unidades monetárias por TPS (transações por segundo).
+
+Ao longo do texto também será encontrado o termo carga ou workload, que se refere à quantidade de dados que trafegam no sistema, fator decisivo na obtenção das métricas de desempenho.
+
+O valor da carga varia de sistema para sistema.
+
+No caso de um programa paralelo, a carga pode ser determinada pela quantidade de iterações em um algoritmo, ou até mesmo uma matriz na memória.
+
+Segundo Jain, a maioria dos problemas de desempenho são peculiares a certo contexto, e as métricas, cargas e resultados e técnicas não podem ser reaproveitados.
+
+Porém, alguns passos são comuns a qualquer situação encontrada, Estabelecer objetivos e definir o sistema, A definição dos limites do sistema afeta a escolha das métricas e cargas.
+
+Listar serviços e saídas, Algumas saídas são desejáveis e outras não.
+
+O analista deve listá-las de acordo com suas necessidades.
+
+Selecionar métricas, Selecionar o critério de avaliação de desempenho.
+
+Listar parâmetros, Incluindo parâmetros de hardware ou software que afetam o desempenho.
+
+Selecionar fatores a estudar, Os parâmetros a serem variados são denominados fatores e seus valores são os níveis.
+
+Em geral, a lista de fatores e níveis é maior que os recursos podem permitir.
+
+Selecionar a técnica de avaliação, A seleção da técnica correta depende do tempo e dos recursos disponíveis para resolver o problema e do nível de exatidão desejado.
+
+Selecionar a carga, Para produzir uma carga significativa é preciso medir e caracterizar a carga do sistema.
+
+Analisar e interpretar os dados, Os resultados provêm a base na qual os analistas e tomadores de decisão podem traçar conclusões.
+
+Apresentar os resultados.
+
+Modelagem analítica é uma abordagem para avaliação de desempenho de sistemas bastante recomendável quando é necessário obter resultados rapidamente e de maneira simples.
+
+Em geral, as métricas de desempenho são representadas por variáveis aleatórias que seguem uma distribuição de probabilidade escolhida pelo analista que represente mais fielmente o sistema real.
+
+Os sistemas são modelados por processos estocásticos, que são conjuntos de variáveis aleatórias dentro de um espaço de estados indexadas no tempo (que pode ser discreto ou contínuo).
+
+A análise consiste em avaliar as probabilidades de transição de um estado para outro, seja em regime transiente, seja em regime estacionário.
+
+Detalhes sobre processos estocásticos e Cadeias de Markov (um tipo especial de processo estocástico) podem ser encontrados no Apêndice B.
+
+O nível de exatidão dos resultados, porém, é, em geral, inferior ao dos resultados obtidos por medições ou simulação.
+
+Uma vantagem é a simplicidade e baixo custo na obtenção, apresentação e interpretação dos resultados.
+
+A seguir serão enumeradas algumas das distribuições mais encontradas em modelagem analítica.
+
+Muitos destes conceitos podem ser encontrados em.
+
+Uma descrição e as curvas que caracterizam as distribuições citadas a seguir são mostradas.
+
+Entre as distribuições contínuas temos, Distribuição Normal, A distribuição normal constitui uma família de curvas determinadas por dois parâmetros, média e desvio padrão.
+
+A distribuição normal padrão possui média 0 e desvio igual a 1.
+
+É utilizada quando a aleatoriedade é causada por várias fontes independentes e aditivas (erros de medição, por exemplo).
+
+A justificativa mais comum para o seu uso em modelagem é a aplicação do Teorema do Limite Central que estabelece que a distribuição das médias de várias amostras que seguem uma distribuição qualquer, retiradas em um experimento, tende a ser normal com o aumento do número de amostras.
+
+Distribuição Lognormal, É a distribuição do logaritmo de uma variável que segue uma distribuição normal.
+
+Geralmente o produto de várias variáveis aleatórias positivas segue a distribuição lognormal, comumente empregada na modelagem de tempos de serviços.
+
+Distribuição Weibull, Inicialmente proposta para modelagem em problemas de confiabilidade de equipamentos.
+
+Possui formato semelhante à normal se seu parâmetro de formato C for igual a 3602.
+
+Para valores acima deste, a curva apresenta uma cauda longa à esquerda.
+
+Para valores inferiores, possui uma longa cauda à direita.
+
+Se o parâmetro de formato é igual a 1, a curva possui formato de L.
+
+Para valores altos de C, possui um pico íngreme próximo à média.
+
+Distribuição Exponencial, Sua principal característica é a ausência de memória.
+
+O conhecimento prévio do tempo de ocorrência de um evento não auxilia na determinação do tempo de ocorrência do próximo evento.
+
+Muito utilizada na modelagem de tempos decorrentes entre falhas de sistemas, devido à sua alta variabilidade.
+
+A ausência de memória dá suporte à solução de Cadeias de Markov de Tempo Contínuo.
+
+Distribuição Erlang, Comumente usada em modelos de fila como uma extensão da distribuição exponencial.
+
+É, portanto, uma distribuição Phase-Type, como veremos adiante.
+
+É utilizada na modelagem de tempos de serviço em um modelo de fila, ou tempo entre falhas de um sistema.
+
+Distribuição Gama, a distribuição Gama é uma generalização das distribuições Exponencial e Erlang.
+
+É utilizada em modelos de filas, para modelar tempos de serviço e reparo de um recurso, similarmente à distribuição Erlang.
+
+Distribuição Uniforme Contínua, Utilizada quando se desconhece quase completamente o sistema e os únicos dados disponíveis são os limites mínimo e máximo.
+
+Distribuição de Pareto, Foi originalmente criada para representar distribuição de renda.
+
+É uma distribuição cuja pdf (função de distribuição de probabilidade, ver Apêndice A) é caracterizada por uma curva acentuada, o que indica que valores possuem uma alta variabilidade.
+
+Distribuição Beta representa uma variável cujos valores variam dentro de um limite superior e um inferior, cujo formato depende de dois parâmetros C e D.
+
+Em geral é usada para modelar proporções aleatórias, como a fração de chamadas remotas (RPCs) que demoraram mais que um tempo especificado.
+
+Pode assumir um grande número de formas, dependendo de seus parâmetros C e D.
+
+Distribuição Triangular, assim como a uniforme, é usada quando o sistema é pouco conhecido, porém, além dos limites máximo e mínimo, o valor mais provável também é conhecido.
+
+Entre as distribuições discretas temos, Distribuição Geométrica, Distribuição discreta equivalente à exponencial, por não possuir memória.
+
+Usada na modelagem do número de tentativas entre falhas sucessivas.
+
+Sua ausência de memória auxilia na solução de cadeias de Markov de tempo discreto.
+
+Distribuição de Poisson pode ser utilizada para modelar o número de chegadas de um evento em um dado intervalo de tempo ( número de requisições, falhas ou consultas).
+
+Distribuição Uniforme Discreta, versão discreta da distribuição uniforme contínua, tomando um número finito de valores, cada qual com a mesma probabilidade.
+
+Distribuições de probabilidade.
+
+Como afirmado anteriormente, existe uma família especial de curvas, derivadas de exponenciais, conhecidas como distribuições Phase-type ou distribuições PH.
+
+A seguir, alguns exemplos de distribuição PH, Erlang, Seqüência de p fases exponenciais.
+
+Hiper-exponencial, p fases exponenciais em paralelo.
+
+Hipo-exponencial, Seqüência de p fases, sendo permitido que cada uma possua uma taxa diferente.
+
+A distribuição Erlang é um caso particular.
+
+Cox, Generalização da distribuição Erlang onde o estado absorvente pode ser alcançado a partir de todos os estados da cadeia de Markov.
+
+Representação de distribuições PH, Erlang, Hiper-exponencial e Cox.
+
+As principais propriedades encontradas nas distribuições PH são, Densa, toda distribuição não-negativa pode ser aproximada a uma distribuição PH.
+
+Modelagem markoviana, todas as distribuições PH mantêm as propriedades advindas do uso de distribuição exponencial.
+
+Informativo estruturalmente, distribuições PH são versáteis e tratáveis computacionalmente.
+
+Em diversos problemas de modelagem, inclusive em nosso estudo de caso, encontraremos situações onde será conveniente a aproximação de distribuições para distribuições PH, por permitirem a modelagem markoviana, possibilitando-nos continuar trabalhando com SPNs.
+
+É importante lembrar também que nesta monografia estamos procurando caracterizar analiticamente o comportamento de programas paralelos, porém, isto não significa que este tipo de modelagem seja melhor que simulações e medições para este caso.
+
+A importância de se avaliar programas paralelos pela ótica analítica através das Redes de Petri Estocásticas, é que elas oferecem a possibilidade de utilizar um mesmo modelo para analisar tanto o aspecto quantitativo quanto as propriedades formais do programa.
+
+Abaixo são listados erros comumente encontrados no processo de avaliação de desempenho de sistemas, geralmente cometidos por conceitos mal construídos, descuidos simples, ou falta de conhecimento sobre as técnicas de avaliação existentes.
+
+Falta de objetivos, Todo modelo deve ser construído com um objetivo em mente.
+
+Objetivos tendenciosos, O analista deve atuar como um juiz.
+
+Não deve ter conclusões pré-concebidas a partir de suas próprias convicções.
+
+Abordagem não sistemática, Os objetivos devem ser identificados, bem como parâmetros, fatores, métricas e carga.
+
+Análise sem compreender o problema, Apesar de existirem avanços na procura por automatização no processo de avaliação de desempenho, o mesmo ainda é considerado uma arte, de modo que é importante conhecer bem o problema em questão.
+
+Projeto de experimento inadequado, Relacionado ao número adequado de execuções do experimento e de parâmetros variados.
+
+Nível de detalhe inapropriado, Os objetivos têm impacto significativo sobre o que é analisado e como esta análise é feita.
+
+Ausência de análise, Muitos profissionais são ótimos coletores de dados, porém, não sabem o que fazer com estes após as medições.
+
+Análises errôneas.
+
+Ausência de análise de sensibilidade, Sem uma análise de sensibilidade, não é possível ter certeza sobre como os resultados podem variar com uma pequena mudança nos parâmetros.
+
+Ignorar erros nas entradas.
+
+Tratamento inadequado dos Outliers, Outliers são valores que são excessivamente altos ou baixos comparado à maioria dos resultados.
+
+É importante descobrir os motivos destes desvios e ignorá-los adequadamente.
+
+Não considerar mudanças futuras.
+
+Ignorar variabilidade,Como afirmado anteriormente, a carga ou workload, que se refere à quantidade de dados que trafegam no sistema, é fator decisivo na obtenção das métricas de desempenho.
+
+Análise excessivamente complexa.
+
+Apresentação inapropriada de resultados.
+
+Ignorar aspectos sociais, Os impactos devem ser identificados para que se compreenda a importância do sistema em questão.
+
+Omitir considerações e limitações.
+
+Segundo Foster, desempenho em programação paralela é uma questão multifacetada.
+
+Além do tempo de execução e escalabilidade (capacidade que um programa tem de se adaptar a diferentes granularidades) é importante considerar os mecanismos pelos quais os dados são gerados, armazenados, transmitidos na rede, movidos de/para o disco e passado para diferentes estágios de computação.
+
+As principais métricas encontradas nesta área são, tempo de execução e throughput (citados anteriormente), requisitos de memória, requisitos de entrada/saída, latência (tempo que uma unidade de informação leva para chegar ao seu destino através de um meio de comunicação), custos de projeto, de implementação, verificação de hardware, de potencial de reuso e de portabilidade.
+
+Uma métrica bastante conveniente em programação paralela é a eficiência (Equação 1) e o speedup (Equação 2), frações de tempo que os processadores passam realizando trabalho útil, caracterizando a efetividade de se utilizar paralelismo em relação a uma versão seqüencial.
+
+Neste caso, T1 é o tempo de execução do programa em um processador e Tp é o tempo de execução do programa em P processadores.
+
+Durante a execução de um programa paralelo, um processador pode estar computando, comunicando ou ocioso.
+
+O tempo total de execução pode ser definido de duas formas, pode ser a soma da computação Ticomp, da comunicação Ticomm e do tempo ocioso Tiidle de um processador arbitrário conforme a Equação 3, ou a soma destes tempos em todos os processadores dividido pelo número de processadores P (Equação 4).
+
+Entende-se o tempo de computação como o tempo gasto por um processador realizando computações.
+
+Esse tempo, geralmente, depende da carga do problema.
+
+O tempo de comunicação é o tempo total que um processo leva enviando ou recebendo mensagens.
+
+Depende, em geral, de um tempo de inicialização e do tamanho da mensagem.
+
+Um processador pode estar ocioso por falta de computação ou por falta de dados.
+
+No primeiro caso este problema é evitado utilizando-se uma política de balanceamento de carga, no segundo caso, quando o processo espera algum dado que ainda não foi calculado, o problema deve ser resolvido com uma melhor estruturação do código.
+
+A realização de experimentos em programas paralelos requer uma coleta cautelosa dos dados mensurados.
+
+A obtenção de tempos de execução pode ser realizada coletando o tempo máximo entre todos os processadores, ou escolhendo um processador, onde o estudo será realizado, sempre repetindo os experimentos, para obter resultados mais precisos.
+
+Possíveis causas de variação incluem, um algoritmo não determinístico, cronômetro pouco preciso, custos de inicialização e finalização.
+
+Interferência por outros processos em uma rede não dedicada.
+
+Contenção da rede.
+
+Alocação aleatória de recursos.
+
+Entretanto, mesmo tomando todas as precauções, a natureza idealizada do modelo raramente será compatível com os resultados obtidos no sistema real.
+
+Maiores discrepâncias, porém, indicam que há erros no modelo ou problemas com o algoritmo.
+
+No segundo caso, é importante realizar um estudo de profiling, cujo conceito já foi visto anteriormente.
+
+No caso do primeiro, o modelo deve ser repensado.
+
+Neste capítulo daremos destaque ao formalismo das Redes de Petri enquanto ferramenta de modelagem analítica utilizada tanto para realizar análise formal de propriedades quanto de desempenho, esta última através das extensões temporizadas.
+
+Nas próximas seções serão apresentados conceitos básicos relacionados às Redes de Petri, bem como propriedades formais que podem ser analisadas através das mesmas e, finalmente, extensões que introduzem o conceito de tempo, com as Redes de Petri Temporizadas.
+
+Estas últimas serão utilizadas para avaliação de desempenho de programas paralelos em um estudo de caso no Capítulo 5.
+
+Carl Adam Petri introduziu o conceito de Rede de Petri em sua tese para obtenção do título de doutor em 1962.
+
+Desde então, tal formalismo tornou-se amplamente conhecido, sendo posteriormente aprimorado e estendido.
+
+Em podemos encontrar a definição de uma Rede de Petri lugar/transição como o tipo mais simples de Rede de Petri,sendo representado por uma 5-upla PN (P,T,F,W,M0) composta por, Um conjunto de lugares P, onde cada lugar é representado graficamente por uma circunferência, simbolizando um depósito de recursos, chamados de marcas (simbolizadas por pequenos círculos pretos dentro de um lugar).
+
+A quantidade de marcas que cada lugar comporta modela o estado do sistema, ou uma condição que afeta a mudança de estado.
+
+Um conjunto de transições T, que simbolizam eventos capazes de governar as mudanças de estado do sistema.
+
+São representados graficamente por barras.
+
+Um conjunto de arcos F, que define o fluxo de relações, graficamente é uma seta que liga lugares a transições modelando o fluxo de marcas ao longo da rede.
+
+Um conjunto de pesos W, referente a cada arco.
+
+Quando não indicado junto ao arco, seu valor é 1.
+
+O peso indica quantas marcas deverão ser consumidas caso o arco aponte para uma transição ou quantas marcas deverão ser produzidas em um lugar, caso o arco aponte para um lugar.
+
+A marcação inicial M0, que determina o estado inicial do sistema modelado.
+
+Uma representação alternativa é tomar uma rede de Petri por uma 5-upla (P,T,I,O,K).
+
+Neste caso, P e T são os conjuntos de lugares e transições respectivamente, e I e O são matrizes de mapeamento de lugares de entrada para transições e de transições para lugares de saída, respectivamente.
+
+O conjunto K mapeia os lugares à sua capacidade, isto é, o numero máximo de marcas suportadas pelo lugar.
+
+Uma matriz de especial interesse é a matriz de incidência C = O, I, usada em diversas equações em análise formal.
+
+Ao longo do texto adotaremos também a notação N(R, M0), onde N é a Rede de Petri em questão, e R é a 5-upla (P,T,I,O,K), com marcação inicial M0.
+
+Também será encontrada a notação M(pi), que se refere ao número de marcas em um lugar p1 quando a rede possui marcação M em determinado instante.
+
+Temos um exemplo de modelo em Rede de Petri, Representação de rede de Petri.
+
+Para este exemplo, temos as matrizes I e O onde as colunas são as transições t1 e t2 e as linhas são os lugares de p1 a p6.
+
+O conteúdo de cada posição da matriz indica o peso relacionado ao arco que liga um lugar de entrada a uma transição, no caso da matriz I, ou então ao arco que liga a transição a um lugar de saída, no caso da matriz O.
+
+Em caso de ausência de arcos, considera-se o valor 0.
+
+Por exemplo, na posição (3,1) da matriz I temos o valor 1, pois há um arco de entrada para a transição t1 a partir do lugar p3, já a posição (3,1) da matriz O possui valor zero, pois não há arcos de saída da transição t1 para o lugar p3.
+
+O disparo das transições (mudança de estado devido à execução de ações) é controlado pela marcação dos seus lugares de entrada.
+
+Uma transição está habilitada a disparar quando o número de marcas em cada um dos seus lugares de entrada é maior ou igual ao peso do arco que os liga.
+
+Por exemplo, temos a transição t1 habilitada, pois os lugares p1, p2, p3 e p4 possuem no mínimo uma marca, que será "transportada" pelos arcos ligados a eles, cujo peso é 1.
+
+O disparo da transição irá consumir uma marca de p1, p2, p3 e p4 e produzirá uma marca em p5, pois o peso do arco que liga t1 a p5 é 1.
+
+Isto gera um novo estado na rede.
+
+Uma vez que não há mais marcas em p4, t1 não possui condições de ser habilitada neste estado.
+
+Porém, notamos que a transição t2 passa a ser habilitada a disparar, consumindo a marca em p5 e produzindo uma marca no lugar p4 e outra no lugar p6.
+
+Neste caso t1 fica novamente habilitada a disparar e assim por diante.
+
+Disparo de uma transição.
+
+A estruturação de um sistema simples usando os conceitos convencionais de Redes de Petri pode ser bastante trivial.
+
+Porém, à medida que o problema torna-se mais complexo, a tarefa de gerar a Rede de Petri correspondente torna-se mais complexa.
+
+O uso de Rede de Petri Hierárquica é uma forma interessante de lidar com a complexidade da Rede de Petri, permitindo o encapsulamento de trechos da rede em transições refinadas.
+
+Ilustra uma Rede de Petri Hierárquica, onde as transições t0 e t1 são refinadas.
+
+A rede não-hierárquica correspondente pode ser obtida removendo a transição de alto nível e inserindo a sub-rede correspondente, ligando os lugares às transições.
+
+Rede de Petri Hierárquica.
+
+A análise de propriedades formais das Redes de Petri permite revelar diversas características do sistema modelado como, por exemplo, a possibilidade de assumir um estado final, ou a existência de estados inatingíveis ou irreversíveis.
+
+A seguir, temos propriedades comportamentais que podem ser encontradas nas Redes de Petri, Alcançabilidade, Possibilidade de alcançar uma marcação a partir do disparo de um número finito de transições, dada uma marcação inicial, em geral, constrói-se grafos de alcançabilidade para facilitar o processo de análise, onde os nós são as marcações e os arcos simbolizam o disparo das transições.
+
+Limitação, Uma rede é tida como limitada se todos os seus lugares forem limitados, ou seja, quando, para cada lugar na rede, a marcação não ultrapassa um número k de marcas (lugar k-limitado).
+
+Liveness, uma rede entra em uma situação de deadlock quando se encontra em um estado em que não é possível o disparo de qualquer transição.
+
+Uma transição ti é live quando não há possibilidade de ocorrência de deadlock causada pelo seu disparo.
+
+A rede será live se todas as suas transições forem live.
+
+Cobertura, Uma marcação M' em uma rede N(R, M0) é coberta se há uma marcação alcançável M'' a partir de M0 tal que M''(pi) M'(pi) para todo lugar pi da rede.
+
+Persistência, Para qualquer par de transições habilitadas da rede, o disparo de uma não desabilita a outra.
+
+Reversibilidade, Uma rede N(R, M0) é reversível se há uma marcação Mk acessível a partir de Mi, para toda marcação Mi alcançável de M0.
+
+Justiça, a questão da justiça pode ser dividida em duas etapas, o Justiça limitada, uma rede possui justiça limitada se todo par de transições (ti, tj) pertencente à rede possui justiça limitada, isto é, ti e tj possuem justiça limitada se é limitado o número de vezes que uma dispara enquanto a outra não dispara.
+
+Mostra uma rede onde, se a transição t1 for disparada, a mesma ficará desabilitada e t2 terá chances de disparar.
+
+O não determinismo de t2 não garante que t1 ficará habilitada com seu disparo, pois é possível que habilite a transição t3 ao invés disto.
+
+Desta forma, sempre haverá chances de t1 estar habilitada quando t2 não está, porém, não há garantias.
+
+Justiça incondicional, uma rede é incondicionalmente justa quando todas as transições da rede disparam um número infinito de vezes em seqüência.
+
+Nota-se que quando t1 dispara, ela tornar-se-á desabilitada, enquanto t2 ficará habilitada.
+
+Ambas possuem chances iguais de habilitação e se alternam nesta chance infinitamente.
+
+Rede com justiça limitada e justiça incondicional.
+
+Estas propriedades se caracterizam por serem condicionadas à marcação da rede.
+
+Um outro conjunto de propriedades, conhecidas como estruturais, independem da marcação e refletem questões relacionadas à estrutura dos modelos.
+
+Estas propriedades são apresentadas a seguir, Limitação estrutural, A rede será estruturalmente limitada se for limitada para qualquer marcação inicial.
+
+Em outras palavras, será limitada se, e somente se, existir um vetor de inteiros positivos w com dimensão #P (ou seja, um inteiro para cada lugar) tal que wC 0 (sendo C a matriz de incidência).
+
+Conservação, O disparo de qualquer transição de uma rede conservativa não modifica o número total de marcas na rede.
+
+Repetitividade, A rede de Petri será repetitiva quando existir, a partir de uma marcação M0, uma seqüência de transições s a partir da qual todas as transições de s disparam um número infinito de vezes.
+
+Consistência, a rede é consistente se uma marcação Mi é alcançada a partir de uma marcação M0, seguindo uma seqüência de transições s, onde todas as transições da rede disparam pelo menos uma vez em s.
+
+Carl Adam Petri evitou introduzir o conceito de tempo em seu trabalho original, dadas as dificuldades que a temporização adicionaria na análise do comportamento das redes.
+
+Os primeiros trabalhos utilizando redes temporizadas são os de PM Merlin e DJ Farber e JDNoe e GJ Nutt.
+
+Podemos considerar três tipos de redes temporizadas (maiores detalhes podem ser obtidos em ), redes com marcas temporizadas (onde cada marca em um lugar contém uma informação de tempo disponível para poder ser consumido).
+
+Redes com lugares temporizados (onde o lugar permite que suas marcas sejam consumidas após um dado tempo).
+
+Redes com transições temporizadas (onde o disparo ocorre depois de um tempo de atraso correspondente, a partir do momento em que ela se torna habilitada).
+
+Ao longo deste trabalho daremos ênfase às redes com transições temporizadas.
+
+A representação gráfica de uma transição temporizada é, em geral, uma barra branca (o nome desta transição será iniciado com letra maiúscula), mais grossa que uma transição comum.
+
+A partir deste ponto chamaremos essa transição comum de transição imediata, por não depender de tempo, tendo precedência sobre as demais (o nome da transição será iniciado com letra minúscula).
+
+Tipos de transições, à esquerda, temporizada, à direita, imediata.
+
+A temporização torna a análise das Redes de Petri mais complexa, devido a mudanças nas regras de disparo das transições e à forma como a rede deve lidar com o não determinismo.
+
+Apresenta um exemplo de rede temporizada, onde há um conflito entre as transições T1 e T2, pois o disparo de uma transição desabilita a outra.
+
+A transição que tiver um menor tempo associado vence a "disputa" pela marca.
+
+O problema, porém, consiste em decidir o que será feito do tempo restante na transição que foi desabilitada e nas demais transições temporizadas da rede que não estavam envolvidas no conflito.
+
+Três possíveis abordagens podem ser adotadas, Uma Rede de Petri Temporizada.
+
+Resampling, Após cada disparo todos os tempos, de TODAS as transições da rede são reiniciadas.
+
+Neste caso não há memória, e o "cronômetro" de cada transição será ligado assim que estiver habilitada.
+
+Enabling memory, após cada disparo, os tempos das transições que foram desabilitadas são reiniciados.
+
+As outras transições mantêm seus valores.
+
+O fato de possuir memória torna a análise mais complexa, porém, mais próxima do sistema real modelado.
+
+Age memory, após cada disparo, todos os tempos de TODAS as transições mantêm seus valores.
+
+Um novo conceito que surge com as Redes Temporizadas é o de grau de habilitação, que determina o número de vezes que uma transição pode ser disparada após o tempo associado a ela se esgotar.
+
+Quando o grau de habilitação é maior que 1, podem ser destacadas três semânticas, que serão apresentadas a seguir e exemplificadas onde consideramos que a transição T1 está associada a uma duração de 3 unidades de tempo.
+
+Grau de Habilitação.
+
+Single server, os conjuntos de marcas são consumidos sequencialmente, ou seja o tempo da transição apenas é reiniciado para um novo conjunto de marcas quando um disparo ocorre.
+
+O comportamento da transição neste caso independe do seu grau de habilitação.
+
+Por exemplo, temos a seqüência, o No tempo t = 0, T1 está habilitada e a primeira atividade é iniciada.
+
+O No tempo t = 3, a primeira atividade termina e a transição T1 é disparada, consumindo uma marca de p1 e uma de p2.
+
+O cronômetro é então reiniciado.
+
+O No tempo t = 6, T1 é dispara novamente e consome mais uma marca de p1 e de p2.
+
+O No tempo t = 9, T1 é disparada, consome uma marca de p1 e p2, e, por não mais haver marcas em p2, a transição torna-se desabilitada.
+
+Infinite server, o conjunto de marcas são consumidos assim que chegam aos seus respectivos lugares de entrada, ou seja, ao mesmo tempo.
+
+A especificação temporal associada à transição depende do grau de habilitação.
+
+Isso significa que se o grau de habilitação de T1 for 2, significa que, após 3 unidades de tempo, a transição será disparada duas vezes, consumindo duas marcas de p1 e duas marcas de p2 de uma só vez.
+
+Multiple server, semelhante ao anterior, porém tem um limite k de paralelismo.
+
+Se k tender ao infinito, então o disparo segue a semântica infinite server.
+
+Nota-se um problema em relação a essas redes.
+
+A especificação determinística do tempo associado a uma transição em conflito impede que certos estados do sistema real sejam alcançados, uma vez que os conflitos são sempre resolvidos da mesma forma (considerando-se que a política de memória já foi definida).
+
+Para os sistemas que apresentam um maior número de estados e requerem avaliação mais detalhada e completa, a abordagem estocástica é uma alternativa mais interessante que as redes temporizadas determinísticas.
+
+As Redes de Petri Estocásticas (Stochastic Petri Nets,SPNs) são extensões às Redes de Petri lugar/transição associando-se tempo às transições, este tempo é representado por uma variável aleatória com distribuição exponencial.
+
+Um método probabilístico transforma o não determinismo de uma rede não temporizada em probabilidade na rede temporizada, de modo que a teoria das Cadeias de Markov de Tempo Contínuo (CTMC, detalhes no Apêndice B) pode ser aplicada na avaliação de desempenho de sistemas descritos por uma SPN.
+
+Um estado em uma CTMC corresponde a uma marcação em uma SPN, e a transição de uma CTMC corresponde ao disparo de uma transição de uma SPN.
+
+Formalmente, as SPNs são Redes de Petri com um conjunto adicional de taxas (uma para cada transição) que definem as pdfs das exponenciais.
+
+As SPNs seguem uma política de corrida para resolução de conflitos, quando uma transição temporizada torna-se habilitada, é atribuída uma amostra da distribuição correspondente ao seu cronômetro, a transição é disparada quando este cronômetro tem seu tempo esgotado, a solução de conflitos entre transições se dá com o disparo daquela que tiver o tempo mais curto para ser disparada.
+
+A característica de ausência de memória da distribuição exponencial permite a total imprevisibilidade no disparo de transições conflitantes, tornando o modelo mais fiel ao sistema real.
+
+Podemos definir uma SPN como uma 6-upla SPN=(P,T,I,O,W,M0) onde temos, P como o conjunto de lugares.
+
+T é o conjunto de transições. 
+
+I é a matriz de mapeamento de lugares de entrada à transições.
+
+O é a matriz de mapeamento de transições à lugares de saída. 
+
+M0 é a marcação inicial da rede.
+
+W é a função de mapeamento de taxas exponenciais às transições.
+
+Para compreender melhor os conceitos introduzidos, podemos analisar um exemplo de sistema paralelo modelado por uma SPN apresentado, onde existem as seguintes transições, TnewData, define a transição que modela a leitura de dados.
+
+Se considerarmos que esta operação leva em média 10 unidades de tempo para ser executada, podemos dizer que sua taxa é 01 (pois para distribuições exponenciais a taxa é o inverso da média).
+
+Tstart-representa a ativação de dois processos paralelos.
+
+Tpar1, define o primeiro processo, cuja taxa determina sua duração.
+
+Tpar2, define o segundo processo, cuja taxa determina sua duração.
+
+Tsyn, realiza a sincronização entre processos.
+
+Tcheck, faz o controle dos resultados.
+
+Tio, determina saída dos dados para um dispositivo de I/O.
+
+Tok e Tko informam se a operação foi bem sucedida.
+
+Entre Tok e Tko há um conflito, onde a vencedora será definida pela duração delas e pela probabilidade de falha do sistema.
+
+Sistema paralelo simples modelado em SPN.
+
+Se considerarmos que em 90% dos casos o sistema funciona corretamente (probabilidade de Tok disparar é de 90%) e que a duração média da verificação é de 2 unidades de tempo, a taxa é calculada da seguinte forma, Uma vez que as SPNs conservam as propriedades formais da rede em questão, ainda é possível realizar análise de propriedades comportamentais e estruturais.
+
+Uma nova classe de SPN pode ser obtida se acrescentarmos transições imediatas ao modelo, são as Redes de Petri Generalizadas Estocásticas (Generalized Stochastic Petri Nets,GSPNs).
+
+Se no exemplo anterior considerarmos instantâneos o tempo de disparo dos processos paralelos e o tempo de sincronização, temos a GSPN.
+
+As marcações do conjunto de alcançabilidade (conjunto das marcações alcançáveis a partir de uma inicial em uma rede) podem ser organizadas em dois subconjuntos, as marcações vanishing, onde há pelo menos uma transição imediata habilitada, e as tangible, que habilitam apenas transições temporizadas.
+
+Obviamente as marcações vanishing permanecem na rede num tempo infinitesimal, pelo fato de possuir transições que disparam instantaneamente (transições imediatas sempre têm prioridade sobre transições temporizadas).
+
+Exemplo de GSPN.
+
+Marcação tangible b) marcação vanishing.
+
+Assim como as SPNs, as GSPNs possuem uma correspondência com as CTMCs, desde que a GSPN tenha um conjunto de alcançabilidade finito (detalhes sobre CTMCs no Apêndice B).
+
+A análise de desempenho de uma GSPN pode ser dividida em três etapas.
+Geração de um grafo de alcançabilidade estendido, que contém as possíveis marcações alcançáveis a partir da inicial como nós do grafo e a informação estocástica nos arcos do grafo, gerando um processo semi-markoviano (as marcações vanishing estão em cinza).
+
+A marcação inicial m0, onde há apenas uma marca em P1 e nenhuma nos demais lugares.
+
+A partir dela, com taxa µ, a marcação vanishing m1 é alcançável (uma marca em P2).
+
+Transformação do processo semi-markoviano em CTMC, através da retirada das marcações vanishing e transições imediatas correspondentes, uma vez que são instantâneas.
+
+Análise estacionária ou transiente da CTMC obtida, onde, em geral, são computadas, a-Probabilidades estacionárias para cada marcação alcançável a partir da qual a matriz que indica o próximo estado pode ser obtida.
+
+Esse cálculo permite descobrir a probabilidade de uma transição estar habilitada.
+
+A pdf de cada lugar, calculada a partir de a.
+
+Isto representa a probabilidade estacionária de haver um numero n de marcas naquele lugar.
+
+O número esperado de marcas em um lugar, calculado a partir de b.
+
+Throughput de cada transição temporizada, indicando o fluxo médio de marcas através de uma transição.
+
+É calculado como o produto da taxa associada à transição pela probabilidade da mesma estar habilitada.
+
+Tempo médio de retorno a uma marcação, obtido através da Lei de Little, o número médio de clientes em uma fila é igual ao produto da taxa de sua chegada pelo tempo de espera.
+
+Para um conjunto de lugares, o número de marcas deve ser conservado e mudanças internas que alteram o número de marcas devem ser levadas em consideração.
+
+Podemos utilizar essa medida para calcular o tempo total de execução de um programa paralelo, como veremos no Capítulo 5.
+
+Transformação de uma GSPN em CTMC.
+
+As GSPNs são amplamente utilizadas na modelagem de diversos tipos de sistemas, desde sistemas de manufatura à redes sem fio.
+
+Em discute-se o uso de SPNs na análise de desempenho da composição de Web Services.
+
+No Capítulo 5, apresentaremos como estudo de caso a modelagem de programas paralelos em GSPNs, sob a perspectiva do modelo#, apresentado no capítulo a seguir.
+
+O modelo # (leia-se hash) de componentes, o qual procura aliar os recursos disponíveis nas linguagens de alto nível à eficiência contida nas bibliotecas paralelas.
+
+É capaz de separar os interesses relacionados à especificação da computação dos interesses relacionados à coordenação e composição dos processos.
+
+Apresentaremos neste capítulo os principais conceitos relacionados ao modelo #, incluindo o esquema de tradução proposto em para Redes de Petri, formalismo descrito no capítulo anterior, que permite analisar as propriedades formais de um programa paralelo #.
+
+A maioria dos programas paralelos são escritos utilizando linguagens seqüenciais, geralmente C ou FORTRAN, aliados a alguma biblioteca, como MPI, PVM, OpenMP e PThreads.
+
+Estas bibliotecas incluem rotinas de baixo nível para criação e gerenciamento de processos, sua comunicação e sincronização.
+
+As principais motivações para usá-las são a familiaridade que os programadores têm com estas linguagens e a garantia de obter eficiência.
+
+Além disso, a implementação dessas bibliotecas está disponível em diversas plataformas.
+
+Em compensação, esta abordagem oferece crescente dificuldade à medida que o projeto aumenta de tamanho e complexidade.
+
+Isso se dá ao fato de não fornecerem recursos adequados para a aplicação de artefatos de Engenharia de Software, tais como modularidade e refactoring.
+
+A vantagem do uso de linguagens de alto nível que possuam mecanismos de programação seqüencial e paralela é a garantia de um maior nível de abstração, com verificação de tipos e maior robustez.
+
+O maior desafio consiste em conciliar o desenvolvimento de abstrações de mais alto nível com o desenvolvimento de implementações eficientes.
+
+O modelo de componentes #, voltado para programação paralela, busca conciliar alto nível de abstração, eficiência, generalidade e portabilidade.
+
+Estes requisitos têm sido procurados pela comunidade de processamento de alto desempenho (PAD) há mais de vinte anos.
+
+Tem suas origens na linguagem Haskell#, desenvolvida entre os anos de 1998 e 2003.
+
+Em 1999 a linguagem Haskell# foi proposta como uma extensão paralela à linguagem funcional Haskell, onde as primitivas de comunicação eram implementadas sobre mônadas (recurso de programação imperativa que permite a existência de conceitos como E/S e estado em um programa funcional).
+
+As computações eram descritas por módulos funcionais.
+
+No ano seguinte, a noção de hierarquia de processos foi reforçada e foram publicados os primeiros resultados de pesquisas sobre mapeamento de programas Haskell# para Redes de Petri lugar/transição.
+
+Um esquema de tradução mais expressivo foi proposto em.
+
+O modelo # foi proposto em, a partir do modelo de coordenação e composição de componentes de Haskell#.
+
+O modelo # atualmente busca atender às seguintes premissas, Ser um modelo de programação explícito e estático, Sabe-se que o paralelismo implícito, contido em algumas linguagens, notadamente as do paradigma funcional (por possuírem transparência referencial), acarreta perdas na eficiência.
+
+Modelos explícitos e estáticos tendem a ser mais eficientes, além de constituírem uma suposição razoável para aplicações de PAD.
+
+Possibilidade de Tradução para Redes de Petri, Como visto no capítulo anterior, as Redes de Petri são uma poderosa ferramenta para análise formal e de desempenho.
+
+É desejável que programas # possam ser mapeados para Redes de Petri.
+
+Hierarquia de processos,A descrição das computações é tratada separadamente, de forma ortogonal, dos aspectos que determinam a coordenação do paralelismo e composição de componentes.
+
+O modelo # é orientado a componentes.
+
+Um programa # é um componente # constituído pela sobreposição de outros componentes #, compostos hierarquicamente, cada qual representando um interesse de aplicação.
+
+O interesse "coordenação", por exemplo refere-se a coordenação do paralelismo da aplicação.
+
+Podemos ter ainda interesses "depuração", "entrada/saída", "mapeamento de processos a processadores" e "computações".
+
+A seguir, as principais característica da programação #, Componentes podem ser compostos a partir de outros componentes, pela unificação de suas unidades formando novas unidades.
+
+Uma unidade possui uma interface que descreve o comportamento dinâmico do sistema, através da ativação de portas, conectadas através de componentes canais.
+
+O modelo # também oferece suporte a esqueletos topológicos, que são componentes compostos parametrizáveis e reutilizáveis.
+
+Sua implementação pode variar de acordo com as características da arquitetura alvo.
+
+Por exemplo, podemos ter um esqueleto "broadcast", onde um possível parâmetro é o número de processadores para os quais a mensagem em questão será transmitida (exemplos de chamada a esqueletos serão encontrados no estudo de caso, no Capítulo 5).
+
+Nas próximas subseções estes conceitos serão aprofundados mais adequadamente.
+
+Uma semântica formal baseada em Teoria das Categorias e um ambiente de programação vem sendo implementado, para dar apoio à análise e ao desenvolvimento de aplicações.
+
+A ferramenta HPE (# Programming Environment) vem sendo construída como uma extensão ao framework de edição gráfica GEF da plataforma Eclipse.
+
+Este ambiente já vem sendo projetado para permitir a sua independência de Haskell e a possibilidade da adoção de linguagens imperativas como linguagens host, como C e Java.
+
+Sob a perspectiva de processos, um canal é uma abstração da rede de comunicação que interliga os processadores nela envolvidos, provendo um meio de comunicação entre os processos que nestes encontram-se hospedados.
+
+A ligação entre canais e processos, pode ser feita através de portas, cuja ativação efetiva a operação de envio ou recebimento de mensagens.
+
+Um exempo pode ser visto, onde as unidades U1 e U2 correspondem a dois processos.
+
+Comunicação entre processos através de portas e canais.
+
+Pela perspectiva de componentes, as unidades são compostas por fatias, que são unidades menores associadas a outros componentes em um nível abaixo da hierarquia de componentes (unidades observáveis de componentes aninhados).
+
+Temos, como exemplo, o componente canal Ch1, com suas unidades S1, encapsulando operações de envio e observável pela unidade U1, já a unidade R1, que encapsula operações de recebimento, é observável pela unidade U2.
+
+Analogamente temos o componente Ch2, cujas unidades S2 e R2 são observáveis pela unidade U1 e U2, respectivamente.
+
+O conceito de ativação de porta dá lugar ao de ativação de fatia, por possuir um significado mais amplo que simplesmente um envio ou recebimento.
+
+Desta forma, as fatias de uma unidade devem ser ativadas para execução do comportamento descrito pela sua interface.
+
+Na base da hierarquia de componentes, admite-se ativação simples, como o uso de primitivas de envio e recebimento, assim como as portas.
+
+A unidade em seu nível mais alto da hierarquia (aquela que não é fatia de nenhuma outra unidade) pode ser considerada um processo (neste exemplo, as unidades U1 e U2 são consideradas processos, enquanto S1, R1,S2 e R2 são apenas fatias de processos).
+
+Componente canal Ch1 e Ch2.
+
+Se desejarmos observar o modelo # por uma perspectiva de processos, devemos considerar que um interesse de aplicação é definido por um conjunto de fatias, cada uma descrevendo o papel do processo com respeito a este interesse.
+
+As fatias em branco simbolizam o interesse de E/S.
+
+Já as fatias cinza-claras, cinza-escuras e pretas simbolizam interesses de coordenação de processos.
+
+Elas descrevem operações de comunicação com topologias diferentes, das quais nem todos os processadores participarão.
+
+Outros exemplos de possíveis interesses que podem envolver dois ou mais processos são, computações, estruturas de dados, alocação de processos, operações de comunicação coletiva, entre outros.
+
+Os interesses sobrepostos formam os processos.
+
+Vejamos o processo que se encontra no meio da figura, ele é composto por uma fatia branca de E/S e por uma fatia cinza-escura e por uma cinza-clara, correspondentes às duas operações de comunicação que este processo deve realizar.
+
+Devemos notar que este processo não possui a fatia preta, uma vez que o mesmo não faz parte de sua topologia.
+
+Programação # sob a perspectiva de processos.
+Programa separado por interesses.
+Interesses se associam formando processos.
+
+Sob a perspectiva de componentes, temos que um interesse é materializado por um componente # que o implementa.
+
+O componente # forma-se a partir de unidades (fatias do processo), e/ou de outros componentes, hierarquicamente.
+
+Obviamente, para o componente mais externo, (o mais alto na hierarquia) o seu interesse é a aplicação em si.
+
+Temos a programação # sob a perspectiva de componentes.
+
+Cada elipse corresponde a um interesse.
+
+Abaixo das elipses temos o interesse "aplicação" (elipse maior), que faz uso dos demais componentes através de suas unidades.
+
+A ferramenta HPE é um framework de programação orientado a componentes baseado no modelo #, sendo, portanto, um framework #.
+
+A idéia é que o usuário monte componentes utilizando a interface gráfica do ambiente, através de seu módulo Front-End, sem necessidade de conhecer qualquer tipo de linguagem intermediária.
+
+O Front-End de um framework # é capaz de gerar um modelo de componentes baseado no modelo #.
+
+Sob o ponto de vista orientado a objetos, este modelo é representado por um conjunto de classes que implementam o conjunto de interfaces especificadas na arquitetura do modelo #.
+
+O módulo Back-End deverá sintetizar um programa paralelo a partir deste modelo de componentes, o qual incorpora informações sobre todos os interesses relacionados à aplicação, incluindo aqueles que caracterizam o ambiente de execução, notadamente a tecnologia de programação paralela sobre a qual o Back-End está definido.
+
+Isso permite que várias tecnologias possam ser vistas sob a perspectiva de componentes, desde que haja um Back-End desenvolvido para seu suporte.
+
+Front-end e back-end do framework.
+
+Um diagrama de classes simplificado da arquitetura de frameworks do modelo # pode ser visto na A arquitetura completa do framework # pode ser vista no Apêndice C.
+
+Uma instância da classe Component pode possuir outras instâncias de Component, composta por sobreposição.
+
+Possui ainda uma ou mais unidades, ou seja, instâncias da classe Unit, as quais representam fatias de processos que descrevem o papel desta com respeito ao interesse do componente.
+
+Cada unidade é tipada por uma instância da classe Interface, a qual define um protocolo de coordenação da unidade (classe Protocol).
+
+Em particular, o protocolo define em que ordem e como as ações serão executadas.
+
+Cada framework pode adotar um formalismo para descrever protocolos.
+
+HPE, por exemplo, adota expressões regulares sincronizadas, formalismo que possui equivalência com Redes de Petri rotuladas.
+
+Neste caso, o protocolo pode possuir um conjunto de semáforos (classe Semaphore) e uma instância da classe Action, denotando uma ação.
+
+Uma ação pode possuir um dos seguintes tipos Repetitivas, Modela ações repetitivas, de modo que a repetição pode ser limitada por um contador (primitiva repeat counter) ou por uma condição (primitiva repeat until).
+
+Combinadores, Ações são combinadas de forma seqüencial (primitiva seq), paralela (primitiva par) ou por escolha (primitiva alt).
+
+Primitivas, Denotam ações básicas.
+
+Podem ser operações sobre semáforos, como as primitivas signal e wait, que equivalem às classes ActionPrimitiveSignal e ActionPrimitiveWait.
+
+Podem também ser a ativação de uma fatia de unidade (primitiva do <unit>).
+
+Por exemplo, a ativação de uma fatia que representa uma unidade de um componente canal denota uma ativação simples de porta de comunicação, especificando o tipo de envio, com as subclasses BufferedChannelSender, BufferedChannelReceiver, SynchronousChannelSender, SynchronousChannelReceiver, ReadyChannelSender e ReadyChannelReceiver.
+
+Este framework se encontra em fase de desenvolvimento, de modo que representaremos os exemplos com a sintaxe textual da linguagem de configuração HCL (# Configuration Language), proposta para configuração de processos na linguagem Haskell#.
+
+Diagrama de classes simplificado de um componente #.
+
+Em é descrito um esquema de tradução de especificações HCL para Redes de Petri lugar/transição.
+
+Cada unidade deve ser traduzida para uma Rede de Petri distinta, a partir do protocolo que a descreve.
+
+Posteriormente, as redes geradas são ligadas pelas transições que modelam os canais.
+
+As unidades mais externas são vistas como processos que executam em paralelo.
+
+Rede de Petri modelando unidades.
+
+A seguir, teremos as Redes de Petri equivalentes às ações combinadoras (seqüenciais, paralelas e alternativas), repetitivas e primitivas (ativação de portas ou unidades).
+
+Também são descritas a equivalência para, canais e semáforos  Ações seqüenciais, são modeladas simplesmente por redes ligadas por transições em seqüência.
+
+Rede de Petri modelando ações seqüenciais.
+
+Ações paralelas, transições de fork e join são inseridas permitindo que ações sejam executadas simultaneamente.
+
+Rede de Petri modelando ações paralelas.
+
+Ações alternativas, a escolha é modelada com uso de um lugar ligado a várias transições, formando uma situação de conflito na Rede de Petri, onde o disparo de uma transição desabilita o disparo das demais.
+
+Rede de Petri modelando ações não determinísticas.
+
+Repetição limitada por contador, o peso do arco que liga T1 a P2 possui peso n, indicando que em P2 surgirão n marcas assim que T1 disparar.
+
+P2 armazena a contagem de iterações restantes na execução da ação.
+
+P3 controla o disparo de T2, permitindo que, depois de iniciado o laço, a mesma só seja disparada quando uma iteração for completada, ou seja, quando T3 for habilitada.
+
+P4 armazena as iterações que já foram executadas, de modo que a transição T4, que marca o fim do laço, só fica habilitada quando P4 tiver as n marcas.
+
+Rede de Petri modelando repetição com contador.
+
+Repetição condicional, a repetição ocorre com certa condição booleana ou por guardas associadas a alguma unidade.
+
+A verificação da condição é feita por uma situação de não-determinismo.
+
+Rede de Petri modelando repetição condicional Ativação de portas/unidades, a região cercada pela elipse indica a unidade que será ativada pelo disparo da transição T1.
+
+O fim desta ativação habilita a transição T2, devolvendo o controle da rede ao programa que a ativou.
+
+No caso mais simples a região cercada pela elipse é simplesmente um canal.
+
+Rede de Petri modelando ativação de portas/unidades.
+
+Canais, são modelados como transições simples, que sincronizam as unidades.
+
+Temos P1 como um lugar pertencente a certa unidade (no caso temos duas unidades ligadas por canais).
+
+No modo síncrono, basta a transição T1 para simbolizar o compartilhamento do canal, pois para sua habilitação as duas unidades deve ter marcas em P1.
+
+No modo assíncrono bufferizado, tem-se os lugares P3 e P4 que modelam o buffer, permitindo que uma das unidades inicie sua operação de comunicação antes da outra.
+
+No modo ready, a comunicação é modelada de forma assíncrona, porém sem garantias de funcionamento, por não possuir buffer, uma análise nesta rede mostra que ela é passível de deadlock.
+
+Rede de Petri modelando canais síncronos, bufferizados e canais ready.
+
+Semáforos, o lugar P3 modela um semáforo, sendo o número de marcas correspondentes ao valor do semáforo.
+
+Rede de Petri modelando primitivas de semáforos.
+
+Esta possibilidade de tradução para Redes de Petri permite que propriedades formais como aquelas descritas no Capítulo 3 sobre os programas # sejam analisadas.
+
+Neste capítulo apresentaremos uma metodologia para avaliação de desempenho de programas paralelos sob a perspectiva do modelo # de componentes utilizando as Redes de Petri Temporizadas, estendendo o esquema de tradução para Redes de Petri lugar/transição, proposto em.
+
+Utilizaremos como estudo de caso um subconjunto dos NAS Parallel Benchmarks, descritos no Capítulo 2 caracterizando as variáveis aleatórias que modelam o comportamento dos programas, obtendo assim dados necessários para a modelagem e análise em GSPN.
+
+Este estudo motiva a construção de ferramentas de apoio à análise de desempenho de programas paralelos, inclusive a construção de back-ends que traduzam configurações # em especificações de GSPNs de forma semi-automática.
+
+A metodologia proposta consiste na retirada de medições reais da aplicação escolhida como estudo de caso para traçar um perfil de desempenho de suas operações de comunicação.
+
+A partir das amostras obtidas são tiradas médias, desvios-padrão e coeficientes de variação, com auxílio da ferramenta Microsoft Office Excel 2003.
+
+A partir deste momento, podemos inferir as variáveis aleatórias correspondentes a essas amostras e mapeá-las à transição ou seqüência de transições (caso se trate de uma distribuição Phase-type) da GSPN equivalente ao programa.
+
+Segue-se a metodologia de tradução de especificações HCL em Redes de Petri lugar/transição descrita em, adicionalmente atribuindo taxas exponenciais às transições temporizadas.
+
+Esta GSPN deve ser live e limitada para possibilitar a análise estacionária.
+
+Portanto, sempre que necessário, será acrescentada uma transição ao modelo para que seja permitido o retorno da rede à sua marcação inicial como temos na Acréscimo de um modelo de loop ao modelo do programa paralelo.
+
+Uma vez obtida a GSPN desejada, é possível realizar avaliação de desempenho, utilizando para tal ferramentas de modelagem e análise de Redes de Petri.
+
+Optamos por utilizar a ferramenta GreatSPN em sua versão 20.
+
+É uma ferramenta visual e textual para fins acadêmicos que oferece suporte à análise de Redes de Petri Temporizadas e de algumas das suas extensões.
+
+Para nosso experimento, temos interesse em medir o tempo total de execução do programa que será obtido a partir do throughput medido em uma transição a ser escolhida.
+
+Esta transição não deve estar envolvida em ramificações ou loops da rede para evitar interpretações errôneas.
+
+O tempo médio de execução é tido como o inverso do throughput encontrado.
+
+Desta forma, podemos calcular medidas importantes em processamento de alto desempenho, como speedup, uma vez que já temos os modelos seqüenciais e paralelos do programa, com a grande vantagem de não depender de recursos de hardware, como um supercomputador real, nem sempre disponível.
+
+Para realizar as medições, utilizamos o cluster do Departamento de Computação da Universidade Federal do Ceará, um Infocluster constituído por 28 nós Intel Xeon, cada qual com 4 processadores (2 GHz de freqüência e 1 GB de memória RAM) e interligados por meio de uma rede Fast Ethernet.
+
+O sistema operacional é o Linux, na distribuição Red Hat 7 3 Para compilação do código do NPB foram utilizados os compiladores gcc 296 (C) e g77 versão 0 5 26 (Fortran).
+
+A implementação da biblioteca MPI adotada foi a MPICH versão 1 2 4 e a versão do NPB utilizada foi a 2 3 Por questões de simplicidade apenas dois tipos de carga foram experimentadas e dois kernels foram escolhidos.
+
+O pacote NPB (NAS Parallel Benchmarks) é um benchmark composto por um conjunto de kernels e aplicações simuladas, proposto no início dos anos 90 pelos cientistas do programa NAS (Numerical Aerodynamic Simulation) da NASA.
+
+A versão do NPB, utilizada é composta de oito programas paralelos escritos em C e FORTRAN com a biblioteca de passagem de mensagens MPI, EP (Embarassingly Parallel), IS (Integer Sort), CG (Conjugate Gradient), FT (Fast Fourier Transform), MG (Multigrid), LU (LU solver), SP (Pentadiagonal Solver), BT (Block Tridiagonal).
+
+A carga computacional utilizada é variável de acordo com uma classe escolhida em tempo de compilação (níveis de A a D).
+
+O fato de serem muito bem documentados e de terem o respaldo da comunidade científica, nos incentivou a utilizá-los como estudo de caso deste trabalho.
+
+Os NPB já foram anteriormente utilizados em pesquisas relacionadas ao modelo #.
+
+Versões Haskell# foram implementadas para realização de medições simples, para comparação de desempenho em relação a suas versões originais.
+
+Estes programas também tiveram seus tempos de comunicação e computação caracterizados probabilisticamente em para oferecer suporte ao desenvolvimento de uma metodologia de avaliação de desempenho de programas #.
+
+Notou-se que a distribuição dos tempos de comunicação e computação não se aproximam exatamente de uma exponencial, como seria o desejado (pois facilitaria a modelagem do programa em GSPN).
+
+Porém, foram encontradas boas aproximações para distribuições Phase-type, que, por sua vez, são representadas como uma combinação de transições exponenciais, viabilizando a modelagem destes programas através das GSPNs.
+
+Na maioria dos casos os tempos de computação e comunicação encontravam melhores aproximações com as distribuições Gama, Erlang, Lognormal e Weibull.
+
+Neste trabalho, trataremos os kernels IS e EP, variando nas classes A e B, destacando os principais trechos dos seus códigos para que possamos realizar uma análise mais detalhada e precisa dos mesmos.
+
+O kernel EP é o benchmark mais simples do NPB em termos de comunicação.
+
+É tido como "embaraçosamente paralelo" por possuir um paralelismo inerente e que não exige a sincronização de processos durante a computação em si.
+
+É um programa que gera pares de desvios gaussianos, explorando os limites superiores de desempenho de arquitetura em operações de ponto flutuante.
+
+Utiliza apenas três chamadas a MPI_AllReduce ao fim da computação, com os vetores sx, sy e q, respectivamente.
+
+Uma operação MPI_AllReduce faz com que todos os processos agreguem certo valor contido em cada um deles através de uma operação de redução, como uma soma ou função de máximo ou de mínimo.
+
+Temos a configuração HCL correspondente ao EP.
+
+Rede de Petri do interesse de coordenação do kernel EP (2 processos).
+
+O kernel IS é um programa de ordenação de inteiros que utiliza o algoritmo de bucket sort paralelo.
+
+A classe do benchmark define o tamanho do array a ser ordenado.
+
+Ao longo do seu loop principal, o IS realiza as seguintes operações de comunicação, Um array chamado bucket_size é passado como parâmetro para uma rotina MPI_AllReduce.
+
+Os arrays send_count e key_buf são utilizados em chamadas MPI_AllToAll, onde todos os processos realizam broadcast de um determinado valor.
+
+Operações MPI_Send e MPI_Recv enviam informações da ordenação, cada processador para seu vizinho.
+
+A seguir, o interesse "coordenação" do IS é representado em HCL.
+
+Estes esqueletos são instanciados na interface e chamados no protocolo.
+
+O esqueleto IRShift simboliza a operação send/receive que ocorre no IS.
+
+A cláusula repeat until denota um loop cuja condição é a presença de dados a serem enviados/recebidos nas operações de bs, kb e sc (referente às operações envolvendo o array key_buf, o array bucket_size e send_count).
+
+As unidades vf e pv servem para verificação dos resultados finais do algoritmo.
+
+Trecho de código HCL descrevendo a interface do interesse "coordenação" do programa IS.
+
+A seguir teremos a Rede de Petri equivalente ao programa IS com dois processos, de acordo com o esquema de tradução descrito em e apresentado no Capítulo 4.
+
+Podemos identificar o laço e a ativação das unidades bs e kb, compartilhadas entre os processos dentro do loop.
+
+A ativação das unidades sc, vf e pv foram omitidas deste modelo para melhor compreensão do leitor.
+
+Rede de Petri do interesse de coordenação do kernel IS (2 processos).
+
+Neste trabalho seguimos duas abordagens para escolher a distribuição de probabilidade mais adequada para caracterizar as variáveis aleatórias que correspondem aos tempos de comunicação, Análise do Coeficiente de Variação e Ajuste da Distribuição Encontrada.
+
+Análise do coeficiente de variação.
+O valor do coeficiente de variação (CV, detalhado no Apêndice A) pode nos levar a tirar algumas conclusões a respeito dos dados medidos.
+
+Cada caso a seguir e seus respectivos parâmetros estão resumidos, Caso CV=1, Aproximação da variável para distribuição exponencial.
+
+O inverso da média é usado como taxa da transição exponencial equivalente.
+
+Caso CV1, Se o inverso do CV for um número inteiro, a aproximação para a distribuição Erlang é a mais adequada.
+
+Ela possuirá fases em seqüência de transições com taxa cada.
+
+Um caso generalizado onde 05 CV1 que permite que mais de uma taxa seja utilizada é a distribuição hipo-exponencial.
+
+Para efeitos de simplificação, consideraremos duas taxas diferentes, 1 para a primeira fase e 2 para as demais fases).
+
+Caso CV>1, Aproximação para distribuição hiper-exponencial, que corresponde a transições exponenciais em paralelo.
+
+Um modelo simplificado possui como parâmetros h, como a taxa da transição exponencial e r1 e r2 como peso de duas transições imediatas.
+
+A transição associada a r1 fica paralela à transição associada a r2 e a transição exponencial, que, por sua vez, estão em seqüência.
+
+Inferência de distribuição pelo coeficiente de variação.
+
+Representação de distribuições Phase-type em GSPN.
+
+Ajuste da distribuição encontrada, A amostra é passada a uma ferramenta capaz de fazer ajustes para distribuições.
+
+Em nosso caso, escolhemos o Input Analyzer da ferramenta ARENA.
+
+O Input Analyzer traça um histograma, podendo ajustar para as seguintes distribuições, Beta, Empirical, Erlang, Exponencial, Gama, Johnson, Lognormal, Normal, Poisson, Triangular, Uniforme e Weibull.
+
+Possui também uma opção "Fit all" que indica a distribuição que melhor se enquadra a massa de dados, ou seja, a que possuir menor erro quadrado.
+
+Em nosso caso, temos maior interesse em fazer ajustes para as distribuições Exponencial e Erlang por ser uma distribuição PH, permitindo a modelagem em GSPN.
+
+Os valores dos tempos de comunicação do kernel EP apresentam uma dispersão favorável à modelagem com GSPNs.
+
+Cremos que, por se tratarem operações simples, de granularidade fina e por não estarem associadas a um laço, as execuções do programa mostraram-se sensíveis às variações da rede de comunicação.
+
+Consequentemente o coeficiente de variação aproximou-se de 10.
+
+Devido a dificuldades no acesso ao cluster, foi possível apenas obter o tempo de comunicação total do EP.
+
+Para fins de modelagem consideraremos o tempo de execução de cada uma das três operações de comunicação (sx, sy e q) como o tempo total de comunicação dividido por três.
+
+Utilizaremos como exemplo o caso de 8 processadores executando uma carga de classe A.
+
+Medições obtidas no EP (Classe A, para 8 processadores).
+É importante notar que o fato do CV estar entre 05 e 10, indica que podemos utilizar a distribuição hipo-exponencial como aproximação.
+
+Temos o modelo GSPN equivalente e o resultado da análise estacionária na Neste caso, o uso de GSPN foi fundamental para obter valores próximos à medição real.
+
+Representação do interesse de coordenação do EP com GSPN com aproximação para hipo-exponencial (1 processo de 8).
+
+Os resultados do EP referentes às aproximações através de ajustes para as distribuições Erlang e Exponencial com o auxílio da ferramenta ARENA mostraram-se bastante positivos, com um throughput bastante semelhante ao caso hipo-exponencial.
+
+Representação do interesse de coordenação do EP com GSPN com aproximação para erlang de acordo com a ferramenta ARENA (1 processo de 8).
+
+Representação do interesse de coordenação do EP com GSPN com aproximação para exponencial de acordo com a ferramenta ARENA (1 processo de 8).
+
+Comparação dos tempos obtidos no EP.
+
+Com estes experimentos podemos constatar que, para este estudo de caso, o uso da metodologia adotada foi válido.
+
+No kernel IS, destacamos como principais operações de comunicação as operações identificadas por bs e kb, descritas na Seção 5 2 2 Procedeu-se à retirada de uma amostra significativa dos tempos de execução de cada uma dessas operações, levando-nos à Por questões de simplicidade, mostraremos apenas os dados referentes ao caso que utiliza 8 processadores com a carga de classe A.
+
+Medições obtidas no IS (Classe A, para 8 processadores).
+
+Apesar de termos obtido valores válidos para os parâmetros, 1 e 2, notamos um CV muito baixo, menor que 05 em todos os casos.
+
+Isto nos indica que uma aproximação da amostra para a distribuição hipo-exponencial é possível, porém, inadequada, uma vez que os dados apresentaram uma variação muito pequena.
+
+Uma possível solução é a modelagem com Redes de Petri Temporizadas Determinísticas, que neste caso específico apresenta resultados mais exatos que o uso de GSPN uma vez que a baixa dispersão dos dados nos leva a aproximação para valores constantes.
+
+Temos a Rede de Petri Temporizada equivalente, com o resultado do tempo total.
+
+Temos o throughput igual à 0170626, o que nos dá um tempo médio de aproximadamente 586 segundos.
+
+É importante notar que o resultado obtido é muito semelhante à soma dos tempos médios de bs e kb, multiplicados por 10 (pois bs e kb são executados em um laço de tamanho 10 no IS).
+
+Representação do interesse de coordenação do IS com Rede de Petri Temporizada Determinística (1 processo de 8).
+
+No caso do IS, notamos que não seria conveniente utilizar a abordagem de ajuste de distribuição, pois as expressões encontradas pelo ARENA na maioria dos casos incluíam um offset à exponencial.
+
+Isso impossibilita nossa modelagem na ferramenta GreatSPN, que não permite que transições determinísticas e com tempos exponenciais sejam incluídos no mesmo modelo.
+
+Obviamente, os resultados variam de acordo com a natureza da aplicação (carga computacional, uso da rede de comunicação), além da arquitetura a qual a mesma está sendo executada.
+
+Em casos onde a dispersão dos dados é pequena, podendo ser caracterizados por um valor constante, soluções mais simples como o uso de Redes de Petri Temporizadas Determinísticas são mais adequadas, uma vez que a modelagem com variáveis aleatórias exponenciais não caracterizaria estes dados corretamente.
+
+É possível crer que em ambientes mais desacoplados, em grids, onde há maior variação em tempos de comunicação, a solução de modelagem com GSPNs seja mais adequada que em ambientes mais fortemente acoplados e homogêneos, como os clusters.
+
+Neste capítulo discutiremos a importância dos resultados obtidos para o surgimento de novos questionamentos e soluções para avaliação de desempenho de programas paralelos.
+
+Avaliação de desempenho de programas paralelos não é uma tarefa simples, os resultados a serem obtidos dependem fortemente de fatores e níveis relacionados à carga de trabalho, à arquitetura à qual o programa está associado e à topologia dos processadores.
+
+Desta forma, faz-se necessário um estudo do problema em questão de modo a verificar qual abordagem de avaliação de desempenho é a mais adequada.
+
+Medições podem ser utilizadas apenas quando o sistema a ser avaliado está fisicamente disponível, porém, oferece resultados mais exatos.
+
+O uso de simulações é recomendado quando se deseja obter resultados mais detalhados de sistemas que não estejam disponíveis ou cuja execução real é proibitiva, possuindo, entretanto, a desvantagem de oferecer maiores dificuldades na interpretação dos resultados.
+
+A modelagem analítica, por sua vez, simplifica a tarefa de avaliação dos resultados, uma vez que trata o sistema como um conjunto de variáveis aleatórias cuja distribuição fornece informações ao analista a respeito do sistema.
+
+Sua principal desvantagem é a complexidade dos cálculos matemáticos envolvidos (podendo não ser matematicamente tratável) e da quantidade de estados a serem observados.
+
+Neste trabalho demos destaque à modelagem analítica utilizando Redes de Petri Estocásticas, que se mostrou um formalismo válido para modelagem do interesse de comunicação de programas #.
+
+Porém, à medida que o coeficiente de variação torna-se muito pequeno, deve-se verificar se o uso de Redes de Petri Temporizadas Determinísticas não apresenta resultados melhores que a abordagem com GSPN.
+
+Uma vez que constatamos a validade do uso da metodologia na modelagem de programas paralelos, temos a extensão do esquema de tradução de especificações HCL para Redes de Petri lugar/transição de para GSPNs com fins de avaliação de desempenho, com o acréscimo de transições ou combinações de transições, cujo tempo associado a cada uma delas é uma variável aleatória com distribuição exponencial.
+
+Uma dificuldade encontrada no desenvolvimento deste trabalho (inclusive prevista como risco no projeto da monografia) foi a utilização do cluster remoto, que em certas ocasiões teve seu acesso impedido por problemas técnicos.
+
+Felizmente, porém, isto não impediu a coleta da maioria dos dados, mas exigiu que fossem realizadas adaptações, como no caso do EP, onde não foi possível obter os tempos individuais das operações de comunicação, sendo necessário realizar inferências.
+
+Este fato evidencia ainda mais a vantagem do uso de modelagem analítica e simulação sobre medições simples.
+
+A validação dos modelos em Redes de Petri Temporizadas nos levou a dar mais um passo no desenvolvimento de programas paralelos com o ambiente de programação # citado na Seção 4 2 Essa metodologia pode ser incorporada ao HPE com a construção de um back-end que traduza as classes HPE em um tipo abstrato que descreva a Rede de Petri equivalente.
+
+Uma vez que o usuário possa oferecer dados de desempenho para a modelagem de um interesse, como tempo médio e desvio-padrão, será possível realizar uma análise do coeficiente de variação pelo próprio ambiente, transformando a Rede de Petri em uma rede temporizada, com a aproximação mais adequada ao interesse modelado.
+
+Uma abordagem não utilizada neste trabalho, mas que pode ser estudada em outros é a integração do HPE com ferramentas como o EMpht, que procura realizar ajustes de amostras para distribuições Phase-type.
+
+Outra ferramenta que poderia ser incorporada ao HPE é o MPIBench, para realizar medições detalhadas de operações MPI, uma vez que o HPE possuirá um back-end para passagem de mensagens.
+
+Uma variável aleatória é uma entidade que representa uma ocorrência cuja probabilidade pode ser representada por uma função de mapeamento.
+
+Um exemplo é a probabilidade de um time vencer um jogo em um campeonato, os eventos podem ser a vitória ou a derrota do mesmo.
+
+Se for necessário saber a respeito da duração de um evento, a variável deve admitir uma aproximação.
+
+Caso a aproximação não seja desejável, é possível considerar a variável em um intervalo contínuo, e neste caso não é possível atribuir uma probabilidade a cada valor, sendo necessário determinar sua função de distribuição acumulada (cumulative distribution function-cdf).
+
+A cdf de uma variável aleatória X é É considerada cumulativa por considerar valores de X inferiores a a, acumulando as probabilidades anteriores a a.
+
+Se X é uma variável discreta em um intervalo x1<x2< a cdf é onde Px(Xi) é a função de distribuição de massa de X (mass probability function,mpf).
+
+Para uma variável contínua Y (tempo, por exemplo) teremos como cdf Onde fY(y) é a função de densidade de probabilidade (probability density function,pdf) of Y.
+
+Um valor de suma importância em análise estatística é a esperança ou valor esperado de uma variável aleatória.
+
+A esperança é a medida da localização da distribuição desta variável e é denotada por, Para X discreta.
+
+A variância determina o grau de dispersão em uma distribuição.
+
+Na Equação 11 temos a variância para uma variável aleatória e na Equação 12 o desvio padrão.
+
+Em diversas situações, porém, a análise da dispersão não é possível de ser feita observando apenas o desvio-padrão, uma vez que o mesmo depende da ordem de grandeza da variável, sendo difícil afirmar se a dispersão é grande ou pequena.
+
+Uma forma de eliminar essa ordem de grandeza é calculando o coeficiente de variação (CV), sendo um valor adimensional, relacionando o desvio-padrão e a média, como temos na Equação 13.
+
+Em geral, quando o CV é menor que 0,25, significa que os dados estão homogêneos.
+
+Porém, este tipo de interpretação varia de aplicação para aplicação.
+
+Em certas amostras é possível encontrar observações inconsistentes.
+
+Uma observação é tida como um outlier quando seu valor é muito maior ou menor que os outros valores da amostra em questão.
+
+Em geral são causados por erros na geração de dados, pela ocorrência de um evento raro, ou pela própria natureza do evento.
+
+O método mais óbvio de determinar se uma observação é um outlier é pelo cálculo do z-score (Equação 14).
+
+De acordo com a Regra Empírica e o Teorema de Tchebysheff, a maioria das observações devem possuir um valor z menor que 3.
+
+Desta forma, caso seja encontrado um z maior que 3, significa que a observação deve ser considerada um outlier.
+
+A necessidade de eliminação dos outliers é uma questão que deve ser cuidadosamente analisada, de acordo com o tipo de aplicação em estudo e com as necessidades do analista.
+
+Um processo estocástico é um conjunto de variáveis X(t) indexadas por um parâmetro t (t pertencendo a um conjunto T).
+
+X(t) representa uma característica mensurável de interesse no tempo t, por exemplo, um nível de estoque em um tempo t, Neste caso, o estado futuro depende apenas do estado presente (ausência de memória).
+
+Este processo será uma Cadeia de Markov quando as variáveis aleatórias X(t) são definidas em um espaço de estados discreto.
+
+A probabilidade P{X(tk+1) = x k+1| X(tk)=xk } é conhecida como probabilidade de transição do estado no tempo tk para um estado no tempo tk+1.
+
+A matriz de transição P é de grande valia nos cálculos de probabilidades estacionárias.
+
+Quando o tempo é considerado discreto, a cadeia é conhecida como Cadeia de Markov de Tempo Discreto (Discrete Time Markov Chain,DTMC).
+
+Probabilidades de transição são estacionárias (não mudam com o tempo).
+
+Considerando p(n a probabilidade de transição de um estado i para um estado j em um tempo n, podemos classificar os estados de uma cadeia de Markov.
+Acessível, um estado j é acessível a partir de um estado i se pij >0, para qualquer n.
+
+Comunicante, Dois estados j e i são comunicantes se j é acessível a partir de i e vice-versa, se i e k são comunicantes e k e j também o são, então, i e j são comunicantes.
+
+Dois estados comunicantes pertencem a mesma classe.
+
+Se todos os estados pertencem à mesma classe, a cadeia é irredutível.
+
+Transiente, Um estado é transiente (temporário) se, uma vez neste estado, o processo não pode voltar novamente à ele.
+
+É transiente se, e somente se, há um estado j (j i) acessível por i, mas não vice-versa, sendo visitado um número finito de vezes.
+
+Recorrente, um estado é recorrente se, entrando neste estado, o processo retornará a ele novamente, é recorrente se não for transiente.
+
+Absorvente, um estado é absorvente se, uma vez alcançado, o processo não irá deixá-lo, é um caso especial de estado recorrente, onde pii=1.
+
+Periódico, um estado é periódico com período t se o retorno a este estado é possível apenas em t, 2 t, 3 t passos, para t>1 (sendo t o máximo divisor comum entre eles).
+
+Se um estado não é periódico, é referido como aperiódico.
+
+Ergódico, estado recorrente e aperiódico e comunicante com os outros estados.
+
+Se todos os estados forem ergódicos, então, a cadeia é ergódica.
+
+Uma cadeia de Markov de tempo contínuo (Continuous Time Markov Chain,CTMC) é um processo estocástico cujo tempo varia continuamente e, em geral, procura responder às seguintes questões, por quanto tempo um sistema se mantém num dado estado e qual será o próximo estado.
+
+Um fato importante a ser lembrado é que não há transições de um estado para ele mesmo, uma vez que o tempo é contínuo, e não determinado em passos.
+
+Porém, antes de discutir mais aprofundadamente as CTMCs, devemos compreender o conceito de processos semi-Markovianos.
+
+Processos semi-Markovianos são processos estocásticos onde as transições podem ser descritas por uma cadeia de Markov, onde os tempos de duração são variáveis aleatórias.
+
+Um processo semi-Markoviano será uma CTMC quando, Isto significa que o processo deve ser uma cadeia de Markov e o tempo de duração é exponencialmente distribuído (seu parâmetro é conhecido como taxa).
+
+No caso das DTMCs, o tempo é geometricamente distribuído.
+
+Uma CTMC com espaço de estados S é caracterizada por um vetor de estados iniciais tendo um matriz geradora Q, Onde qij é a taxa que corresponde à mudança de estado de i para j sendo qii =,j qij.
+
+Como exemplo, podemos considerar uma CTMC onde, Y(t) é o número de clientes de um sistema em um tempo t 0 e com espaço de estados S  Os dois tipos de eventos que podem ocorrer são Ei {cliente chega, cliente deixa o sistema}.
+
+O tempo até um cliente chegar é exponencialmente distribuído com taxa.
+
+O tempo que um cliente leva para ser atendido e deixar o sistema é exponencialmente distribuído com taxa µ.
+
+Neste caso, teremos a seguinte matriz geradora (colunas e linhas representam o espaço de estados), A matriz geradora Q para CTMCs tem um papel similar à matriz de transição P para as DTMCs.
+
+É importante lembrar que a soma dos elementos de uma linha em Q é igual a zero, enquanto a soma dos elementos de uma linha em P é igual a 1.
+
+O tempo de absorção de uma cadeia de Markov ({Yt}, t>0) com espaço de estados E={1 p}, onde é o estado absorvente, pode ser modelado por uma variável aleatória com uma distribuição Phase-Type (distribuição PH).
+
+Para caracterizar esta distribuição é preciso determinar o vetor de probabilidades =(1, 2, p) onde i =P{Y0 = i}.
+
+A probabilidade é considerada zero.
+
+A matriz Q é representada da seguinte forma, Onde T é o gerador Phase-Type e t é o vetor de taxas de saída (seu iésimo termo é a intensidade condicional de absorção em a partir do estado i).
+
+Desde que a soma de ms linha em Q deve ser zero, temos t = Te, com e =(1,1)', um vetor coluna com p 1 s.
+
+Basicamente, uma distribuição PH é representada por um par (,T) e sua ordem p.
+

@@ -1,0 +1,1468 @@
+Ao longo dos últimos dez anos, estratégias para extração de padrões seqüenciais vêm sendo desenvolvidas e aprimoradas.
+
+Algumas delas têm como base o algoritmo iterativo Apriori, desenvolvido para a extração de conjuntos freqüentes, como por exemplo a estratégia GSP.
+
+Experimentos computacionais realizados nesta categoria de estratégias indicam que a etapa de identificação das seqüências freqüentes (padrões seqüenciais), ou seja, a fase de contagem do suporte das seqüências candidatas consome grande parte do tempo total de execução.
+
+Sendo assim, nesta dissertação, com o objetivo de reduzir o custo de diversas leituras da base de dados e o esforço computacional da fase de contagem de seqüências candidatas, típicos dos algoritmos iterativos de extração de padrões seqüenciais, propõe-se a redução progressiva da base de dados ao longo da execução das iterações.
+
+Desta forma, menos transações são lidas a cada iteração e menor passa a ser o custo computacional para a obtenção do suporte de cada seqüência candidata.
+
+Os resultados avaliados, a partir de diferentes combinações de bases de dados e suportes mínimos, mostraram que as técnicas de redução de base implementadas no algoritmo proposto GSPP reduzem significativamente o tempo de execução total do algoritmo sem poda de base GSP(implementação do GSP).
+
+Neste mesmo trabalho, com o objetivo de validar o uso das técnicas propostas e estender as suas aplicações, as técnicas de redução de base foram aplicadas ao problema de extração de padrões seqüenciais baseada em restrições.
+
+Os resultados avaliados, a partir de diferentes combinações de bases de dados e valores de seletividade das restrições, mostraram que as técnicas de redução de base implementadas no algoritmo proposto GSPP-F reduzem significativamente o tempo de execução total do algoritmo sem poda de base GSPF.
+
+Um padrão seqüencial é caracterizado por eventos que se sucedem no tempo e que aparecem com significativa freqüência em uma base de dados.
+
+Estes padrões podem ser utilizados para prever um evento futuro baseado nos anteriores.
+
+Pode-se citar, por exemplo, um padrão seqüencial extraído de uma base de dados de uma locadora de vídeo em que, parte significativa dos clientes alugam os seguintes filmes nesta ordem, "Guerra nas Estrelas", "O Império ContraAtaca" e "Retorno de Jedi".
+
+A representação deste padrão seria <(Guerra nas Estrelas) (O Império Contra-Atac (Retorno de Jedi)>.
+
+A partir deste exemplo, pode-se prever que um cliente, depois de alugar "Guerra nas Estrelas" e "O Império Contra-Ataca", tem grande probabilidade de alugar o "Retorno de Jedi".
+
+A mineração de padrões seqüenciais pode ter várias aplicações na área comercial e de pesquisa.
+
+Na medicina, por exemplo, o diagnóstico de doenças ou a necessidade de aplicação de medicamentos podem ser previstos a partir do histórico de sintomas ou doenças ocorridas anteriormente no paciente, como citado em.
+
+Pode-se realizar a mineração sobre o histórico de seqüências de acesso a páginas web pelos diferentes usuários.
+
+Os padrões minerados representam seqüências de páginas com maior freqüência de acesso.
+
+Estas informações são úteis para reestruturar sites ou para inserir dinamicamente links em determinadas páginas a partir dos padrões de acesso, como citado em.
+
+Na área comercial, é possível estimar possíveis compras futuras dos clientes através de padrões seqüenciais minerados do histórico de compras.
+
+Estas informações podem ser utilizadas para gerar sugestões de produtos através de emails promocionais.
+
+A busca de padrões seqüenciais ocorre sobre uma base de dados transacional, em que cada transação possui, o identificador do seu proprietário, chamado consumidor, a informação de quando ela foi realizada e os itens que a compõem.
+
+Em uma analogia com uma base de dados de transações de um supermercado, a identificação do consumidor poderia ser o número do seu cartão de crédito, o momento de realização da transação seria a data e a hora da compra e os itens seriam os artigos que foram adquiridos pelo cliente.
+
+Cada consumidor possui sua própria seqüência de transações, ordenadas pela data e hora de cada transação, chamada seqüência de consumidor.
+
+A mineração de padrões seqüenciais objetiva descobrir todas as seqüências freqüentes de eventos, ordenados no tempo, em que cada evento é um conjunto de itens adquiridos em uma mesma transação.
+
+Os padrões seqüenciais representam todas as seqüências de eventos existentes na base de dados, que aparecem em um número mínimo, preestabelecido, de seqüências de consumidores.
+
+Este número mínimo de consumidores é chamado de suporte mínimo e, se a seqüência de eventos tiver um suporte igual ou maior que o mínimo, ela é chamada freqüente.
+
+O suporte de uma seqüência de eventos indica a relevância desta.
+
+O valor do suporte mínimo, que uma seqüência deve ter para ser considerada freqüente, deve ser especificado pelo usuário.
+
+Como exemplo, considerando a seqüência de eventos <(brinquedo)pilh> e um suporte mínimo de dois consumidores, esta seqüência será freqüente se pelo menos dois consumidores comprarem os itens "brinquedo" e "pilha" em transações diferentes, nesta ordem.
+
+O suporte de um padrão seqüencial também pode ser definido como uma porcentagem do número de seqüências de consumidores em que o padrão ocorre em relação ao número total de seqüências de consumidores da base de dados.
+
+Ao longo dos últimos dez anos, estratégias para extração de padrões seqüenciais vêm sendo desenvolvidas e aprimoradas.
+
+Em geral, os algoritmos propostos para este problema podem ser categorizados em três classes,métodos baseados no Apriori, como o AprioriAll e o GSP, métodos que exploram a base de dados em um formato verticalizado, como o SPADE e o SPAM.
+
+E métodos que projetam e particionam recursivamente a base de dados, como o FreeSpan e o PrefixSpan.
+
+O algoritmo GSP (Generalized Sequential Patterns), desenvolvido por Agrawal e Srikant em 1996, foi uma das primeiras estratégias propostas para solução deste problema e será objeto de estudo neste trabalho.
+
+O GSP tem como base o algoritmo Apriori, proposto para o problema de extração de conjuntos freqüentes pelos mesmos autores.
+
+Assim como o algoritmo Apriori, o GSP realiza várias iterações para encontrar todos os padrões seqüenciais.
+
+Considerando que o tamanho de uma seqüência é determinado pelo número de itens que ela possui, inicialmente, em uma primeira leitura da base, o conjunto de seqüências freqüentes de tamanho 1 (F) é encontrado.
+
+Estas são utilizadas para gerar o conjunto de todas as possíveis seqüências de tamanho (C), que são chamadas seqüências candidatas.
+
+As seqüências candidatas são armazenadas em uma estrutura de dados chamada árvore hash.
+
+Na segunda leitura da base, a seqüência de cada consumidor é confrontada com as seqüências candidatas de C, para a contagem de suporte.
+
+As que possuírem suporte maior ou igual ao mínimo formam o conjunto F.
+
+O conjunto F será utilizado para gerar as candidatas de tamanho (C) na próxima iteração do algoritmo.
+
+Na k-ésima iteração, candidatas de tamanho k (C) são geradas através da combinação das seqüências freqüentes de tamanho k1 (F).
+
+Cada seqüência candidata de C possui um item a mais do que as seqüências de F Ainda na k-ésima iteração, percorre-se a base de dados para contar o suporte das seqüências candidatas de C.
+
+O algoritmo termina quando nenhuma nova candidata é gerada ou quando nenhuma candidata possui suporte maior ou igual ao suporte mínimo.
+
+O algoritmo GSP é uma estratégia importante, tendo sido a base de vários outros algoritmos, tais como o PSP e o GSP2.
+
+O algoritmo PSP (Prefix Tree for Sequential Patterns) utiliza uma árvore de prefixo para armazenar as seqüências candidatas no lugar da árvore hash utilizada no GSP.
+
+A árvore de prefixo foi adotada para melhorar o desempenho da etapa de contagem do suporte das candidatas e reduzir a utilização de memória principal.
+
+O algoritmo GSP2, nas iterações iniciais, utiliza uma estrutura de dados, chamada ABS-SP (Array-Based Structure for Sequential Patterns), em substituição à mesma árvore hash.
+
+Na estrutura ABS-SP, o acesso ao conjunto de candidatas é feito diretamente, através da indexação das candidatas em um vetor e em uma matriz, reduzindo o tempo de acesso às candidatas e, conseqüentemente, o tempo de execução do algoritmo.
+
+O algoritmo GSP é a base também de algoritmos desenvolvidos para a extração de padrões seqüenciais baseada em restrições, tais como os algoritmos GSP-F e SPIRIT.
+
+Experimentos computacionais realizados em indicam que a etapa de contagem do suporte das seqüências candidatas consomem a maior parte do tempo total de execução em estratégias como o GSP.
+
+Por este motivo, pesquisadores têm concentrado esforços na melhoria desta etapa.
+
+Neste contexto, com o objetivo de reduzir o custo de diversas leituras da base de dados e o esforço computacional da fase de contagem das seqüências candidatas, típicos dos algoritmos iterativos de extração de padrões seqüenciais, propõe-se, neste trabalho, a utilização de técnicas de redução progressiva da base de dados ao longo das iterações.
+
+Desta forma, menos seqüências de consumidores são lidas a cada iteração da base de dados e menor passa a ser o custo computacional para a obtenção do suporte de cada seqüência candidata.
+
+As técnicas propostas são baseadas nas estratégias de redução de base de dados apresentadas pelos autores dos algoritmos DHP e kDCI++ no contexto da mineração de conjuntos freqüentes.
+
+A redução de base é realizada progressivamente a cada iteração eliminando-se itens nas seqüências de consumidores que, necessariamente, não serão úteis na contagem de suporte de nenhuma seqüência freqüente.
+
+O bom desempenho de algoritmos como SPADE, SPAM, FreeSpan e PrefixSpan depende de a base de dados caber inteiramente ou de forma particionada, dependendo da estratégi na memória principal.
+
+Desta forma, estes algoritmos podem também se beneficiar de técnicas de redução da base de dados.
+
+A poda da base seria progressivamente executada até que esta ou cada partição dest pudesse ser armazenada em memória principal em estruturas de dados específicas de cada estratégia.
+
+As técnicas propostas para a redução da base de dados serão incorporadas ao algoritmo GSP.
+
+A avaliação destas técnicas será realizada a partir da comparação de duas implementações do GSP, a versão GSP2, apresentada em, e a versão GSPP GSPcom Pod, desenvolvida neste trabalho, que incorpora ao GSPas técnicas propostas de poda da base.
+
+Com o objetivo de validar o uso das técnicas propostas e estender as suas aplicações, propõe-se também, neste trabalho, a utilização das técnicas de redução da base de dados no problema de extração de padrões seqüenciais baseada em restrições.
+
+A extração de padrões seqüenciais baseada em restrições permite ao usuário restringir o espaço de busca através da definição de critérios, eliminando padrões seqüenciais que não o interessam.
+
+Assim, são geradas menos seqüências freqüentes e o esforço computacional necessário é reduzido, tornando a extração dos padrões seqüenciais mais eficiente.
+
+Neste contexto, em, o algoritmo GSP-F (GSP with Dataset Filtering) foi proposto.
+
+Este algoritmo extrai os padrões seqüenciais iterativamente, da mesma forma que o GSP, em que, a cada iteração k, a base de dados é inteiramente lida e são encontradas as seqüências freqüentes de tamanho k.
+
+Embora a base de dados seja inteiramente lida, apenas as seqüências de consumidores que possam contribuir na contagem de algum padrão seqüencial que satisfaça às restrições do usuário são consideradas na fase de contagem de suporte das seqüências candidatas a cada iteração.
+
+A avaliação das técnicas de redução da base de dados, quando aplicadas ao problema de extração de padrões seqüenciais baseada em restrições, será realizada a partir da comparação de duas estratégias.
+
+A primeira, denominada GSPF, é uma implementação da estratégia GSP-F, desenvolvida no escopo deste trabalho.
+
+A segunda, denominada GSPP-F, equivale à estratégia GSPF implementada com as técnicas propostas para poda da base.
+
+O restante desta dissertação está organizado nos seguintes capítulos, Capítulo Algoritmo GSP.
+
+Neste capítulo, será apresentada uma descrição detalhada do algoritmo GSP e uma definição do problema de extração de padrões seqüenciais.
+
+Capítulo Técnicas de Redução da Base de Dados.
+
+Serão apresentadas, neste capítulo, as técnicas de redução de base de dados propostas e o algoritmo que implementa tais técnicas, chamado GSPP GSPcom Pod.
+
+Capítulo Experimentos Computacionais.
+
+Avaliações comparativas de desempenho entre os algoritmos GSPe GSPP serão apresentadas neste capítulo.
+
+Estão incluídas também avaliações de desempenho de cada técnica de redução de base de dados separadamente.
+
+Capítulo 5 Redução de Base de Dados na Extração de Padrões Seqüenciais Baseada em Restrições.
+
+Neste capítulo, o problema de extração de padrões seqüenciais baseada em restrições será explorado.
+
+O algoritmo proposto, que incorpora as técnicas de redução de base de dados ao algoritmo GSP-F, chamado GSPP-F, será apresentado.
+
+Avaliações de desempenho também serão realizadas.
+
+Capítulo 6 Conclusões.
+
+Serão destacadas as contribuições deste trabalho, as conclusões finais e as possibilidades de trabalhos futuros.
+
+Neste capítulo, apresenta-se o algoritmo GSP, proposto por Ramakrishnan Srikant e Rakesh Agrawal em.
+
+O GSP é um algoritmo iterativo de extração de padrões seqüenciais, e está descrito em detalhes na Seção 22.
+
+A definição formal do problema de padrões seqüenciais é apresentada na Seção 21.
+
+Um padrão seqüencial é caracterizado por eventos que se sucedem no tempo e que podem ser utilizados para prever um evento futuro baseados nos anteriores.
+
+Um exemplo de padrão seqüencial extraído de uma base de dados de uma locadora de vídeos poderia ser, parte significativa dos clientes aluga os seguintes filmes, nesta ordem, "Guerra nas Estrelas", "O Império Contra-Ataca" e "Retorno de Jedi".
+
+A representação desse padrão seria <(Guerra nas Estrelas) (O Império Contra-Atac (Retorno de Jedi)>.
+
+Apesar de as locações aparecerem nesta ordem, elas podem ter sido realizadas de forma não consecutiva.
+
+A partir deste exemplo, pode-se prever que um cliente, depois de alugar "Guerra nas Estrelas" e o "Império Contra-Ataca", tem grande probabilidade de alugar o "Retorno de Jedi".
+
+A busca de padrões seqüenciais ocorre sobre uma base de dados transacional, em que cada transação possui o identificador do seu proprietário, chamado consumidor, a informação de quando ela foi realizada e os itens que a caracterizam.
+
+Em uma analogia com a base de dados de transações de um supermercado, a identificação do consumidor poderia ser o número do seu cartão de crédito.
+
+O momento de realização da transação seria a data e hora da compra e os itens seriam os artigos que foram adquiridos pelo cliente.
+
+A epresenta uma base de dados de transações de um supermercado, em que 7 cada registro possui um identificador do consumidor CI, a identificação de cada transação TI e o conjunto de itens comprados.
+
+O TID, além de identificar as transações, indica a ordem em que foram realizadas.
+
+Deve-se considerar que cada consumidor não possui duas transações realizadas ao mesmo tempo, ou seja, com o mesmo TID.
+
+Exemplo de base de dados transacional.
+
+As transações podem ser agrupadas por consumidor, formando uma base de dados de seqüências de consumidores, em que cada seqüência é formada pela lista ordenada segundo a ocorrênci de transações de um determinado consumidor.
+
+Um exemplo de base de seqüências de consumidores, referente à base de dados transacional do exemplo anterior, está apresentado.
+
+Exemplo de base de dados de seqüências de consumidores.
+
+Conforme definido em, uma seqüência é uma lista ordenada de eventos, sendo cada evento um conjunto não vazio de itens.
+
+Um exemplo de seqüência de consumidor é a lista de transações do consumidor Alice, h(leite,pao,suco)(ovos,pao)(cafe,leite)i, na qual cada transação representa um conjunto de itens adquiridos.
+
+O tamanho da seqüência é definido pelo seu número de itens.
+
+Por exemplo, a seqüência h(leite,pao,suco)(pao,ovos)(cafe,leite)i tem tamanho 7.
+
+Uma seqüência de tamanho k possui k itens, sendo que um determinado item pode aparecer inúmeras vezes na seqüência, mas uma única vez por elemento da seqüência.
+
+Por exemplo, a seqüência anterior possui 7 itens, porém apenas 5 distintos.
+
+Padrões seqüenciais são todas as seqüências que estão contidas em um número mínimo preestabelecido de seqüências de consumidores, também chamado de suporte mínimo.
+
+Um consumidor suporta uma seqüência s se ela estiver contida na sua seqüência.
+
+O suporte da seqüência é definido como a fração do número de consumidores que suportam a seqüência em relação ao número total de consumidores.
+
+Seqüências freqüentes, ou padrões seqüenciais, são aquelas que possuem o suporte maior ou igual ao suporte mínimo.
+
+Como exemplo, utilizando a base de dados, as seqüências h(cafe,manteigi e h(leite)(pao)i são freqüentes para um suporte mínimo de consumidores.
+
+A primeira é uma seqüência de tamanho com 1 elemento e está contida nos consumidores Joao e Maria, e a segunda é uma seqüência de tamanho com elementos e está contida nos consumidores Alice e Joao.
+
+Neste trabalho, será estudado o processo de mineração de padrões seqüenciais, ou seja, o processo de identificação de todas as seqüências que possuem suporte maior ou igual ao suporte mínimo, especificado pelo usuário.
+
+O algoritmo GSP (Generalized Sequential Patterns) foi uma das primeiras estratégias desenvolvidas para extração de padrões seqüenciais.
+
+Este algoritmo extrai os padrões seqüenciais iterativamente, de tal forma que, a cada iteração k, a base de dados é inteiramente lida e são encontradas as seqüências freqüentes de tamanho k.
+
+Em uma primeira iteração, obtém-se o suporte dos conjuntos de itens de tamanho k = 1.
+
+Os itens que aparecem em um número mínimo de consumidores formam o conjunto de seqüências freqüentes de tamanho k = 1, chamado F.
+
+Em seguida, em cada iteração k 2, as possíveis seqüências freqüentes de tamanho k, chamadas seqüências candidatas de tamanho k, são geradas a partir das seqüências freqüentes de tamanho k 1, obtidas na iteração anterior.
+
+Ao conjunto de seqüências candidatas de tamanho k, dá-se o nome de C.
+
+Após a geração de C, a base de dados é lida a fim de se obter o suporte das seqüências candidatas de tamanho k e, conseqüentemente, obter o conjunto das seqüências freqüentes de tamanho k, F.
+
+O algoritmo termina quando nenhuma nova seqüência freqüente é encontrada em uma iteração, ou quando nenhuma seqüência candidata é gerada.
+
+É importante ressaltar que o GSP é um algoritmo que não utiliza a base de dados carregada em memória principal, como é o caso de outras estratégias como o SPADE.
+
+Apenas o conjunto de seqüências candidatas é mantido em memória principal durante cada iteração e apenas uma seqüência de consumidor, por vez, é armazenada em memória principal durante o seu processamento.
+
+Como o conjunto de seqüências candidatas, geradas pela combinação das seqüências freqüentes da iteração anterior, pode se tornar extremamente grande, o GSP utiliza as seguintes propriedades para diminuir o espaço de busca, ou seja, diminuir o número de seqüências candidatas a serem avaliadas, Toda seqüência que possui alguma subseqüência não freqüente também não é freqüente.
+
+Suponha, por exemplo, que a seqüência de tamanho h(leite)(ovos)i não seja freqüente.
+
+Então, necessariamente, a seqüência candidata de tamanho h(leite)(ovos,pao)i também não será freqüente.
+
+Essa propriedade permite a redução do número de seqüências candidatas geradas a cada iteração.
+
+Todas as subseqüências de uma seqüência freqüente são, necessariamente, freqüentes.
+
+Por exemplo, se a seqüência de tamanho h(leite)(ovos,pao)i é freqüente, então todas as suas subseqüências de tamanho h(leite)(ovos)i, h(leite)(pao)i e h(ovos,pao)i também são freqüentes.
+
+Esta propriedade permite eliminar as seqüências candidatas que possuem alguma subseqüência que não seja freqüente.
+
+Destacam-se no GSP duas funções principais, que ocorrem a cada iteração k, Geração de Seqüências Candidatas, no início de cada iteração, o conjunto de seqüências candidatas de tamanho k (C) é gerado.
+
+A geração é feita em duas etapas, a etapa de Junção, quando ocorre a geração das seqüências candidatas através da combinação das seqüências do conjunto de seqüências freqüentes de tamanho e a etapa de Poda, quando as seqüências candidatas que possuem alguma subseqüência não freqüente são eliminadas.
+
+Para armazenar as seqüências candidatas em memória principal é usada uma árvore hash para reduzir o tempo de acesso às seqüências no momento da contagem de suporte.
+
+Contagem do Suporte das Seqüências Candidatas, esta função é executada após a geração do conjunto C.
+
+É feita uma leitura completa da base de dados para a contagem do suporte das seqüências de C.
+
+O suporte de cada candidata é incrementado todas as vezes em que ela estiver contida em uma seqüência de consumidor.
+
+Um pseudo-código do GSP é apresentado.
+
+Na primeira iteração do algoritmo, todas as seqüências candidatas de tamanho 1 (todos os itens da base) são contadas através de uma leitura completa da base de dados.
+
+Aquelas que aparecerem em um número mínimo de seqüências de consumidores formarão o conjunto de seqüências freqüentes de tamanho.
+
+As linhas de a 11 apresentam os passos necessários para se encontrar todas as seqüências freqüentes de tamanho maior do que 1.
+
+Na segunda iteração, é feita a geração do conjunto de seqüências candidatas de tamanho a partir do conjunto de freqüentes F e, em seguida, é feita uma nova leitura da base de dados, quando cada seqüência de consumidor lida da base é comparada com as seqüências candidatas de C, armazenadas em uma árvore hash.
+
+Todas as seqüências candidatas que estiverem contidas em cada seqüência de consumidor têm seu suporte incrementado.
+
+Após a leitura da base de dados e da contagem de suporte, as seqüências candidatas que possuem suporte maior ou igual ao suporte mínimo formam o conjunto F (linha 10), que são as seqüências freqüentes de tamanho 2.
+
+O conjunto F será usado para gerar o conjunto de seqüências candidatas de tamanho (C) na próxima iteração do algoritmo.
+
+O algoritmo termina quando nenhuma seqüência candidata em C possuir um suporte maior ou igual ao suporte mínimo, ou seja, quando F for vazio.
+
+A união de todos os conjuntos de seqüências freqüentes, obtidos nas diversas iterações, representa todos os padrões seqüenciais existentes na base de dados para determinado suporte mínimo.
+
+É importante ressaltar que, nas iterações k 2, após ler cada seqüência de consumidor t da base de dados, o GSP mantém em t apenas os itens freqüentes.
+
+Desta forma, na linha 8, cada seqüência de consumidor t possui apenas itens freqüentes.
+
+A geração das seqüências candidatas de tamanho k é feita através da combinação das seqüências freqüentes de tamanho k 1.
+
+As seqüências candidatas são geradas em duas fases, Fase de junção, as seqüências freqüentes existentes em F são unidas duas a duas para formar as seqüências candidatas de C.
+
+Esta junção entre duas seqüências freqüentes s e s só é feita se a subseqüência obtida a partir da remoção do primeiro item de s for igual à subseqüência obtida a partir da remoção do último item de s.
+
+A seqüência candidata gerada é s acrescentada do último item de s.
+
+O item acrescentado ficará em um elemento separado na seqüência candidata gerada, caso esteja sozinho no último elemento de s, caso contrário, o último item estará contido no último elemento de s.
+
+Por exemplo, as seqüências de tamanho 3, a = h(1,(i e b = h((5)i, geram a mesma subseqüência hi quando se é retirado o primeiro elemento de a e o último elemento de b.
+
+Pode-se gerar, então, a seqüência candidata de tamanho h(1,((5)i.
+
+A seqüência a = h(1,(i não pode formar candidata com a seqüência b = h(2, (4)i, porque a subseqüência gerada em a, hi, é diferente da subseqüência gerada em b, h2,i.
+
+Em outro exemplo, a seqüência a = h(1,2)(i pode unir-se a b = h(3,4)i, para formar a candidata h(1,(3, 4)i.
+
+O procedimento de junção na segunda iteração é diferente.
+
+Cada seqüência de F é combinada com todas as outras seqüências do mesmo conjunto, inclusive com ela mesma, para a geração do conjunto de seqüências candidatas de tamanho (C).
+
+Se |F | = z, então existem z combinações possíveis das seqüências freqüentes de tamanho 1, sendo que cada combinação pode gerar até duas diferentes seqüências candidatas.
+
+Por exemplo, considerando h(X)i e h(Y)i seqüências freqüentes de tamanho 1, a primeira candidata gerada possui a forma h(X)(Y)i, na qual seus dois itens pertencem a elementos diferentes e a segunda candidata gerada possui a forma h(X,Y)i, na qual seus dois itens pertencem a um mesmo elemento.
+
+Considerando a ordem lexicográfica das seqüências de F, a candidata com a forma h(X,Y)i somente pode ser gerada, se o item da segunda seqüência a ser combinada é maior lexicograficamente que o item da primeira (Y > X).
+
+Desta forma, evita-se gerar duas vezes as candidatas equivalentes h(X,Y)i e h(Y,X)i.
+
+Além disso, se a seqüência h(X)i for combinada com ela mesma, gera-se somente a candidata h(X)(X)i.
+
+O número de seqüências candidatas da forma h(X)(Y)i é determinado por |F | × |F | e o número de seqüências candidatas da forma h(X,Y)i é determinado.
+
+Desta forma, o número total de seqüências candidatas de tamanho é determinado pela fórmula, Fase de poda, elimina as seqüências candidatas geradas na fase de junção que possuem alguma subseqüência não freqüente (considerando a propriedade citada anteriormente) e, portanto, não precisam ser armazenadas na árvore hash para o processo posterior de contagem.
+
+Por exemplo, se na seqüência candidata a subseqüência não for freqüente, então, obrigatoriamente, a seqüência a também não será freqüente e será podada.
+
+As candidatas de tamanho não passam por este processo de poda, porque todas as suas subseqüências são necessariamente freqüentes.
+
+Um exemplo de geração de seqüências candidatas de tamanho é apresentado.
+
+Na fase de junção, as seqüências freqüentes de tamanho são unidas para formar a seqüência candidata de tamanho e as seqüências freqüentes são unidas para formar a seqüência candidata.
+
+Na fase de poda, as seqüências candidatas que possuem alguma subseqüência não freqüente são descartadas.
+
+Sendo assim, somente a seqüência candidata compõe o conjunto C, já que a seqüência possui as subseqüências não freqüentes.
+
+Árvore hash é a estrutura de dados utilizada para armazenar os conjuntos de seqüências candidatas geradas (C), quando o tamanho das seqüências for maior ou igual a 2.
+
+Cada nó da árvore hash pode conter uma lista de seqüências (nó folh ou uma tabela hash (nó interno), em que cada entrada aponta para outro nó.
+
+Geração de seqüências candidatas pelo GSP.
+
+O número de entradas na tabela hash determina o grau da árvore.
+
+Um nó folha armazena, de forma ordenada, uma lista de seqüências candidatas, sendo que cada uma possui um contador para armazenar sua freqüência na base de dados.
+
+A raiz da árvore hash é definida como tendo profundidade 1.
+
+Um nó interno de profundidade aponta para outro nó de profundidade.
+
+A partir do nó raiz, as seqüências candidatas geradas são adicionadas à árvore hash.
+
+Percorre-se a árvore hash até alcançar um nó folha.
+
+O caminho percorrido através dos nós internos até alcançar um nó folha é determinado pelo resultado de uma função hash aplicada sobre os itens da seqüência.
+
+Quando estiver percorrendo a árvore hash através de um nó interno de profundidade, deve-se aplicar a função hash sobre o item de ordem n da seqüência.
+
+O retorno desta função informa qual ramo do nó será alcançado.
+
+Inicialmente, quando a árvore hash é criada, o nó raiz é o único existente e é também um nó folha.
+
+No momento em que o número de seqüências em cada nó folha ultrapassar um limite preestabelecido, chamado saturação da folha, e sua profundidade for menor do que k (tamanho das seqüências inseridas na árvore hash), o nó folha transforma-se em nó interno.
+
+Nós filhos do novo nó interno são criados para receber as seqüências, que são distribuídas entre eles através da aplicação da função hash sobre os itens das seqüências.
+
+Se o nó folha estiver no último nível, igual a k, ele receberá a seqüência independente do número de seqüências já armazenadas.
+
+Considerando-se que os itens que compõem a base de dados estejam no intervalo numérico, a partir do nó raiz, a função hash é aplicada sobre cada item da seqüência.
+
+A função hash é definida da seguinte forma, se o item for 1, ou 7, percorre-se a árvore pelo nó esquerdo se for 2, 5 ou 8, percorre-se a árvore pelo nó central e se for 3, 6 ou 9, percorre-se a árvore pelo nó direito.
+
+Como exemplo, utilizando a árvore hash para localizar a seqüência, a função hash deve ser aplicada sobre seus itens.
+
+Inicia-se pelo nó raiz.
+
+A função hash é aplicada no primeiro item da seqüência s, alcançando o nó esquerdo da raiz.
+
+Percorre-se a árvore hash pelo nó esquerdo 1 e outro nó interno, com profundidade 2, é alcançado.
+
+Então, a função hash deve ser aplicada sobre o segundo item da seqüência s, tendo como resultado o ramo central.
+
+Percorre-se a árvore hash pelo ramo central e um nó folha é alcançado, onde poderá ser encontrada a seqüência s.
+
+Exemplo de árvore hash.
+
+Na inserção da seqüência na árvore hash apresentada, a função hash é aplicada recursivamente sobre seus itens até encontrar um nó folha.
+
+O nó folha encontrado possui duas seqüências.
+
+Como a saturação da folha é e a profundidade é menor do que 3, este nó folha será transformado em nó interno de profundidade e suas seqüências serão distribuídas entre seus nós filhos, aplicando a função hash sobre o terceiro item de cada uma das seqüências.
+
+A cada iteração k do algoritmo, após a geração das seqüências candidatas, cada seqüência de consumidor t da base de dados é lida e incrementa-se o suporte de todas as seqüências candidatas de C, armazenadas na árvore hash, contidas em t.
+
+Após todas as seqüenciais de consumidores serem analisadas, gera-se F, eliminando-se as seqüências candidatas que não estiverem contidas em um número mínimo de consumidores.
+
+A busca na árvore hash pelas seqüências candidatas contidas em cada seqüência de consumidor t é feita pela utilização de uma função hash que é aplicada sobre os itens de t.
+
+Na k-ésima iteração, cada subseqüência t de tamanho k contida em t deve ser considerada.
+
+Percorre-se a árvore hash na tentativa de se encontrar alguma seqüência candidata igual a t para ter seu suporte incrementado.
+
+Sendo assim, quanto maior o tamanho de t, maior será o número de subseqüências a serem avaliadas nesse processo.
+
+Exemplo de contagem do suporte das seqüências candidatas contidas na seqüência de consumidor.
+
+Os nós internos estão rotulados para melhor exemplificação.
+
+A árvore hash deste exemplo armazena candidatas de tamanho 3.
+
+O resultado da função hash aplicada sobre os itens de t indica qual caminho será percorrido do nó raiz até um nó folha.
+
+A função hash será aplicada a todos os itens a partir do nó raiz.
+
+Inicialmente, ela é aplicada sobre o primeiro item de t.
+
+As candidatas que possuem o item 1, como o primeiro item da seqüência, estão na sub-árvore esquerda da raiz.
+
+Como o nó esquerdo da raiz (N1) é um nó interno, a função hash também será aplicada sobre cada um dos itens posteriores a 1 na seqüência de consumidor, para se chegar até um nó folha.
+
+O resultado da função hash sobre o item aponta para o nó N3.
+
+Nesta sub-árvore central do nó N1, podem existir seqüências que iniciam com os itens 1 e 2.
+
+Como o nó Né um nó interno, a função hash será aplicada sobre os itens posteriores a 1 e 2, que são ((4, 5).
+
+Ao se aplicar a função hash sobre o item 3, um nó folha é alcançado.
+
+Todas as seqüências candidatas existentes no nó folha são comparadas com a seqüência de consumidor t, para a contagem do suporte.
+
+Somente a seqüência teve seu suporte incrementado, pois é uma subseqüência da seqüência de consumidor.
+
+Quando um nó folha é alcançado, ele ficará marcado para aquela seqüência de consumidor, evitando que seqüências candidatas sejam comparadas mais de uma vez com a mesma seqüência de consumidor.
+
+Como a seqüência de consumidor ainda não foi completamente processada na busca de candidatas que iniciam com os itens 1 e 2, a função hash é aplicada, a partir do nó N3, sobre o item e, posteriormente, sobre o item 5.
+
+Ao aplicar a função hash sobre o item 4, uma outra folha é alcançada.
+
+A única seqüência deste nó folha, como não está contida na seqüência de consumidor, não tem o seu suporte incrementado.
+
+Ao aplicar a função hash sobre o item 5, uma outra folha é alcançada.
+
+A única seqüência deste nó folha tem o seu suporte incrementado.
+
+Exemplo da contagem do suporte das seqüências candidatas.
+
+Como a seqüência de consumidor foi completamente processada na busca de seqüências candidatas que iniciam com os itens 1 e 2, o procedimento retorna ao nó interno N1 para alcançar seqüências candidatas através da aplicação da função hash sobre o item 3.
+
+Aplicando-se a função hash sobre este item, um nó folha é alcançado e sua única seqüência h(1, (5)i não tem o seu suporte incrementado.
+
+A função hash é aplicada aos itens subseqüentes da seqüência de consumidor até que todas as possíveis combinações de tamanho 3, que começam com o item 1, tenham sido exploradas.
+
+O procedimento recursivo, que percorre a árvore hash, retorna ao nó raiz e a função hash é aplicada aos itens restantes da seqüência de consumidor ((4, 5), criando todas as combinações possíveis de tamanho 3.
+
+Ao aplicar a função hash no segundo item da seqüência de consumidor, item 2, serão verificadas seqüências candidatas de tamanho 3, iniciadas com o item 2.
+
+O processo segue para os itens posteriores da seqüência de consumidor.
+
+A contagem é finalizada quando todas as seqüências de consumidores existentes na base de dados são comparadas com as seqüências candidatas armazenadas na árvore hash.
+
+Após a contagem, as seqüências que tiverem os suportes menores do que o mínimo são eliminadas da árvore hash.
+
+O código do algoritmo GSP utilizado neste trabalho, chamado aqui de GSP2, foi escrito na linguagem C e cedido pelo autor da dissertação de mestrado Mineração Eficiente de Padrões Seqüenciais através da Indexação de Seqüências Candidatas.
+
+O algoritmo GSPé uma adaptação do algoritmo GSP original que utiliza uma estrutura de dados baseada em vetor.
+
+Esta estrutura permite a indexação direta das seqüências candidatas na segunda iteração em vez da utilização da árvore hash.
+
+As demais iterações são executadas de forma idêntica ao algoritmo original.
+
+Os parâmetros de execução do algoritmo GSPsão, base de dados, suporte mínimo, grau da árvore hash, saturação da folha, o número de diferentes itens existentes na base de dados e a memória disponível para sua execução.
+
+Uma das características do algoritmo GSP é a geração de um grande número de seqüências candidatas.
+
+Por exemplo, na segunda iteração do algoritmo, se houver 1000 seqüências freqüentes de tamanho 1, serão geradas, de acordo com a Fórmula 21, +(1000×999)/= 1499500 seqüências candidatas.
+
+Ao usar um suporte mínimo baixo, as seqüências candidatas em uma determinada iteração podem não caber na memória principal, ocasionando o acesso a disco para o processo de contagem, tornando-o muito lento.
+
+Desta forma, na implementação do GSP2, desenvolveu-se uma estratégia para gerenciamento de memória.
+
+Considerando-se uma determinada quantidade de memória reservada para a execução da aplicação, o GSPvai alocando estruturas de dados e armazenando as seqüências candidatas.
+
+A quantidade de memória reservada é constantemente monitorada, para que não seja ultrapassado o limite preestabelecido.
+
+Se todo o conjunto de seqüências candidatas não couber em memória, ele deverá ser particionado e a contagem do suporte será realizada separadamente sobre cada uma destas partes, até que todo o conjunto de candidatas seja avaliado.
+
+Em cada processo de contagem de suporte, aplicado às partições do conjunto de seqüências candidatas, é feita uma leitura completa da base de dados.
+
+Neste capítulo, são apresentadas as técnicas de redução da base de dados propostas e o algoritmo que implementa tais técnicas, chamado GSPP GSPcom Pod.
+
+As técnicas de redução são descritas na Seção 31.
+
+O algoritmo GSPP é apresentado em detalhes na Seção 32.
+
+Parte do conteúdo deste capítulo foi apresentado em.
+
+A redução da base de dados tem como objetivo diminuir o custo de várias leituras da base de dados e o esforço computacional da fase de contagem das seqüências candidatas, típicos de algoritmos iterativos de extração de padrões seqüenciais.
+
+Será garantida, contudo, a extração correta de todos os padrões seqüências existentes na base de dados.
+
+As técnicas propostas são baseadas nas estratégias de redução de base de dados apresentadas pelos autores dos algoritmos DHP e kDCI++ para o problema de mineração de conjuntos freqüentes e adaptadas aqui para o problema de extração de padrões seqüenciais.
+
+Duas estratégias de redução da base de dados são propostas, a poda local da base, adaptação da poda local proposta pelos autores do algoritmo DHP e também utilizada pelo algoritmo kDCI++, e a poda global da base, adaptação da poda global proposta pelos autores do algoritmo kDCI++.
+
+No algoritmo GSPP proposto, as técnicas de poda global e local são aplicadas a cada seqüência de consumidor t, respectivamente, antes e depois da contagem de suporte das seqüências candidatas presentes em t.
+
+O objetivo principal é reduzir o número de itens presentes em t e, conseqüentemente, reduzir o número de seqüências presentes em t que serão analisadas durante o processo de contagem de suporte.
+
+Uma extensão das podas local e global, chamada de poda de itens isolados, é também proposta.
+
+A poda de itens isolados tem como objetivo 19 reduzir ainda mais o tamanho das seqüências de consumidores, removendo itens desnecessários que aparecem isolados em elementos da seqüência.
+
+Uma nova base de dados é escrita em disco ao final de cada iteração e utilizada na iteração seguinte.
+
+A seguir, as técnicas de poda são apresentadas separadamente.
+
+As descrições das podas local e global são baseadas naquelas apresentadas em, porém adaptadas para o problema de extração de padrões seqüenciais.
+
+A poda local é realizada em cada iteração k 3, durante a contagem de suporte das seqüências candidatas em C.
+
+Para cada seqüência de consumidor t da base, após a análise de todas as seqüências candidatas em t, são determinados os itens em t que necessariamente não serão úteis na próxima iteração, ou seja, os itens que não contribuirão na contagem de uma seqüência freqüente e que poderão ser removidos de t.
+
+Desta forma, reduz-se o tamanho da seqüência de consumidor t, podendo até mesmo ser eliminada por completo da base de dados.
+
+A técnica é baseada nas seguintes propriedades, Propriedade 1, Uma seqüência s de tamanho k presente em uma seqüência de consumidor t da base de dados poderá ser freqüente somente se todas as suas subseqüências de tamanho k 1 forem freqüentes, ou seja, pertencerem a F Propriedade 2, Em uma seqüência s de tamanho k, existem k subseqüências de tamanho k 1 e cada item de s aparece em exatamente k 1 dessas k subseqüências.
+
+Considere, por exemplo, a seqüência s = ha,i, de tamanho k = 4.
+
+Observe que s será uma seqüência freqüente somente se todas as suas subseqüências de tamanho 3, s = ha,i, s = ha,i, s = hi e s = hi, forem seqüências freqüentes.
+
+Note que há (k) subseqüências de tamanho em s e cada item em s aparece em apenas (k-1) destas.
+
+O item a, primeiro item de s, apareceu nas subseqüências s, s, e s, o item b apareceu nas subseqüências s, s e s, o item c apareceu nas subseqüências s, s e s, e o item a, último item de s, apareceu nas subseqüências s, s e s.
+
+Levando-se em consideração as propriedades descritas acima, pode-se concluir que, na k-ésima iteração, se um item i pertencente a uma seqüência de consumidor t não contribuir na contagem de suporte de pelo menos k seqüências candidatas de tamanho k, então este item i, na seqüência de consumidor t especificamente, não será útil na contagem de suporte de nenhuma seqüência freqüente de tamanho k + 1 na iteração seguinte.
+
+Desta forma, o item i poderá ser removido de t gerando uma nova seqüência de consumidor t, que irá compor a nova base de dados que será usada na próxima iteração.
+
+Sendo assim, a poda local é aplicada a cada seqüência de consumidor da base de dados corrente da seguinte maneira.
+
+Durante o processo de contagem de suporte das seqüências candidatas de tamanho k, no processamento de cada seqüência de consumidor t da base, é criado um contador para cada item de t, ou seja, |t| contadores, e, quando uma seqüência candidata s está presente em t e tem seu suporte incrementado, os contadores dos itens de t que contribuem na contagem de s também são incrementados.
+
+O conjunto destes contadores é chamado L.
+
+Desta forma, ao final do processamento da seqüência de consumidor t (após a análise de todas as seqüências candidatas em t), temos em L o número de vezes que cada item de t contribuiu na contagem de suporte das seqüências candidatas de tamanho k.
+
+Pode-se assim eliminar de t os itens que não contribuem na contagem de suporte de pelo menos k seqüências candidatas.
+
+Caso o tamanho da nova seqüência de consumidor seja menor não será gravada na nova base de dados, e será desconsiderada na contagem de suporte das seqüências candidatas de tamanho, já que não poderá contribuir para contagem de suporte de tais candidatas.
+
+Exemplo da aplicação da poda local na seqüência de consumidor na iteração.
+
+Para a contagem dos itens de t é criado o con-junto L de contadores, um para cada item em t.
+
+Durante o processo de contagem de suporte das seqüências candidatas em C, cada candidata é testada contra t a fim de ter o seu suporte incrementado.
+
+As seqüências candidatas contidas estão destacadas em negrito.
+
+Toda vez que o suporte de uma seqüência candidata é incrementado, os respectivos contadores dos seus itens são atualizados.
+
+Assim, observa-se que a primeira ocorrência do item a em t contribuiu na contagem de três destas seqüências candidatas, a primeira ocorrência do item b em t contribuiu na contagem de três, a segunda ocorrência do item b, terceiro item de t, contribuiu na contagem de uma, o item c, na contagem de duas, a segunda ocorrência do item a, quinto item de t, na contagem de três e o item e, na contagem de uma candidata.
+
+Como a segunda ocorrência de b (terceiro item de t), o item c e o item e contribuíram na contagem de suporte de menos de três seqüências candidatas, eles foram excluídos da nova seqüência de consumidor t.
+
+E como a seqüência de consumidor t de tamanho não poderá contar o suporte das seqüência candidata de tamanho (k + 1), t não irá compor a nova base de dados e será descartada por completo.
+
+Exemplo de aplicação da poda local.
+
+No exemplo anterior, nota-se que a seqüência candidata s = h((a,e)i está presente na seqüência de consumidor de duas formas, a primeira, quando o primeiro elemento de s, (, está contido no primeiro elemento de t, (a, e o segundo elemento de s, (a,e), está contido no último elemento de t, (a,e), e a segunda forma, quando o primeiro elemento de s, (, está contido no segundo elemento de t, (, e o segundo elemento de s, (a,e), está contido no último elemento de t, (a,e).
+
+Logo, os contadores das duas ocorrências de b, da segunda ocorrência de a e da única ocorrência de e são incrementados.
+
+Observe que, no processo de contagem de suporte, basta conhecer a primeira ocorrência de uma seqüência candidata s em t para que s tenha o seu suporte incrementado.
+
+Já no processo de poda local, é necessário conhecer todas as ocorrências de s em t para que os contadores L sejam incrementados.
+
+Esta verificação adicional aumenta muito o esforço computacional da fase de contagem de suporte, o que compromete o objetivo principal da aplicação das estratégias de redução de base de dados, que é a redução do custo computacional da fase de contagem.
+
+Sendo assim, propõe-se uma segunda maneira de se realizar a poda local.
+
+Durante o processo de contagem de suporte das seqüências candidatas de tamanho k, no processamento de cada seqüência de consumidor t da base, é criado um contador para cada item distinto de t e, quando uma seqüência candidata s está presente em t e tem seu suporte incrementado, os contadores dos itens distintos de t que compõem a seqüência candidata s também são incrementados.
+
+Sendo que, no caso de o item aparecer em mais de um elemento da seqüência candidata s, o seu respectivo contador é incrementado apenas uma vez.
+
+Pode-se assim eliminar de t todas as ocorrências dos itens que não contribuem na contagem de suporte de pelo menos k seqüências candidatas.
+
+Nesta proposta alternativa, a poda local deixa de eliminar alguns itens que poderiam ser excluídos de t, porém não requer processamento adicional no processo de contagem de suporte.
+
+Exemplo da aplicação da poda local modificada na seqüência de consumidor na iteração.
+
+Para a contagem dos itens de t é criado um contador para cada item distinto em t (L).
+
+Durante o processo de contagem de suporte das seqüências candidatas, cada seqüência de C é testada contra t a fim de ter o seu suporte incrementado.
+
+Exemplo de aplicação da poda local modificada.
+
+Sendo assim, daqui pra frente, entende-se como poda local a poda local modificada.
+
+A poda local só é realizada a partir da terceira iteração.
+
+Isso porque, na segunda iteração, não existe a possibilidade de redução do tamanho das seqüências de consumidores utilizando-se a poda local.
+
+Antes de uma seqüência de consumidor t ser analisada, o GSP retira de t os itens que não são freqüentes.
+
+Observa-se ainda que, sendo C formado pela combinação de todos os itens freqüentes, qualquer subseqüência de tamanho em t estará contida em C.
+
+Logo, cada item i freqüente em t vai contribuir na contagem de pelo menos duas seqüências candidatas de C, já que o item i estará presente em mais de uma subseqüência de tamanho, e não haverá redução do tamanho de t.
+
+Enquanto a poda local verifica se um item é necessário em uma seqüência de consumidor específica, a poda global verifica se um item pode ser removido por completo da base de dados, ou seja, removido de todas as seqüências de consumidores.
+
+A poda local é aplicada a cada seqüência de consumidor após a sua utilização na contagem de suporte.
+
+Já a poda global é aplicada a cada seqüência de consumidor imediatamente antes da contagem de suporte, removendo-se os itens desnecessários para a iteração k corrente, sendo k 2.
+
+A partir das Propriedades 1 e vistas anteriormente, observa-se que, na k-ésima iteração, se um item i não estiver presente em pelo menos k1 seqüências freqüentes de tamanho k1, então i não aparecerá em nenhuma seqüência freqüente de tamanho k.
+
+Desta forma, o item i poderá ser removido de todas as seqüências de consumidores da base.
+
+Sendo assim, antes do processo de contagem de suporte das seqüências candidatas de tamanho k presentes em uma seqüência de consumidor t, para cada item i em t, i será eliminado caso apareça em menos de seqüências freqüentes de F.
+
+Caso o tamanho da nova seqüência de consumidor t seja menor do que k, t será desconsiderada no processo de contagem de suporte das seqüências candidatas de tamanho k, já que não poderá contribuir para a contagem de suporte de tais candidatas, e não será gravada na nova base de dados D.
+
+Para se descobrir a quantidade de seqüências freqüentes de F em que cada item da base de dados aparece, é realizada uma contagem dos itens durante o processo de geração das seqüências candidatas no passo corrente, onde todas as seqüências freqüentes de tamanho k1 são acessadas.
+
+Quando uma seqüência freqüente s é lida, cada item de s tem o seu contador atualizado.
+
+O conjunto destes contadores é chamado G.
+
+Ao final do processo, obtém-se a quantidade de seqüências freqüentes de F em que cada item da base de dados aparece.
+
+Exemplo da aplicação da poda global na iteração k = 4.
+
+Durante o processo de geração das seqüências candidatas, os contadores para cada item do domínio {a,b,c,d,e,f} são gerados e incrementados.
+
+As seqüências freqüentes em F são, observou-se que o item a apareceu em quatro destas seqüências freqüentes item b, em três (f, f e f), o item c, em três (f, f e f), o item d, em uma (f), o item e, em duas (f e f), e o item f, em nenhuma.
+
+Desta forma, os itens d, e e f, que aparecem em menos de (k 1) seqüências freqüentes, podem ser eliminados das seqüências de consumidores da base de dados.
+
+Retirando tais itens da seqüência de consumidor t = h(a,b,e)i, obtém-se t = ha,i.
+
+E como a seqüência de consumidor t de tamanho não poderá contar o suporte das seqüência candidata de tamanho (k), t não irá compor a nova base de dados e será descartada por completo.
+
+Exemplo de aplicação da poda global.
+
+A aplicação da poda global sobre as seqüências de consumidores pode ser feita a partir da segunda iteração, porém, por ter efeito pequeno nesta iteração, somente a partir da terceira a poda global é aplicada, gerando-se uma nova base de dados.
+
+Isto porque, de acordo com experimentos computacionais realizados, a redução da base de dados na segunda iteração é pequena e o ganho com a leitura de uma base menor na iteração seguinte não compensa o tempo gasto para a sua gravação em disco ao final da segunda iteração.
+
+Um item i pertencente a uma seqüência s é considerado isolado se i é o único item do elemento de s ao qual pertence.
+
+Por exemplo, na seqüência os itens c e d são os únicos que aparecem isolados.
+
+O processo de poda de itens isolados não é considerado um processo de poda por si só, trata-se de uma extensão que pode ser aplicada às podas local e global, com o objetivo de reduzir ainda mais o tamanho das seqüências de consumidores.
+
+A técnica é baseada na Propriedade 3, apresentada a seguir.
+
+Tal propriedade é derivada da Propriedade 2, descrita na Seção 311, Propriedade 3, Em uma seqüência s de tamanho k, existem k subseqüências de tamanho k 1 e cada item que aparece isolado em elementos de s, além de aparecer em k 1 dessas k subseqüências, conforme a Propriedade 2, aparece também isolado nestas sub-seqüências.
+
+Levando-se em consideração a Propriedade 3, pode-se concluir que, na k-ésima iteração, se um item i que aparece isolado em uma seqüência de consumidor t não contribuir na contagem de suporte de pelo menos k seqüências candidatas de tamanho k, então i, em t especificamente, não será útil na contagem de suporte de nenhuma seqüência freqüente de tamanho k + 1 na iteração seguinte e poderá ser removido de t gerando uma nova seqüência de consumidor t.
+
+Esta seqüência t irá compor a nova base de dados que será usada na próxima iteração.
+
+Sendo assim, a poda local estendida com a poda de itens isolados é aplicada a cada seqüência de consumidor da base de dados corrente da seguinte maneira.
+
+Durante o processo de contagem de suporte das seqüências candidatas de tamanho k, no processamento de cada seqüência de consumidor t da base, são criados dois conjuntos de contadores, L e L.
+
+O conjunto de contadores L contém um contador para cada item distinto de t pois a segunda alternativa de poda local está sendo adotad.
+
+O conjunto de contadores L é utilizado na contagem das ocorrências isoladas (nas seqüências candidatas) dos itens de t.
+
+Ou seja, o contador de um item de t deverá refletir o número de seqüências candidatas em que este item aparece de forma isolada.
+
+Quando uma seqüência candidata s está presente em t e tem seu suporte incrementado, os contadores em L dos itens distintos de t que contribuem na contagem de s também são incrementados.
+
+Adicionalmente, os contadores em L são incrementados quando tais itens aparecem isolados em s.
+
+Desta forma, ao final do processamento da seqüência de consumidor t (após a análise de todas as seqüências candidatas em t), temos em L o número de vezes que cada item t distinto de t contribuiu na contagem de suporte das seqüências candidatas de tamanho k, e em L o número de vezes que cada item distinto de t contribuiu, de forma isolada, na contagem de suporte das seqüências candidatas de tamanho k.
+
+Pode-se assim eliminar de t, os itens que possuem os respectivos contadores em L com valores inferiores a k, e os itens que aparecem isolados e que possuem os respectivos contadores em L com valores inferiores a k.
+
+São eliminados então, os itens que aparecem não isolados em t e que não contribuem, de forma isolada e não isolada, na contagem de suporte de pelo menos k seqüências candidatas, e os itens que aparecem isolados em t e que não contribuem, de forma isolada, na contagem de suporte de pelo menos k seqüências candidatas.
+
+É importante ressaltar que, quando se elimina um item de um elemento e de tamanho de t e e passa a conter apenas um item, ou seja, quando um item i que antes aparecia não isolado em e passa então a ficar isolado, uma segunda verificação faz-se necessária (caso i já tenha sido verificado).
+
+Essa segunda verificação irá remover o item i, se i não contribui, de forma isolada, na contagem de pelo menos k seqüências candidatas.
+
+Caso o tamanho da nova seqüência de consumidor t seja menor do que k + 1, t não será gravada na nova base de dados, D, e será desconsiderada na contagem de suporte das seqüências candidatas de tamanho k +1, já que não poderá contribuir para contagem de suporte de tais candidatas.
+
+Têm os seus suportes incrementados, os contadores L e L são atualizados.
+
+Em L, os contadores relacionados aos itens que aparecem isolados nas seqüências candidatas são incrementados.
+
+Assim, observa-se que o item a apareceu isolado em duas destas seqüências candidatas, o item b, em uma e os itens c e e, em nenhuma seqüência candidata.
+
+Como os itens isolados b e c de t aparecem também isolados em menos de três seqüências candidatas, eles são excluídos da nova seqüência de consumidor t.
+
+O item e, que não aparece isolado, foi removido pelos critérios da poda local, pois aparece em menos de três seqüências candidatas, isoladamente ou não.
+
+Note que, após a remoção do item e pertencente ao último elemento de t, o item a passou a ficar isolado e, como a só aparece em duas seqüências candidatas também isolado, então esta ocorrência do item a isolado pode ser removida.
+
+Na utilização da poda local com a poda de itens isolados, t tem tamanho e não poderá contribuir na contagem de suporte das seqüência candidata de tamanho (k +1).
+
+Logo, t não irá compor a nova base de dados e será descartada por completo.
+
+Utilizando-se a poda local sem a poda de itens isolados, t teria tamanho e seria utilizada na iteração seguinte.
+
+Exemplo de aplicação da poda local estendida com a poda de itens isolados.
+
+Na poda global, a implantação da poda de itens isolados é feita de maneira análoga à realizada na poda local.
+
+São criados contadores adicionais usados somente pela poda de itens isolados, representados por G 0.
+
+Os valores dos contadores são consultados sempre que algum item da seqüência de consumidor t aparece isolado.
+
+Os itens isolados em t podem ser removidos quando estes aparecem também isolados em menos do que k 1 seqüências freqüentes em F No Capítulo 2, o algoritmo GSP foi apresentado e sua implementação, chamada GSP2, que adota uma estrutura alternativa à árvore hash na segunda iteração, foi discutida.
+
+Nesta seção, será apresentado o algoritmo GSPP GSPcom Pod, uma adaptação do GSPque incorpora as técnicas de redução de base propostas nas seções anteriores.
+
+O GSPP extrai os padrões seqüenciais iterativamente da mesma forma que o GSP2, porém ao final de cada iteração k, uma nova base de dados, D, é criada e utilizada na iteração seguinte k + 1.
+
+Para k 2, o GSPP possui um comportamento idêntico ao GSP2, pois as podas são realizadas a partir da terceira iteração, como explicado anteriormente.
+
+Só na iteração 3, o GSPP passa a se beneficiar com a redução das seqüências de consumidores, que são submetidas ao processo de poda global antes da contagem de suporte das seqüências candidatas.
+
+O processo de poda local também é realizado a partir da terceira iteração, mas como, nesta poda, a redução das seqüências de consumidor só ocorre ao final da iteração, o seu benefício só é percebido a partir da iteração 4.
+
+O Algoritmo 31 apresenta os passos do algoritmo GSPP nas iterações k 3.
+
+As iterações 1 e são executadas nos moldes do GSP2, conforme indicam as linhas e 3.
+
+A base de dados utilizada na iteração é a base original do problema, D, como indicado na linha do algoritmo.
+
+A partir da quarta iteração, o algoritmo passa a ler a base de dados reduzida gerada na iteração anterior.
+
+Na linha 10, a função que realiza o processo de poda global é ativada.
+
+A partir dos contadores G, calculados durante a geração das seqüências candidatas (linha 8), esta função elimina os itens desnecessários da seqüência de consumidor lida t, gerando a nova seqüência t.
+
+Esta seqüência t será utilizada na contagem de suporte das seqüências candidatas, somente se o seu tamanho for maior ou igual a k (linha 11).
+
+Após a contagem de suporte das seqüências candidatas presentes em t (linha 12), o processo de poda local é executado linha 1.
+
+A poda local consulta os contadores L, criados durante o processo de contagem de suporte (linha 12), e elimina os itens desnecessários de t, criando uma nova seqüência de consumidor t.
+
+A seqüência t é gravada na nova base de dados D tamanho for superior a k.
+
+É importante ressaltar que, os processos de poda global e local do GSPP, implementados pelas funções PodaGlobal e PodaLocal, incorporam o processo de poda de itens isolados.
+
+Na seção a seguir, são apresentadas algumas considerações sobre a implementação do GSPP.
+
+O algoritmo GSPP foi implementado utilizando-se a linguagem C.
+
+Seus parâmetros de execução são idênticos aos parâmetros utilizados na execução do algoritmo GSP2, base de dados, suporte mínimo, grau da árvore hash, saturação da folha, o número de diferentes itens existentes na base de dados e a memória disponível para sua execução.
+
+No GSPP, são implementadas a poda local e a poda global, ambas utilizando também a poda de itens isolados.
+
+Além do GSPP, com o objetivo de avaliar o desempenho de cada tipo de poda isoladamente, foram implementadas algumas variações, listadas a seguir, GSPL, GSPcom a utilização somente da poda local, sem a poda de itens isolados.
+
+Pseudo-código do algoritmo GSPP.
+
+GSPG, GSPcom a utilização somente da poda global, sem a poda de itens isolados.
+
+GSPLG, GSPcom a utilização das podas local e global, sem a poda de itens isolados.
+
+Para a implementação dos contadores L e L são alocados dois vetores com n posições consecutivas na memória principal, sendo n o número de itens distintos na base de dados.
+
+Cada posição destes vetores contém um valor do tipo inteiro.
+
+A alocação de espaço é feita uma única vez durante toda a execução do algoritmo.
+
+Antes da contagem de suporte das seqüências candidatas em uma seqüência de consumidor t, os contadores dos itens pertencentes a t em L e L 0 são inicializados com o valor zero.
+
+Os contadores dos itens são indexados diretamente já que os itens são representados por valores entre 1 e n.
+
+Para a implementação dos contadores G e G0, também são alocados dois vetores com n posições.
+
+A alocação de espaço é feita uma única vez durante toda a execução do algoritmo.
+
+Antes da geração das seqüências candidatas da k-ésima iteração, todos os contadores em G e G 0 são inicializados com o valor zero.
+
+Estes contadores também são indexados diretamente.
+
+O GSPP herdou o gerenciamento de memória do GSP2, detalhado na Seção 2241.
+
+Quando o conjunto de seqüências candidatas não cabe em memória, ele é particionado e a contagem do suporte é realizada separadamente sobre cada uma destas partes, sendo necessária a realização de várias leituras completas da base de dados.
+
+Porém, cabe observar que, diversas leituras da base de dados numa mesma iteração inviabilizam a execução da poda local naquela iteração, já que para eliminar um item i de uma seqüência de consumidor t é necessário saber quantas vezes cada item i distinto de t contribuiu na contagem de suporte das seqüências candidatas.
+
+Como o conjunto de seqüências candidatas é particionado, fica inviável manter um contador para cada item distinto de cada seqüência de consumidor da base de dados.
+
+A poda global pode ser executada, porém sofre alterações, quando ocorre o particionamento.
+
+A redução de cada seqüência de consumidor deve acontecer apenas na contagem de suporte da primeira partição de seqüências candidatas, ou seja, na primeira leitura completa da base de dados.
+
+A aplicação da poda global nas leituras seguintes é desnecessária, já que os itens desnecessários foram todos removidos durante o processamento da primeira partição de seqüências candidatas.
+
+Sendo assim, a nova base de dados, D, é gravada em disco após o processamento da primeira partição e já utilizada durante o processamento das partições seguintes.
+
+Neste capítulo, são apresentados os resultados computacionais obtidos utilizando-se as técnicas de poda de base de dados.
+
+Na Seção 41, é apresentada uma descrição detalhada das bases de dados utilizadas nos experimentos.
+
+Na Seção 42, os resultados das avaliações computacionais são apresentados.
+
+O objetivo principal dos experimentos realizados é comprovar a viabilidade e a eficácia das técnicas propostas.
+
+Parte do conteúdo deste capítulo foi apresentado em.
+
+Os experimentos foram realizados sobre bases de dados artificiais criadas através de um gerador de base de dados sintética da IBM, descrito em.
+
+Estas bases de dados artificiais simulam bases reais de transações de consumidores e foram utilizadas em muitos trabalhos, como em.
+
+Nesta dissertação, os valores dos parâmetros de geração destas bases são os mesmos utilizados em.
+
+Estes parâmetros serão descritos a seguir.
+
+As bases artificiais representam bases de dados transacionais, em que consumidores adquirem itens através de transações.
+
+As seqüências freqüentes extraídas destas bases são formadas por listas ordenadas de transações, sendo que cada transação é um conjunto não vazio de itens.
+
+Os parâmetros C, T, S, I e D, utilizados pelo gerador de base de dados, são descritos.
+
+O valor do parâmetro C corresponde ao número médio de transações por consumidor, T corresponde ao número médio de itens por transação, S corresponde ao tamanho médio das seqüências maximais potencialmente freqüentes (maximal potentially large sequences), I corresponde ao tamanho médio das transações nas seqüências maximais potencialmente freqüentes e, finalmente, D corresponde ao número total de consumidores.
+
+Pode-se definir seqüência maximal freqüente como sendo uma seqüência freqüente que não está contida em nenhuma seqüência também freqüente.
+
+Descrição dos parâmetros utilizados na geração de bases artificiais.
+
+Os valores dos parâmetros devem ser combinados.
+
+Principais bases de dados sintéticas utilizadas e os valores dos seus parâmetros.
+
+Cada uma destas bases possui 10000 itens distintos.
+
+Bases de dados sintéticas utilizadas.
+
+As avaliações realizadas nesta dissertação, a partir dos experimentos conduzidos, incluem análises de tempo, de redução da base de dados, de escalabilidade, entre outras, obtidas com a utilização dos algoritmos GSP2, GSPP e suas variações.
+
+Todas as execuções foram realizadas com saturação da folha igual a 20 e grau da árvore hash igual a 10% do número de itens distintos existentes nas bases de dados.
+
+Estes valores foram os mesmos usados em.
+
+A quantidade de memória disponibilizada para execução dos algoritmos foi de 100 megabytes (parâmetro de execução dos algoritmos).
+
+Os experimentos foram realizados utilizando-se um computador com processador Intel Centrino, 1,6 Mhz, com 51megabytes de memória principal e sistema operacional Mandrake Linux 267.
+
+Os algoritmos foram implementados na linguagem C, utilizando-se o compilador gcc 332.
+
+Os suportes mínimos escolhidos foram 0, 25%, 0, 5% e 0, 75%, também utilizados em.
+
+Apresenta-se, para as seis bases de dados avaliadas, o tempo total de execução dos algoritmos GSPe GSPP obtido, para os suportes mínimos 0, 25%, 0, 5% e 0, 75%.
+
+Os resultados computacionais mostram que as técnicas de redução progressiva da base de dados, implementadas no algoritmo GSPP, levam a uma redução significativa do tempo total do algoritmo GSP2.
+
+Para as bases de dados e valores de suporte mínimo considerados (com exceção apenas do teste realizado com a base de dados CT2SI12D2000 K e com suporte mínimo de 0, 75%, onde a quantidade de iterações não passou de três), o tempo total de execução do algoritmo GSPP foi, em média, 70% (variando de 63% a 78%) do tempo total de execução do algoritmo GSP2, alcançando uma redução média de 30%.
+
+A redução progressiva e efetiva da base foi responsável pelo bom desempenho do algoritmo GSPP na medida em que reduziu significativamente o custo com as operações e E/S e o alto custo da fase de contagem das seqüências candidatas.
+
+Tempo total de execução dos algoritmos GSPe GSPP.
+
+Tempo de execução e o tamanho da base de dados lida em cada iteração do GSPe do GSPP.
+
+Nos dois experimentos, foram utilizadas as mesmas bases de dados e o suporte mínimo de 0, 5%.
+
+Nota-se que a redução do tempo de processamento ocorre a partir da terceira iteração, devido ao fato de ser a primeira iteração a trabalhar com transações já podadas.
+
+Os benefícios obtidos pela leitura e utilização de uma base de dados menor só é sentida a partir da quarta iteração.
+
+Vale lembrar que as novas bases de dados são geradas ao final das iterações.
+
+Enquanto a quarta iteração do algoritmo GSPfoi executada em 24,2segundos sobre a base de dados C20-T2SI12D500 K, a quarta iteração do algoritmo GSPP, para a mesma base de dados, foi executada em 8,67 segundos, representando uma redução de 64%.
+
+Nas primeira e segunda iterações, os algoritmos obtiveram aproximadamente o mesmo tempo de execução, já que o GSPP realiza o mesmo processamento que o GSPnestas iterações.
+
+Na terceira iteração, o GSPP obteve um tempo ligeiramente menor de processamento, pois se beneficiou da aplicação da poda global antes da contagem de suporte das seqüências candidatas.
+
+Nas iterações k > 4, a redução do tempo de processamento foi significativa, porém a maior redução obtida aconteceu sempre na quarta iteração.
+
+A redução representativa do tempo na quarta iteração deve-se a significativa redução da base de dados observada no final da terceira iteração, quando o processo de poda local foi aplicado pela primeira vez.
+
+Em relação à redução da base de dados, observa-se que, para a mesma base C20-T2SI12D500 K, a nova base de dados construída ao final da terceira iteração do algoritmo GSPP é aproximadamente quatro vezes menor do que a base de dados original (passando de 190,51 MB para 44,60 M, o que certamente contribuiu para a redução do tempo de execução da quarta iteração (passando de 24,2segundos para 8,67 segundos).
+
+Nas iterações seguintes, com esta mesma base, observa-se que, a redução foi significativa porém menor do que na terceira iteração, mas sempre contribuindo para a redução do tempo de processamento das iterações seguintes e do tempo total de processamento.
+
+Na média, a redução da base de dados na terceira iteração, considerando-se os testes com as seis bases de dados e os suportes mínimos de 0, 25%, 0, 5% e 0, 75%, foi de aproximadamente 66% (variando de 3% a 97%) e a redução do tempo de processamento da iteração foi de 61% (variando de 3% a 93%).
+
+As iterações seguintes apresentaram taxas de redução da base de dados menores, porém efetivas, contribuindo para a redução do tempo total de processamento.
+
+Tempo de execução de cada iteração dos algoritmos GSPe GSPP, com suporte mínimo de 0, 5%.
+
+Nesta subseção, é realizada a análise de desempenho dos algoritmos GSPe GSPP a partir da variação do número médio de transações por consumidor.
+
+São utilizadas seis bases de dados artificiais, todas com os valores dos parâmetros T, S, I e D iguais a 2,5, 4, 1,25 e 200000, respectivamente.
+
+Cada uma delas com um valor diferente para o número médio de transações por consumidor, parâmetro C, variando de 10 a 35.
+
+Para cada suporte utilizado 0, 25%, 0, 5% e 0, 75% é apresentado um gráfico contendo o tempo total de execução do GSPe GSPP para cada valor distinto do parâmetro C.
+
+Tamanho da base de dados em cada iteração do algoritmo GSPP, com suporte mínimo de 0, 5%.
+
+Observa-se um crescimento do tempo de execução das duas estratégias à medida que se aumenta o número médio de transações por consumidor.
+
+Isso porque, na etapa de contagem do suporte das seqüências candidatas, em qualquer iteração k, cada subseqüência s de tamanho k, contida em cada seqüência de consumidor s, deve ser considerada, na tentativa de se encontrar alguma seqüência candidata igual a s, para ter seu suporte incrementado.
+
+Com o aumento no tamanho das seqüências de consumidores, maior será o número de subseqüência s de tamanho k a serem consideradas, ocasionando um maior número de acesso às estruturas nas quais estão armazenadas as seqüências candidatas, aumentando o tempo de execução do algoritmo.
+
+Observa-se que, também nesses experimentos, o tempo total de execução do GSPP foi menor do que o tempo total do GSP2.
+
+Tempo total de execução dos algoritmos GSPe GSPP variando-se o número médio de transações por comsumidor.
+
+Os tempos de execução dos mesmos experimentos são apresentados com mais detalhes.
+
+Para cada base de dados utilizada, é apresentada uma linha com o tempo total de execução dos algoritmos GSPe GSPP e a porcentagem do tempo total de execução do GSPP em relação ao do GSP2, para os suportes mínimos de 0, 25%, 0, 5% e 0, 75%.
+
+O tempo total de execução obtido com o GSPP foi em média 73% (variando de 64% a 97%) do tempo do GSP2, o que representa uma redução média de 27%.
+
+Variação do parâmetro C.
+
+É importante ressaltar que, nos experimentos realizados com o valor do parâmetro C igual a 30 e 35 e com o suporte mínimo de 0, 25%, o GSPP apresentou uma redução do tempo total 8 de execução em relação ao GSPabaixo da média, com taxas de 22% e 13%, respectivamente.
+
+Isso porque, nestes experimentos, a quantidade de seqüências candidatas geradas na terceira iteração foi muito grande e o conjunto de seqüências candidatas de tamanho 3, C, não pôde ser armazenado por completo em memória principal.
+
+Logo, C foi particionado e várias leituras completas da base de dados foram realizadas, inviabilizando a aplicação do processo de poda local nesta iteração e aumentando o tempo de processamento.
+
+Tal gerenciamento de memória foi explicado na Seção 32em detalhes.
+
+Neste dois casos, o tempo de execução da terceira iteração foi responsável por grande parte do tempo total de processamento, o que explica a pequena redução observada no tempo total de execução do GSPP em relação ao GSP2.
+
+No experimento realizado com o valor do parâmetro C igual a 10 e com suporte mínimo de 0, 75%, o GSPP também apresentou uma redução do tempo total de execução em relação ao GSPabaixo da média, com taxa de 3%.
+
+Isso porque, neste experimento, a quantidade de iterações não passou de três.
+
+Nesta subseção, é realizada a análise de desempenho dos algoritmos GSPe GSPP a partir da variação do número médio de itens por transação.
+
+São utilizadas quatro bases de dados artificiais, todas com os valores dos parâmetros C, S, I e D iguais a 10, 4, 1,25 e 200000, respectivamente.
+
+Cada uma delas com um valor diferente para o número médio de itens por transação, parâmetro T, variando de 2,5 a 10.
+
+Para cada suporte utilizado 0, 25%, 0, 5% e 0, 75% é apresentado um gráfico contendo o tempo total de execução do GSPe GSPP para cada valor distinto do parâmetro T.
+
+Observa-se um crescimento do tempo de execução das duas estratégias à medida que se aumenta o número médio de itens por transação.
+
+A justificativa é a mesma dada para o crescimento do tempo de execução observado na subseção anterior.
+
+Na etapa de contagem do suporte das seqüências candidatas, em qualquer iteração k, cada subseqüência s de tamanho k, contida em cada seqüência de consumidor s, deve ser considerada, na tentativa de se encontrar alguma seqüência candidata igual a s, para ter seu suporte incrementado.
+
+Com um aumento no tamanho das seqüências de consumidores, maior será o número de subseqüência s de tamanho k a serem consideradas, ocasionando um maior número de acesso às estruturas nas quais estão armazenadas as seqüências candidatas, aumentando o tempo de execução do algoritmo.
+
+Em todos os experimentos, o GSPP reduziu o tempo total de execução em relação ao GSP Tempo total de execução dos algoritmos GSPe GSPP variando-se o número médio de itens por transação.
+
+Os tempos de execução dos mesmos experimentos são apresentados com mais detalhes.
+
+Para cada base de dados utilizada, é apresentada uma linha na tabela com o tempo total de execução dos algoritmos GSPe GSPP e a porcentagem do tempo total de execução do GSPP em relação ao do GSP2, para os suportes mínimos de 0, 25%, 0, 5% e 0, 75%.
+
+Observa-se que o tempo total de execução obtido com o GSPP foi em média 73% (variando de 64% a 97%) do tempo do GSP2, o que representa uma redução média de 27%.
+
+Nota-se também que a redução do tempo total de processamento não sofre grande variação à medida que se altera o número médio de itens por transação, mantendo-se próximo à média de 27%.
+
+É importante destacar que, no experimento realizado com a base de dados com T igual a 10 e suporte mínimo de 0, 25% a redução do tempo de processamento do GSPnão foi tão significativa, apenas 10%.
+
+Isso porque, na terceira iteração, a quantidade de seqüências candidatas geradas foi muito grande e o conjunto das seqüências candidatas de tamanho 3, C, foi particionado, sendo necessário realizar várias leituras completas da base de dados na terceira iteração, inviabilizando a execução do processo de poda local nesta iteração e aumentando o tempo de processamento.
+
+No experimento realizado com a base de dados com T igual a 2,5 e suporte mínimo de 0, 75%, a redução do tempo de processamento do GSPtambém não foi tão significativa, apenas 3%.
+
+Isso porque o algoritmo não passou da terceira iteração, beneficiando-se apenas com a redução das seqüências de consumidores realizada pela poda global no início da terceira iteração.
+
+Variação do parâmetro T, com C igual a 10.
+
+Com o intuito de se obter tempos de execução maiores, são apresentados na s mesmos experimentos realizados anteriormente, porém com o valor do parâmetro C (número médio de transações por consumidor) igual a 20.
+
+Os experimentos onde o tempo de processa-mento é representado por "+5 h" excederam o tempo limite, estabelecido em 5 horas, e foram interrompidos.
+
+Observa-se que, a redução do tempo total de execução se manteve significativa com a variação do número de itens por transação.
+
+O GSPP reduziu em média 27% (variando de 9% a 33%) o tempo total de execução do GSP2.
+
+Nos experimentos realizados com o valor do parâmetro T igual a 5 e com o suporte mínimo de 0, 25% e nos experimentos realizados com o valor do parâmetro T igual a 7,5 e com os suportes mínimos de 0, 5% e 0, 75%, verifica-se uma menor redução no tempo de processamento do GSPP (9%, 20% e 9%, respectivamente).
+
+Isso ocorreu pois a quantidade de seqüências candidatas na terceira iteração foi muito grande e, novamente, o conjunto das seqüências candidatas de tamanho 3, C, foi particionado, sendo necessário realizar várias leituras completas da base de dados na terceira iteração, inviabilizando a execução do processo de poda local nesta iteração e aumentando o tempo de processamento.
+
+Variação do parâmetro T, com C igual a 20.
+
+Nesta subseção, é realizada a análise de desempenho dos algoritmos GSPe GSPP a partir da variação do número total de consumidores.
+
+São utilizadas cinco bases de dados artificiais, todas com os valores dos parâmetros C, T, S e I iguais a 10, 2,5, e 1,25, respectivamente.
+
+Cada uma delas com um valor diferente para o número total de consumidores, parâmetro D, variando de 100000 a 2000000.
+
+Para cada base de dados utilizada, é apresentada uma linha na tabela com o tempo total de execução dos algoritmos GSPe GSPP e a porcentagem do tempo total de execução do GSPP em relação ao do GSP2, para os suportes mínimos de 0, 25%, 0, 5% e 0, 75%.
+
+Observa-se que, para os suportes de 0, 25% e 0, 5%, a redução do tempo total de execução obtido com o GSPP foi em média de 33% (variando de 26% a 37%) sobre o tempo do GSP2.
+
+Nos testes feitos com o suporte de 0, 75%, a redução não foi tão significativa, observando-se uma redução média do tempo total de execução apenas de 3%.
+
+Isso porque os experimentos realizados com o suporte de 0, 75% não passaram da terceira iteração e se beneficiaram apenas da redução das seqüências de consumidores realizada pela poda global durante a terceira iteração.
+
+Variação do parâmetro D, com C igual a 10.
+
+Com o intuito de se obter tempos de execução maiores, são apresentados os mesmos experimentos realizados anteriormente, porém com valor do parâmetro C (número médio de transações por consumidor) igual a 20.
+
+Da mesma forma, para cada base de dados utilizada, é apresentada uma linha na tabela com o tempo total de execução dos algoritmos GSPe GSPP e a porcentagem do tempo total de execução do GSPP em relação ao do GSP2, para os suportes mínimos de 0, 25%, 0, 5% e 0, 75%.
+
+Observa-se que a redução do tempo total de execução se manteve significativa com a variação do número total de consumidores e houve uma pequena variação do percentual de redução entre os experimentos.
+
+O GSPP reduziu em média 31% (variando de 22% a 34%) o tempo total de execução do GSP2.
+
+Variação do parâmetro D, com C igual a 20.
+
+Um algoritmo é dito escalável quando, dada uma quantidade fixa de memória principal, o comportamento do seu tempo de execução é linear em relação à variação do tamanho da base de dados.
+
+Nesta subseção, realiza-se a análise da escalabilidade dos algoritmos GSPe GSPP a partir da variação do número total de consumidores.
+
+São utilizadas cinco bases de dados artificiais, todas com os valores dos parâmetros C, T, S e I iguais a 10, 2,5, e 1,25, respectivamente.
+
+Cada uma delas com um valor diferente para o número total de consumidores, parâmetro D, variando de 100000 a 2000000.
+
+É apresentado o tempo relativo de execução do algoritmo GSPP, variando-se o número de consumidores para os suportes mínimos fixados em 0, 25%, 0, 5% e 0, 75%.
+
+Os tempos relativos de execução são calculados a partir do tempo de execução da base de dados que possui 100000 consumidores.
+
+Observa-se que, o tempo total de execução do algoritmo GSPP possui um crescimento linear com o aumento da base de dados para diferentes suportes mínimos, demonstrando sua escalabilidade.
+
+Tempo relativo de execução do algoritmo GSPP variando-se o número de consumidores.
+
+Nesta seção, são feitas avaliações de desempenho de cada uma das técnicas de redução da base de dados adotadas pelo algoritmo GSPP separadamente, considerando-se tempo de execução e tamanho da base de dados a cada iteração.
+
+Além do GSPe do GSPP, foram avaliados os seguintes algoritmos, variações do GSPP, GSPL, GSPcom a utilização somente da poda local, sem a poda de itens isolados.
+
+GSPG, GSPcom a utilização somente da poda global, sem a poda de itens isolados.
+
+GSPLG, GSPcom a utilização das podas local e global, sem a poda de itens isolados.
+
+Para as seis bases de dados descritas anteriormente, o tempo total de execução dos algoritmos GSP2, GSPG, GSPL, GSPLG e GSPP obtido, para os suportes mínimos de 0, 75%, 0, 5% e 0, 25%, respectivamente.
+
+Os resultados computacionais mostram que a aplicação da poda local juntamente com a poda global e a poda de itens isolados, implementadas no algoritmo GSPP, levou a uma maior redução do tempo total de execução em relação ao tempo total de execução do algoritmo GSP2, em grande parte dos experimentos.
+
+O algoritmo GSPLG obteve o segundo melhor desempenho, seguido, na ordem, pelo GSPL e GSPG.
+
+Este resultado evidencia a importância da utilização em conjunto dos três tipos de poda.
+
+Para as bases de dados e valores de suporte mínimo considerados (com exceção apenas do teste realizado com a base de dados CT2SI12D2000 K e com suporte mínimo de 0, 75%, no qual a quantidade de iterações não passou de três), a redução do tempo total de execução do algoritmo GSPP foi, em média, de 30, 0% em relação ao tempo total de execução do algoritmo GSP2, enquanto as reduções obtidas pelos algoritmos GSPLG, GSPL e GSPG foram de 29, 5%, 26, 1% e 21, 6%, respectivamente.
+
+Tempo total de execução com o suporte mínimo de 0, 75%.
+
+Tempo total de execução com o suporte mínimo de 0, 5%.
+
+Tempo total de execução com o suporte mínimo de 0, 25%.
+
+Para uma análise mais detalhada, os tempos de execução de cada iteração, utilizando-se as bases de dados C20-T2SI12D200 K, C20-T2SI12D500 K e C20-T2SI12D2000 K, e suporte mínimo de 0, 25%, são apresentados.
+
+Para cada iteração, é apresentada uma linha com o tempo de execução da iteração dos algoritmos GSP2, GSPG, GSPL, GSPLG e GSPP, e o número total de itens nas seqüências de consumidores lidas na iteração, para os algoritmos GSPG, GSPL, GSPLG e GSPP.
+
+Observa-se nos três experimentos que, na primeira e segunda iterações, os algoritmos obtiveram aproximadamente o mesmo tempo de execução, já que o GSPG, GSPL, GSPLG e GSPP realizam o mesmo processamento que o GSPnestas iterações.
+
+Na terceira iteração, o GSPG obteve os menores tempos de processamento, pois beneficiou-se da aplicação da poda global antes da contagem de suporte das seqüências candidatas e não realizou o processo de poda local, que é importante apenas para a iteração seguinte.
+
+O GSPL obteve os maiores tempos de processamento, pois não se beneficiou da aplicação da poda global antes da contagem de suporte e realizou o processo de poda local.
+
+O GSPLG e o GSPP obtiveram tempos semelhantes.
+
+Na quarta iteração, os maiores tempos de processamento foram obtidos pelos algoritmos GSPe GSPG.
+
+As reduções representativas dos tempos na quarta iteração nos algoritmos GSPL, GSPLG e GSPP devem-se às significativas reduções das bases de dados observadas no final da terceira iteração, quando o processo de poda local foi aplicado pela primeira vez.
+
+A redução no número de itens foi, em média, de 55% ao final da terceira iteração e a redução do tempo de execução na quarta iteração em relação ao GSPfoi, em média, de 49%.
+
+No GSPG, no qual a poda local não é utilizada, a redução no número de itens ao final da terceira iteração foi, em média, de apenas 13% e a redução do tempo de execução na quarta iteração foi, em média, de 11%.
+
+Os tempos dos algoritmos GSPL, GSPLG e GSPP nestas iterações foram aproximadamente os mesmos.
+
+Nas iterações k > 4, as reduções dos tempos de execução foram significativas, porém menores do que as reduções obtidas na quarta iteração.
+
+As diferenças nos tempos dos algoritmos GSPL, GSPLG e GSPP foram pequenas.
+
+Os maiores tempos de processamento foram obtidos pelos algoritmos GSPe GSPG.
+
+Tempo de execução de cada iteração com a base C20-T2SI2D500 K.
+
+Os resultados obtidos nesta seção comprovam a eficácia das técnicas propostas de redução.
+
+Tempo de execução de cada iteração com a base C20-T2SI2D2000 K da base de dados aplicadas ao problema de extração de padrões seqüenciais.
+
+A redução progressiva da base de dados reduziu significativamente o custo de várias leituras da base de dados e o tempo de contagem de suporte das seqüências candidatas.
+
+O algoritmo que obteve os melhores resultados foi o GSPP, no qual as podas local e global, estendidas pela poda de itens isolados, foram aplicadas em conjunto.
+
+A poda local destacou-se como sendo a mais eficiente.
+
+A poda global foi responsável pela redução do tempo da terceira iteração.
+
+A poda de itens isolados, apesar de proporcionar uma redução pequena, mostrou-se importante.
+
+Reduço de Base de Dados na Extraço de Padrões Seqüenciais Baseada em Restrições Neste capítulo, as técnicas de redução da base de dados serão utilizadas no contexto da extração de padrões seqüenciais baseada em restrições.
+
+O problema é apresentado.
+
+É apresentado o algoritmo GSP-F (GSP with Dataset Filtering).
+
+O algoritmo que implementa as técnicas de redução da base de dados no novo contexto, chamado GSPP-F, é apresentado na Seção 53.
+
+Os resultados das avaliações computacionais são apresentados na Seção 54.
+
+Na definição do problema de mineração de padrões seqüenciais, a única restrição que um padrão seqüencial deve satisfazer é ter um suporte mínimo.
+
+Entretanto, é comum encontrar usuários interessados em descobrir padrões seqüenciais que satisfaçam critérios mais sofisticados, como por exemplo, padrões com tamanho ou conteúdo específicos.
+
+Assim, pode-se definir a mineração de padrões seqüenciais baseada em restrições como sendo a extração de todas as seqüências freqüentes que satisfazem um conjunto de restrições estabelecido pelo usuário.
+
+O uso de restrições na extração de padrões seqüenciais restringe o espaço de busca, agilizando o processo de descoberta dos padrões.
+
+As técnicas de extração de padrões seqüenciais baseada em restrições podem ser classificadas em três grupos, apresentados a seguir, Técnicas com filtragem pós-processamento, nestas estratégias, as restrições são aplicadas após o processo normal de extração dos padrões seqüenciais, eliminando-se do conjunto freqüente os padrões seqüenciais que não satisfazem às restrições.
+
+Técnicas com filtragem de candidatas, nestas estratégias, as restrições são aplicadas durante o processo de geração das seqüências candidatas, eliminando-se as candidatas que não satisfazem às restrições.
+
+Assim, reduz-se o número de seqüências candidatas a serem processadas a cada iteração.
+
+Técnicas com filtragem de base de dados, nestas estratégias, durante o processo de contagem de suporte, apenas as seqüências de consumidores que possam contribuir na contagem de suporte de padrões que satisfaçam às restrições são consideradas.
+
+Assim, reduz-se o número de seqüências de consumidores a serem processadas.
+
+Uma das estratégias mais representativas baseada na filtragem de candidatas é a família de algoritmos chamada SPIRIT.
+
+Estes algoritmos são considerados extensões do GSP e as restrições são representadas como expressões regulares.
+
+O algoritmo GSP-F é um exemplo de uso das técnicas de pós-processamento e de filtragem de base de dados.
+
+Nestes algoritmos, as restrições podem ser definidas e representadas de várias maneiras.
+
+Segundo os autores do GSP-F, as categorias de restrições apresentadas a seguir cobrem uma grande parte das restrições importantes.
+
+Restrição de item, estabelece qual item ou grupo de itens podem estar presentes nos padrões seqüenciais.
+
+Restrição de tamanho, estabelece a quantidade de itens ou quantidade de elementos nos padrões seqüenciais.
+
+Restrição de super-padrão, estabelece que os padrões seqüenciais devem ser subseqüências de uma seqüência específica definida pelo usuário.
+
+Restrição de expressão regular, estabelece que os padrões seqüenciais devem satisfazer uma expressão regular específica definida pelo usuário.
+
+Restrição de duração, estabelece que, nos padrões seqüenciais, a diferença de tempo entre os instantes em que a primeira e a última transações foram realizadas seja menor ou maior do que um dado período, ou que a diferença de tempo entre os instantes em que transações consecutivas foram realizadas seja menor ou maior do que um dado período.
+
+O algoritmo GSP-F (GSP with Dataset Filtering) foi uma das primeiras estratégias a explorar a técnica de filtragem de base de dados na extração de padrões seqüenciais baseada em restrições.
+
+Este algoritmo extrai os padrões seqüenciais iterativamente, da mesma forma que o GSP, no qual, a cada iteração k, a base de dados é inteiramente lida e são encontradas as seqüências freqüentes de tamanho k.
+
+Embora a base de dados seja inteiramente lida, apenas as seqüências de consumidores que possam contribuir na contagem de algum padrão seqüencial que satisfaça às restrições do usuário são consideradas na fase de contagem de cada iteração.
+
+Inicialmente, as restrições que são aplicadas às seqüências de consumidores, chamadas restrições de base, são geradas a partir das restrições definidas pelo usuário (a geração das restrições de base será detalhada na Seção 521).
+
+As restrições de base são aplicadas a cada seqüência de consumidor lida da base, e as seqüências de consumidores que não satisfazem tais restrições não são consideradas no processo de contagem de suporte das seqüências candidatas.
+
+Após a extração de todos os padrões seqüências sobre a base da dados filtrada, um passo adicional de filtragem é realizado, no qual os padrões que não satisfazem às restrições definidas pelo usuário são excluídos do conjunto freqüente.
+
+Este passo é necessário, pois a aplicação das restrições de base por si só não garante que somente padrões que suportam as restrições do usuário sejam extraídos.
+
+Um pseudo-código do GSP-F é apresentado no Algoritmo 51.
+
+Inicialmente, na linha 2, o conjunto de restrições de base RB é gerado a partir do conjunto de restrições de usuário RU, parâmetro do algoritmo.
+
+Na primeira iteração do algoritmo, todas as seqüências candidatas de tamanho 1 (todos os itens da base) são contadas através de uma leitura completa da base de dados.
+
+Cada seqüência de consumidor lida da base é submetida ao conjunto de restrições de base RB e apenas aquelas que satisfazem todas as restrições em RB são consideradas no processo de contagem de suporte.
+
+Na linha 3, as seqüências candidatas de tamanho 1 que aparecem em um número mínimo de seqüências de consumidores formarão o conjunto de seqüências freqüentes F.
+
+As linhas de 5 a 1apresentam os passos necessários para se encontrar todas as seqüências freqüentes de tamanho maior do que 1.
+
+Na segunda iteração, é feita a geração do conjunto de seqüências candidatas de tamanho (C) linha a partir do conjunto de freqüentes F, da mesma maneira que o GSP.
+
+Em seguida, é feita uma nova leitura da base de dados, quando cada seqüência de consumidor lida da base é submetida ao conjunto de restrições RB e apenas aquelas que satisfazem todas as restrições em RB são comparadas com as seqüências candidatas de C (linhas 8 a 12).
+
+Todas as seqüências candidatas que estiverem contidas em cada seqüência de consumidor têm seu suporte incrementado.
+
+Após a leitura da base de dados e da contagem de suporte, as seqüências candidatas que possuem suporte maior ou igual ao suporte mínimo formam o conjunto F linha 1, que são as seqüências freqüentes de tamanho 2.
+
+O conjunto F será usado para gerar o conjunto de seqüências candidatas de tamanho (C) na próxima iteração do algoritmo.
+
+Este processamento se repete iterativamente até que, em uma iteração k, nenhuma seqüência candidata em C possuir um suporte maior ou igual ao suporte mínimo, ou seja, quando F for vazio.
+
+Na linha 15, os conjuntos de seqüências freqüentes obtidos nas diversas iterações são submetidos ao conjunto de restrições do usuário RU e apenas as seqüências freqüentes que satisfazem todas as restrições em RU irão compor o conjunto solução do problema.
+
+Pseudo-código do algoritmo GSP-F.
+
+É importante ressaltar que, o número de seqüências freqüentes encontradas em cada iteração sobre a base de dados filtrada pode ser menor do que o número de seqüências freqüentes que seriam encontradas em cada iteração se fosse usada a base de dados original.
+
+Assim, conclui-se que o algoritmo GSP-F pode gerar menos seqüências candidatas, reduzindo o tempo de contagem de suporte.
+
+Tais seqüências candidatas geradas têm maior chance de satisfazer às restrições de usuário.
+
+Exemplo da extração de seqüências freqüentes utilizando os algoritmos GSP e GSP-F, na primeira e segunda iterações.
+
+São apresentados, o suporte mínimo de consumidores, a base de dados contendo cinco seqüências de consumidores e duas restrições de base que são utilizadas pelo GSP-F.
+
+A primeira restrição, RB, filtra as seqüências de consumidores que possuem tamanho inferior a quatro.
+
+A segunda restrição, RB, filtra as 51 seqüências de consumidores que não contêm o item E.
+
+Na primeira iteração, o GSP encontra cinco itens freqüentes, A, B, C, D e E, enquanto o GSP-F encontra apenas quatro itens, A, B, C e E.
+
+Esta diferença ocorre porque o GSP-F considera, na contagem de suporte, apenas as seqüências de consumidores que satisfazem às restrições de base, ou seja, as seqüências t, t e t.
+
+As seqüências t e t são filtradas pelas restrições RB e RB, respectivamente.
+
+Sendo assim, na segunda iteração, o GSP gera 35 seqüências candidatas e encontra 9 seqüências freqüentes, enquanto o GSP-F gera 2seqüências candidatas e encontra 8 seqüências freqüentes.
+
+Exemplo de extração de seqüências freqüentes pelo GSP e GSP-F, na primeira e segunda iterações.
+
+O algoritmo GSP-F não reduz a quantidade de seqüências de consumidores lidas da base de dados a cada iteração em relação ao GSP.
+
+Porém, se beneficia pela retirada das seqüências de consumidores que não satisfazem às restrições de base do processo de contagem de suporte.
+
+No GSP-F, o conjunto de restrições do usuário não é utilizado no processo de filtragem das seqüências de consumidores diretamente.
+
+Cada restrição do usuário é transformada em uma restrição de base antes de ser utilizada no processo de filtragem.
+
+Este por sua vez remove, do processo de contagem de suporte, as seqüências de consumidores que não satisfazem às restrições de base.
+
+As restrições de base são geradas de maneira que as seqüências de consumidores removidas são aquelas que não têm a possibilidade de contribuir na contagem de algum padrão seqüencial que satisfaça às restrições do usuário.
+
+Os seguintes tipos de restrições de usuário são considerados pelo GSP-F.
+
+Segundo, tais tipos são adequados para permitir ao usuário expressar seus critérios de seleção.
+
+Define-se a transformação dos tipos de restrições de usuário nos tipos de restrições de base.
+
+Tipos de restrições de usuário e os tipos de restrições de base correspondentes.
+
+A primeira transformação se baseia na propriedade de que um padrão seqüencial de tamanho maior do que só pode estar contido em uma seqüência de consumidor de tamanho maior do que.
+
+A segunda transformação se baseia na propriedade de que um padrão seqüencial que possui a quantidade de elementos maior do que só pode estar contido em uma seqüência de consumidor que possua uma quantidade de transações maior ou igual.
+
+A terceira transformação se baseia na propriedade de que um padrão seqüencial que contém a seqüência só pode estar contido em uma seqüência de consumidor que também contenha tal seqüência.
+
+A quarta transformação se baseia na propriedade de que um padrão seqüencial que contém o n-ésimo elemento com tamanho maior do que só pode estar contido em uma seqüência de consumidor que possua pelo menos uma transação de tamanho maior ou igual.
+
+A quinta transformação se baseia na propriedade de que um padrão seqüencial que contém um dado conjunto de itens no n-ésimo elemento só pode estar contido em uma seqüência de consumidor que possua pelo menos uma transação contendo todos os itens desse conjunto.
+
+Escrevendo de outra forma, tal padrão seqüencial só pode estar contido em uma seqüência de consumidor que contenha a subseqüência hi, sendo hi uma seqüência com apenas um elemento contendo todos os itens do conjunto.
+
+Na subseção a seguir, são apresentadas algumas considerações sobre a implementação do GSPF.
+
+O código do algoritmo GSP-F utilizado neste trabalho, chamado aqui de GSPF, foi escrito na linguagem C.
+
+O GSPF é uma variação do GSP que incorpora o processamento das restrições.
+
+Os parâmetros de execução do algoritmo GSPF são, base de dados, suporte mínimo, grau da árvore hash, saturação da folha, o número de diferentes itens existentes na base de dados, a memória disponível para sua execução e o conjunto de restrições do usuário.
+
+Nesta seção, será apresentado o algoritmo GSPP-F, uma adaptação do GSPF que incorpora as técnicas de redução de base propostas no Capítulo 3.
+
+O GSPP-F extrai os padrões seqüenciais iterativamente da mesma forma que o GSPF, porém ao final de cada iteração k, uma nova base de dados, D, é criada e utilizada na iteração seguinte k + 1.
+
+Para k 2, o GSPP-F possui um comportamento idêntico ao GSPF, pois as podas são realizadas a partir da terceira iteração, como explicado anteriormente.
+
+Só na iteração 3, o GSPP-F passa a se beneficiar com a redução das seqüências de consumidores, que são submetidas ao processo de poda global antes da aplicação das restrições de base e da contagem de suporte das seqüências candidatas.
+
+O processo de poda local também é realizado a partir da terceira iteração, mas como, nesta poda, a redução das seqüências de consumidor só ocorre ao final da iteração, o seu benefício só é percebido a partir da iteração 4.
+
+O Algoritmo 5apresenta os passos do algoritmo GSPP-F nas iterações k 3.
+
+As iterações 1 e são executadas nos moldes do GSPF, conforme indicam as linhas e 4.
+
+A base de dados utilizada na iteração é a base original do problema, D, como indicado na linha 5 do algoritmo.
+
+A partir da quarta iteração, o algoritmo passa a ler a base de dados reduzida gerada na iteração anterior.
+
+Na linha 11, a função que realiza o processo de poda global é ativada.
+
+A partir dos contadores G, calculados durante a geração das seqüências candidatas (linha 9), esta função elimina itens desnecessários da seqüência de consumidor lida t, gerando a nova seqüência t.
+
+Esta seqüência t será utilizada na contagem de suporte das seqüências candidatas somente se o seu tamanho for maior ou igual a k linha e se t satisfizer todas as restrições em RB linha 1.
+
+Após a contagem de suporte das seqüências candidatas presentes em t (linha 14), o processo de poda local é executado (linha 15).
+
+A poda local consulta os contadores L, criados durante o processo de contagem de suporte (linha 14), e elimina os itens desnecessários de t, criando uma nova seqüência de consumidor t.
+
+A seqüência t é gravada na nova base de dados D (linha 17), se o seu tamanho for superior a k.
+
+Na linha 24, os conjuntos de seqüências freqüentes obtidos nas diversas iterações são submetidos ao conjunto de restrições do usuário RU e apenas as seqüências freqüentes que satisfazem todas as restrições em RU irão compor o conjunto solução do problema.
+
+Pseudo-código do algoritmo GSPP-F.
+
+É importante ressaltar que o número de seqüências freqüentes encontradas em cada iteração sobre a base de dados podada e filtrada deverá ser menor do que o número de seqüências freqüentes que seriam encontradas em cada iteração se fosse usada a base de dados somente filtrada.
+
+Dessa forma, o algoritmo GSPP-F deverá gerar menos seqüências candidatas, reduzindo o tempo de contagem de suporte.
+
+Tais seqüências candidatas geradas têm maior chance de satisfazer às restrições de usuário.
+
+Exemplo da extração de seqüências freqüentes utilizando os algoritmos GSP-F e GSPP-F, na terceira iteração.
+
+São apresentados, o suporte mínimo de consumidores, a base de dados contendo cinco seqüências de consumidores, duas restrições 56 de usuário, as restrições de base correspondentes e o conjunto de seqüências freqüentes de tamanho 2, F.
+
+A primeira restrição de base, RB, é gerada a partir da restrição de usuário RU e filtra as seqüências de consumidores que possuem tamanho inferior a quatro.
+
+A segunda restrição de base, RB, é gerada a partir da restrição de usuário RU e filtra as seqüências de consumidores que não contêm o item E.
+
+Na terceira iteração, é gerada a mesma quantidade de seqüências candidatas, cinco, em ambos os algoritmos.
+
+Isso porque, na primeira e segunda iterações, o GSP-F e o GSPP-F realizam o mesmo processamento.
+
+No GSP-F, durante o processo de contagem de suporte das seqüências candidatas de tamanho 3, apenas as seqüências de consumidores t, t e t são consideradas.
+
+As seqüências t e t são filtradas pelas restrições RB e RB, respectivamente.
+
+Logo, são encontradas cinco seqüências freqüentes, ou seja, todas as candidatas são freqüentes.
+
+No GSPP-F, antes do processo de contagem de suporte das seqüências candidatas de tamanho 3, é realizado o processo de poda global, durante o qual são removidos de cada seqüência de consumidor t os itens que aparecem em menos de duas seqüências freqüentes de tamanho 2, gerando uma nova seqüência de consumidor t.
+
+Ou 0 seja, são removidos, os itens que possuem os respectivos contadores em G com valores inferiores a 2, e os itens que aparecem isolados e que possuem os respectivos contadores em G com valores inferiores a 2.
+
+Sendo assim, o GSPP-F, durante o processo de contagem, considera apenas as seqüências de consumidores.
+
+As seqüências t e t não são consideradas, pois todos os seus itens são removidos pela poda global.
+
+A seqüência t, após ter o item E removido pelo poda global é filtrado pela restrição RB.
+
+Logo, são encontradas quatro seqüências freqüentes.
+
+É importante lembrar que, após a extração de todos os padrões seqüenciais, uma filtragem adicional é realizada, na qual as seqüências freqüentes que não satisfazem às restrições definidas pelo usuário são excluídas do conjunto freqüente.
+
+Isso porque, a aplicação das restrições de base por si só não garante que somente padrões que suportam as restrições de usuário sejam descobertos.
+
+No exemplo apresentado, nenhuma das seqüências freqüentes apresentadas faz parte do conjunto solução do problema, pois de acordo com as restrições de usuário RU e RU, apenas os padrões com tamanho maior do que e que contêm o item E podem fazer parte do conjunto solução.
+
+Apesar disso, a geração das seqüências freqüentes de tamanho menor ou igual a é importante, pois a partir delas são geradas as seqüências freqüentes de tamanho maior do que 3, que poderão conter o item E.
+
+Após o processo de pós-processamento, o conjunto freqüente encontrado pelos algoritmos GSP-F e GSPP-F é obrigatoriamente o mesmo.
+
+Na subseção a seguir, são apresentadas algumas considerações sobre a implementação do Exemplo de extração de seqüências freqüentes pelo GSP-F e GSPP-F, na terceira iteração.
+
+O algoritmo GSPP-F foi implementado utilizando-se a linguagem C.
+
+Seus parâmetros de execução são idênticos aos parâmetros utilizados na execução do algoritmo GSPF, base de dados, suporte mínimo, grau da árvore hash, saturação da folha, o número de diferentes itens existentes na base de dados, a memória disponível para sua execução e o conjunto de restrições do usuário.
+
+No GSPP-F, são implementadas a poda local e a poda global, ambas utilizando também a poda de itens isolados.
+
+As avaliações realizadas nesta seção, a partir dos experimentos conduzidos, incluem análises de tempo e de redução da base de dados obtidas com a utilização dos algoritmos GSPF e GSPP-F.
+
+Todas as execuções foram realizadas com saturação da folha igual a 20 e grau da árvore hash igual a 10% do número de itens distintos existentes nas bases de dados.
+
+A quantidade de memória disponibilizada para execução dos algoritmos foi de 100 megabytes.
+
+Estes valores foram os mesmos usados no Capítulo 4.
+
+O suporte mínimo foi fixado em 0, 25% e as restrições utilizadas foram classificadas conforme seu grau de seletividade.
+
+O grau de seletividade é definido como a porcentagem de seqüências de consumidores da base de dados que satisfazem às restrições de base geradas a partir das restrições do usuário.
+
+Para as seis bases de dados descritas, o tempo total de execução dos algoritmos GSPF e GSPP-F obtido, utilizando restrições com os graus de seletividade 20%, 40%, 60% e 80%.
+
+Os tipos de restrições de usuário utilizados foram RUa e RUb, que estabelecem a quantidade de itens e quantidade de elementos nos padrões seqüenciais e, conseqüentemente, nas seqüências de consumidores.
+
+Para cada base de dados avaliada, os dois tipos de restrições e seus valores foram combinados para obtenção das seletividades desejadas, já que cada base de dados possui características diferentes quanto ao número médio de itens por consumidor e quanto ao número médio de transações por consumidor.
+
+Os resultados computacionais mostram que as técnicas de redução progressiva da base de dados, implementadas no algoritmo GSPP-F, levam a uma redução significativa do tempo total do algoritmo GSPF.
+
+Para as bases de dados e valores de seletividade considerados (excluindo apenas o teste realizado com a base de dados CT2SI12D2000 K e com seletividade de 20%, no qual a quantidade de iterações não passou de duas), o tempo total de execução do algoritmo GSPP-F foi, em média, 51% (variando de 43% a 66%) do tempo total de execução do algoritmo GSPF, alcançando uma redução média de 49%.
+
+A redução progressiva e efetiva da base foi responsável pelo bom desempenho do algoritmo GSPP-F na medida em que reduziu significativamente o custo com as operações de E/S e o alto custo da fase de contagem das seqüências candidatas.
+
+Observa-se um crescimento do tempo de execução das duas estratégias à medida que se aumenta o grau de seletividade das restrições.
+
+Isso porque, com o aumento da seletividade, maior é a quantidade de seqüências de consumidores que serão analisadas na etapa de contagem do suporte das seqüências candidatas em cada iteração.
+
+Conseqüentemente, maior é a quantidade de seqüências de consumidores analisadas, aumentando o tempo de execução do algoritmo.
+
+Tempo total de execução dos algoritmos GSPF e GSPP-F, com suporte mínimo de 0, 25%.
+
+Tempo de execução e a quantidade de seqüências de consumidores analisadas no processo de contagem de suporte em cada iteração do GSPF e do GSPP-F.
+
+Nos dois experimentos, foram utilizadas as mesmas bases de dados e o grau de seletividade de 60%.
+
+Nota-se que a redução do tempo de processamento ocorre a partir da terceira iteração devido ao fato de ser a primeira iteração a trabalhar com transações já podadas.
+
+Os benefícios obtidos pela leitura e utilização de uma base de dados menor só é sentida a partir da quarta iteração.
+
+Vale lembrar que as novas bases de dados são geradas ao final das iterações.
+
+Observa-se também que a quantidade de iterações realizadas pelo GSPP-F é menor do que a quantidade realizada pelo GSPF.
+
+Isso porque o número de seqüências freqüentes encontradas pelo GSPP-F em cada iteração foi menor, ocasionando a geração de menos seqüências candidatas nas iterações seguintes.
+
+Isso significa que os freqüentes encontrados em cada iteração pelo GSPP-F têm maior chance de satisfazer às restrições de usuário que são aplicadas ao final do processamento.
+
+Com isso o GSPP-F, em geral, termina o processamento antes, já que ambos os algoritmos param quando nenhuma nova seqüência freqüente é encontrada em uma iteração ou quando nenhuma seqüência candidata é gerada.
+
+Tempo de execução de cada iteração dos algoritmos GSPF e GSPP-F, com suporte mínimo de 0, 25% e seletividade de 60%.
+
+Enquanto a quarta iteração do algoritmo GSPF foi executada em 49,7segundos sobre a base de dados C20-T2SI12D500 K, a quarta iteração do algoritmo GSPP-F, para a mesma base de dados, foi executada em 7,7segundos, representando uma redução de 84%.
+
+Nas primeira e segunda iterações, os algoritmos obtiveram aproximadamente o mesmo tempo de execução, já que o GSPP-F realiza o mesmo processamento que o GSPF nestas iterações.
+
+Na terceira iteração, o GSPP-F obteve um tempo ligeiramente menor de processamento, pois se beneficiou da aplicação da poda global antes da contagem de suporte das seqüências candidatas.
+
+Nas iterações, a redução do tempo de processamento foi significativa, porém a maior redução obtida aconteceu sempre na quarta iteração.
+
+A redução representativa do tempo na quarta iteração deve-se à significativa redução da base de dados observada no final da terceira iteração, quando o processo de poda local foi aplicado pela primeira vez.
+
+Em relação à redução da base de dados, observa-se, que, para a mesma base C20-T2SI12D500 K, a quantidade de seqüências de consumidores analisadas no processo de contagem de suporte na quarta iteração do algoritmo GSPP-F é aproximadamente nove vezes menor do que a quantidade analisada pelo algoritmo GSPF na mesma iteração, o que certamente contribuiu para a redução do tempo de execução da iteração (passando de 49,7segundos para 7,7segundos).
+
+Nas iterações seguintes, observa-se que a redução da base foi significativa porém menor do que na quarta iteração, mas sempre contribuindo para a redução do tempo de processamento das iterações seguintes e do tempo total de processamento.
+
+Os resultados obtidos nessa seção comprovam a viabilidade e a eficácia das técnicas de redução da base de dados aplicadas ao problema de extração de padrões seqüenciais baseada em restrições à medida que reduziu significativamente o custo de várias leituras da base de dados e o tempo de contagem de suporte das seqüências candidatas.
+
+Número de seqüências de consumidores analisadas no processo de contagem de suporte a cada iteração dos algoritmos GSPF e GSPP-F, com suporte mínimo de 0, 25% e seletividade de 60%.
+
+Nesta dissertação, foi proposto o uso de técnicas de redução progressiva da base de dados em algoritmos iterativos para extração de padrões seqüenciais.
+
+Em estudos anteriores, verificou-se que a etapa de contagem de suporte de seqüências candidatas possui um alto custo computacional.
+
+A partir desta análise, foram propostas técnicas de redução da base de dados baseadas nas estratégias de redução de base apresentadas pelos autores dos algoritmos DHP e kDCI++ para o problema de mineração de conjuntos freqüentes.
+
+Neste contexto, a contribuição do presente trabalho foi a proposta de uma adaptação do algoritmo GSP2, denominada GSPP, na qual as estratégias de redução da base de dados foram incorporadas.
+
+Os resultados avaliados a partir de diferentes combinações de bases de dados e suportes mínimos mostraram que as técnicas de redução de base implementadas no algoritmo GSPP reduzem significativamente o tempo de execução total do algoritmo sem poda de base GSP2.
+
+Neste mesmo trabalho, com o objetivo de validar o uso das técnicas propostas e estender as suas aplicações, as técnicas foram aplicadas ao problema de extração de padrões seqüenciais baseada em restrições.
+
+Neste contexto, foi proposta uma adaptação do algoritmo GSP-F, denominada GSPP-F, em que as estratégias de redução da base de dados foram incorporadas.
+
+Os resultados obtidos com os experimentos realizados sobre diferentes combinações de bases de dados e valores de seletividade das restrições mostraram que as técnicas de redução da base de dados adotadas pelo GSPP-F reduzem significativamente o tempo de execução total do algoritmo sem poda de base GSPF.
+
+Nos experimentos realizados sobre o GSPP, verificou-se que o uso das técnicas de redução da base de dados reduziu o número de itens presentes nas seqüências de consumidores a cada iteração e, conseqüentemente, reduziu o número de seqüências de consumidores analisadas durante o processo de contagem de suporte.
+
+Para as bases de dados e valores de suporte mínimo considerados, o tempo total de execução do algoritmo GSPP foi, em média, 70% do tempo total de execução do algoritmo GSP2, alcançando uma redução média de 30%.
+
+A redução progressiva da base pôde ser observada tanto em termos da quantidade de memória lida a cada iteração quanto em termos do número total de itens.
+
+Nas primeira e segunda iterações, os algoritmos obtiveram aproximadamente o mesmo tempo de execução, já que o GSPP realiza o mesmo processamento que o GSPnestas iterações.
+
+Na terceira iteração, o GSPP obteve um tempo ligeiramente menor de processamento, pois se beneficiou apenas da aplicação da poda global antes da contagem de suporte das seqüências candidatas.
+
+Nas iterações k > 4, a redução do tempo de processamento foi significativa e a maior redução obtida aconteceu sempre na quarta iteração.
+
+A redução representativa do tempo nesta iteração deve-se à significativa redução da base de dados observada no final da terceira iteração, quando o processo de poda local foi aplicado pela primeira vez.
+
+Na média, a redução da base de dados na terceira iteração foi de aproximadamente 66% e a redução do tempo de processamento da iteração foi de 61%.
+
+Em outros experimentos realizados foram feitas avaliações de desempenho de cada uma das técnicas de redução da base de dados adotadas pelo algoritmo GSPP, separadamente.
+
+Os resultados computacionais mostraram que a aplicação da poda local juntamente com a poda global e a poda de itens isolados, implementadas no algoritmo GSPP, obteve a maior redução do tempo total de execução em relação ao tempo total de execução do algoritmo GSP2, em grande parte dos experimentos.
+
+O algoritmo que implementa as podas local e global, sem a poda de itens isolados, o GSPLG, obteve o segundo melhor desempenho, seguido, na ordem, pelo algoritmo que implementa apenas a poda local, o GSPL, e pelo algoritmo que implementa apenas a poda global, o GSPG.
+
+A redução do tempo total de execução do algoritmo GSPP foi, em média, de 30% em relação ao tempo total de execução do algoritmo GSP2, enquanto que as reduções obtidas pelos algoritmos GSPLG, GSPL e GSPG foram de 29, 5%, 26, 1% e 21, 6%, respectivamente.
+
+Este resultado evidenciou a importância da utilização em conjunto dos três tipos de poda.
+
+Nos experimentos realizados utilizando-se o GSPP-F na extrações de padrões seqüenciais baseada em restrições, verificou-se que o uso das técnicas de redução da base de dados também reduziu o número de itens presentes nas seqüências de consumidores a cada iteração e, conseqüentemente, o tempo gasto na contagem de suporte.
+
+Para as bases de dados e valores de seletividade considerados, o tempo total de execução do algoritmo GSPP-F foi, em média, 51% do tempo total de execução do algoritmo GSPF, alcançando uma redução média de 49%.
+
+A aplicação das técnicas de redução de base no problema de extração de padrões seqüenciais baseada em restrições evidenciou a eficiência das podas e comprovou que as mesmas podem ser utilizadas em problemas correlatos ao problema de extração de padrões seqüenciais.
+
+Como conseqüência natural deste trabalho, pretende-se, explorar as técnicas de redução da base de dados em outras estratégias importantes de extração de padrões seqüenciais, como na versão BFS (Breadth First Search) do algoritmo SPADE, e definir uma estratégia híbrida, análoga ao algoritmo kDCI++ de extração de conjuntos freqüentes, na qual a base de dados é progressivamente reduzida até caber em memória principal, quando então é verticalizada e processada não mais em memória secundária.
+
+O desenvolvimento e utilização das técnicas de redução progressiva da base de dados em outras estratégias importantes de extração de padrões seqüenciais baseada em restrições, como na família de algoritmos SPIRIT, também representa um provável trabalho futuro.
+

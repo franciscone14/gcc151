@@ -1,0 +1,1686 @@
+Este trabalho tem o intuito de fazer uso do processamento paralelo na análise não linear de cascas pelo Método dos Elementos Finitos.
+
+O elemento finito de casca é obtido com o acoplamento de um elemento de placa e um de chapa.
+
+O elemento de placa utiliza formulação de Kirchhof (DKT) para placas delgadas e o elemento de chapa faz uso da formulação livre (FF), introduzindo um grau de liberdade rotacional nos vértices.
+
+A análise não-linear com plasticidade utiliza o modelo de plasticidade associada com algoritmo de integração explícito, modelo de escoamento de von Mises com integração em camadas (modelo estratificado), para materiais isotrópicos.
+
+A implementação em paralelo é realizada em um sistema com memória distribuída e biblioteca de troca de mensagens PVM (Parallel Virtual Machine).
+
+O procedimento não-linear é completamente paralelizado, excetuando a impressão final de resultados.
+
+As etapas que constituem o Método dos Elementos Finitos, matriz de rigidez da estrutura e resolução do sistema de equações lineares são paralelizadas.
+
+Para o cálculo da matriz de rigidez utiliza-se um algoritmo com decomposição de domínio explícito.
+
+Para resolução do sistema de equações lineares utiliza-se o método dos Gradientes Conjugados com implementação em paralelo.
+
+É apresentada uma breve revisão bibliográfica sobre o paralelismo, com comentários sobre perspectivas em análise estrutural.
+
+A análise estrutural foi uma das áreas que mais se desenvolveram nos últimos anos, amparada principalmente pelo surgimento concomitante dos computadores e dos métodos numéricos de análise matemática.
+
+Problemas estruturais com solução analítica difícil passaram a dispor de métodos numéricos eficientes na obtenção de resultados.
+
+O surgimento desses métodos, acompanhado de máquinas que viabilizassem sua aplicação, não só possibilitou a solução dos problemas existentes, como também abriu uma perspectiva de investigação científica sem limites não só na análise estrutural, mas em todos os campos das ciências da natureza.
+
+Munida de ferramentas tais como Métodos dos Elementos Finitos (MEF) e Método dos Elementos de Contorno (MEC), a análise de estruturas pôde se estender a fenômenos e modelos antes impensáveis, tais como não-linearidade, fadiga, fratura, dano, etc.
+
+Hoje o uso desses métodos numéricos, e das máquinas que os amparam, passou do campo científico para a prática do cálculo estrutural.
+
+Entretanto, mesmo com os recursos hoje disponíveis (métodos numéricos MEF, MEC-e modernos computadores pessoais), o uso dos modelos mecânicos (não-linearidades física e geométrica, plasticidade, fratura, fadiga, dano) no  dimensionamento de estruturas é ainda pouco utilizado, pois se trata de procedimentos iterativos com elevado custo computacional.
+
+Pode-se esperar que o desenvolvimento dos computadores alcance um patamar tal que essa transferência se concretize naturalmente (isso em nível de processamento atuais microprocessadores).
+
+Entretanto, esses computadores, dito seqüenciais (executam suas tarefam seqüencialmente, uma após a outra), tem um limite físico de aperfeiçoamento, que é a velocidade da luz no vácuo, o qual não está muito distante de ser alcançado, comprometendo assim o uso desses modelos como critério de dimensionamento.
+
+Com o intuito de contornar essa limitação física, comum aos computadores pessoais e aos supercomputadores, surgiu uma nova categoria de computadores com arquitetura diferente das máquinas seqüenciais, os computadores com arquitetura paralela.
+
+A principal característica dessa arquitetura é possuir vários processadores trabalhando concomitantemente na execução de uma mesma tarefa.
+
+O conceito de paralelismo apresentou grande evolução em relação às máquinas seriais, rompendo com a necessidade de se executar tarefas seqüencialmente.
+
+Essa nova modalidade de máquinas aparece como uma das mais promissoras no campo do desenvolvimento dos computadores, pois permite que se alcance o desempenho dos atuais supercomputadores com um custo bem inferior.
+
+O desenvolvimento e uso dessas máquinas têm encontrado espaço crescente no ambiente acadêmico, inclusive no âmbito da pesquisa da engenharia estrutural.
+
+Esse interesse pelo paralelismo é motivado pela perspectiva que o mesmo apresenta em relação ao desenvolvimento dos computadores e pode ser avaliado pelo volume de trabalhos explorando o tema.
+
+Portanto, é importante nesse momento familiarizar-se com essa nova arquitetura de computadores e com o modo de conceber programas voltados aos mesmos a fim de tirar o máximo proveito de seus recursos.
+
+Diferente das máquinas seqüenciais, quando se propõe elaborar um programa para ser usado em um computador com arquitetura paralela deve-se conhecer não só as linguagens de alto nível que serão usadas, mas também a configuração da máquina disponível, pois nesse caso o programa desenvolvido será voltado especificamente para a máquina que se quer empregar.
+
+Nesse caso pode-se dispor de processadores vetoriais, que são máquinas especializadas no tratamento de operações com vetores e matrizes, e os multicomputadores, que são arquiteturas compostas de um conjunto de processadores conectados entre si por uma rede de interconexão (com ou sem módulo de memória próprio).
+
+O modo segundo o qual se processa a troca de informações (rede de interconexão) pode ter diferentes arranjos tais como barramento, barramento cruzado, matricial, hipercubo e multiestágio.
+
+Com relação à organização da memória os computadores paralelos podem possuir uma memória global e vários processadores com acesso à mesma (memória compartilhada ou global), ou cada processador pode possuir sua própria memória (memória distribuída ou local).
+
+Mais detalhes sobre estas características serão apresentados no próximo ítem.
+
+No que se refere à engenharia estrutural, mais especificamente à análise numérica, fazer uso dos recursos que essas máquinas oferecem significa ter que preparar os métodos numéricos atualmente empregados ( MEF, MEC ) para que sejam usados com máxima eficiência no paralelismo.
+
+Fazendo uso do Método dos Elementos Finitos, pode-se extrair paralelismos das etapas que constituem o emprego deste método.
+
+Nesse caso, pode-se investir no processo de montagem da matriz de rigidez global e na resolução do sistema de equações lineares da estrutura.
+
+A resolução do sistema de equações lineares é a etapa que requer maior esforço computacional (caso elástico-linear), sendo objeto de pesquisa dos matemáticos.
+
+No caso da análise não-linear, o método de Newton para resolução de sistemas de equações não-lineares tem particular interesse dado a sua intensa utilização.
+
+Possíveis alternativas de se paralelizar as etapas que compõem método de Newton serão posteriormente comentadas.
+
+Para a análise não-linear de estruturas pode-se também concentrar esforços no cálculo do resíduo.
+
+Na etapa de cálculo da matriz de rigidez, caso seja intenção do pesquisador utilizar o algoritmo usual, que consiste em alocar os coeficientes de rigidez dos elementos para suas posições na matriz da estrutura a partir de um laço sobre os elementos, verifica-se que este algoritmo mostra-se inadequado, o que será demonstrado a posteriori.
+
+Sendo uma das etapas que envolvem a utilização do MEF, deve-se envidar esforços no sentido de se buscar o paralelismo dessa fase.
+
+Esse assunto tem sido motivo de vários trabalhos, que serão comentados oportunamente na revisão bibliográfica.
+
+Também como etapa do MEF, algoritmos para resolução de sistemas de equações lineares têm merecido atenção na pesquisa sobre o paralelismo, sendo a fase de maior demanda computacional.
+
+Tradicionalmente usado em programas sequenciais, o método de Gauss não oferece os mesmos resultados no paralelismo, uma vez que apresenta dependência de dados nas etapas de triangularização e retrosubstituição.
+
+Além do exposto, o método de Gauss apresenta um aspecto negativo quando se trabalha com problemas envolvendo muitos graus de liberdade, que é o erro provocado pelo arredondamento.
+
+Isso tem motivado o uso dos métodos iterativos, com destaque para Gauss-Jacobi, Gauss-Seidel, Gradientes Conjugados e Gradientes Conjugados com Pré Condicionadores.
+
+Apesar de exigir uma nova mentalidade na concepção de algoritmos que serão implementados nos sistemas computacionais, diferentemente do modo sequencial de programação, o paralelismo tem conquistado espaço extenso e em ritmo crescente junto à pesquisa em análise numérica.
+
+Esse fato pode ser constatado pelo volume de trabalhos publicados que utilizam esses conceitos e recursos, que se estendem desde a elaboração de algoritmos paralelos para pré-processadores até a resolução de sistemas de equações lineares para os diversos modelos de análise estrutural (linearidade, não-linearidade, dinâmica, etc).
+
+Esse interesse despertado nos pesquisadores da área de análise estrutural pode ser avaliado na revisão bibliográfica que se apresenta no capítulo II.
+
+No âmbito deste departamento, o trabalho de REZENDE  foi o pioneiro na utilização do paralelismo na análise estrutural.
+
+Neste trabalho faz-se uma análise não-linear de estruturas em barras, apresentando um algoritmo alternativo para a montagem da matriz de rigidez da estrutura, além de estudar a eficiência de algoritmos para a resolução de sistemas de equações lineares.
+
+Para a resolução de sistema de equações lineares usa-se o método direto de Gauss com modificações para que se possa extrair o paralelismo do mesmo.
+
+Também em ALMEIDA  encontra-se uma implementação, em máquinas com memória distribuída, de um software para resolução de pavimentos pelo MEF.
+
+Neste caso, utilizou-se o conceito de abordagem nodal no cálculo da matriz de rigidez e o método dos Gradientes Conjugados na resolução do sistema de equações.
+
+O presente trabalho tem o intuito de prosseguir na pesquisa sobre paralelismo, voltando a atenção para estruturas bidimensionais, chapas, placas e cascas, usando modelos conhecidos de não-linearidade física.
+
+No capítulo II estão apresentados conceitos básicos de computação paralela bem como a revisão bibliográfica realizada.
+
+No capítulo III apresenta-se toda a formulação dos elementos finitos utilizados na composição do elemento de casca plano, além do modelo de não linearidade empregado neste trabalho.
+
+No capítulo IV mostra-se a implementação em paralelo do programa para análise não-linear de cascas com comentários detalhados sobre o procedimento adotado.
+
+Por fim, apresenta-se no capítulo V os resultados do processamento em paralelo dos exemplos propostos.
+
+Mostra-se também o comportamento elastoplástico dos respectivos exemplos.
+
+O equipamento a ser usado é um IBM SP2, com três nós de processamento, instalado no Centro de Informática de São Carlos.
+
+Apesar de possuir apenas três nós, esse equipamento apresenta elevado desempenho além de permitir que se estude e desenvolva os conceitos de computação distribuída.
+
+Desde sua invenção, identifica-se cinco gerações de computadores correspondendo à tecnologia utilizada na fabricação dos mesmos, Tubos de vácuo, diodos e transistores, circuitos integrados em pequena e média escala SSI e MSI, circuitos integrados em alta escala VLSI  e ultra escala em circuitos integrados ULSI (1990-presente data).
+
+No desenvolvimento dessa tecnologia, maior ênfase foi dada à redução de custo, dimensão, consumo, velocidade e confiabilidade dos seus componentes.
+
+A microeletrônica apresentou um grande avanço nos anos recentes, principalmente pela utilização dos microprocessadores com material semicondutor.
+
+Essa tecnologia permitiu o avanço contínuo em ganho de velocidade de processamento e capacidade de memória.
+
+Atualmente a pesquisa se direciona a melhorar a densidade dos circuitos integrados, buscando um nível de ciclo de máquina próximo de 05 ns (05 x10 seg).
+
+A memória também apresentou um grande desenvolvimento tanto em termos de capacidade de armazenamento quanto em velocidade de resposta.
+
+A avaliação de desempenho da memória é medida em termos de latência (tempo necessário para que a memória retorne um pedido) e taxa com que ela aceita pedidos e retorna resultados (bandwidth).
+
+A divisão hierárquica de níveis de memória (desde registradores do microprocessador, memória cache, memória principal e discos magnéticos e ópticos) é um dos fatores que proporcionaram esse desenvolvimento.
+
+Futuramente os microprocessadores e a memória principal serão incorporados em um único dispositivo, o que proporcionará um aumento maior na desempenho das máquinas.
+
+Apesar do avanço obtido, a velocidade de execução de tarefas apresentada pelos microprocessadores é superior à das memórias, como no caso do IBM 3090 onde o ciclo de máquina é de 18 ns e o tempo de acesso à memória está entre 200 ns e 500 ns, tornando-se um entrave ao ganho final em velocidade das máquinas (fenômeno conhecido como "gargalo de von Neumman").
+
+Esse fato impulsiona a pesquisa por memórias com maior velocidade de resposta e capacidade de armazenamento.
+
+Os dispositivos de armazenamento de dados (memória permanente) também experimentaram grande desenvolvimento.
+
+Com o aumento da velocidade de processamento dos computadores fez-se necessário que os demais componentes também atingissem o mesmo patamar de desenvolvimento, proporcionando melhor aproveitamento dos sistemas de computação.
+
+Estes dispositivos cresceram tanto em capacidade de armazenamento quanto em velocidade de busca de dados.
+
+Além dos dispositivos magnéticos, surgiram também os dispositivos ópticos.
+
+Atualmente encontram-se disponíveis elementos com capacidade de armazenamento de 10 bytes (pentabytes).
+
+Novos equipamentos surgiram em virtude do desenvolvimento da microeletrônica (sistemas de alto desempenho, computadores pessoais, computadores portáteis).
+
+Segundo NOOR  a próxima geração de computadores será influenciada basicamente pelo desenvolvimento de três áreas, capacidade dos componentes eletrônicos, inteligência artificial e arquitetura dos computadores.
+
+Além desse desenvolvimento, o aumento final da velocidade de processamento decorre da execução simultânea de atividades no computador.
+
+Assim impõe-se a necessidade aos profissionais que necessitam desses equipamentos em suas atividades de familiarizar-se com esses novos recursos.
+
+A maioria dos novos equipamentos consegue atingir alto desempenho através de procedimentos concorrentes no computador.
+
+A exploração desse procedimento concorrente é usualmente conhecida como processamento paralelo.
+
+Um processo  paralelo executado em sistemas fisicamente dispersos é usualmente conhecido como processos distribuídos.
+
+A concorrência é usada não para aumentar a velocidade individual de um determinado trabalho, mas de todo o processamento.
+
+Essa nova arquitetura proporcionou um significativo avanço dos sistemas computacionais em termos de desempenho, como pode ser visto na.
+
+Sistemas computacionais com elevado poder de processamento são de fundamental importância na análise numérica, permitindo que modelos com maior complexidade sejam elaborados.
+
+Trabalhos em análise numérica para computadores com arquitetura paralela tem sido publicados desde o surgimento desses equipamentos, como CARROLL e WETHERALD  e LEHMAN, voltados principalmente para otimização matemática, cálculo de raízes, solução de equações diferenciais e resolução de sistemas de equações lineares.
+
+Para as aplicações em análise de estruturas cita-se os trabalhos de NOOR e HARTLEY  sobre o cálculo da matriz de rigidez e NOOR e LAMBIOTTE  sobre respostas dinâmicas com o método dos elementos finitos.
+
+Desenvolvimento dos processadores apud NOOR.
+
+Desde então muitos trabalhos tem sido apresentados procurando algoritmos que possam extrair o máximo proveito dos recursos dessa arquitetura.
+
+Cita-se por  exemplo LAW que propõe um método para encontrar os deslocamentos nodais de uma estrutura pelo método dos elementos finitos, em um sistema computacional MIMD sem que seja formada a matriz de rigidez da estrutura usando a técnica da subestruturação.
+
+OU e FULTON aplicam o processamento paralelo em um modelo de não-linearidade dinâmica, mostrando a eficiência do paralelismo junto aos algoritmos seqüenciais.
+
+FARHAT e WILSON  apresentam algoritmos paralelos para resolução de sistemas de equações lineares usando a fatorização LDL do método de Cholesky, tanto para máquinas com memória compartilhada quanto distribuida.
+
+No trabalho de BARRAGY e CAREY  é apresentado um procedimento paralelo para se resolver problemas de valor de contorno com o método dos elementos finitos usando o esquema elemento por elemento.
+
+Utiliza-se o método dos Gradientes Conjugados na resolução do sistema de equações lineares.
+
+CARTER estudam a implementação paralela do método dos elementos finitos usando a técnica de subestruturação sem que seja necessário o cálculo da matriz de rigidez da estrutura.
+
+Na resolução do sistema de equações lineares é utilizado o método dos Gradientes Conjugados com Pré-Condicionadores também em paralelo.
+
+A implementação é desenvolvida em uma máquina MIMD com rede de interconexão hipercubo.
+
+CHIEN e SUN apresentam uma proposta de cálculo da matriz de rigidez da estrutura em paralelo, baseada numa numeração especial dos elementos e na divisão da estrutura em subestruturas que são executadas em processadores distintos.
+
+Através dessa numeração especial e da divisão em subestruturas, os processadores chegarão aos pontos comuns das subestruturas em tempos distintos, dispensando a sincronização dos processos.
+
+GOEHLICH apresentam a implementação e o desenvolvimento de um algoritmo paralelo para o método de Cholesky para resolução de sistemas de equações lineares.
+
+A implementação é realizada em um FLEX/32 e posteriormente testada em um CRAY X-MP, IBM 3090 e em um ALLIANT.
+
+EL-SAYED e HSIUNG  aplicam a técnica da subestruturação para desenvolver um algoritmo para análise de estruturas em paralelo.
+
+O algoritmo é testado em uma estrutura de barras através de um supercomputador CRAY X-MP.
+
+CHIANG e FULTON mostram avanços na solução de problemas envolvendo não-linearidade e dinâmica, usando-se o processamento paralelo na decomposição de Cholesky para resolver sistemas de equações lineares.
+
+Em JOHNSSON e MATHUR  apresentam-se algoritmos paralelos para pré-processadores, para cálculo das matrizes de rigidez dos elementos finitos da estrutura, e para a resolução do sistema de equações lineares usando o método dos Gradientes Conjugados.
+
+Os resultados são obtido em um CM-2  YAGAWA apresentam um sistema para processamento em paralelo com a técnica de decomposição de domínio em conjunto com o método dos Gradientes Conjugados.
+
+ADELI e KAMAL(1992-I) apresentam duas propostas para o cálculo da matriz de rigidez da estrutura em paralelo.
+
+Na primeira divide-se a malha em subestruturas vinculadas aos processos paralelos, recorrendo-se ao uso de semáforos na sincronização dos mesmos.
+
+Na segunda além da divisão em subestruturas, faz-se uso de áreas adicionais da memória para cada processo nas regiões da matriz acessíveis por mais de um processador.
+
+No trabalho de SAXENA e PERUCCHIO  é desenvolvido um algoritmo paralelo para geração automática de malhas, baseado no método RSD ( Recursive Spatial Decomposition) em elementos sólidos.
+
+SAXENA e PERUCCHIO  apresentam um algoritmo paralelo de divisão de domínio para elementos finitos que pode ser usado com o gerador de malhas paralelo proposto em SAXENA e PERUCCHIO.
+
+LAW e MACKAY  descrevem uma implementação paralela da  fatorização LDL em computadores com memória distribuída.
+
+O algoritmo é verificado no computador Intel i860 com rede de interconexão hipercubo.
+
+Também em RAO  são apresentados algoritmos paralelos para resolução de sistemas de equações lineares em máquinas com memória distribuída.
+
+Neste caso estuda-se o método de Gauss com armazenamento em banda e fatorização  LDL com skyline.
+
+SCHMIT e LAI  apresentam três tipos de pré-condicionadores para o método dos Gradientes Conjugados, que são decomposição incompleta de Cholesky, polinomial e fatorização, além de uma estudo para melhorar a convergência com o vetor inicial.
+
+Para verificação dessa proposta é utilizado como exemplo uma treliça espacial.
+
+LIU e WU  apresentam um algoritmo paralelo para análise de estruturas periódicas pelo método dos elementos finitos em computadores MIMD.
+
+Aproveita-se o isomorfismo dessas estruturas obtido a partir de um sistema de coordenadas simétrico para gerar sistemas de equações lineares que podem ser analisados separadamente.
+
+Os sistemas da estrutura são resolvidos em paralelo.
+
+EL-SAYED e HSIUNG  estabelecem uma comparação entre duas alternativas de otimização estrutural em paralelo.
+
+Na primeira, a estrutura é dividida entre os processadores da máquina onde cada processador desenvolve o processo de otimização completamente.
+
+Na segunda, a estrutura é analisada de forma completa dividindo-se o gradiente de restrições da otimização entre os processadores.
+
+Em ADELI e KUMAR  apresenta-se uma formulação paralela para o Algoritmo Genético (GA Genetic Algorithm ), utilizado em otimização estrutural.
+
+Em ZHENG e CHANG  propõe-se um algoritmo paralelo para resolução de sistemas de equações lineares armazenado em forma skyline, baseado no método de decomposição de Cholesky para máquinas MIMD com memória compartilhada.
+
+SYNN e FULTON  mostram um processo prático de avaliar a eficiência de um algoritmo paralelo na resolução de sistemas de equações lineares (direto ou iterativo), para os computadores BBN/Butterfly e KSR1.
+
+JAQUES exploram o paralelismo na análise não-linear geométrica de estruturas, dividindo o cálculo da matriz de rigidez entre dois processos distintos, um responsável pela parte linear e outro pela de correção geométrica.
+
+Posteriormente as duas partes são adicionadas, restando apenas um processo com a matriz da estrutura.
+
+Nesse trabalho é estabelecido também uma comparação desse procedimento com a técnica de divisão de domínio.
+
+CHEN e BYREDDY  apresentam dois esquemas de paralelismo para o método das faixas finitas para análise de flexão de placas delgadas, baseados nos paradigmas mestre-escravo e multi-nível mestre-escravo, fazendo uso do PVM em uma rede de workstations.
+
+GEERS e KLEES  desenvolveram um algoritmo paralelo para resolução de sistemas de equações lineares, empregado em máquinas vetoriais SIMD com matriz de coeficientes completa.
+
+No âmbito local, pode-se citar o trabalho de REZENDE  onde apresenta-se com detalhes aspectos introdutórios do processamento paralelo, desenvolvendo algoritmos tanto para o cálculo da matriz de rigidez de uma estrutura quanto para a resolução do sistema de equações lineares.
+
+Esses algoritmos são usados na análise não-linear de estruturas em barras em máquinas com memória compartilhada.
+
+Ainda na esfera local, ALMEIDA  apresenta a implementação em paralelo de um sistema para resolução de pavimentos utilizando-se o conjunto PIM na resolução do sistema de equações lineares, implementado para máquinas com memória distribuída e biblioteca PVM.
+
+Nesta breve revisão bibliográfica fica claro o interesse que o paralelismo tem despertado nos pesquisadores em análise numérica.
+
+Os trabalhos apresentados discutem procedimentos em paralelo para pré-processadores, decomposição de domínio, cálculo da matriz de rigidez, resolução do sistema de equações e otimização, o que evidencia a importância do paralelismo na pesquisa.
+
+Na elaboração de programas em linguagens de alto nível para uso em máquinas seqüenciais, não se necessita conhecer detalhes da arquitetura das mesmas, sendo suficiente o domínio da linguagem que se pretende utilizar.
+
+Essa tem sido a conduta adotada até então, de um modo geral, na pesquisa em análise numérica de estruturas.
+
+Neste caso, o pesquisador tem como única preocupação a elaboração de modelos mecânicos que melhor representem o comportamento dos elementos estruturais, bastando-lhe o domínio da linguagem de alto nível para verificar a validade do modelo elaborado.
+
+Diferente da postura adotada para os sistemas seqüenciais, quando se pretende desenvolver programas para serem usados em máquinas paralelas é necessário não apenas o domínio das linguagens de programação e ferramentas do paralelismo, mas também as características do equipamento a ser usado, pois nesse caso existe uma relação unívoca entre software e máquina.
+
+Este fato fica claro na  revisão bibliográfica apresentada.
+
+Portanto, ao se desejar fazer uso das potencialidades do paralelismo, obrigatoriamente ter-se-á que estar familiarizado com a estrutura e a organização das arquiteturas paralelas, sendo que a estrutura refere-se ao arranjo estático dos componentes do sistema e organização à interação dinâmica entre os mesmos.
+
+A seguir pretende-se abordar aspectos introdutórios da estrutura e organização do paralelismo, além das ferramentas de desenvolvimento e análise dos softwares paralelos.
+
+Sobre este assunto existe vasta bibliografia disponível, podendo citar-se DeCEGAMA, FREEMAN e PHILLIPS, ALMEIDA e ÁRABE.
+
+A organização da grande maioria dos atuais computadores seqüenciais e paralelos deriva do sistema de computação idealizado por von Neumann, conhecido como máquina de von Neumann e apresentado na.
+
+Esse sistema gerou o conceito de programa armazenado, onde dados e programas compartilham a memória da máquina.
+
+Modelo de von Neumann.
+
+Entrada, Transmite dados e instruções do ambiente exterior para a máquina.
+
+Memória, Armazena instruções, dados e resultados aritméticos.
+
+Unidade Lógico-Aritmética (ALU ), Executa as operações lógicas e aritméticas.
+
+Controle, Interpreta as instruções e providencia a execução.
+
+Saída, Transmite os resultados finais para o ambiente exterior.
+
+O processador é o componente que interpreta um programa, sendo constituído de uma memória local ( formada por registradores ), uma unidade de controle e uma unidade de operação de dados.
+
+O funcionamento da máquina de von Neumann se dá pela execução sequencial de instruções.
+
+O fato de existir um caminho de dados entre o processador e a memória consiste na maior deficiência dos processadores convencionais, uma vez que o ciclo da memória é mais lento que o ciclo do processador.
+
+Isso torna o tempo de execução da instrução dependente do tempo de acesso à memória.
+
+Esse fenômeno é conhecido como "gargalo de von Neumann".
+
+Além dessa limitação de acesso no sistema de computação proposto por von Neumann, fica claro que o ganho de desempenho em sistemas convencionais é estritamente dependente do desenvolvimento dos componentes desse sistema.
+
+Processadores mais rápidos e maior capacidade de armazenamento e rapidez de acesso na memória seriam, então, o alvo natural desse desenvolvimento.
+
+Entretanto, além de apresentar elevado custo, esse desenvolvimento, como já se afirmou, tem-se uma limitação física de aperfeiçoamento dos processadores (velocidade da luz no vácuo), o qual não se encontra distante de ser alcançado.
+
+Possibilitando a execução simultânea de uma mesma tarefa em vários processadores, o paralelismo aparece como uma alternativa quase natural de superação das limitações dos sistemas convencionais, obtendo maior desempenho combinado com baixo custo de produção.
+
+Com essa arquitetura conseguiu-se desempenho sem  que o mesmo  estivesse  diretamente  dependente  do desenvolvimento dos componentes eletrônicos.
+
+Antes de discorrer sobre as arquiteturas paralelas disponíveis, é necessário que se estabeleça um padrão em que os sistemas computacionais sejam classificados quanto ao paralelismo que existe na seqüência de instruções e na seqüência de dados.
+
+É comum usar a taxonamia proposta, apresentada a seguir, SISD ( Single Instruction Single Data), Processamento de uma sequência de instruções sobre uma sequência de dados, que é o modelo clássico da máquina de von Neumann.
+
+SIMD ( Sigle Instruction Multile Data), Processamento simultâneo da mesma sequência de instruções sobre diferentes dados.
+
+Neste caso, a unidade de controle do sistema busca e decodifica a próxima instrução, enviando-a para que seja executada nos vários processadores desse sistema.
+
+Existem processadores vetoriais que se enquadram nessa categoria pois efetuam paralelamente a mesma sequência de instrução sobre diferentes elementos de um vetor.
+
+MISD ( Multiple Instruction Multiple Data), Processamento de diferentes instruções sobre mesma sequência de dados.
+
+Afirma que ainda não existem máquinas que se enquadram nessa categoria.
+
+MIMD ( Multiple Instruction Multiple Data), Processamento simultâneo de diferentes instruções sobre diferentes tipos de dados.
+
+Abrangem amplo espectro de máquinas com processamento paralelo.
+
+Um equipamento que pertença a essa categoria pode ser entendido como um conjunto de processadores trabalhando de forma independente ou em conjunto em um problema comum, estando sob o controle de um único sistema operacional.
+
+Quantidade de processadores, forma de conexão entre eles, tipo de memória, são os fatores que distinguem essas máquinas.
+
+Complexos modelos matemáticos que representam fenômenos da natureza freqüentemente envolvem operações com matrizes e vetores.
+
+Com o intuito de dinamizar esses cálculos, foram desenvolvidos processadores que pudessem oferecer formas mais eficazes no tratamento desses problemas.
+
+Esses processadores são conhecidos como vetoriais.
+
+As formas mais usuais como os mesmos trabalham são o pipelining ( que se traduz por processamento em duto), e máquinas SIMD "puras".
+
+O pipelining é semelhante à idéia da linha de montagem em que uma tarefa é dividida em subtarefas executadas em estágios sucessivos.
+
+Para exemplificar essa técnica, considere a operação de multiplicar um vetor U com N elementos, por um escalar C resultando no vetor V.
+
+Considere o processamento representado apenas pela fase de execução.
+
+A tarefa de processar a multiplicação do vetor U pelo escalar C pode ser dividida em três subtarefas, representadas pelos estágios de busca do elemento de U, realização do produto C, e armazenamento de C em V(I).
+
+Neste caso, a tarefa completa seria executada em três ciclos de máquina.
+
+Execução seqüencial do produto vetor-escalar.
+
+Em uma máquina com esquema em pipeline, o processamento da tarefa de multiplicar um vetor por um escalar também poderia ser dividida em três estágios diferentes, com cada estágio sendo responsável por uma fase específica do processamento.
+
+Nota-se então que, neste caso, em cada ciclo de máquina se realizam as três subtarefas que compreendem a multiplicação de um elemento do vetor U e seu respectivo armazenamento em V.
+
+Nesse caso, após iniciado o esquema em pipeline, o tempo para se completar a tarefa é dividido por três.
+
+Multiplicação de um vetor por um escalar em pipeline.
+
+Em máquinas SIMD associam-se vários processadores trabalhando com sincronização sob o gerenciamento de uma unidade de controle ( ).
+
+Neste caso, todos os processadores realizam a mesma instrução sobre diferentes elementos do vetor.
+
+Os multicomputadores são sistemas de computação compostos de vários processadores independentes apesar da existência de uma rede de comunicação entre si, executando tarefas sobre diferentes sequências de dados.
+
+Essas máquinas pertencem à categoria MIMD (múltiplas sequências de instruções e múltiplas sequências de dados).
+
+A forma mais comum de um multicomputador está representada na, consistindo basicamente de um conjunto de processadores com uma rede que proporciona comunicação entre os mesmos.
+
+De um modo geral, pode-se distinguir os seguintes aspectos básicos dessa arquitetura, Organização da memória e formas de interconexão.
+
+No que diz respeito à disposição da memória, os computadores paralelos podem ter vários processadores com acesso a uma única memória ( memória global ou compartilhada), ou vários processadores com memória própria ( memória local ou distribuída ).
+
+As máquinas configuradas com memória global apresentam como desvantagem o custo elevado da ampliação da capacidade do conjunto quando se necessita resolver problemas com elevado custo computacional, o que não ocorre com máquinas com memória distribuída.
+
+Os sistemas com memória global também estão sujeitos a conflitos de acesso à memória, tanto de hardware quanto de software.
+
+O conflito de hardware ocorre com dois (ou mais) pedidos de leitura ou gravação simultâneos, implicando na necessidade de sincronização.
+
+Quando um processador altera o valor de uma variável localizada na memória global, que também está em uso por outro processador, verifica-se um conflito de software.
+
+Nessa situação, deve-se lançar mão das alternativas que o paralelismo oferece quanto à programação.
+
+Os sistemas baseados em memória local apresentam como pontos negativos o baixo desempenho de softwares com alta taxa de comunicação entre os processos e a pouca disponibilidade de softwares que automaticamente paralelisam o programa.
+
+Sua principal vantagem é o menor custo em ampliar o sistema, principalmente se comparado com os sistemas com memória global.
+
+Os sistemas de computação multicomputadores apresentam também outra característica que interfere intrinsecamente no desempenho final da máquina.
+
+Neste tópico apresenta-se resumidamente os modelos básicos dessas redes.
+
+Barramento, É a forma mais simples de interconexão de sistemas multicomputadores.
+
+Nesse caso, conecta-se todas as unidade funcionais ( processadores, memórias, dispositivos de entrada e saída de dados) a uma rede comum.
+
+Todos os processadores tem acesso ao barramento comum, sendo o mesmo conectado à memória global.
+
+Nesse caso, somente um acesso ao barramento pode ser efetuado por vez, o que representa um fator limitante de desempenho.
+
+Na  está representado esquematicamente um sistema multiprocessador com barramento.
+
+Sistema multiprocessador com barramento.
+
+Barramento Cruzado (crossbar ), Nesse modelo de interconexão tem-se completa comunicação entre os processadores e os módulos de memória, proporcionando melhor desempenho que o barramento simples, não havendo portanto, atrasos no sistema.
+
+Em contrapartida tem custo maior por causa do elevado número de chaveamento ( ).
+
+Sistema multiprocessador com barramento cruzado.
+
+Rede Matricial, Nesse caso a rede forma uma malha bidimensional, sendo que cada processador está conectado aos seus vizinhos.
+
+A representação esquemática se encontra na  Sistema multiprocessador com rede matricial.
+
+Hipercubos, Nessa forma de interconexão tem-se N = 2 processadores, onde n é o número de processadores ligados a cada processador.
+
+Pode ser representado por um cubo como observado na  Sendo n=3 totaliza-se 8 processadores  cada qual ligado  a  três  processadores.
+
+Essa classe  de multiprocessadores possui memória distribuída e a comunicação entre eles é efetuada por troca de mensagens que pode ser realizada fazendo uso das bibliotecas específicas.
+
+Multiprocessador com interconexão hipercubo.
+
+Sistemas de computação em paralelo podem ser descritos como fina, média e grossa granularidade.
+
+Sistemas com poucos processadores executando tarefas complexas são ditos de granularidade grossa.
+
+Como exemplo citam-se os sistemas CRAY-2, CRAY X-MP, ETA-10 e IBM SP2.
+
+Um sistema com granularidade fina é constituído de muitos processadores executando tarefas simples, que podem ser em nível algébrico.
+
+O sistema Connection Machine com 65536 processadores é um exemplo de granularidade fina.
+
+Sistemas com média granularidade ocupam posição intermediária entre os de fina e grossa, possuindo entre 100 e1000 processadores.
+
+Um exemplo dessa máquina é o Sequent Balance 8000.
+
+Sistemas escalonáveis são máquinas que permitem acréscimo de nós em seu conjunto inicial (nó conjunto constituído de processador e memória para o caso de sistemas com memória distribuída), possibilitando o aumento da capacidade de processamento final.
+
+Como exemplo desse sistema tem-se o IBM SP2, com número máximo de em 128 nós.
+
+Na confecção e análise de softwares paralelos existem ferramentas que auxiliam o trabalho do programador.
+
+Essas ferramentas estão em forma de bibliotecas de troca de mensagens (PVM, MPI, LINDA, P4, etc) e de parâmetros de análise de desempenho.
+
+As bibliotecas são softwares que estabelecem um ambiente de comunicação onde é possível a elaboração de programas paralelos.
+
+Para esse tipo de paralelismo (sistemas com memória distribuída), o completo domínio dos conceitos de uma biblioteca é condição básica para a implementação em paralelo de qualquer algoritmo.
+
+No presente trabalho fez-se uso do PVM (Parallel Virtual Machine), recomendando-se GEIST como leitura inicial, o qual encontra-se disponível em  post-script.
+
+Para o MPI (Message Passing Interface) pode ser encontrado em  um texto introdutório.
+
+Essas duas bibliotecas encontram-se disponíveis no IBM SP2 no Centro de Informática de São Carlos (CISC).
+
+No desenvolvimento de softwares paralelos destacam-se os elementos de sincronização e os parâmetros de análise de desempenho.
+
+Esses elementos de desenvolvimento podem estar disponíveis em forma de rotinas, quando se trabalha em sistemas de computação com memória distribuída, ou em forma de comandos para sistemas com memória compartilhada.
+
+Os elementos de análise são definições que permitem avaliar o proveito que o programa desenvolvidos tem extraído dos conceitos do paralelismo.
+
+Nos itens anteriores apresentou-se aspectos básicos das configurações e arranjos dos sistemas de computação mais comuns, procurando-se destacar os principais aspectos de cada configuração.
+
+A seguir apresentam-se instrumentos para o desenvolvimento e análise de softwares paralelos com os quais se procura extrair o máximo proveito dos recursos dos sistemas paralelos já apresentados.
+
+Um programa paralelo é caracterizado pela existência de mais de um processo em execução simultânea.
+
+É possível que um processo de um programa paralelo necessite de informações que foram executadas em outro processo.
+
+Nesse caso deve haver uma troca de informações (mensagens) entre os mesmos para que o programa seja executado corretamente.
+
+Uma troca de mensagens ocorre quando um dado é transferido de uma variável em um sub-programa a outra variável em outro sub-programa.
+
+Em sistemas com memória distribuída essa troca é efetuada fazendo uso das rotinas disponíveis para esse fim.
+
+Para que ocorra uma troca de mensagem satisfatória, tanto para sistemas de memória compartilhada quanto para memória distribuída, as seguintes questões têm que ser respondidas,  Que processo está enviando a mensagem.
+
+Onde está o dado no processo que envia a mensagem.
+
+Que tipo de dado está sendo enviado ( inteiro, real, real de dupla  precisão, etc).
+
+Que processo está recebendo a mensagem.
+
+Onde o dado será alocado ( em que variável ).
+
+A quantidade de dados que o processo receptor está preparado para  receber.
+
+Além dos requisitos apresentados, tanto o processo emissor quanto o processo receptor têm que estar aptos para efetuar esse procedimento de troca de mensagens de modo que se assegure a correta execução da mesma.
+
+Quanto aos processos envolvidos as trocas de mensagens podem ocorrer de um processo a outro processo, de um processo a vários processos ou de vários processos a um processo.
+
+Esses conceitos são comentados em seguida.
+
+Uma troca de mensagens entre dois processos um emissor e outro receptor, é conhecida como Comunicação Ponto-a-Ponto.
+
+Mesmo existindo apenas dois processos nessa troca de mensagens, assegurar que a mesma seja efetuada corretamente é fundamental para que o programa tenha execução satisfatória.
+
+Comunicações Coletivas ocorrem quando vários processos estão envolvidos na troca de mensagens.
+
+Podem ser de um processo a vários processos ou ao contrário.
+
+Quando um processo envia uma mensagem a vários processos ocorre o que se chama de Broadcast.
+
+Esse conceito pode ser esclarecido com a ilustração onde um indivíduo faz uma comunicação simultânea a todos os outros.
+
+O mesmo ocorre no processamento paralelo quando um processo envia determinados dados a todos os processos pertencentes a seu grupo através de um comando ou rotina.
+
+Se vários processos em execução em um programa paralelo necessitam enviar uma mensagem a apenas um processo, ocorre o que se chama de Reduction.
+
+Uma ilustração conhecida, mas útil, é a eleição, onde vários votos se transformam em uma decisão.
+
+Comunicações Coletivas Broadcast.
+
+Troca de mensagens podem ocorrer de forma síncrona ou assíncrona.
+
+Uma transmissão síncrona não se completa até que a mensagem seja recebida completamente.
+
+Na transmissão assíncrona, sabe-se apenas que a mensagem foi enviada, desconhecendo se a mensagem foi recebida ou não.
+
+No caso da necessidade de sincronismo de troca de mensagens, os ambientes para desenvolvimento de softwares paralelos possuem instrumentos que permitem efetuar uma troca síncrona ou assíncrona.
+
+O sincronismo pode ser usado também na execução de processos, que serão comentados no próximo item.
+
+Apesar de sua simplicidade de formulação, esses conceitos de comunicações e sincronismos em troca de mensagens apresentam grande utilidade na elaboração de softwares paralelos, sendo que em alguns caso pertencem ao próprio algoritmo do programa apresentado.
+
+Um dos fatores que dificulta a paralelização de um programa é a dependência de dados ( que será abordada a posteriori ).
+
+Nesse caso deve-se usar os recursos do paralelismo para se evitar possíveis erros e conflitos, extremamente comuns quando se desenvolve softwares paralelos.
+
+Recorre-se normalmente à sincronização dos processos que estejam em execução, como também na troca de mensagens efetuada entre os mesmos.
+
+Os elementos mais comuns usados na sincronização dos processos são os bloqueios, barreiras e semáforos.
+
+Por serem os mais utilizados, apresenta-se a seguir um comentário sobre as definições e utilização dos mesmos.
+
+Bloqueios (locks), Esse instrumento de sincronização pode ser usado para impedir que dois ou mais processos acessem simultaneamente variáveis compartilhadas do programa.
+
+Esse comando apresenta sua real importância nos trechos onde ocorre a dependência de dados.
+
+Quando um determinado processo chega no trecho em que exista o comando bloqueio, o acesso a esse trecho estará impedido a outros processos.
+
+Caso os processos em execução tenham variáveis comuns, esse comando impedirá que em cada execução a variável tenha um valor diferente.
+
+Barreiras (barriers), Trata-se de um processo síncrono.
+
+Permite que o processamento não passe de determinada instrução até que todos os processos cheguem a essa instrução.
+
+A dinâmica desse instrumento de sincronização pode ser melhor esclarecido com a  Supondo que cada processo seja representado por um indivíduo dessa figura, fica claro que esse comando estabelece um ponto no programa a partir do qual os processos só prosseguem na execução quando todos os processos chegaram nesse ponto.
+
+Havendo execução paralela de um trecho de programa com uma variável comum a todos os processos, sendo que no trecho sequencial seguinte necessita-se dos valores obtidos em cada processo, esse instrumento pode ser útil, impedindo que a execução do programa se processe, o que poderia estabelecer resultados incorretos para esta variável.
+
+Sincronização estabelecida por Barreira.
+
+Semáforos (semaphores), À semelhança do bloqueio é também usado como sinalizador da presença ou não de um processo em uma área onde não se pode ter outro processo concorrente.
+
+Quando um processo entra na área de interesse comum, o acesso de outros processo estará proibido.
+
+Entretanto, diferente do bloqueio o processo em espera não fica impedido de executar outras instruções.
+
+Esse comando é usado em sistemas com memória compartilhada.
+
+Computação de alto desempenho é amplamente usada no meio científico onde a exigência computacional na execução dos programas é elevada.
+
+Pode-se então fazer uso dos sistemas de arquitetura paralela, uma vez que seu objetivo é o ganho de desempenho aliado ao baixo custo de produção.
+
+Neste caso é necessário codificar o programa fonte originalmente em modo seqüencial para o modo paralelo.
+
+Essa transposição do modo seqüencial para o modo paralelo não é elementar, uma vez que se trata de programas extensos e com elaboração complexa.
+
+Para se superar essa dificuldade surgiram os autoparalelisadores (parallelising compilers), que são compiladores que identificam trechos do código fonte que são possíveis de serem automaticamente paralelisados.
+
+Normalmente esses autoparalelisadores estão voltados para máquinas com memória global.
+
+Apesar de sua praticidade, esses compiladores não conseguem extrair o máximo proveito do paralelismo, uma vez que são codificadas em paralelo apenas os trechos mais visíveis do programa, no que consiste sua maior deficiência.
+
+Na confecção de softwares paralelos são usados conceitos que além de auxiliar no seu desenvolvimento, aparelham o programador de ferramentas de análise que permitem a verificação da qualidade de seu trabalho.
+
+Segue um breve comentário sobre parâmetros frequentemente usados.
+
+Speed-up, Sempre que se desenvolve um software paralelo, é essencial saber se o mesmo está extraindo o máximo proveito possível dos recursos e conceitos do paralelismo.
+
+Quando se paraleliza um programa, idealmente espera-se que se o mesmo é executado em um tempo t com um processador, então esse tempo será reduzido para t/n com n processadores em execução.
+
+Essa relação linear de redução de tempo não se verifica na prática do paralelismo, o que é ocasionado por trechos do programa que não permitem a paralelização, pelo tempo gasto pelo sistema operacional na preparação da execução em paralelo e na degradação de desempenho oriunda da necessidade de sincronização entre os processos.
+
+Eficiência, Em associação com o Speed-up, a Eficiência é um importante parâmetro de verificação da qualidade de um software paralelo.
+
+Esse parâmetro informa o quanto um programa está paralelizável.
+
+O desempenho dos computadores seqüenciais é usualmente medido em três modos.
+Velocidade computacional máxima, medida em operações de ponto flutuante por segundo (Mflops ou Gflops).
+
+Taxa de execução de operações, medida em instruções por segundo (Mips ou Gips).
+Taxa de operações lógicas por segundo (Mlips ou Glips).
+
+No caso de máquinas SIMD e MIMD a velocidade computacional máxima pode ser estimada.
+
+Entretanto, o desempenho destes sistemas de computaçã é difícil de ser medido, uma vez que ele depende do nível de paralelismo de cada sistema.
+
+Assim, esse desempenho depende da formulação do algoritmo numérico, da implementação, do compilador, do sistema operacional e também da arquitetura disponível.
+
+Neste caso, para se determinar o desempenho desses sistemas, faz-se uso de um conjunto de programa que avalia a capacidade da máquina disponível.
+
+Esse conjunto de programas é conhecido como Benchmark (referência), destacando-se Livermore Fortran Kernels, NAS Kernels, Linpack Benchmark.
+
+Para se obter o melhor desempenho possível da máquina que se está usando, é necessário estabelecer a melhor estratégia computacional com um algoritmo adequado para o tipo de arquitetura que se dispõe.
+
+Intenso trabalho tem sido dedicado ao desenvolvimento de algoritmos vetoriais e paralelos que se aplicam a estes novos sistemas de computação.
+
+Para algoritmos paralelos, computações independentes são realizadas concomitantemente.
+
+Para se encontrar esse paralelismo o algoritmo é dividido em uma coleção de tarefas independentes, que podem ser executadas simultaneamente comunicando-se com outros processos durante a execução do mesmo.
+
+Algoritmos paralelos podem ser caracterizados pelos seguintes fatores, Máxima quantidade de cálculo realizada por um processo antes de comunicar-se com outro processo.
+
+Concordância do algoritmo com a topologia da rede de interconexão.
+Programador com controle sobre o programa no intuito de estabelecer comunicação entre os processos e extrair o máximo proveito do paralelismo.
+
+O desenvolvimento de um algoritmo paralelo apresenta vários problemas que necessitam serem solucionados, tais como troca de dados, armazenamento de dados, acesso à memória, e comunicação entre processos.
+
+Geralmente, os algoritmos numéricos em paralelo descritos na literatura estão divididos em duas categorias, reformulação de algoritmos seqüenciais em algoritmos paralelos e algoritmos desenvolvidos especialmente para máquinas paralelas.
+
+A maioria dos trabalhos em algoritmos numéricos paralelos segue a primeira categoria, decompondo os algoritmos seqüenciais em tarefas concorrentes.
+
+Exemplos são operações com matrizes, solução de sistemas de equações tanto diretos quanto iterativos, e cálculo de autovalores.
+
+A segunda categoria inclui algoritmos que foram desenvolvidos especialmente para processamento paralelo.
+
+Neste caso, o desempenho dos algoritmos é superior ao primeiro caso.
+
+Quanto aos algoritmos paralelos é importante destacar as seguintes questões, Eficientes algoritmos em paralelo não necessariamente são algoritmos eficientes em modo seqüencial.
+
+Do mesmo modo, pode-se deixar de obter a mesma eficiência de um algoritmo seqüencial em um algoritmo em paralelo.
+
+Algoritmos paralelos podem apresentar propriedades matemáticas diferentes de algoritmos seqüenciais, assim como a taxa de convergência de métodos iterativos pode apresentar módulos diferentes para implementação tanto em paralelo quanto seqüencial.
+
+Para se conseguir o melhor desempenho possível, o algoritmo a ser implementado necessita de cuidadoso estudo direcionado à máquina disponível.
+
+Perde-se nesse caso a oportunidade de se explorar a portabilidade do algoritmo, dada a conjugação do mesmo com a máquina em questão.
+
+Também não se pode abrir mão do desempenho em função da portabilidade.
+
+Trata-se de uma importante questão na pesquisa em paralelismo.
+
+Pode-se resolver esse problema reestruturando os algoritmos em termos do produto matriz-matriz ou matriz-vetor ou implementando-se um algoritmo paralelo que seja independente da arquitetura da máquina.
+
+Usualmente, quatro categorias de paralelismo são identificadas, perfeita, pipeline, completamente síncrona e assíncrona.
+
+Segue uma descrição sucinta de cada categoria, Perfeitamente paralelo, São problemas em que os dados podem ser divididos em partes, e os cálculo de cada parte são executados independentemente.
+
+A paralelização é relativamente direta e provavelmente com alta eficiência.
+
+Paralelismo em pipeline, É obtido sobrepondo o processamento.
+
+Os dados são transportados de um estágio de computação a outro.
+
+Paralelismo completamente síncrono, Cada conjunto de processamento é realizado simultaneamente.
+
+Os cálculos seqüentes dependem do resultado do processamento anterior.
+
+Paralelismo assíncrono, É realizado dividindo o trabalho entre vários processadores onde não há dependência de resultados.
+
+A implementação em paralelo do MEF está baseada no conceito de dividir um problema com elevado custo computacional em problemas menores que podem ser tratados individualmente, com troca de informações entre os processos.
+
+Esta técnica é conhecida como Decomposição de Domínio.
+
+A Decomposição de Domínio pode ser descrita como a separação da estrutura em sub-regiões, as quais serão calculadas com troca de informações entre os respectivos processos quando necessário (Divide-and-Conquer Dividir e Conquistar).
+
+Há vários modos de se aplicar esta técnica, tanto dividindo-se o domínio da estrutura a ser analisada quanto resolvendo-se o sistema de equações em paralelo.
+
+Segundo TOPPING e KHAN  essa técnica apresenta a seguinte classificação,  Decomposição de Domínio Explícito, O problema a ser analisado é dividido em sub-domínios com troca de dados quando necessário.
+
+Decomposição de domínio Implícito, Neste caso o sistema de equações da estrutura é resolvido em paralelo sem que o domínio seja dividido em sub-regiões.
+
+A Decomposição de Domínio Explícito pode ser dividida em dois modos, o Método Iterativo e a Sub-estruturação,  Método Iterativo, É usada para calcular a estrutura de modo iterativo com as informações necessárias para os nós de interface entre dois subdomínios sendo intercambiadas em cada iteração LAW.
+
+Sub-estruturação, A estrutura é dividida em subregiões, sendo as contribuições de rigidez dos nós internos de cada subregião transferidas para os nós de interface por meio de uma condensação estática.
+
+O sistema de equações resultante é resolvido para posteriormente se calcular os resultados dos nós internos PRZEMIENIECKI.
+
+A subestruturação pode ser identificada em nível algébrico, uma vez que são eliminados graus de liberdade na matriz de rigidez correspondentes aos nós internos das subestruturas.
+
+Com isso diminui-se o número de equações do sistema.
+
+O desempenho dessa técnica depende do balanceamento de carga entre os processadores e de um modo de reduzir a necessidade de troca de dados entre os mesmos.
+
+Trata-se de um modo eficiente de reduzir o custo computacional da análise numérica que envolve elevado número de graus de liberdade EL-SAYED e HSIUNG.
+
+Ao se aplicar a técnica da decomposição de domínio deve-se estar atento para se obter o melhor aproveitamento possível do paralelismo.
+
+Esse melhor aproveitamento pode ser alcançado com um balanceamento de carga adequado.
+
+Entende-se por balanceamento de carga a divisão de tarefas entre os processadores de tal modo que o tempo consumido em cada processador seja o mesmo (ou aproximadamente iguais).
+
+Com a técnica de Decomposição de Domínio, pode-se conseguir esse objetivo com a otimização do problema, isto é, número de elementos finitos iguais em cada subdomínio.
+
+Número de nós de interface entre os subdomínios aproximadamente iguais.
+
+No caso da Decomposição de Domínio Implícito, pode-se conseguir um balanceamento de carga adequado dividindo-se o sistema de equações lineares com igual número de linhas, ou colunas, entre os processadores.
+
+O tratamento matemático de diversos problemas da natureza é, em muitos casos, de difícil solução.
+
+O Método dos Elementos Finitos (MEF) é uma técnica que permite encontrar a solução numérica destes problemas por meio da discretização do domínio do problema a ser estudado.
+
+Nesse caso, o resultado numérico tanto se aproxima da solução analítica quanto melhor se representa o domínio com uma malha adequada.
+
+O desenvolvimento de algoritmos que automaticamente encontrem a malha adequada para o problema em questão (Adaptive Mesh Generation) é um modo eficiente de se evitar o erro humano na geração de malhas JOHNSSON e MATHUR, TOPPING e KHAN.
+
+A implementação em máquinas de arquitetura paralela de algoritmos para geração automática de malhas constitui uma importante área de pesquisa do paralelismo em elementos finitos.
+
+Uma casca é uma estrutura curva que possui uma de suas dimensões (a espessura) bastante inferior às outras.
+
+ZIENKIEWICKS  afirma que pode-se obter uma casca a partir de uma placa delgada transformando o seu plano médio em uma superfície curva.
+
+Essa forma geométrica confere às cascas a presença simultânea de estados de flexão e de membrana.
+
+O estado de flexão decorre da distribuição não uniforme de tensões ao longo da espessura da casca, resultando em esforços que tendem a fletir a estrutura.
+
+Para o efeito de membrana as tensões são constantes na espessura, resultando em esforços normais tangenciais e cortantes.
+
+Essa combinação de estados permite às cascas a capacidade de vencer grandes vãos com estruturas delgadas.
+
+Apesar de tratar-se de uma estrutura tridimensional, as teorias desenvolvidas considerando-se um elemento bidimensional apresentam resultados satisfatórios.
+
+Mesmo com a aproximação por uma estrutura bidimensional, o tratamento matemático clássico é difícil e trabalhoso.
+
+O Método dos Elementos Finitos (MEF) é uma poderosa ferramenta na análise de cascas.
+
+Usando-se este método pode ser feita uma análise considerando tanto uma estrutura tridimensional quanto bidimensional.
+
+A aproximação por uma estrutura bidimensional, entretanto, apresenta vantagens por conjugar maior simplicidade na sua formulação e resultados consistentes.
+
+Neste caso, pode-se dispor de elementos finitos curvos e planos.
+
+Os elementos finitos curvos são elementos que se adaptam à curvatura da casca e tem como principal característica a rápida convergência, mesmo com malhas pouco refinadas.
+
+Apresentam, entretanto, uma formulação complexa e dificuldade de acoplamento com elementos de viga.
+
+A aproximação por elementos finitos planos, que se compõem de um elemento de chapa e um de placa, reduz a complexidade da formulação além de facilitar o acoplamento com o elemento de viga.
+
+Neste caso, a convergência depende dos elementos utilizados (chapa e placa) e do refinamento da malha adotada.
+
+Não possuem a mesma convergência que os elementos curvos, entretanto, dada a menor complexidade de implementação, têm sido largamente usados na análise de cascas.
+
+Tanto a formulação para elementos planos quanto para elementos curvos pode ser encontrada em ZIENKIEWICKS  e OÑATE.
+
+A aproximação de cascas por elementos finitos planos é adotada neste trabalho.
+
+Neste capítulo apresenta-se a formulação com os respectivos elementos utilizados.
+
+É apresentado também o modelo de plasticidade adotado na análise não-linear de cascas.
+
+Na formulação adotada neste trabalho, considera-se como hipótese simplificadora que as tensões variam linearmente ao longo da espessura da casca quando da consideração do efeito de flexão.
+
+Também considera-se desprezível o efeito do esforço de cisalhamento.
+
+Essas considerações podem ser resumidas na hipótese de Kirchhoff para flexão de placas delgadas," Pontos sobre a normal à superfície média indeformada permanecem sobre a normal à superfície média deformada".
+
+Além da hipótese de Kirchhoff, admite-se também que as tensões normais à superfície sejam desprezíveis em comparação com as demais, que a espessura da casca seja bem menor que as outras dimensões da mesma e que os deslocamentos sejam pequenos em comparação com suas dimensões.
+
+Considerando-se válidas as hipótese anteriores, o deslocamento de um ponto sobre a normal à superfície média será dado.
+
+A partir dos deslocamentos dados pelas relações (31), pode-se encontrar as deformações para um ponto qualquer.
+
+Os subíndices c e p referem-se aos estados de chapa e placa, respectivamente.
+
+Assim, as tensões serão dadas, onde D é a matriz dos coeficientes elásticos.
+
+A partir das relações constitutivas da teoria da elasticidade é possível estabelecer as relações básicas do método dos elementos finitos.
+
+Para tanto é necessário que os deslocamentos no domínio do elemento sejam definidos por uma expansão polinomial.
+
+Então, para o estado de chapa, impondo deslocamentos nodais nos vértices do elemento.
+
+Representa a matriz das funções de forma dos deslocamentos e V representa o vetor de deslocamentos nodais nos vértices do elemento.
+
+Neste trabalho adota-se um elemento finito de chapa triangular com três  pontos nodais e três parâmetros por nó.
+
+O vetor de deslocamentos é dado por V Com as relações anteriores obtém-se o vetor de deformações em função de parâmetros nodais e de funções de forma.
+
+O elemento finito de placa adotado também é triangular com três pontos nodais e três parâmetros por nó.
+
+O vetor de deslocamentos nodais é dado por V.
+
+Do mesmo modo obtém-se o vetor de deformações para o estado de placa.
+
+Com as relações anteriores chega-se à deformação do elemento de casca.
+
+A expressão da matriz de rigidez de um elemento qualquer é dada.
+
+Os termos expressos na equação referem-se às matrizes de rigidez dos elementos de chapa, placa e acoplamento dadas.
+
+Representa a forma completa da matriz de rigidez do elemento de casca.
+
+Para análises elásticas de materiais homogêneos, o termo K se  iguala a zero, restando as matrizes dos elementos de chapa e placa.
+
+É importante destacar que esse equacionamento refere-se ao elemento finito dado em coordenadas locais.
+
+Quando se calcula a matriz de rigidez da estrutura, as matrizes locais devem ser rotacionadas para um sistema de referência global.
+
+Usando a matriz de cossenos diretores adequada R.
+
+Com a relação anterior calcula-se a matriz de rigidez da estrutura.
+
+Após a resolução do sistema, os esforços podem ser determinados integrando-se as tensões ao longo da espessura da casca, ou seja, Na análise elastoplástica calcula-se o vetor resíduo pela diferença entre o carregamento externo e a resultante das forças internas.
+
+Em cada iteração em um incremento de carga, o resíduo é reaplicado na estrutura até que o erro atinja a tolerância desejada.
+
+Esse cálculo pode ser expresso pela relação, Na equação (315)  representa o resíduo a ser determinado, F  é o vetor de forças externas dado pela parcela do carregamento total correspondente ao incremento aplicado e F  é o vetor de forças internas, resultado da integração das tensões calculadas.
+
+Para o caso de análise elastoplástica com o método dos elementos finitos, F  é determinado em cada ponto nodal.
+
+As integrais indicadas na equação são calculadas no domínio do elemento.
+
+Para tanto realiza-se a integração numericamente utilizando a quadratura de Gauss.
+
+O elemento finito de chapa utilizado na composição do elemento de casca plano é triangular com três pontos nodais e três parâmetros por nó.
+
+Foi apresentado utilizando o conceito de Formulação Livre e apresenta como principal vantagem o fato de incorporar uma rotação no plano do elemento como grau de liberdade.
+
+A inclusão desse grau de liberdade possibilita que se evite a utilização da rigidez fictícia quando se implementa elementos de casca planos.
+
+Este elemento é desenvolvido pela aplicação direta do teste do elemento individual na sua formulação.
+
+Neste caso, supõe-se que o campo de deslocamentos no interior do elemento seja resultado da contribuição de modos de deformação constante e corpo rígido com modos superiores, onde N representa a expansão polinomial completa para os modos de corpo rígido e deformação constante, N a expansão para os modos superiores e representam os respectivos vetores de parâmetros generalizados.
+
+Ao se aplicar o campo de deslocamentos da equação (317) nos pontos nodais, verifica-se um conjunto de equações.
+
+O teste do elemento individual estabelece que na interação de um elemento com seus vizinhos ele seja capaz de reproduzir um estado de corpo rígido e deformação constante.
+
+Assim, para um estado qualquer, as forças produzidas são dadas por, onde t representa as forças nodais produzidas, L é chamada de matriz rc  amontoadora (distribui as tensões para os pontos nodais) e  as tensões distribuídas  na face do elemento.
+
+Considerando-se um elemento tem-se  onde F é o vetor de forças nodais, K é a matriz de rigidez do elemento e V e o vetor de deslocamentos nodais.
+
+Utilizando a formulação do MEF pela definição da energia potencial, obtém-se a expressão da matriz de rigidez para elementos cuja expansão do campo de deslocamentos seja dado pela equação.
+
+A equação anterior representa a matriz de rigidez para o elemento finito cujo campo de deslocamentos seja dado por uma expansão de modos de corpo rígido e deformação constante com modos superiores.
+
+Ao se aplicar as equações na equação anterior, verifica-se que a mesma satisfaz o teste do elemento individual quando são impostas condições de ortogonalidade em força e energia, ou seja, A imposição das condições de ortogonalidade em força e energia na formação da matriz de rigidez do elemento, por fim, induziam a uma inconsistência ao produzir uma assimetria na matriz.
+
+Com o intuito de superar esse obstáculo, foi proposta uma  modificação na mesma, acrescentando o termo P  G na matriz generalizada, ou  seja, A modificação proposta satisfaz o teste do elemento individual.
+
+Mesmo assim, ao se refinar a malha dos exemplos executado, não se obtinha a convergência desejada.
+
+Notou-se que a modificação proposta, mesmo satisfazendo o teste do elemento individual, originava autovalores negativos na matriz de rigidez.
+
+Desse modo, sugeriram outra modificação na matriz de  rigidez, dada pela adição do termo G K G no termo correspondente aos modos superiores.
+
+Portanto tem-se, Por fim, com a equação anterior obtém-se a matriz de rigidez do elemento finito.
+
+Na equação K representa a matriz referente aos modos básicos ( L é a matriz amontoadora) e K a parcela referente aos modos superiores.
+
+Esta equação caracteriza a expressão "Formulação Livre", pois elimina a exigência da condições de ortogonalidade em força e energia para satisfação do teste do elemento individual quando se expande o campo de deslocamentos em modos básicos (corpo rígido e deformação constante) e modos superiores.
+
+Fazendo uso dessa formulação, desenvolveram um elemento finito de membrana que incorpora a rotação nos vértices como grau de liberdade.
+
+Para tanto utilizaram a definição da mecânica do contínuo.
+
+O campo de deslocamentos dos modos básico e superior é dado, onde x e h são coordenadas adimensionais dadas.
+
+Em análise não-linear, a matriz de coeficientes elásticos varia ponto a ponto no domínio do elemento.
+
+Portanto, é necessário calcular a matriz de rigidez pela integração numérica.
+
+Neste caso utiliza-se a relação, Na análise de estruturas por elementos finitos é fundamental dispor de elementos que conjuguem rápida convergência e facilidade de formulação.
+
+Para análise de placas delgadas o elemento DKT (Discrete Kirchhoff Theory), mostrou-se eficiente para este estudo.
+
+Trata-se de um elemento triangular com três pontos nodais e três parâmetros por nó (um deslocamento perpendicular ao plano médio e duas rotações).
+
+Na sua formulação utiliza-se a hipótese de Kirchhoff para flexão de placas delgadas," Pontos da placa sobre a normal à superfície média indeformada permanecem sobre a normal à superfície média deformada ".
+
+A hipótese de Kirchhoff é imposta discretamente nos nós do contorno do elemento.
+
+Além da hipótese de Kirchhoff para flexão de placas delgadas, considera-se desprezíveis as tensões normais a esse plano.
+
+Assim, os deslocamentos de um ponto qualquer serão dados.
+
+Na formulação desse elemento, inicialmente considera-se as rotação  e  com acréscimo da contribuição do  esforço cortante, e posteriormente impõe-se a hipótese de Kirchhoff nos nós, desprezando-se também a contribuição da energia de deformação correspondente a esse esforço.
+
+A formulação desse elemento está baseada nas seguintes hipóteses, 1 As rotações b e b variam quadraticamente sobre o elemento.
+
+A hipótese de Kirchhoff é imposta ao longo dos lados do elemento.
+
+O deslocamento vertical ao longo dos lados é cúbico.
+
+A rotação da normal tem comportamento linear ao longo dos lados.
+
+Usando-se as hipóteses citadas e as relações geométricas no triângulo, obtém-se, Na equação (341) H e H representam as matrizes que compõem as funções de forma do elemento e U o vetor de parâmetros nodais.
+
+A partir da formulação do MEF pela energia potencial, e desprezando-se a contribuição do esforço de cisalhamento, obtém-se a matriz de rigidez do elemento DKT dada por De posse dos deslocamentos nodais, pode-se obter os esforços M, M e M  para o elemento dados.
+
+O vetor de parâmetros nodais, bem como o vetor de forças nodais, para este elemento são dados por, onde q representa o carregamento uniformemente distribuído na superfície do elemento e A a área do mesmo.
+
+Neste item apresenta-se o modelo de plasticidade adotado neste trabalho.
+
+São apresentadas as relações básicas necessárias, salientando-se apenas os conceitos fundamentais.
+
+O principal objetivo da teoria da plasticidade é estudar o comportamento de estruturas quando submetidas a carregamentos que impõem à mesma esforços que excedem o limite do comportamento elástico.
+
+Neste caso procura-se estabelecer o tratamento matemático capaz de descrever corretamente esse comportamento.
+
+Essencialmente a plasticidade caracteriza-se pelo aparecimento de deformações permanentes mesmo após a retirada do carregamento deformações irreversíveis.
+
+Observa-se o aparecimento de deformações permanentes para uma situação de descarregamento.
+
+Representação do comportamento elastoplástico.
+
+A elaboração do modelo matemático desse fenômeno está baseada nos seguintes princípios,  Um critério que estabeleça um estado de tensão onde começa o fluxo plástico e o fim do comportamento elástico, ou Critério de Plastificação.
+
+Uma relação explícita entre as deformações elástica e plástica  ou Decomposição Aditiva das Deformações.
+
+Uma relação entre tensão e deformação que possibilite o  cálculo da deformação plástica após o limite da fase elástica ou Lei de  evolução da Deformações Plásticas.
+
+Neste item descreve-se de modo breve os princípios acima citados.
+
+O critério de plastificação determina o estado de tensão no qual deformações plásticas tem início.
+
+A sua forma mais geral é dada por, Na equação (347) F representa o critério de plastificação, é o estado de tensões atual da estrutura, é um parâmetro relativo ao tipo de encruamento (isotrópico, cinemático e misto) denominado de parâmetro de endurecimento do material e f é função do estado de tensão atual.
+
+A função Y pode ser interpretada como um valor da tensão de escoamento Supondo-se que as tensões principais de um estado de tensões qualquer coincidam com eixos de um sistema cartesiano de coordenadas, então o critério de plastificação F pode ser representado por uma superfície nesse espaço de tensões conforme.
+
+Os pontos no interior dessa superfície representam estados em regime elástico e os pontos fora dessa superfície são estados não permitidos, exigindo-se que o mesmo retorne para a superfície onde F=0.
+
+Verifica-se na equação (347) que para situações onde F < 0 tem-se um caso de descarregamento elástico (ponto no interior da superfície de plastificação).
+
+Para F = 0 observa-se um estado de carregamento neutro e o estado de tensões deve permanecer na superfície de plastificação.
+
+Para F > 0 trata-se de estados não permitidos exigindo que o estado de tensões retorne para o nível onde F = 0.
+
+O retorno para a situação onde F = 0 pode ocorrer com endurecimento do material.
+
+Neste caso pode-se ter modelos de comportamento elastoplástico com encruamento isotrópico, cinemático e misto.
+
+No caso isotrópico há um acréscimo no limite elástico.
+
+No caso cinemático tem-se uma translação da superfície de plastificação inicial e o caso misto conjuga os dois modelos anteriores.
+
+O comportamento isotrópico para os casos uniaxiais são representados por acréscimos nos valores de tensões a partir do quais o material perde seu comportamento linear.
+
+Neste trabalho adota-se o modelo isotrópico de encruamento, sendo que o desenvolvimento da superfície de plastificação é estabelecido a partir da função Y, que pode ser relacionada à deformação plástica através do parâmetro.
+
+Há duas hipótese para a definição deste parâmetro.
+
+A primeira considera que o mesmo é função do trabalho plástico acumulado, também conhecida como work hardening.
+
+A Segunda hipótese estabelece que o parâmetro  seja dado pela deformação plástica equivalente, denominado de strain hardening.
+
+No último caso o parâmetro  é associado à norma dos incrementos de deformação plástica.
+
+Neste trabalho adota-se como critério de plastificação o critério de Mises.
+
+Segundo von Mises o escoamento inicia quando a tensão octaédrica de cisalhamento atinge um valor crítico.
+
+A tensão  de cisalhamento octaédrica é a tensão de cisalhamento que atua em um plano igualmente inclinado em relação aos eixos no espaço das tensões, chamado de plano octaédrico.
+
+Pode-se visualizar geometricamente o critério de Mises na  onde a fase elástica se encontra no interior do cilindro no espaço das tensões.
+
+Representação geométrica do critério de von Mises.
+
+Na situação em que se verifica o aparecimento de deformações irreversíveis nos materiais assume-se que o estado de deformação total é dado por uma relação aditiva.
+
+Na equação representa a parcela elástica da deformação total e a componente plástica (ou irreversível).
+
+Trata-se de uma relação fundamental na elaboração das relações constitutivas da teoria da plasticidade.
+
+A evolução da parcela elástica é dada pela lei de Hooke restando estabelecer o comportamento da deformação plástica.
+
+Além da relação que estabelece uma decomposição aditiva para a deformação total é importante dispor de uma relação explícita para a evolução das deformações.
+
+Em sistemas elásticos o trabalho realizado pelas cargas externas pode ser recuperado ao se retirar o carregamento aplicado.
+
+Pode-se então assumir o trabalho como sendo armazenado no corpo em forma de energia que é chamada de energia de deformação.
+
+Assim, pode-se expressar essa energia como o trabalho realizado. 
+
+Essa energia de deformação corresponde à área abaixo da curva tensão-deformação.
+
+De modo semelhante, a área acima da dessa curva é chamada de energia complementar sendo expressa.
+
+Com a equação anterior pode-se expressar a deformação em função da energia complementar. 
+
+De modo semelhante à expressão da deformação em função da energia complementar, von Mises em 1928 propôs que a deformação plástica fosse dada em função de um potencial plástico denominado Q.
+
+Assim, a evolução das deformações plásticas é dada.
+
+Na equação anterior o termo d é denominado de multiplicador plástico.
+
+A partir da equação anterior se estabelece uma importante relação da teoria da plasticidade ao se considerar o potencial plástico como sendo a função de plastificação F.
+
+Em plasticidade essa consideração é conhecida como condição de normalidade uma vez que o vetor F/ é normal à superfície de plastificação.
+
+Essa consideração é também conhecida como plasticidade associada e será adotada neste trabalho com o intuito de estabelecer o tratamento matemático da teoria da plasticidade.
+
+Com  os  postulados  anteriores pode-se finalmente apresentar  o desenvolvimento matemático que descreve o comportamento dos materiais após o início do processo de plastificação.
+
+Do critério de plastificação dado pela equação.
+
+Usando-se a decomposição aditiva das tensões e a lei de evolução das deformações plásticas.
+
+A constante H, denominada de módulo plástico, pode ser determinada em um ensaio de tração uniaxial.
+
+Na equação anterior E representa o módulo de Young do material, e E o  T módulo tangente elastoplástico.
+
+Utilizando-se as equações, encontra-se a relação do material para o comportamento elastoplástico.
+
+Consegue-se estabelecer o modo de comportamento elastoplástico de materiais que obedeçam aos critérios já descritos.
+
+Essa relação também possibilita o desenvolvimento do procedimento numérico em plasticidade, que será abordado no próximo item.
+
+O procedimento numérico para plasticidade com o Método dos Elementos Finitos é baseado na aplicação do Princípio dos Trabalhos Virtuais (PTV), considerando-se problemas não-lineares.
+
+A aplicação do PTV em um corpo submetido a um carregamento qualquer, considerando-se os deslocamentos como uma aproximação polinomial, conduz à equação geral do MEF.
+
+Na equação anterior U é o vetor de deslocamentos nodais a serem determinados, F é o carregamento aplicado e K representa a matriz de rigidez da estrutura.
+
+Considerando B a matriz das derivadas das funções de forma tem-se  Essa relação é válida na elasticidade linear pois o material não perde suas características iniciais.
+
+Em problemas não-lineares, faz-se necessário adotar um procedimento incremental-iterativo na resolução do sistema.
+
+Consegue-se atingir esse objetivo dividindo-se o carregamento total em incrementos que serão aplicados na estrutura.
+
+Na aplicação incremental do carregamento, em cada iteração implementada gera-se um resíduo dado pela diferença entre o carregamento externo (valor do incremento de carga) e o vetor de forças internas verificado na estrutura.
+
+Assim, tem-se a expressão do procedimento.
+
+Na equação anterior  representa o resíduo produzido em cada iteração do procedimento e que será reaplicado na estrutura até atingir a tolerância desejada, F é a parcela do carregamento externo correspondendo ao incremento de carga aplicado, e F é o vetor de forças internas gerado pela aplicação do carregamento incremental.
+
+Assim, para cada iteração realizada em um incremento, calcula-se o resíduo após a resolução do sistema linear dado por (364).
+
+A solução final é encontrada quando o resíduo atinge a tolerância estabelecida, como pode ser visto na Representação gráfica do procedimento incremental-iterativo  Assim, no MEF faz-se necessário calcular a matriz de rigidez da estrutura em cada iteração realizada bem como o vetor de forças internas.
+
+Em plasticidade, após o carregamento superar o limite elástico da estrutura, a matriz de coeficientes elásticos D sofrerá modificação segundo a equação (363).
+
+Portanto, o cálculo da matriz de rigidez da estrutura deve ser atualizado em cada iteração, uma vez que a estrutura perdeu sua rigidez inicial.
+
+Essa nova matriz de rigidez utiliza a matriz de coeficientes elastoplásticos D.
+
+O vetor de forças internas é calculado após a resolução do sistema linear dado por (364).
+
+Na equação r é o vetor de tensões calculado em cada iteração a partir da relações elastoplásticas dadas.
+
+O sobrescrito r denota a iteração em que se encontra o processo de plastificação.
+
+A integração anterior é realizada no domínio do elemento finito, para tanto recorre-se à integração numérica proposta por Gauss.
+
+Assim, em cada incremento de carga, resolve-se o sistema de equações para cada iteração e posteriormente calcula-se o resíduo com a relação (366).
+
+Pode-se explicitar as seguintes etapas do procedimento incremental-iterativo na resolução do problema elastoplástico, incrementos podem ter valores iguais ou diferentes.
+
+Esse critério depende do algoritmo desenvolvido.
+
+Nesse passo resolve-se o sistema de equações dado por (364) e calcula-se os deslocamento nodais.
+
+O carregamento aplicado é dado no passo anterior.
+
+Na equação anterior a matriz de rigidez K é dada pela equação (367), sendo necessária a atualização da mesma em cada iteração.
+
+Após a resolução do sistema de equações do passo anterior, pode-se passar ao cálculo do vetor de forças internas.
+
+Para tanto, deve-se calcular o estado de tensões atual da estrutura representado por r.
+
+Nesse passo calcula-se o incremento elástico de tensões.
+
+Na equação anterior r representa o incremento de deformação calculado com os deslocamentos obtidos na resolução do sistema de equações (364).
+
+Como se trata de uma casca deve-se computar as parcelas correspondentes aos efeitos de membrana e flexão.
+
+Assim o vetor de deformações será dado.
+
+Na equação anterior  representa as deformações relativas ao efeito de membrana e  as deformações relativas ao efeito de flexão.
+
+Na equação  a coordenada z é dada em função do ponto de Gauss na espessura da casca.
+
+Para integrar as tensões ao longo da espessura também emprega-se este método.
+
+De posse do estado atual de tensões calcula-se a tensão  efetiva, dada pelo critério de Mises, ou seja PASSO C Calcula-se o limite elástico atual da estrutura.
+
+
+A equação anterior é obtida a partir da relação, sendo válida para materiais com encruamento positivo.
+
+Verifica se o ponto encontra-se em processo de plastificação.
+
+Para tanto, compara-se os valores da tensão efetiva s (passo b) com o limite elástico atual  (passo c).
+
+Se a tensão efetiva for menor que o limite elástico, tem-se um ponto fora do processo de plastificação.
+
+Se a tensão efetiva for maior que o limite elástico, tem-se um ponto em regime elastoplástico, caracterizando estados onde F > 0 (estados não permitidos).
+
+Necessita-se neste último caso voltar o estado de tensão para a superfície de plastificação.
+
+Com o estado de tensões atualizado, pode-se calcular os esforços atuantes nos pontos de Gauss no domínio do elemento.
+
+Nas relações N representa o vetor de esforços normais, e M  representa o vetor de momentos fletores.
+
+De posse do estado de tensões atual, após o retorno à superfície de plastificação, pode-se passar ao cálculo do vetor de forças internas dado.
+
+Com o vetor de forças internas calculado no passo anterior, pode-se calcular o resíduo da iteração dada.
+
+Após o cálculo do resíduo verifica-se a convergência da iteração de acordo com a tolerância determinada.
+
+A convergência é verificada considerando-se a norma dos deslocamentos da iteração em relação à norma dos deslocamentos totais.
+
+Se a convergência atende à tolerância desejada, passa-se a um novo a a incremento de carga (1 etapa).
+
+Caso contrário, volta-se à 2 etapa, sendo o carregamento aplicado correspondente ao resíduo encontrado, até se conseguir a convergência.
+
+A integração das tensões ao longo da espessura da casca é realizada utilizando o modelo estratificado, que considera a estrutura dividida em camadas.
+
+Trata-se de uma modelagem mais completa, uma vez que permite acompanhar o processo de plastificação no interior da estrutura.
+
+Essa formulação permite o estudo de materiais com diferentes composições como o concreto armado por exemplo, possibilitando inclusive a caracterização do comportamento da armadura da mesma.
+
+Para se realizar essa modelagem, integram-se as tensões e a matriz de coeficientes elastoplásticos ( D ), utilizando o método de integração numérica de Gauss.
+
+Assim, ao se calcular a matriz de rigidez elastoplástica tangente (363), deve-se considerar a variação de D ao longo da espessura.
+
+No caso do elemento finito de  casca plano, as matrizes de coeficientes elastoplásticos para placa, chapa e acoplamento serão dadas.
+
+Nas equações (382) N representa o número de pontos de Gauss ao longo da  espessura da casca, é o ponto de Gauss ao longo da espessura da casca e  é o respectivo peso de Gauss para cada camada.
+
+O termo D é a matriz dos coeficientes elastoplástico, dada em (363) para cada ponto de Gauss na espessura.
+
+Neste caso, o estado de tensões deve ser atualizado de acordo com o passo D da terceira etapa do procedimento numérico.
+
+Com as equações (382) calcula-se a matriz de rigidez tangente elastoplástica para os elemento planos, placa, chapa e acoplamento.
+
+As integrais apresentadas nas relações (383) também são calculadas numericamente pelo método de Gauss para domínios triangulares.
+
+No caso dos esforços, a integração ao longo da espessura também utiliza o método numérico já citado.
+
+Apresentou-se neste capítulo a formulação do MEF para análise elastoplástica de cascas usada neste trabalho.
+
+No próximo capítulo apresenta-se a paralelização  desta formulação.
+
+Salienta-se ainda que este texto tem o intuito de apresentar o modelo utilizado.
+
+Para maiores esclarecimentos recomenda-se a bibliografia já citada, que é referência para este trabalho.
+
+Neste capítulo desenvolve-se o paralelismo para o modelo elastoplástico apresentado no capítulo III.
+
+Como já visto no estudo da plasticidade, utilizou-se como ferramenta de cálculo o Método dos Elementos Finitos.
+
+Portanto, para se paralelizar totalmente este programa deve-se desenvolver o paralelismo junto às etapas características do MEF tais como cálculo da matriz de rigidez, resolução do sistema de equações lineares e cálculo dos esforços.
+
+Desse modo, apresenta-se neste capítulo algoritmos em paralelo para as etapas do MEF, bem como todo procedimento adotado para se paralelizar o programa de análise não-linear.
+
+Como já salientado o paralelismo pode utilizar máquinas com memória global e local.
+
+A utilização de um ou outro equipamento interfere no modo de programação, tornando-se uma necessidade identificar o equipamento utilizado.
+
+Para máquinas com memória global, o paralelismo é implementado em forma de comandos no programa fonte.
+
+No caso de máquinas com memória local, o paralelismo é implementado com auxílio de bibliotecas de troca de mensagens, que possibilitam a comunicação entre os processos, uma vez que os mesmos executam suas tarefas de modo independente.
+
+Neste trabalho utilizou-se o IBM SP2, que é uma máquina com memória local, com possibilidade de acréscimo de até 128 nós de processamento.
+
+Cada nó refere-se a uma unidade local constituída de memória e processador.
+
+A biblioteca de troca de mensagens utilizada foi o PVM (Parallel Virtual Machine).
+
+O Método dos Elementos Finitos (MEF) é um método numérico para se resolver problemas cuja solução analítica seja difícil ou mesmo inexistente.
+
+Ele baseia-se na decomposição de um domínio qualquer em elementos cujos campos de deslocamento e deformação sejam aproximados por uma função polinomial.
+
+À medida que se aumenta o número de elementos desse domínio a solução numérica tende para a solução exata.
+
+De um modo geral o MEF pode ser representado pelas etapas da.
+
+Desse modo, quando se procurar paralelizar o MEF deve-se fazê-lo dentro das etapas dadas, ou seja, procura-se paralelizar as rotinas que representem estas etapas ou mesmo todo o programa.
+
+Como já citado no Capítulo II, quando se pretende desenvolver um programa em paralelo existem dois caminhos a serem percorridos.
+
+Pode-se em primeira instância paralelizar algoritmos seqüenciais em uso, ou desenvolver algoritmos em paralelo para a máquina disponível.
+
+Ambos procedimentos podem ser adotados para se implementar o paralelismo dentro do MEF.
+
+Deve-se contudo, estar atento a possíveis erros na elaboração do programa.
+
+Como obstáculos mais freqüentes na adaptação de algoritmos seqüenciais cita-se o problema da dependência de dados.
+
+Neste capítulo, exemplifica-se o problema da dependência de dados no procedimento usual de cálculo da matriz de rigidez.
+
+Apresenta-se também o procedimento paralelo para esse cálculo, para a rotina de resolução do sistema de equações e, em conjunto com a implementação em paralelo da análise não linear, para o cálculo dos esforços.
+
+O paralelismo é um modo eficiente e de baixo custo de reduzir o tempo de processamento em problemas que exigem computação de alto desempenho.
+
+Para se extrair o máximo proveito dos recursos do paralelismo, todas as etapas de um programa que são passíveis de serem paralelizadas devem ser submetidas a uma análise com o intuito de ajustá-las a esse tipo de arquitetura de computadores.
+
+Por esse motivo procura-se paralelizar o cálculo da matriz de rigidez da estrutura, uma vez que em conjunto com a resolução do sistema de equações, é uma das etapas que exigem maior esforço computacional.
+
+Quando se pretende implementar um algoritmo seqüencial para o modo paralelo, podem surgir vários obstáculos.
+
+Um problema comum é a dependência de dados.
+
+Com o intuito de exemplificar o problema de adaptação de algoritmos seqüenciais em processamento paralelo, cita-se o conhecido algoritmo para o cálculo da matriz de rigidez da estrutura.
+
+Neste item mostra-se como a dependência de dados pode interferir no resultado final do processamento além de apresentar um algoritmo adequado ao processamento paralelo.
+
+A adaptação de algoritmos seqüenciais para serem usados no paralelismo nem sempre é feita de modo elementar.
+
+Pode-se inclusive incorrer em uma inviabilidade de aplicação do mesmo para o paralelismo.
+
+Para o MEF pode-se citar o procedimento usual para o cálculo da matriz de rigidez.
+
+Esse algoritmo tem sido usado com sucesso na elaboração de programas seqüenciais para o MEF.
+
+Percorrendo todos os elementos que compõem a estrutura (loop mais externo linha 1), ele aloca e adiciona, quando necessário, os coeficientes de rigidez dos elementos para suas respectivas posições na matriz de rigidez global.
+
+Contudo para o caso de elaboração de um programa paralelo, deve-se estar atento ao problema de atualização simultânea da matriz de rigidez.
+
+Para exemplificar o problema da dependência de dados no processo usual de cálculo da matriz de rigidez, seja o exemplo de uma estrutura discretizada conforme a.
+
+Neste caso, supõe-se elementos com dois parâmetros por nó cuja matriz de rigidez será calculada conforme o algoritmo 4 1 Estrutura discretizada com quatro elementos finitos.
+
+Ao se efetuar esse cálculo, o coeficiente de rigidez global KE (8,1), correspondente ao segundo grau de liberdade do nó 4, será resultado da adição dos coeficientes locais nas posições (6,6) do elemento 1 e (4,4) dos elementos 2 e 3.
+
+No modo paralelo suponha-se a utilização de dois processos nesse cálculo.
+
+Dispondo para o processo 1 os elementos 1 e 2 e para o processo 2 os elementos 3 e 4, a adição processada na montagem seqüencial visivelmente não se efetuará no processo paralelo.
+
+Neste caso, os elementos correspondentes estarão alocados em processos distintos.
+
+Vários autores apresentaram trabalhos com o intuito de resolver esse problema, como pode ser visto na revisão bibliográfica realizada.
+
+Entretanto, a baixa eficiência das soluções propostas motiva a continuidade da pesquisa sobre esse tema.
+
+Neste item apresenta-se o cálculo da matriz de rigidez da estrutura para máquinas paralelas com memória distribuída.
+
+Como já foi visto, o procedimento usual de alocar os coeficientes de rigidez local para suas respectivas posições na matriz da estrutura através de um loop sobre os elementos finitos não é passível de ser usado diretamente no paralelismo, uma vez que ele incorre no problema da dependência de dados.
+
+Vários trabalhos têm sido apresentados com o intuito de se resolver esse problema LAW, ADELI e KAMAL, CHIEN e SUN.
+
+Esses trabalhos envolvem desde o cálculo paralelo da matriz de rigidez da estrutura, até o processamento concorrente de toda estrutura com troca de informações entre os processos.
+
+REZENDE  apresenta um algoritmo alternativo de cálculo da matriz de rigidez que aloca os coeficientes de rigidez local para a estrutura através de um loop sobre os pontos nodais da estrutura (abordagem nodal).
+
+Nesse algoritmo a matriz da estrutura é calculada linha por linha, ou seja, para cada ponto nodal da malha calcula-se os coeficientes de rigidez de todos os graus de liberdade desse ponto.
+
+Nesse caso para o ponto nodal 4, o algoritmo calculará as linhas 7 e 8 da matriz de rigidez global, sendo que os elementos finitos que participarão deste processo serão os elementos 1, 2 e 3, ou seja, os elementos que pertencem à vizinhança do ponto nodal.
+
+A identificação dos elementos finitos que concorrem a um determinado ponto nodal é efetuada com a estrutura de dados auxiliar, correspondentes às linhas 1 a 9 do algoritmo 4 2 Nesse caso não ocorre o problema da dependência de dados, ou seja, o cálculo de uma linha da matriz de rigidez é independente de outra linha desta matriz.
+
+Por esse motivo o algoritmo proposto pode ser usado diretamente no paralelismo.
+
+Assim, para uma máquina com memória distribuída, supondo-se a existência de dois processos em execução, pode-se, sem nenhuma dificuldade, alocar para o processo P1 os pontos nodais 1 a 3 e para o processo P2 os pontos 4 a 6.
+
+No algoritmo 42 essa operação se resumiria em mudar os limites do loop na linha 13.
+
+Esse algoritmo de cálculo da matriz de rigidez com abordagem nodal foi utilizado neste trabalho em conjunto com o procedimento em paralelo para resolução do sistema de equações, que será abordado no próximo item.
+
+A resolução do sistema de equações é a etapa do MEF que exige maior esforço computacional.
+
+Por esse motivo, a pesquisa por algoritmos que conjuguem confiabilidade e rapidez se faz necessária.
+
+Os métodos de resolução de sistemas lineares podem ser classificados em diretos e iterativos.
+
+Os métodos diretos apresentam a vantagem de se realizar um número conhecido de operações.
+
+Entretanto, quando se resolve sistemas de grandes dimensões, pode-se ter erros de arredondamento.
+
+Dentre os métodos diretos destaca-se o método de eliminação de Gauss, com maior utilização, além da decomposição incompleta de Choleski.
+
+A implementação de ambos em processamento paralelo apresenta como obstáculo a dependência de dados, já comentada no procedimento de cálculo da matriz de rigidez.
+
+Os métodos iterativos apresentam como principal aspecto positivo a garantia de convergência para o resultado esperado.
+
+Além de garantir a convergência para o resultado esperado, pode ser implementado no paralelismo com maior facilidade.
+
+Como exemplo de métodos iterativos cita-se Gauss-Seidel, Gauss-Jordam, Gradientes Conjugados.
+
+Devido a suas características de convergência e confiabilidade, o método dos Gradientes Conjugados tem merecido atenção especial dos pesquisadores em análise numérica, como pode-se constatar na bibliografia apresentada.
+
+Além dessas características, a sua formulação possibilita fácil adaptação à computação paralela, tanto compartilhada quanto distribuída.
+
+Por esses motivos utilizou-se este método no trabalho.
+
+O método dos Gradientes Conjugados baseia-se no Método de Maior Decréscimo, que é um método para resolução de problemas de minimização de funcionais.
+
+Nesta equação A representa a matriz dos coeficientes do sistema, x é o vetor de incógnitas e b é o vetor de parâmetros independentes.
+
+Considerando-se x a solução do sistema anterior o erro será dado.
+
+Assim, em cada passo desse método um vetor p é escolhido e o novo vetor  j que aproxima a solução do sistema é dado.
+
+Na equação anterior, o termo entre parêntesis representa o produto interno entre os respectivos vetores.
+
+Portanto da equação anterior tem-se, Nesta última equação obtém-se o mínimo para, O parâmetro anterior pode ser rescrito como, Com as relações anteriores pode-se apresentar o algoritmo do método dos Gradientes Conjugados, A formulação do método aqui apresentada está feita de modo claramente resumido.
+
+A partir do algoritmo do método dos Gradientes Conjugados pode-se desenvolver a implementação do mesmo em paralelo, o que será mostrado no próximo item.
+
+Com base no algoritmo 43 apresenta-se a implementação em paralelo do CG.
+
+Essa implementação foi desenvolvida a partir do pacote de rotinas PIM (Parallel Iterative Methods), de autoria de CUNHA & HOPKINS, o qual permite a resolução tanto de sistemas simétricos quanto não simétricos.
+
+Além do método dos Gradientes Conjugados, este pacote dispõe também de outras opções como Gradientes Conjugados Quadrados (QGC), Bi-Gradientes Conjugados (Bi-CG), Bi-Gradiente Conjugado Estabilizado (Bi-GCSTAB) e Resíduo Mínimo Generalizado.
+
+Neste conjunto de rotinas o armazenamento da matriz, o produto matriz-vetor e os produtos internos são tarefas a cargo do usuário.
+
+Apresenta-se em seguida comentários sobre o procedimento em paralelo adotado.
+
+Em cada passo do algoritmo 43, cada processo em execução efetua sua parcela de computação.
+
+Com intuito ilustrativo e para melhor compreensão, supõe-se a execução com três processos concorrentes.
+
+Passo 1 Escolher x.
+
+Nesse passo a escolha do vetor de aproximação inicial do CG é feita em cada processo em execução.
+
+Passo 2 Calcular r = b A x.
+
+Esse cálculo é melhor compreendido com a ilustração a seguir.
+
+Nessa operação o produto A x é realizado simultaneamente nos três processos em  execução, sendo que cada processo efetua sua parcela de cálculo.
+
+A matriz A se encontra armazenada nestes processos bem como o vetor x.
+
+Ao se efetuar a  multiplicação, cada processo efetua sua respectiva parcela do produto.
+
+Em cada processo está armazenado a respectiva parcela da matriz (calculada na etapa anterior do MEF).
+
+Assim, cada processo efetua de modo independente seu respectivo cálculo e armazena em uma variável auxiliar S.
+
+Armazenamento do produto matriz-vetor em variável auxiliar.
+
+O resultado da multiplicação da primeira linha da matriz A pelo vetor x deve ser armazenado somente no processo P.
+
+Assim, após efetuarem os seus produtos, os  processos P e P devem enviar o resultado para o processo P que recebe e totaliza a soma.
+
+No processo P armazena-se também o resultado para a segunda linha da  matriz A.
+
+Os resultadosv das 3 e 4 linhas serão armazenados no processo P e das 5  e 6 linhas armazenados no processo P.
+
+Em cada processo, armazena-se o resultado da multiplicação A x em um vetor auxiliar v.
+
+Após os respectivos cálculos e suas acumulações, cada processo está apto a finalizar esta etapa, ou seja, realizar a operação b A x.
+
+Note-se que em cada processo está armazenada somente sua respectiva parcela, tanto do vetor b quanto do resultado A x, isto é, o processo P armazena os valores b e b, e assim  sucessivamente.
+
+Com os resultados para o vetor resíduo da primeira iteração, pode-se passar ao passo seguinte.
+
+Cada processo assume os respectivos valores do resíduo e armazena no vetor p.
+
+Armazenamento do resíduo em vetor auxiliar.
+
+Passo 4 Verificar SE || r || < Na realização deste passo, necessita-se calcular a norma do resíduo.
+
+A norma do vetor r é dada pela raiz quadrada do produto interno.
+
+Neste caso, cada processo realiza o produto interno parcial e envia o seu resultado para o processo Pai.
+
+Após a totalização o processo pais e envia o resultado de volta aos outros processos de modo que todos possam verificar o critério de convergência.
+
+Neste caso, necessita-se calcular o produto r r, que pode ser compreendido com os comentários sobre o passo 4.
+
+A única observação adicional nesse caso é que deve-se armazenar esse produto em uma variável auxiliar  para que o mesmo possa ser usado posteriormente.
+
+Na parcela dada no denominador, necessita-se fazer a multiplicação da matriz A pelo vetor p.
+
+Essa multiplicação é processada à semelhança do passo 2, e também deve-se armazenar esse resultado em um vetor auxiliar ( = A p ).
+
+A execução em paralelo para p  também já foi ilustrada no passo anterior.
+
+Passo 6 Atualizar vetor x  Na atualização do vetor x utiliza-se a relação.
+
+Neste caso o parâmetro  já calculado no passo anterior, está disponível em todos os processos em execução.
+
+Uma vez que os vetores x e p estão parcialmente armazenados nestes processos, basta realizar a soma vetorial dada em (412), fazendo-se um laço apenas para a dimensão armazenada localmente.
+
+Passo 7 Atualizar vetor r  Para se atualizar o vetor r usa-se a relação.
+
+A operação vetorial neste caso é idêntica ao passo 6, sendo que o produto A p foi armazenado na variável  no passo 5.
+
+Passo 8 Calcular  O cálculo da variável  é dado pela relação.
+
+Assim, do passo 5 tem-se o produto r r armazenado na variável.
+
+Como  já salientado no passo 4 esse produto  também está disponível em todos os processos.
+
+O produto r  r também é obtido à semelhança do passo 4 utilizando a atualização do vetor resíduo efetuada no passo 7.
+
+Obtendo-se a variável  pode-se passar ao cálculo do vetor p dado no passo 9.
+
+Passo 9 Atualizar vetor p A atualização do vetor p é dada pela relação.
+
+Esta adição vetorial é semelhante ao procedimento do Passo 6, restando como diferença os parâmetros de cada relação.
+
+O procedimento em paralelo para o CG necessita tanto do armazenamento parcial da matriz de coeficientes do sistema A quanto do vetor de parâmetros independentes b.
+
+No caso do MEF, o cálculo em paralelo e respectivo armazenamento parcial da matriz de coeficientes A já foi comentado no item 4 3  Para o vetor de parâmetros independentes, que no caso do MEF trata-se do vetor de forças nodais, esse procedimento em paralelo será comentado no próximo item.
+
+Pode-se agora passar ao paralelismo para análise não linear.
+
+A análise não-linear desenvolvida neste trabalho utiliza como ferramenta de cálculo o MEF.
+
+Assim sendo, para se implementar o paralelismo na não linearidade, necessita-se que ele também seja implementado no MEF.
+
+Uma vez que esse procedimento em paralelo tenha sido instalado, pode-se passar ao conjunto da análise não linear.
+
+Neste item aborda-se essa implementação com comentários dos detalhes envolvidos no paralelismo.
+
+O modelo de não linearidade utilizado neste trabalho foi apresentado no capítulo III.
+
+O procedimento numérico desta análise pode ser resumido nas etapas comentadas no item 35, que são dadas por, 1  Cálculo do incremento de carga.
+
+Resolução do sistema de equações lineares.
+
+Cálculo do vetor de forças internas.
+
+Cálculo do resíduo.
+
+Verificação da convergência.
+
+Para uma maior compreensão deste procedimento, pode-se recorrer ao fluxograma.
+
+Neste fluxograma, apresenta-se de modo completo todas as etapas que compõem a análise não-linear.
+
+Portanto, para se explorar com máximo proveito os recursos do paralelismo deve-se procurar paralelizar todas as etapas da não linearidade.
+
+No paralelismo para máquinas com memória distribuída, cada processo executa de modo independente as tarefas designadas ao mesmo.
+
+Durante a execução do programa, caso haja necessidade, o processo pode enviar e receber informações de outro processo.
+
+Essa troca de informações é realizada por meio de uma biblioteca de troca de mensagens.
+
+Análise não-linear em modo sequencial.
+
+A aplicação do paralelismo à análise não-linear está mostrada na.
+
+Neste fluxograma está esquematizada a execução do programa em modo paralelo.
+
+Cada processo executa suas tarefas de modo independente e simultaneamente aos outros processos.
+
+Pelo fluxograma estão identificadas as rotinas que enviam e recebem dados de outros processos.
+
+Os dados trocados, e também a necessidade dos mesmos, serão comentados posteriormente.
+
+Comentam-se agora os detalhes específicos do paralelismo em todas as rotinas.
+
+Quando se inicia um processamento em paralelo em máquinas de memória distribuída, vários processos podem ser disparados, dependendo da necessidade do programador.
+
+Ao se disparar um processo, o mesmo pode permanecer à espera de dados ou em execução.
+
+Neste programa, os dados da estrutura devem estar armazenados em todos os processo.
+
+Neste caso, pode-se fazer a leitura do arquivo de dados por um processo e o mesmo remete para os outros processo ou, todos fazem a leitura no arquivo.
+
+Neste trabalho optou-se pela leitura autônoma onde cada processo acessa o arquivo de dados e faz a leitura completa.
+
+Após a leitura dos dados, uma importante etapa é realizada simultaneamente, a divisão dos intervalos de pontos nodais.
+
+No item sobre o cálculo da matriz de rigidez ficou claro que o algoritmo utilizado realiza esse processo em um loop sobre os pontos nodais da estrutura, inserindo em cada linha da matriz os respectivos coeficientes de rigidez.
+
+Assim o paralelismo é obtido quando cada processo calcula um determinado número de linhas desta matriz.
+
+Para tanto é necessário que o mesmo identifique as linhas sobre as quais ele deverá efetuar o cálculo.
+
+Essa identificação é obtida dividindo-se o número de pontos nodais entre os processos.
+
+A repartição é obtida com a utilização de uma rotina executada por todos os processos onde cada processo identifica o seu intervalo.
+
+Assim, quando se efetuar o cálculo da matriz de rigidez, cada processo I o fará com seu respectivo intervalo RANGES(1,I) a RANGES(3,I).
+
+Além de identificar o seu intervalo todos os processos identificam também o intervalo dos outros processos.
+
+Além de dividir o número de pontos nodais, essa rotina divide também o número de elementos finitos entre os processos.
+
+Essa repartição será utilizada na rotina de cálculo do resíduo.
+
+O vetor de cargas nodais aplicado na estrutura também deve ser dividido entre os processos disponíveis.
+
+Como já descrito no método dos Gradientes Conjugados, para se resolver o sistema cada processo armazena apenas a respectiva parcela do vetor de cargas nodais.
+
+Para se realizar esse cálculo, utiliza-se o procedimento da abordagem nodal já comentada no cálculo da matriz de rigidez.
+
+Esse procedimento é representado no algoritmo (45) para elementos com dois graus de liberdade por nó.
+
+À semelhança do cálculo da matriz de rigidez, para cada ponto nodal o algoritmo identifica os elementos finitos que concorrem a esse ponto e calcula a contribuição de cada elemento finito à respectiva posição no vetor de forças externas.
+
+Neste caso, supõe-se a existência de dois processos.
+
+Para o processo 1 estão alocados os pontos 1 a 3 e para o processo 2 estão alocados os pontos 4 a 6.
+
+Assim quando o processo 2 chama o ponto 4, o algoritmo identifica os elementos finitos 1, 2 e 3 e calcula a respectiva contribuição de cada elemento ao vetor de forças externas.
+
+Portanto, cada processo calcula somente sua parcela do vetor de forças externas.
+
+No algoritmo 44 está evidenciado o procedimento para cálculo do vetor de forças nodais para carregamento distribuído.
+
+Quando se tem carregamento concentrado, na linha 14 desse algoritmo muda-se a variável NCARD para NCARC, e na linha 15 deve-se ler apenas o nó e as cargas externas.
+
+O incremento de carga a ser aplicado na estrutura é uma fração do carregamento total.
+
+Uma vez que a carga total se encontra armazenada em cada processo, deve-se somente efetuar o cálculo dessa fração em cada processo, tratando-se de uma simples operação.
+
+Nesse passo identifica-se o tipo de algoritmo adotado para a análise não-linear.
+
+Neste trabalho tem-se a opção de adotar algoritmo com matriz secante (considerando a rigidez inicial) ou matriz tangente (considerando a rigidez atualizada), conforme relação (367).
+
+Note-se que todos o processos efetuam essa identificação.
+
+O algoritmo que efetua o cálculo da matriz de rigidez da estrutura está comentado no item 43, sendo que os intervalos de cada processo são calculados com o algoritmo (44).
+
+Aproveitando-se da sua simetria, armazena-se a matriz em colunas, para que a mesma possa ser usado no método dos Gradientes Conjugados na etapa de multiplicação da matriz pelo vetor.
+
+A imposição das condições de contorno é efetuada utilizando a técnica de assumir valores " zero e um " nos coeficientes da matriz de rigidez e no vetor de forças nodais com condições de contorno a impor.
+
+Uma vez que a matriz se encontra armazenada nos processos em execução, todos devem impor as restrições quando se fizer necessário.
+
+Mostra-se o exemplo de uma condição de contorno onde os processos 1 e 3 devem assumir valores 00 na matriz de rigidez para a linha i, e o processo 2 deve assumir valores 00 para a linha i e coluna j, exceto quando o coeficiente i = j, onde K =1 0  ij  Nesse caso deve-se ter um algoritmo em cada processo que identifique que valor assumir para o grau de liberdade com restrição.
+
+No algoritmo a seguir os processos efetuam essa etapa da análise não-linear segundo o critério já exposto.
+
+Nota-se na linha 5 do algoritmo (46) que o mesmo identifica se o grau de liberdade com condição de contorno a impor pertence ao processo em questão processo P2.
+
+Se não for o caso, deve impor somente a condição de nulificar os coeficientes da matriz de rigidez processos P1 e P3.
+
+A etapa de resolução do sistema de equações foi comentada no item 4 4  Contudo, é importante salientar que a matriz de rigidez está armazenada em forma de colunas, onde cada processo é responsável por sua parcela no cálculo da matriz.
+
+Esse modo de armazenamento da matriz é uma necessidade neste método de resolução de sistemas lineares em paralelo.
+
+As condições de contorno também foram impostas de modo paralelo, como já exposto na seção anterior.
+
+Após o cálculo dos deslocamentos nodais na etapa de resolução do sistema de equações, pode-se passar à etapa de cálculo do resíduo.
+
+Para se calcular o resíduo em uma iteração dentro de um incremento de carga, necessita-se calcular o vetor de forças internas, que resulta da integração do estado de tensões atual da estrutura.
+
+Observe-se que o vetor de forças internas é calculado no domínio do elemento sendo originalmente uma integral de volume.
+
+Em modo seqüencial o cálculo do vetor de forças internas é feito em um loop sobre o número de elementos finitos da malha, calculando-se o vetor de forças internas para cada elemento conforme o modelo de análise não-linear descrito no item 3 5  Após calculados os vetores de forças internas de todos os elementos, pode-se passar ao cálculo do vetor de forças internas nodais, que será resultado da contribuição das forças internas de todos os elementos finitos que concorrem a um determinado nó.
+
+Pode-se visualizar melhor esse procedimento com o auxílio.
+
+Neste caso o vetor de forças internas nodais para o nó 5 será resultado da contribuição das forças internas dos elementos finitos 1, 2, 3, 6, 7 e 8.
+
+Para se efetuar esse procedimento em modo paralelo, pode-se dividir o número de elementos finitos entre o número de processos em execução.
+
+Cada processo efetuaria o cálculo do vetor de forças internas para os elementos destinados ao mesmo.
+
+No caso do exemplo, supondo-se a existência de dois processos em execução, pode-se alocar para o processo 1 os elementos 1 a 4 e para o processo 2 os elementos 5 a 8.
+
+Cada processo efetuaria de modo independente o cálculo do vetor de forças internas para cada elemento.
+
+Resta neste caso o cálculo das contribuições dos elementos para o vetor de forças internas nos respectivos nós.
+
+Uma dificuldade que surge pode ser ilustrada com auxílio do exemplo anterior.
+
+Como já descrito, para se calcular o vetor de forças internas para o nó 5, necessita-se da contribuição dos elementos 1, 2, 3,6, 7 e 8.
+
+No caso da execução em paralelo, os elementos 1, 2 e 3 serão calculados no processo P1 e os elementos 6, 7 e 8 serão calculados no processo P2.
+
+Para se resolver esse problema adotou-se a estratégia de, após efetuados os respectivos cálculos, cada processo enviar seus resultados a todos os outros processos bem como receber dos mesmos seus respectivos resultados.
+
+Assim, quando se fizer necessário adiciona-se para o nó 5 os resultados dos elementos 1, 2, 3, 6, 7 e 8, o processo que for responsável por essa tarefa (P2) poderá efetuá-la sem nenhuma dificuldade, pois o vetor de forças nodais destes elementos se encontra armazenado no mesmo.
+
+Para se adicionar a contribuição de todos os elementos finitos que se encontram na vizinhança de determinado ponto nodal, necessita-se da identificação destes elementos.
+
+Essa identificação pode ser feita com o auxílio do algoritmo para abordagem nodal (linhas 3 a 13 do algoritmo 47), apresentado no procedimento de cálculo paralelo da matriz de rigidez.
+
+Essa contribuição é realizada pelas linhas 15 a 32 do algoritmo (47)  Finalizada a contribuição dos elementos para o vetor de forças internas nodais, pode-se completar o paralelismo dentro dessa etapa, passando-se ao cálculo do vetor resíduo.
+
+O vetor resíduo é dado pela equação (379), sendo realizado para cada grau de liberdade de cada ponto nodal da estrutura.
+
+Uma vez que o número de pontos nodais da estrutura se encontra dividido entre o número de processos em execução, a realização da soma algébrica da equação (419) pode ser efetuada de modo direto, tendo-se o cuidado de fazê-la em um loop somente para os graus de liberdade de responsabilidade do processo em questão.
+
+No algoritmo (47) essa soma é representada pelas linhas 33 a 36, supondo-se um elemento finito com dois graus de liberdade por nó.
+
+A verificação da convergência é feita usando-se a relação (380).
+
+Neste caso, para se efetuar essa verificação em paralelo adota-se o seguinte procedimento.
+
+Cada processo calcula sua norma parcial, envia seu  resultado a todos os outros processos e recebe os resultados parciais dos  outros processos.
+
+Todos os processos totalizam a norma e verificam a convergência.
+
+Se não se verificar a convergência, passa-se a outra  iteração, caso contrário, imprime os resultados parciais e passa-se a  outro incremento de carga.
+
+O passo 1 da verificação da convergência é efetuado de modo direto, uma vez que, a partir da resolução do sistema de equações, se encontra armazenado em cada processo os respectivos valores dos deslocamentos na iteração e deslocamentos totais.
+
+Neste caso é necessário apenas instalar um loop efetuando-se o produto dos deslocamentos, considerando-se somente os graus de liberdade armazenados no processo.
+
+Se a convergência atingiu a tolerância desejada, o processo pai imprime os resultados parciais e passa-se a um novo incremento de carga.
+
+Caso contrário, volta-se a uma nova iteração, onde o vetor de cargas aplicadas será o resíduo obtido na iteração anterior.
+
+Neste capítulo mostram-se os resultados dos exemplos elastoplásticos executados em processamento paralelo os quais encontram-se em bibliografia conhecida.
+
+Além dos resultados para o comportamento elastoplástico, mostra-se o resultado obtido com a implementação em paralelo do modelo não linear.
+
+Apresentam-se também comparações com resultados seqüenciais.
+
+Como ilustração do modelo elastoplástico utilizado, apresenta-se o exemplo da placa apoiada com comportamento elastoplástico perfeito.
+
+Neste caso a comparação é realizada com os resultados apresentados em OWEN e HINTON  para placa estratificada.
+
+Para tanto, se faz uso dos resultados do elemento de placa heterosis com nove pontos nodais.
+
+Para o elemento de placa utilizado nesta comparação adotou-se quatro pontos de integração no domínio do elemento e nove pontos de Gauss ao longo da espessura.
+
+Foram utilizados os seguintes parâmetros para simulação da placa.
+
+O carregamento aplicado é distribuído em cinqüenta incrementos iguais de carga, e considera-se critério de convergência em deslocamentos com tolerância de 001 %.
+
+A malha utilizada na obtenção dos resultados é de 100 pontos nodais, totalizando 600 graus de liberdade.
+
+Os resultados obtidos para o comportamento elastoplástico estão apresentados na, onde se mostra o deslocamento vertical (w) no ponto central da placa.
+
+Neste caso, o elemento DKT que incorpora os efeitos de flexão, apresenta comportamento próximo ao apresentado na referência utilizada.
+
+Curva Carga x Deslocamento do ponto central da placa.
+
+Os resultados da implementação em paralelo do exemplo da placa apoiada estão apresentados em seguida.
+
+Mostra-se o tempo total de execução do programa para 1, 2 e 3 processadores.
+
+Está apresentado o speed-up para o exemplo da placa apoiada e na  mostra-se a eficiência obtida com a implementação em paralelo.
+
+Tempo total de processamento para placa apoiada.
+
+Speed-up Para Placa Apoiada.
+
+Número de Processadores.
+
+Speed-up para placa apoiada.
+
+Neste exemplo obteve-se eficiência de 83 % para dois processadores e 71 % para três processadores.
+
+Como se pode notar com os resultados obtidos, a implementação em paralelo apresentou-se vantajosa pela redução do tempo total de processamento.
+
+A eficiência obtida neste caso apresenta-se elevada, restando a comprovação para um número maior de processadores.
+
+Eficiência para placa apoiada.
+
+Além do exemplo anterior, apresenta-se também um exemplo da implementação em paralelo para uma casca cilíndrica, conforme.
+
+A casca indicada neste exemplo é referência clássica na análise estrutural.
+
+A comparação realizada neste texto é obtida a partir dos resultados para o elemento TSL6, conforme MESQUITA, para o qual utilizou-se uma malha totalizando 1283 graus de liberdade.
+
+Para o elemento DKTFF utilizou-se um total de 117 pontos nodais, 192 elementos com divisão de 8 x12 x2 elementos e nove pontos de Gauss ao longo da espessura.
+
+A análise elastoplástica foi dividida em cinqüenta incrementos iguais de cargas e admitida tolerância em deslocamento de 01 %.
+
+Os resultados obtidos referem-se ao deslocamento vertical do ponto da borda livre, intermediário entre os apoios da casca.
+
+O resultado para a análise elastoplástica está apresentado.
+
+Deslocamento transversal do ponto intermediário  da borda livre.
+
+Os resultados para a execução em paralelo deste exemplo estão apresentados.
+
+Para este exemplo a eficiência obtida com dois processadores e tres processadores foi de 835 % e 767% respectivamente.
+
+O tempo total de execução com três processadores reduziu-se para menos da metade do tempo para um processador, que mostra uma clara vantagem em se usar o paralelismo neste caso.
+
+Tempo total de processamento para casca cilíndrica.
+
+Número de Processadores.
+
+Speed-up para casca cilíndrica.
+
+Eficiência Para Casca Cilíndrica  Número de Processadores.
+
+Eficiência para casca cilíndrica.
+
+Os resultados obtidos para o exemplo da casca cilíndrica apresentam-se satisfatórios considerando-se a redução do tempo de processamento.
+
+A eficiência obtida com o número de processadores disponível também apresenta-se satisfatória.
+
+Entretanto deve-se fazer a comprovação desses resultados para um número maior de processadores.
+

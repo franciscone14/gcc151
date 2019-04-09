@@ -1,0 +1,757 @@
+Em o passado, as maiores preocupações de um projetista VLSI compreendiam área de silício, desempenho, custo e confiabilidade.
+A dissipação de potência e a energia consumida por o circuito ocupavam uma posição secundária no projeto do mesmo.
+A computação móvel mudou este cenário, trazendo a dissipação de potência e o consumo de energia de um circuito como preocupações primárias, visando principalmente aumentar a vida útil das baterias do dispositivo.
+A primeira medida para reduzir a potência do circuito é agregar diversas funções, que antes estariam em circuitos independentes, num mesmo circuito, criando o conceito de SoC.
+Devido a o número de funções integradas nos SoCs modernos, as redes intra-chip (NoCs) estão sendo mais utilizadas devido a sua escalabilidade e paralelismo de comunicação.
+Os modelos atuais de estimativa da dissipação de potência nas NoCs utilizam como principal métrica o volume de dados transmitidos na rede.
+Este trabalho propõe um modelo para estimativa da dissipação de potência numa rede intra-chip mais preciso, baseado nas taxas de recepção nos buffers de cada roteador da rede durante a transmissão do tráfego avaliado.
+Resultados mostram um erro de no máximo 10% em comparação com uma ferramenta comercial de estimativa de dissipação de potência, reduzindo o tempo de estimativa.
+Comparando o modelo proposto com modelos baseados em volume de dados, podemos verificar a imprecisão dos modelos de volume, mesmo que estes apresentem tempo de resposta melhores.
+O modelo proposto foi integrado ao framework Atlas, permitindo que os projetistas avaliem a potência dissipada para as NoCs e tráfegos gerados neste framework.
+Além de isto, este trabalho apresenta a avaliação da dissipação de potência da NoC Hermes, avaliando a aplicação de técnicas de redução de potência em circuitos CMOS sobre a rede.
+Palavras Chave: Redes Intra-Chip (NoCs), Modelos de estimativa de potência, Técnicas de redução de potência, NoCs com baixa dissipação de potência, Clock--gating.
+A crescente demanda por equipamentos eletrônicos cada vez menores, mais duradouros, mais rápidos e com mais funcionalidades no mesmo dispositivo, motiva a pesquisa por novos métodos de projeto destes.
+A busca por desempenho em microprocessadores seguiu duas estratégias simultâneas ao longo de o tempo:
+Aumento da freqüência de relógio e paralelismo no nível de instrução (ILP ­ Instruction Level Parallelism).
+O aumento da freqüência está alcançando um limite, devido principalmente a problemas de dissipação de potência e complexidade de projeto.
+ILP seguiu o caminho dos pipelines superescalares com múltiplas unidades de execução (multithreadimg), e também está chegando a um limite em sistemas mono-processados.
+Companhias como Intel, AMD, Sony, IBM e Toshiba vêm utilizando em seus microprocessadores o conceito de múltiplos núcleos de processamento num único chip.
+MPSoCs aumentam o desempenho, pois diversos processadores cooperam para executar as tarefas e reduzem a latência de comunicação entre os processadores, por estes estarem implementados num único chip.
+No entanto, a inclusão de diversos processadores num único circuito integrado não implica necessariamente aumento de desempenho.
+A arquitetura de interconexão entre processadores e demais componentes do MPSoC é que definirá o desempenho real do sistema.
+MPSoCs atuais tendem a utilizar NoCs, devido a as características de escalabilidade e desempenho.
+Uma NoC é uma rede intra-chip composta por módulos de hardware conectados a roteadores, que por sua vez são conectados entre si através de canais de comunicação MPSoCs vêm sendo utilizados em diversas aplicações eletrônicas, e as aplicações de computação móvel, em especial, necessitam de MPSoCs que consigam prover um alto desempenho computacional aliado a um baixo consumo de energia.
+O termo computação móvel está associado ao aumento da capacidade de mover fisicamente serviços computacionais junto com o usuário dos mesmos, ou seja, os elementos computacionais tornam- se dispositivos sempre presentes, que expandem a capacidade do usuário de utilizar os serviços que estes oferecem, independentemente da sua localização.
+Combinada com a alta capacidade de acesso aos meios de comunicação, a computação móvel tem transformado a computação em serviços que podem ser acessados e utilizados em qualquer lugar.
+No decorrer de o tempo, a evolução dos sistemas de computação (processamento em lotes, compartilhamento de tempo, redes com sistemas compartilhados, sistemas distribuídos) diminuiu o acoplamento do usuário a recursos e a ambientes computacionais específicos.
+Para acessar uma página da internet, por exemplo, o usuário não precisa mais utilizar um computador pessoal que utiliza um sistema operacional de propósito geral, ele pode acessar esta página através de um telefone celular.
+Contribui também a esta evolução o avanço das tecnologias de fabricação dos circuitos integrados, que permitiu criar dispositivos de hardware cada vez menores.
+Dentro de esta progressão, sistemas de computação móvel representam a separação entre usuário e ambiente computacional.
+O usuário pode acessar os recursos computacionais (hardware e software) a qualquer tempo e lugar, desde que localizado dentro de os limites de alcance de uma infra-estrutura de comunicação.
+A computação móvel não é um paradigma que lida exclusivamente com questões ligadas às áreas de sistemas distribuídos e redes de computadores.
+É um paradigma que trata de múltiplas áreas da Ciência da Computação.
+Por exemplo, o projeto de circuitos integrados para uso em computação móvel deve ser realizado considerando o consumo de energia;
+Sistemas operacionais devem possuir outras características específicas para dispositivos móveis como memória reduzida e processamento de baixo ou médio desempenho;
+Linguagens de programação e compiladores devem ser projetadas em função de as características desse ambiente;
+Bancos de dados devem considerar novos mecanismos de integridade e sincronização de dados;
+A engenharia de software deve propor novos princípios de desenvolvimento para a área como projeto de interface homem-máquina.
+Além disso, outras áreas, como Psicologia e Sociologia, têm um papel importante em computação móvel por definir formas alternativas de uso da tecnologia de processamento e comunicação de dados.
+Os principais dispositivos de computação móveis disponíveis atualmente possuem uma arquitetura baseada em SoCs compostos de vários núcleos de propriedade intelectual.
+Os núcleos presentes nestes SoCs são, na maior parte dos casos, um elemento de processamento, bloco (s) de memória, periféricos do processador (e.
+g MAC Ethernet e conversores Ad ou De a), e interfaces externas de comunicação para este elemento de processamento (e.
+g portas de E/ S).
+A o se inserir mais de um elemento de processamento num SoC, têm- se uma estrutura do tipo sistema MPSoC).
+Uma linguagem de programação muito difundida nos dispositivos de computação móvel é a linguagem Java, adaptada a processadores mais simples.
+O desenvolvimento de SoCs que executem os bytecodes Java não é uma tarefa trivial, devido a restrições de memória e processamento.
+Diversos trabalhos tratam deste assunto, de entre eles o ambiente de projeto de aplicações Java embarcada Sashimi.
+Este ambiente permite que ambos programadores Java e projetistas de SoCs interajam, refinando a aplicação para a execução num ambiente restrito.
+O objetivo final do ambiente é a execução da aplicação Java num microcontrolador batizado de femtoJava.
+Este microcontrolador implementa a máquina virtual Java sobre uma pilha de 8 bits.
+O femtoJava é sintetizável e o código da aplicação pode ser executado no hardware sintetizado em FPGA.
+Em dispositivos eletrônicos, desempenho e dissipação de potência são funções custo diretas, ou seja, alto desempenho implica alta dissipação de potência e vice-versa.
+O grande desafio nos dispositivos de computação móvel é obter o melhor desempenho com o menor consumo de energia.
+A o se projetar um MPSoC visando baixa dissipação de potência têm- se três frentes principais de trabalho:
+Reduzir a dissipação de potência nos módulos de processamento, no meio de comunicação, nos meios de armazenamento e nos demais módulos de entrada/ saída e periféricos.
+Os objetivos do presente trabalho são a modelagem e a redução da potência dissipada no meio de comunicação de MPSoCs com interconexão por NoCs.
+A modelagem de potência dissipada em NoCs permite que os projetistas avaliem de forma rápida o impacto de mudanças na arquitetura da NoC na dissipação de potência e no consumo de energia.
+Já a redução na dissipação de potência em NoCs permite uma redução no consumo de energia desta, o que pode aumentar a vida útil da bateria que este dispositivo utiliza.
+As principais contribuições deste trabalho são um modelo de estimativa da potência média dissipada numa rede intra-chip, e um estudo sobre a dissipação de potência da NoC Hermes.
+O modelo desenvolvido foi inserido no framework Atlas, um ambiente de desenvolvimento de redes intra-chip.
+O modelo também foi adicionado ao modelo de simulação baseado na técnica PAT, JOSELITO.
+O modelo JOSELITO foi implementado um ambiente de simulação Java, baseado em atores.
+Este modelo permite simulações e avaliações de potência mais rápidas que uma simulação RTL, mantendo- se a mesma precisão.
+O estudo sobre a dissipação de potência da NoC Hermes permite avaliar o impacto da mudança de parâmetros da rede sobre a potência média dissipada por ela.
+Decisões de projeto tais como dimensionamento de buffer, tamanho de flit e escolha do algoritmo de roteamento afetam diretamente a dissipação média de potência de uma rede intra-chip.
+O presente documento está organizado da seguinte forma.
+Em o Capítulo 2 são abordados conceitos que caracterizam a dissipação de potência e consumo de energia em redes intra-chip, e os modelos de atraso utilizados nas estimativas de potência e técnicas de redução da dissipação de potência utilizadas no projeto de circuitos integrados.
+Em o Capítulo 3 é realizado um estudo sobre a dissipação de potência em MPSoCs que utilizam uma rede intra-chip como meio de interconexão entre seus diversos núcleos, além de apresentar o estado da arte em modelos de estimativa da dissipação de potência em redes intra-chip, e redes intra-chip que utilizam técnicas de redução da dissipação de potência.
+Os Capítulos 4 e 5 apresentam as contribuições deste trabalho.
+Em o Capítulo 4 é apresentado o modelo de estimativa da dissipação de potência desenvolvido durante o mestrado, bem como seus resultados, comparações com outros modelos e inserção no ambiente Atlas.
+O da dissipação de potência desta rede utilizando diferentes técnicas de redução de potência e algoritmos de roteamento.
+As conclusões e direcionamentos para trabalhos futuros são apresentados no Capítulo 6.
+O Apêndice I contém a lista das publicações realizadas no período do mestrado e o Apêndice II contém um tutorial de calibração do modelo proposto para uma rede intra-chip.
+Este Capítulo apresenta conceitos básicos relacionados ao desenvolvimento deste trabalho.
+A Seção 2.1 aborda os conceitos que caracterizam a dissipação de potência em circuitos integrados CMOS.
+A Seção 2.2 apresenta o conceito de consumo de energia em circuitos integrados CMOS, bem como sua influência no desempenho global de um sistema.
+A Seção 2.3 descreve o modelo de atraso utilizado nas estimativas de dissipação de potência.
+Os conceitos relacionados às técnicas de redução na dissipação de potência de um circuito integrado são apresentados na Seção 2.4.
+A dissipação de potência num circuito elétrico é definida por a multiplicação entre os valores instantâneos da corrente e tensão.
+A dissipação de potência numa porta lógica determina quanto calor este circuito dissipa e quanta energia está sendo consumida num dado momento da operação deste circuito.
+Estes fatores influenciam decisões de projeto, tais como:
+Encapsulamento, dimensionamento das linhas de alimentação, número de transistores que podem ser integrados num mesmo chip, e sistema de arrefecimento.
+A dissipação de potência em circuitos construídos com tecnologia CMOS pode ser dividida em três componentes principais:
+Dinâmica, de curto-circuito e estática.
+O inversor serve como um modelo geral de qualquer porta lógica CMOS.
+Assume- se que todas as capacitâncias presentes no nodo de saída O, podem ser modeladas como uma capacitância ligada à massa (GND), C1 na Figura 1 e outra ligada à fonte de alimentação (Vdd), C2 na Figura 1.
+Iniciando o circuito com a saída (O) em nível lógico alto e a entrada (I) em nível lógico baixo, altera- se que o sinal de entrada para o nível lógico alto.
+Esta ação leva a saída a um nível lógico baixo, e a uma troca nas cargas dos capacitores ligados ao nodo de saída.
+A carga no capacitor C1 irá trocar de C1Vdd para 0, já que o transistor N deixará o capacitor C1 em curto-circuito.
+A carga no capacitor C2 irá trocar de 0 para C2Vdd, sendo carregado através da fonte de alimentação Vdd.
+Agora alteramos novamente a entrada, de volta para o nível lógico baixo.
+C2 entrará em curto-circuito devido a o transistor P e C1 será recarregado para C1Vdd, retirando carga da fonte de alimentação Vdd.
+Como resultado, durante um ciclo completo de troca nos valores lógicos da entrada, o circuito adquire uma carga total de Vdd da fonte de alimentação ou uma energia total de Vdd2.
+Se este ciclo se repetir x vezes por segundo, o circuito irá dissipar uma potência equivalente à xVdd2.
+Em um circuito síncrono, a freqüência com a qual as capacitâncias do circuito são carregadas e descarregadas reflete diretamente na potência dinâmica.
+Desta forma, a freqüência de relógio aplicada no circuito é um fator que contribui majoritariamente para a potência dinâmica.
+A potência dinâmica (Pd) pode ser calculada aplicando- se a Equação 1.
+Em esta Equação, corresponde à probabilidade de chaveamento do total de portas lógicas do circuito;
+Fc corresponde à freqüência de relógio aplicada no circuito;
+Cl corresponde à carga capacitiva total do circuito;
+Vdd corresponde à tensão de alimentação aplicada.
+A potência de curto-circuito está associada a cada transição na entrada de uma porta lógica, quando todos os transistores (N e P) conduzem simultaneamente por um curto período de tempo.
+Durante este tempo, existe uma corrente de curto-circuito que flui direto da fonte de alimentação (Vdd) para a massa (GND), não participando na carga ou descarga da capacitância do circuito (Cl).
+A potência de curto-circuito gerada por esta corrente (Psc) pode ser calculada por a Equação 2 Psc $= (Vdd -- Vthn -- Vthp) Em esta Equação, corresponde à dimensão dos transistores;
+Corresponde ao tempo de subida, ou descida do sinal de entrada;
+T corresponde ao período de transição no sinal de entrada;
+Vdd corresponde à tensão de alimentação aplicada ao circuito.
+Vthn corresponde à tensão de threshold nos transistores N;
+Vthp corresponde à tensão de threshold nos transistores P. A potência de curto-circuito depende do período de transição do sinal de entrada.
+Em circuitos bem projetados, a potência Psc é, normalmente, em torno de 10% da potência dinâmica Pd.
+Desta forma, na maioria dos circuitos integrados, a potência Psc é desprezada.
+Em circuitos CMOS, a potência estática é determinada por a corrente de fuga nos transistores e nas junções P-N (em inglês, leakage current).
+A potência estática (Ps) pode ser calculada através da Equação 3.
+Ps $= Vdd Em esta Equação, Vdd corresponde à tensão de alimentação no circuito;
+Id0n corresponde à corrente de fuga nos transistores N quando a porta de entrada do transistor está em nível lógico 0, e Id1p é a corrente de fuga para nos transistores P quando a porta de entrada do transistor está em nível lógico 1.
+Para tecnologias com largura de canal superior a 180 m, a potência estática pode ser desprezada, pois é muito inferior à potência dinâmica.
+Em as tecnologias atuais, este fato não ocorre, pois a potência estática é inversamente proporcional ao tamanho dos transistores.
+Desta forma, a potência estática passa a ser uma componente fundamental na potência global do circuito.
+Matematicamente, o consumo de energia de um circuito é a integral da potência dissipada por este ao longo de o tempo de operação (Equação 4).
+Desta forma, se um circuito dissipar menos potência durante um mesmo tempo de operação, estará consumindo menos energia naquele intervalo.
+Etotal $= P dt Tomemos como exemplo um processador executando um algoritmo de tratamento de imagem.
+Suponha que este processador utilizando todo o seu poder de processamento consegue executar sua aplicação em 1 minuto.
+Suponha que esta execução consumiu 480 mJ, e precisa- se reduzir este consumo para 240 mJ durante o tempo de execução para economizar bateria.
+Para que esta exigência seja cumprida o processador deverá dissipar a metade da potência que utilizou anteriormente, reduzindo seu poder de processamento.
+A o final do mesmo tempo de execução anterior, este processador irá consumir menos energia, porém poderá não completar a execução do algoritmo de tratamento de imagem.
+Em resumo, ao se calcular a redução no consumo de energia de um circuito, deve- se observar o tempo total que este utilizou para realizar a tarefa para qual foi projetado.
+A redução no consumo de energia afeta diretamente o tempo de vida da bateria do dispositivo.
+A portabilidade do dispositivo também é melhorada com a redução do consumo de energia, visto que o mesmo pode funcionar com baterias menores.
+Baseado no modelo de atraso utilizado, a estimativa da potência dissipada por um circuito pode levar em conta as transições de estado, e/ ou as transições espúrias (hazards e glitches).
+Como descrito em, a parcela da dissipação de potência devido a transições espúrias na potência total varia significativamente, e o valor médio desta taxa está entre 15-20%.
+A atividade espúria é bem maior em alguns tipos de módulos, como somadores e multiplicadores.
+Por exemplo, a potência devido a transições espúrias num multiplicador de 32 bits com pipeline é pelo menos três vezes maior que a potência devido a as transições de estado.
+Técnicas atuais de estimativa de potência podem utilizar modelos de porta lógicas com atraso nulo (do inglês, zero-- delay) ou com atraso real (do inglês, real-- delay).
+Em o primeiro modelo, assume- se que todas as mudanças nas entradas propagam- se instantaneamente para as saídas das portas lógicas.
+O segundo modelo emprega para cada porta lógica um atraso finito, levando em consideração as transições espúrias.
+A utilização do modelo de atraso real aumenta significativamente os requisitos de computação para se estimar a dissipação de potência, aumentando, contudo, a precisão das estimativas.
+A rede de distribuição do sinal de relógio é responsável por mais de 40% da dissipação de potência de um circuito CMOS típico, já que os sinais de relógio operam na maior freqüência de chaveamento que qualquer outro sinal e possuem o maior fanout.
+O projeto da árvore de relógio do circuito é crítico não somente para o desempenho do circuito, mas também para a dissipação de potência deste.
+O sinal de relógio é indispensável em circuitos síncronos.
+Porém, este nem sempre é necessário todo o tempo em todo o circuito.
+O sinal de relógio pode ser desconectado momentaneamente de partes inativas do circuito, diminuindo a dissipação de potência global do circuito.
+A técnica que desconecta o sinal de relógio em algumas partes do circuito é denominada de clock-- gating, e é largamente utilizada em circuitos CMOS.
+Clock--gating pode reduzir significativamente a atividade de chaveamento nos sinais de relógio e em outros sinais do circuito.
+Esta técnica é considerada a mais eficaz na redução da dissipação de potência nos níveis RTL e arquitetural.
+Contudo, se esta técnica for aplicada de forma indiscriminada poderá impactar de forma negativa a dissipação de potência nos sinais de relógio.
+Se os flip-flops que dividem a lógica de clock-- gating num mesmo domínio de relógio estão distribuídos em regiões distantes do circuito integrado, um acréscimo significativo de fios é inserido na árvore de distribuição de relógio, já que cada domínio de relógio deve ser distribuído independentemente, utilizando fiação dedicada.
+Como resultado, as fontes de relógio de cada domínio serão carregadas com uma capacitância maior e a dissipação de potência poderá aumentar, mesmo que a atividade de chaveamento diminua.
+De a mesma forma que o sinal de relógio pode ser desligado de partes do circuito que não estão sendo utilizadas, as próprias células que compõem estas partes podem ser desconectadas da alimentação.
+Este é o princípio da técnica de power-- gating, que desconecta as linhas de alimentação de blocos não utilizados, ligando/ desligando interruptores de alimentação inseridos entre as linhas de Vdd e os blocos ou entre as linhas de GND e os blocos.
+Este conceito vem sendo aplicado a blocos de circuito com diversas granularidades, como núcleos processadores, unidades de execução de processadores e até portas lógicas primitivas.
+É necessário compreender os impactos positivos e negativos ao se utilizar a técnica de power-- gating.
+A transição entre os estados ativo (com o circuito ativado) e de espera (com o circuito desativado) acarreta uma perda de desempenho, e ao ligar/ desligar interruptores de alimentação ocorre uma maior dissipação de potência.
+A utilização desta técnica deve levar em conta os fatores tempo de transição e potência dissipada na transição para definir quando utilizar- la com reais benefícios.
+Este Capítulo apresenta uma revisão dos trabalhos relacionados à modelagem da dissipação de potência em redes intra-chip e arquiteturas de redes intra-chip que utilizam técnicas de redução da dissipação de potência.
+A Seção 3.1 realiza um estudo sobre a dissipação de potência em SoCs que utilizam uma NoC como meio de interconexão de seus IPs.
+A Seção 3.2 descreve trabalhos relacionados à modelagem da dissipação de potência em NoCs, e a Seção 3.3 descreve trabalhos relacionados à NoCs que utilizam técnicas de redução da dissipação de potência.
+A camada física corresponde à implementação física dos canais de comunicação.
+Técnicas como transmissão via pares diferenciais e codificação para redução de atividade de chaveamento nos canais são utilizadas para redução na dissipação de potência desta camada.
+A atividade de chaveamento entre bits de flits consecutivos influência diretamente a dissipação de potência.
+Logo, técnicas de codificação que reduzem esta atividade de chaveamento, podem reduzir a potência dissipada.
+Outro fator importante nesta camada é a sincronização.
+A comunicação intra-chip tradicional é baseada na sincronização entre os diversos núcleos através de um sinal de sincronização global (e.
+g o sinal de relógio).
+Sinais de relógio são ineficientes do ponto de vista do consumo de energia, tendo sido demonstrado que estes são responsáveis por uma fração significativa da dissipação de potência em sistemas síncronos.
+Protocolos alternativos de sincronização intra-chip, que não necessitam a presença de um relógio global, foram propostos, por exemplo, em, e reduzem a dissipação de potência numa NoC.
+Em a segunda camada, a arquitetura especifica a topologia e a organização física da interconexão da rede, enquanto que os protocolos especificam como utilizar os recursos da rede durante a operação do sistema.
+A subcamada de enlace abstrai a camada física como um enlace digital não-confiável, onde a probabilidade de erro num bit é não nula (crescendo à medida que a tecnologia evolui).
+Além disso, deve ser estabelecido um compromisso entre confiabilidade na transmissão e o consumo de energia.
+Uma boa forma de se lidar com os erros de comunicação na camada física é empacotar os dados.
+Se os dados são enviados por um canal nãoconfiável em pacotes, a correção e recuperação dos erros se tornam mais fáceis, pois o efeito dos erros estará contido nos limites do pacote e a recuperação dos erros pode ser realizada pacote a pacote ou mesmo flit a flit.
+Em esta subcamada, o desafio principal é atingir um nível desejado de confiabilidade na comunicação com a menor dissipação de potência possível.
+Códigos de correção de erros e códigos de detecção de erros com retransmissão são duas técnicas utilizadas para aumentar a confiança na comunicação.
+Ambas as técnicas são baseadas na transmissão de informação redundante no enlace de dados.
+Porém, a correção de erros é geralmente mais exigente em termos de redundância e complexidade na decodificação.
+Desta forma, espera- se que o consumo de energia na transmissão dos dados da técnica de correção de erros seja maior.
+Em contrapartida, quando ocorre um erro, a técnica de detecção de erros necessita da retransmissão dos dados corrompidos.
+Dependendo da arquitetura da rede, a retransmissão pode ser dispendiosa em termos de o consumo de energia (e perda de desempenho).
+Em a subcamada de rede, a transmissão dos pacotes pode ser personalizada por a escolha de algoritmos de roteamento (determinísticos ou não-determinísticos) e modos de chaveamento (storeand-- forward, virtual cut-through e wormhole).
+O chaveamento e o roteamento afetam diretamente o desempenho e o consumo de energia numa NoC.
+Em a subcamada de transporte, alguns algoritmos propõem a decomposição das mensagens em pacotes na origem, e a remontagem destes no destino.
+A granularidade do empacotamento é uma decisão crítica de projeto, pois o comportamento dos algoritmos de controle da rede é muito sensível ao tamanho dos pacotes.
+A subcamada de transporte se encarrega da otimização do uso dos recursos da rede e de prover requisitos de qualidade de serviço (QoS) vindos da camada de software.
+A camada de software compreende o sistema operacional e as aplicações.
+O sistema operacional abstrai o hardware para a aplicação, e esta terá que executar operações de envio/ recebimento de mensagens.
+O sistema operacional deve dar suporte a esquemas do tipo gerência dinâmica de potência (do inglês, dynamic power management ou DPM) além de gerência dinâmica do fluxo de informação (do inglês, dynamic information-flow management).
+Uma forma de gerência de potência bem conhecida é o ajuste dinâmico de tensão e freqüência (do inglês, dynamic voltage/ frequency scaling ou DVFS), muito utilizado em processadores modernos.
+Estas técnicas selecionam o estado de consumo de energia apropriado, de acordo com uma carga de trabalho.
+NoCs Hu e Marculescu.
+Propõem um modelo de potência para os macro-blocos de uma NoC (roteador e fios de conexão).
+Para este modelo, os Autores utilizam o conceito de energia de bit (bit energy), que representa o gasto de energia quando um bit de dados é transportado através das interconexões e roteadores da NoC.
+Em este modelo, o consumo médio de energia no envio de um bit de dados, numa transmissão fim-a-fim, entre dois pontos da NoC é dado por a Equação 5.
+Onde: ESbit, ELbit e nhops representam, respectivamente, o consumo de energia por 1 bit num roteador, nos fios de interconexão e o número de roteadores por onde o bit passou.
+Marcon propõem um modelo baseado na dependência da comunicação e da computação entre os núcleos de uma rede intra-chip.
+Os Autores utilizam a proposição de Hu e Marculescu, que afirmam que usando algoritmos de mapeamento de aplicações pode- se reduzir em mais de 60% do consumo de energia quando comparado a mapeamentos aleatórios.
+Os Autores de propõem um modelo da dependência da comunicação e computação baseado num grafo, denominado de grafo da dependência da comunicação e computação, ou CDCG (do inglês, communication dependence and computation graph).
+Seja C o conjunto de núcleos de uma determinada aplicação, o CDCG( (a) na Figura 3) de uma aplicação é um grafo dirigido Em este grafo, cada vértice de P representa um pacote trocado entre um dado par de núcleos que se comunica durante a aplicação.
+Existem também dois vértices especiais chamados de Start e End.
+O conjunto de arestas D contém todas as dependências de comunicação na aplicação.
+Os elementos de P são quádruplas com a forma Pabq $= (c a, cb, t aq, wabq), onde ca, cb C, e pabq é o q-ésimo pacote enviado de ca para cb.
+Este pacote contém wabq bits e é transmitido após computado o tempo taq no núcleo de origem (ca).
+O conjunto de todos os pacotes enviados de ca para cb é denominado Pab.
+O CDCG representa a comunicação e a computação para uma aplicação composta por um número arbitrário de núcleos.
+A direção das arestas neste grafo denota que o vértice de computação destino depende da computação do vértice da origem.
+Em outras palavras, o vértice destino apresenta uma dependência de comunicação com o vértice origem.
+Os Autores de realizam avaliações de consumo de energia e latência da aplicação utilizando os dois modelos de mapeamento da aplicação em diferentes núcleos.
+Foi verificado um ganho de até 20% de redução no consumo de energia na comparação entre os dois modelos avaliados.
+Eisley Propõem um modelo para avaliar o consumo de energia num MPSoC como um todo, medindo o consumo nos núcleos de processamento e no meio de comunicação simultaneamente.
+O objetivo deste modelo é criar perfis de consumo de energia em tempo de projeto.
+Os Autores fazem o mapeamento de um núcleo de processamento para um grafo.
+A seguir modelam as instruções deste núcleo de processamento como mensagens mapeadas neste grafo (como mostra a Figura 4).
+Os Autores conectam o grafo do elemento de processamento à estrutura do roteador (ao meio de interconexão propriamente dito).
+Com todos os processadores descritos como um grafo e conectados ao meio de conexão, que é uma rede intra-chip, o MPSoC foi completamente modelado como um grande grafo.
+A ferramenta LUNA é utilizada para determinar a dissipação de potência num grafo, e ela é utilizada para avaliar o consumo deste MPSoC modelado como um grafo.
+Banerjee Criam modelos da dissipação de potência para cada um dos elementos de uma NoC individualmente.
+Estes modelos partem da descrição RTL da NoC, contendo seus diversos roteadores e a interconexão entre eles.
+A fase seguinte corresponde à análise do netlist gerado após a síntese física.
+O consumo de energia de cada um dos fios que interconectam os roteadores pode ser gerado a partir de o consumo de apenas um fio, sendo após expandido para n fios.
+Em seguida são especificados modelos para cada um dos seus sub-módulos.
+Para esta avaliação foi usada uma estrutura de um roteador wormhole genérico, como mostra a Figura 5.
+Estes diversos sub-módulos foram reduzidos aos seus blocos básicos (como multiplexadores, registradores, somadores, comparadores e portas lógicas) para a avaliação de potência através de simulação elétrica.
+O que se obteve foi o consumo de energia em cada um destes diversos blocos.
+Somando- se todos estes consumos, obtém- se o consumo total deste submódulo e somando- se os consumos de todos os sub-módulos obtém- se o consumo de todo o roteador.
+Os Autores concluem o artigo afirmando que o modelo apresentado não contempla NoCs com detecção/ correção de erros, roteamento adaptativo e esquemas de controle de fluxo.
+Além de isto, afirmam que os resultados obtidos por o modelo correspondem apenas à tecnologia 0,18 µm.
+Palma utilizam um modelo da dissipação de potência baseado na atividade chaveamento na transmissão dos pacotes na rede.
+A dissipação de potência de um roteador é a soma das dissipações de potência nos buffers, no crossbar e na lógica de controle.
+O fluxo utilizado por os Autores para obter a dissipação de potência utiliza três passos.
+O primeiro inicia com a descrição VHDL da NoC (sem qualquer esquema de codificação da transmissão dos dados) e com arquivos de tráfego, ambos obtidos através de um ambiente personalizado de geração automática de NoCs e tráfego de rede.
+Os arquivos de tráfego injetam pacotes na rede através das portas locais dos roteadores, simulando o comportamento dos núcleos locais.
+Um simulador VHDL aplica sinais de entrada sobre a NoC ou em qualquer módulo da NoC, seja este um roteador ou um módulo interno do roteador (buffer de entrada ou lógica de controle).
+A simulação produz registros dos sinais, armazenando as variações dos valores lógicos de cada sinal num arquivo.
+Estes arquivos são convertidos em estímulos elétricos e depois utilizados numa simulação elétrica (terceiro passo).
+Em o segundo passo, o módulo a ser avaliado (e.
+g um buffer de entrada) é sintetizado utilizando a ferramenta Leonardo Spectrum associada a uma tecnologia 0.35 µm.
+A o final da execução da ferramenta, um netlist HDL é gerado, e convertido para uma netlist SPICE, utilizando um conversor desenvolvido por os Autores.
+O terceiro passo consiste na simulação SPICE do módulo em análise.
+Neste passo, é necessário realizar a integração da netlist SPICE do módulo com a entrada dos sinais elétricos e da biblioteca de portas lógicas descrita por o netlist SPICE.
+A informação elétrica resultante permite a aquisição dos parâmetros da dissipação de potência da NoC para um determinado tráfego.
+A dissipação de potência média por salto (do inglês, Average Power per Hop, ou APH), definido em, é utilizada para denotar a média da dissipação de potência dinâmica num único salto de um pacote transmitido através da NoC.
+O APH pode ser dividido em três componentes:
+Potência média dissipada por os buffers, por os fios e por o chaveamento das portas lógicas de um roteador (APR);
+Potência média dissipada por os fios entre os roteadores (APL);
+E potência média dissipada por os fios que ligam o roteador e o seu núcleo local (APC).
+A Equação 6 mostra a potência média dissipada por um pacote transmitido através do roteador, conexão com o núcleo local e a conexão entre dois roteadores.
+A análise apresentada em mostra que para melhor entender a dissipação de potência no roteador (APR), deve- se dividir- la nas dissipações de potência dos buffers (APB) e no controle (APS).
+Isto ocorre, pois a dissipação de potência devido a a transição de bits é mais significativa nas estruturas de buffer do que na lógica de controle.
+As Figura 6 e Figura 7 mostram este efeito para buffers com 4, 8 e 16 flits de profundidade e para uma lógica de controle centralizada para flits de 8 e 16 bits respectivamente.
+Os gráficos apresentam a dissipação de potência em função de a quantidade de transição dos bits num pacote com 128 flits (100% $= 127 transições de bit em cada um dos fios de entrada do roteador).
+Matsutani Utilizam um modelo para avaliar a dissipação de potência em NoCs baseado em simulações e ferramentas comerciais.
+Os Autores sintetizam a NoC sob análise utilizando a ferramenta Design Compiler da Synopsys, a seguir projetam a árvore de distribuição do sinal de relógio do circuito através da ferramenta Astro da Synopsys.
+De posse da descrição netlist Verilog do circuito desenvolvido, os Autores realizam a simulação deste utilizando a ferramenta Verilog-XL da Cadence a fim de extrair a atividade de chaveamento do circuito.
+A o final da simulação os Autores utilizam a ferramenta Power Compiler da Synopsys para realizar a estimativa da dissipação de potência do circuito em análise.
+Modelo da dissipação de potência num MPSoC visto como um grafo.
+Palma Modelagem da dissipação de potência no roteador baseado em simulação Matsutani Estimativa de potência baseada em fluxo comercial, utilizando ferramentas de diferentes empresas.
+Chang Apresentam uma estrutura de interconexão entre núcleos chamada de crossroad.
+Esta conexão é muito similar a uma estrutura de barramento segmentado, dividindo o meio de comunicação em regiões.
+As regiões contêm núcleos com alta densidade de comunicação.
+Os Autores partem de um grafo de comunicação entre processos (parte (a) na Figura 8), até chegar a uma topologia em que os processos que mais se comunicam estejam mais próximos uns dos outros (parte (d)).
+Os Autores desenvolveram uma ferramenta que analisa o grafo de comunicação, realiza um agrupamento (clusters) inicial dos processos na rede crossroad (parte (c)), e a seguir realizam otimizações para reduzir a comunicação entre processos montando a topologia final.
+Um exemplo do posicionamento físico dos núcleos na rede, segundo a topologia gerada, é exibido em (b).
+Posicionamento otimizado dos núcleos.
+O elemento que interconecta os núcleos entre si é denominado CCB (crossroad communication block).
+Este elemento é o roteador da rede, realizando o roteamento e a arbitragem das mensagens (parte (a) na Figura 9).
+Cada CCB pode se conectar a quatro dispositivos distintos, estes podendo ser núcleos ou outros CCBs.
+Um CCB pode transferir duas comunicações locais paralelas.
+Uma rede de CCBs é administrada através de um controlador global (parte (b)).
+Este controlador está conectado a todos os CCBs, e realiza políticas de controle e fluxo dos dados entre CCBs tais como algoritmos de roteamento livres de deadlock e algoritmos anti-contenção.
+Os Autores utilizam o modelo de consumo de energia em NoCs proposto por Hu e Marculescu.
+Os Autores concluem o artigo afirmando que sua nova arquitetura é específica para aplicações onde haja muita comunicação envolvida entre diversos núcleos de processamento.
+A arquitetura proposta reduz a dissipação de potência, diminuindo o custo de comunicação entre os núcleos, agrupando- os em estruturas de clusters.
+Kim Propõem uma arquitetura de roteador sensível ao caminho dos dados para aplicações que necessitam de baixa latência, além de um modelo de roteador baseado na teoria de filas para avaliar o desempenho e o consumo de energia de NoCs implementadas com este.
+O roteador sensível ao caminho dos dados proposto por os Autores emprega um roteamento do tipo look-- ahead e alocação de recursos especulativa.
+Usando informações de tráfego dos roteadores vizinhos e o seu estado atual, o roteador seleciona a direção para o próximo roteador.
+Esta tarefa é garantida por uma unidade de pré-seleção presente no primeiro estágio do pipeline do roteador, o qual trabalha um ciclo adiante da chegada do primeiro flit.
+As informações presentes no roteamento look-- ahead permitem que o flit com destino à porta local (PE) seja repassado depois do demultiplexador (demux), ao invés de atravessar toda a lógica do roteador.
+Este repasse mais cedo economiza dois ciclos de relógio no nodo destino, ao evitar a alocação e os estágios transversais do roteador.
+A arquitetura do roteador sensível ao caminho pode ser visualizada na Figura 10.
+Outra característica do roteador é o uso de uma estrutura de crossbar 4x4 decomposta, que possui metade das conexões de um crossbar completo 5x5.
+Esta arquitetura consegue explorar as vantagens do uso de topologias criadas visando o roteamento proposto.
+Os Autores propõem um modelo matemático para o cálculo da dissipação de potência num roteador, a partir de a equação 7.
+Onde: Pr_ buf é a dissipação média de potência dos buffers, incluindo as dissipações dinâmica e estática;
+Pr_ arbiter é a potência dos módulos VA e As (árbitro);
+Pr_ crossbar é a potência média gasta no crossbar;
+Pr_ link é a potência média gasta na conexão entre dois roteadores vizinhos.
+Os Autores concluem o artigo afirmando que foi desenvolvido um modelo analítico eficiente para avaliar os comportamentos de desempenho, tolerância a falhas e potência em NoCs.
+Este modelo é baseado na teoria de filas para redes do tipo malha de duas dimensões (2 D), o qual consegue realizar avaliações de desempenho e potência na granularidade de sub-módulos de um roteador.
+Srinivasan e Chatha.
+Propõem uma ferramenta que aplica técnicas de mapeamento e roteamento dos núcleos de processamento a fim de reduzir a energia consumida nas comunicações entre núcleos.
+O problema do projeto de NoCs baseadas numa interconexão de rede do tipo malha 2D é ilustrado na Figura 11.
+A entrada do problema é um grafo dirigido chamado de grafo de comunicação.
+Cada nodo neste grafo representa um núcleo de computação ou de armazenamento, e as arestas representam a comunicação entre estes núcleos.
+Cada aresta é descrita como Cm (B, L), onde m representa um identificador de conexão, B representa a largura de banda requerida, e L representa a restrição de latência.
+Os requisitos de largura de banda e latência de cada conexão podem ser facilmente obtidos a partir de o desempenho desejável para a aplicação e da latência individual de cada tarefa de cada núcleo.
+A saída do problema é um mapeamento dos núcleos em diferentes roteadores, uma NoC com topologia malha correspondente, e uma rota de pacotes estática para cada conexão entre dois núcleos tal que a energia total de comunicação seja reduzida.
+Os Autores propõem uma técnica para projetar arquiteturas de interconexão intra-chip baseadas em malha 2D (do inglês, mesh based on- chip interconnection architectures -- Moca) de baixo consumo de energia.
+O projetos de Mocas é realizado em duas fases.
+Em a primeira fase, descrita em (A), (B) e (C) na Figura 12, é aplicado um particionamento do tipo min-cut sobre o grafo de comunicação.
+Este procedimento é realizado recursivamente até que se obtenha uma divisão deste grafo em regiões de altas taxas de comunicação.
+Em a segunda fase( (D) na Figura 17) são gerados os caminhos de dados sobre a rede derivada na primeira fase.
+É realizado um roteamento hierárquico sobre as regiões descritas na primeira fase, além de os caminhos entre as diversas regiões.
+Os Autores concluem o artigo afirmando que a complexidade algorítmica do projeto de Mocas é menor que a do NMAP, outra técnica para o mapeamento de núcleos numa NoC.
+O projeto de Mocas leva em consideração os requisitos de latência de cada roteador ao gerar um mapeamento, além de gerar uma topologia de rede válida para requisitos de latência estritos.
+Simunic e Stephen.
+Abordam uma política de gerência da dissipação de potência baseado num modelo de malha fechada, utilizado em sistemas de controle.
+A cada núcleo de processamento conectado à porta local de um roteador de uma NoC é associado um gerente de potência local.
+Este gerência perfis de consumo prédeterminados na fase de análise de restrições de consumo do projeto durante a fase de execução.
+Cada gerente de potência local possui um estimador e um controlador.
+O estimador observa as mudanças no estado do núcleo local, monitora o tráfego que chega neste núcleo e pedidos de gerência de consumo de energia vindos de outros núcleos da rede.
+Baseado nestas mudanças o controlador recalcula o estado (de potência e desempenho) do núcleo local.
+A o executar qualquer mudança, o estimador local envia seu novo estado ao gerente global, atualizandoo com a nova estimativa.
+Os Autores concluem o artigo afirmando que os estimadores conseguiram uma boa taxa de acertos e que esta nova abordagem de gerência de consumo é viável para diversas implementações de NoCs.
+Palma Utilizam técnicas de codificação da carga útil dos pacotes da rede para reduzir o consumo de energia gerado por a atividade de chaveamento na transmissão.
+Foi utilizada a rede Hermes como estudo de caso.
+Experimentos realizados sobre esta rede mostraram que as transições dos bits afetam a dissipação de potência em até 370% para os fios de conexão entre os roteadores, 180% para os buffers de entrada dos roteadores e 16% para a lógica de controle do roteador.
+Uma forma de reduzir a dissipação de potência em NoCs, nos fios de conexão e a lógica, é utilizar esquemas de codificação dos bits do pacote para se reduzir a atividade de chaveamento na transmissão.
+Os Autores concluem o artigo afirmando que a partir de os resultados obtidos pode- se perceber que a redução da potência dissipada nos canais entre os roteadores é muito menor que na lógica do roteador.
+Entretanto, em tecnologias mais recentes, a dissipação de potência nos canais é muito mais relevante.
+Em este cenário, a adoção de esquemas de codificação deve ser mais vantajosa, pois são desenvolvidos para atuar sobre os canais de comunicação.
+Matsutani Introduzem o conceito de modo de espera (sleeping mode) nos roteadores.
+Este modo utiliza a técnica power-- gating.
+Como os roteadores são os atores principais numa comunicação entre núcleos de processamento ligados a uma NoC, eles devem estar sempre aptos a receber pacotes mesmo que os núcleos de processamento ligados a estes estejam num modo de espera, resultando numa alta dissipação de potência dos roteadores em relação a os núcleos de processamento.
+A utilização de power-- gating nos canais de comunicação do roteador em tempo de execução é uma boa solução para reduzir a dissipação de potência nos modos de espera, sem que isto afete a comunicação da NoC como um todo.
+Entretanto, a transição entre os estados de operação normal e de espera leva a uma perda de desempenho na NoC, e ao se ligar/ desligar o roteador pode- se acabar por consumir mais energia, o que significa que em curto prazo o modo de espera no roteador pode acabar por aumentar a dissipação de potência da NoC.
+A Figura 14 ilustra os sinais de controle utilizados no modo de espera para o canal de comunicação sul do roteador 1.
+Digamos que este canal de comunicação seja denominado de canal &quot;destino».
+O canal destino monitora os sinais de requisição dos canais de entrada dos roteadores 3, 5 e 7 para decidir se entra em modo de espera ou não.
+Note que o canal destino não necessita monitorar alguns canais de entrada vizinhos, já que algumas curvas do tipo &quot;U «que introduzem deadlocks são geralmente proibidos mesmo quando sob alto tráfego na rede.
+Sendo assim, o canal destino somente deverá monitorar os canais de entrada descritos em níveis de cinza na Figura 14 (a).
+Os canais de entrada destacados na Figura 14 ativam seus sinais de requisição para o roteador destino quando estes detectam um pacote destinado ao roteador 1, notificando que um pacote estará chegando ao canal destino em no mínimo cinco ciclos de relógio).
+Estes sinais de requisição são duas vezes mais longos que a distância entre os roteadores.
+O atraso nos fios que contém os sinais de requisição irá aumentar na medida em que a distância entre os roteadores aumenta.
+Isto ocorre, mesmo que o caminho crítico do roteador destino não esteja relacionado aos controladores de modo de espera, pois ele está relacionado com a lógica de arbitragem nas portas de saída do roteador.
+Por outro lado, estes sinais de requisição podem ser &quot;pipelinezados «e transferidos em dois ciclos de relógio, na tentativa de amortizar o atraso dos fios de requisição.
+Em estes casos cada canal de comunicação ainda pode detectar a chegada de pacotes com adiantamento de quatro ciclos de relógio.
+Os Autores propõem a utilização de um algoritmo de roteamento do tipo look-- ahead, juntamente com a inserção de lógicas de power-- gating nos roteadores.
+Os roteadores look-- ahead necessitam de duas modificações em relação a os originais:
+Todos os canais de entrada necessitam ligar/ desligar os sinais de requisição (request) de todos os canais de entrada que estão localizados em até dois hops distantes destes;
+Todos os canais de entrada necessitam receber todos os sinais de requisição dos canais de entrada que estão localizados em até dois hops distantes destes.
+Os Autores afirmam que a quantidade de hardware adicional para implementar tais modificações é mínima, pois estas podem ser implementadas utilizando simples lógica combinacional, que é, em termos de área, muito menor que buffers.
+Os Autores realizaram testes com algoritmos look-- ahead determinísticos, porém uma série de extensões foram propostas para se utilizar algoritmos look-- ahead adaptativos.
+Os Autores utilizaram como benchmarks um conjunto de tráfego de aplicações distribuídas reais contidas no Os Autores concluem afirmando que sua metodologia e arquitetura de NoC, reduz a dissipação de potência de estática (leakage).
+A redução desta dissipação de potência nas tecnologias mais modernas, 90 nm e 65 nm, permite reduzir o consumo de energia total da NoC.
+Pontes Utilizam o conceito de ilhas de comunicação síncrona conectadas entre si de forma assíncrona, ou GALS (do inglês, Globally Assynchronous Locally Synchronous), para desenvolver duas arquiteturas de roteadores de baixa dissipação de potência.
+Ambas as arquiteturas, Hermes-G e Hermes-GLP, são derivadas da NoC Hermes.
+Em o desenvolvimento da primeira arquitetura, Hermes GALS ou Hermes-G, os Autores substituíram os buffers de entrada dos roteadores da Hermes original por filas bi-síncronas.
+Estas permitem a comunicação entre módulos que operam em diferentes freqüências de relógio e possuem a característica de realizar operações de escrita e leitura em apenas um ciclo de relógio.
+A NoC Hermes-G pode receber as filas bi-síncronas em cada porta de entrada dos seus roteadores, ou apenas nas portas de entrada que ligam um roteador a outro.
+Esta abordagem permite que cada roteador possua sua própria fonte de relógio ou que opere com o mesmo sinal de relógio que seu núcleo IP local.
+Para que o roteador possa operar com seu próprio sinal de relógio uma fila bi-síncrona deve ser inserida no núcleo IP, mais precisamente na interface de rede que realiza a conexão entre o núcleo IP e o roteador.
+A segunda arquitetura, Hermes GALS Low--Power ou Hermes-GLP, utiliza os mesmos conceitos de sincronização aplicados aos roteadores da NoC Hermes-G, porém agrega duas técnicas de redução da dissipação de potência:
+Clock--gating e variação dinâmica de freqüência (DFS).
+A Hermes-GLP aplica a técnica de clock-- gating no nível do roteador.
+Um roteador está em estado de espera quando todas suas portas estão inativas, sendo assim não existem dados válidos a serem transmitidos por nenhuma uma destas.
+Para implementar o clock-- gating, um módulo de controle de relógio foi adicionado ao projeto do roteador.
+Este módulo recebe um sinal de cada porta de entrada e atualiza o estado atual de cada porta.
+Quando não houver mais dados válidos a serem transmitidos por todas as portas, o módulo de controle de relógio desativa o sinal de relógio para o roteador.
+O roteador irá permanecer neste estado de espera até que uma operação de escrita seja realizada numa das portas de entrada, atualizando esta porta para o estado de transmissão.
+A técnica de DFS foi implementada utilizando um módulo assíncrono simples de troca dinâmica entre dois ou mais sinais de relógio, livre de glitches.
+A utilização de DFS permite que os roteadores realizem a escolha de um sinal de relógio adequado, baseado nos requisitos de comunicação a cada instante.
+Roteadores envolvidos numa comunicação de alta prioridade devem operar numa freqüência de relógio maior que outros envolvidos numa comunicação de mais baixa prioridade.
+Para permitir a configuração dinâmica do sinal de relógio, cada pacote leva a sua prioridade com si através de um sinal adjacente (sideband).
+Cada roteador recebe um conjunto de n sinais de prioridade, onde n é o número total de portas em cada roteador, realiza a computação da prioridade mais elevada e seleciona a melhor freqüência de operação baseado neste resultado.
+Desta forma, as restrições de latência para todos os pacotes são atingidas mais facilmente, enquanto que o mecanismo de DFS produz um pequeno aumento de área para o roteador.
+Os Autores utilizam como métrica de avaliação da dissipação de potência a taxa de ativação dos roteadores, já que esta é uma das parcelas que contribuem para o cálculo da dissipação de potência dinâmica da NoC.
+Os Autores concluem o artigo afirmando que a Hermes-GLP foi desenvolvida para reduzir a dissipação de potência em SoCs que utilizam NoCs.
+Ela é baseada num mecanismo de DFS simples que permite uma redução significativa na dissipação de potência da NoC, aliado a uma pequena perda na latência na entrega dos pacotes.
+Os artigos avaliados sobre a modelagem da dissipação de potência em redes intra-chip exibem dois níveis distintos de estimativas:
+Elétrico e baseado em volume de dados nas simulações de mais alto nível de abstração (RTL ou SystemC).
+As estimativas geradas no nível elétrico possuem uma melhor precisão em relação a volume de dados, porém demandam mais recursos computacionais e tempo para serem computadas.
+Já as estimativas baseadas em volume de dados possuem menor precisão, e demandam menos tempo e recursos computacionais, porém estão mais propensas a erros nas simulações e desconsideram problemas que possam ocorrem durante as simulações (como o congestionamento da rede).
+O modelo de estimativa da dissipação de potência em NoCs, descrito no Capítulo 4, propõe uma alternativa aos dois modelos citados acima.
+O modelo proposto relaciona as taxas de recepção nos buffers de entrada dos roteadores com a potência dissipada nos roteadores, e conseqüentemente por a NoC.
+Esta nova abordagem é mais precisa que o modelo baseado em volume de dados, como será demonstrado no Capítulo 4, e tempo de processamento inferior à simulação elétrica.
+Os artigos avaliados sobre redes intra-chip com baixa dissipação de potência mostram as aplicações de diversas técnicas de redução de potência em circuitos CMOS no projeto de NoCs.
+Técnicas como clock-- gating, power-- gating, codificação dos canais de transmissão de dados, GALS, DFS e DVFS são aplicados ao projeto de NoCs, demonstrando resultados expressivos na redução da dissipação de potência e consumo de energia em NoCs.
+Além disso, utilizam- se mudanças em alguns parâmetros da rede e mapeamento de aplicações sobre a rede a fim de reduzir o consumo de energia.
+Parâmetros como profundidade dos buffers de entrada, algoritmos de roteamento e topologia da rede podem afetar o consumo de energia da NoC.
+O objetivo do trabalho não é propor uma nova arquitetura de roteador para baixa dissipação de potência, mas é estudar a influência da mudança dos parâmetros da NoC na dissipação de potência e consumo de energia, descrito no Este Capítulo descreve a primeira contribuição do trabalho, um modelo para avaliação da dissipação de potência em NoCs.
+Diferentemente de outros modelos baseados no volume de dados transmitidos na NoC, este avalia a dissipação de potência em função de as taxas de recepção nos buffers de cada porta de entrada dos roteadores da NoC.
+A consideração das taxas de recepção nos buffers permite capturar a flutuação das taxas de injeção devido a colisões entre os pacotes, e assim obter uma estimativa mais precisa que o modelo baseado apenas em volume.
+A Seção 4.1 descreve o modelo, apresentando resultados sobre a NoC Hermes.
+A Seção dados transmitidos na rede.
+As Seções 4.3 e 4.4 exibem duas aplicações distintas do modelo de taxas proposto, uma no nível RTL de abstração e outra no nível TLM temporal (timed).
+Em o nível RTL, o modelo foi inserido no framework Atlas, capaz de gerar automaticamente NoCs e tráfegos para estas.
+Já no nível TLM temporal, o modelo proposto foi adicionado ao modelo Modelos de estimativa da dissipação de potência em NoCs como propostos em, e utilizam o volume de tráfego transmitido por os roteadores como principal métrica de estimativa.
+Esta abordagem é imprecisa, pois não considera os atrasos causados por as colisões entre pacotes nos roteadores.
+Como demonstrado em trabalhos anteriores, a dissipação de potência de um roteador da NoC pode ser dividida em três componentes:
+Dissipação nos buffers;
+Dissipação na lógica de controle e roteamento;
+Dissipação no crossbar interno ao roteador.
+Como analisado em, a maior dissipação de potência do roteador ocorre nos buffers, e análises posteriores, mostraram que estes dissipam cerca de 90% da potência total nos roteadores da NoC Hermes.
+Desta forma, a dissipação de potência geral do roteador está fortemente ligada à dissipação de cada um dos seus buffers.
+Caso a NoC possua uma arquitetura sem buffers, com roteamento do tipo &quot;batata quente «(hot-potato), as dissipações de potência do crossbar e lógica de controle e roteamento poderão ser uma função da taxa média de transmissão, assim como a taxa de transmissão afeta a dissipação de potência nos buffers.
+A dissipação de potência num buffer de entrada deve- se a dois componentes principais:
+O chaveamento no sinal de relógio e o chaveamento do valor armazenado.
+O sinal de relógio é de vital importância num circuito síncrono.
+A transição periódica do sinal de relógio do buffer proporciona a dissipação de potência base do mesmo.
+Soma- se a esta a dissipação gerada por a troca do valor lógico que este buffer armazena.
+Sempre que houver uma mudança de pelo menos um bit no valor armazenado por o buffer, ocorrerá uma maior dissipação do que a potência de base.
+Esta dissipação, adicionada à dissipação de base, irá aumentar na medida em que mais bits do valor armazenado troquem de valor lógico.
+A utilização da técnica de clock-- gating nos buffers pode reduzir significativamente a dissipação de potência dos roteadores.
+A troca dos valores lógicos nos buffers está ligada à taxa de recepção destes. Quanto mais
+rápido o buffer receber valores, maior será a probabilidade de que algum bit armazenado mude de valor lógico, ocasionando assim uma dissipação de potência maior do que a de base.
+Desta forma, a taxa de recepção de um buffer irá refletir diretamente em alterações na dissipação de potência deste.
+O modelo aqui proposto para a estimativa da dissipação de potência em NoCs opera em duas etapas:
+Calibração e aplicação.
+A etapa de calibração é executada apenas uma vez para a rede, e uma vez concluída podese estimar a dissipação de potência para diferentes cenários na etapa de aplicação do modelo.
+Notar que o método é genérico, pois utiliza informações da síntese para relacionar a dissipação de potência no roteador com suas taxas de recepção.
+O modelo então, pode ser aplicado a NoCs com diferentes características.
+Um tutorial sobre a calibração de uma NoC, descrevendo cada passo e ferramenta envolvida no processo, encontra- se no Apêndice II.
+Em a segunda fase do modelo proposto, aplicação do modelo, deve- se calcular a quantidade de flits recebidos, num buffer, numa dada janela de tempo via simulação, transformando este valor numa taxa de recepção.
+A seguir, deverão ser aplicadas as equações geradas na etapa de calibração para transformar a taxa de recepção do buffer num valor de potência média para uma dada janela de tempo.
+Este valor é denominado Pbuffer, e está descrito na Equação 8, onde Db é a dissipação de potência base do buffer, Dv é a dissipação de potência variável e tx é a taxa de recepção do buffer.
+As potências médias do crossbar e lógica de controle e roteamento são obtidas calculandose as médias das taxas de recepção em todos os buffers, e aplicando- se as equações geradas na fase de calibração.
+A potência média dissipada por o roteador é dada por a Equação 9.
+Onde: M corresponde ao número de buffers do roteador;
+N corresponde ao número de intervalos de amostragem das taxas de recepção utilizados durante toda a simulação.
+A seguir somam- se as dissipações de potência de todos os roteadores para se obter a estimativa da dissipação de potência de toda a NoC.
+Um dos fatores que contribuem para a precisão do modelo proposto é o intervalo de amostragem das taxas de recepção.
+Para intervalos muito pequenos o valor capturado seria a dissipação de potência instantânea em cada ciclo de relógio, e na prática, estaríamos operando como as ferramentas comerciais de estimativa de potência, consumindo muita memória e tempo de processamento.
+Para intervalos muito grandes, cresce o erro em relação a a avaliação gerada por uma ferramenta comercial de estimativa de potência.
+Isto ocorre porque não seriam amostradas as potências médias intermediárias, as quais contribuem para uma melhor aproximação da estimativa potência média dissipada na rede.
+O modelo proposto foi testado e avaliado sobre a NoC Hermes.
+Esta possui uma topologia do tipo malha 2 D, chaveamento por pacotes do tipo wormhole e algoritmo de roteamento do tipo XY.
+A rede avaliada possui uma dimensão de 3x3, tamanho de flit igual a 8 bits, 8 flits de profundidade de buffer e controle de fluxo baseado em créditos.
+A avaliação do modelo sobre esta rede permitiu a visualização do perfil da dissipação de potência em seus roteadores, definindo as curvas de dissipação de potência em função de as taxas de recepção nos buffers.
+Em a etapa de calibração foi estimada, através de uma ferramenta comercial, a dissipação média de potência num buffer, no crossbar e na lógica de controle e roteamento do roteador completo (com 5 portas) (Figura 17).
+Estes gráficos exibem um crescimento linear da dissipação média de potência em função de a taxa de recepção nos buffers.
+A Tabela 4 mostra a dissipação de potência nos roteadores com 5 portas (ChaveCC), 4 portas (ChaveBC) e 2 portas (ChaveBL).
+A primeira linha da tabela mostra a dissipação estimada por o modelo proposto, à segunda linha mostra a dissipação de potência avaliada por a ferramenta PrimePower e a terceira linha exibe o erro entre as duas avaliações.
+O erro entre a potência estimada por o modelo e o avaliado por a ferramenta comercial será menor à medida que se retiram buffers de entrada da estrutura do roteador.
+Isto ocorre, pois se reduz o erro na avaliação da taxa média de recepção no roteador, a qual deve ser aplicada nas equações de dissipação de potência da lógica de controle e roteamento e no crossbar.
+4.2 Comparação com um Modelo Baseado em Volume de Dados Modelos de estimativa da dissipação de potência, e/ ou consumo de energia, numa rede intra-chip baseado no volume de dados transmitidos são utilizados como opção a ferramentas comerciais de estimativa, ao se avaliar de forma rápida o impacto de mudanças estruturais ou lógicas numa NoC.
+Estes modelos calculam quanto irá custar, em termos de potência/ energia, a transmissão de um pacote desde sua origem até seu destino, passando por n roteadores intermediários.
+Este método permite uma boa precisão na estimativa, porém não leva em consideração possíveis problemas referentes ao tráfego se propagando na rede (e.
+g O modelo proposto, baseado em taxas, permite uma melhor estimativa da dissipação de potência de uma NoC, pois os problemas ocasionados por o fluxo do tráfego na rede afetam as taxas de recepção nos buffers de cada roteador.
+Desta forma, o modelo baseado em taxas irá prover uma estimativa mais correta, quando comparada com o modelo baseado em volume de dados transmitidos.
+Para avaliar a corretude desta afirmação foram realizadas avaliações comparando os modelos citados, todos aplicados sobre a NoC Hermes.
+Em estas avaliações a Equação 10 foi utilizada como modelo de estimativa baseada no volume de dados transmitidos na rede.
+Esta equação, definida no escopo do presente trabalho, calcula a potência dissipada por a rede utilizando como informação principal o caminho que os fluxos injetados na rede percorrem.
+Esta equação compreende o somatório de três parcelas:
+A potência dissipada por os fluxos injetados na rede, a potência dissipada nos buffers não utilizados dos roteadores que participam dos fluxos injetados, e a potência dissipada por os roteadores que não participam de nenhum fluxo.
+Em a equação acima, f representa a quantidade de fluxos injetados na rede;
+N é o número de saltos (hops) presentes num fluxo;
+Tx representa a taxa (em Mbps) utilizada num fluxo injetado na rede;
+P é o número de portas presentes no roteador avaliado;
+Bf representa a quantidade de buffers não utilizados presentes nos roteadores que participam nos fluxos;
+Rinativos é a quantidade de roteadores que não participam em nenhum fluxo e Pbuffer, Pcrossbar, e Pcontrol são as potências dissipadas por um buffer, no crossbar, e na lógica de controle e roteamento a uma determinada taxa de transmissão, respectivamente.
+O primeiro estudo de caso avalia a precisão de ambos os modelos, comparados com uma Fluxo 4 Fluxo 1 Fluxo 5 Fluxo 1 Fluxo 2 Fluxo 3 Fluxo 5 Fluxo 4 Fluxo 2 Fluxo 3 Fluxo 5 Fluxo 6 Fluxo 4 Fluxo 6 Fluxo 1 Fluxo 2 Fluxo 3 Fluxo 5 Fluxo 2 Fluxo 4 Fluxo 6 Fluxo 1 Fluxo 2 Fluxo 3 estimativa gerada através da ferramenta PrimePower, quando se aumenta a quantidade de fluxos injetados sobre rede.
+A NoC avaliada possui dimensão 3x3, com flits de 16 bits, 16 flits de profundidade de buffer e controle de fluxo baseado em créditos.
+Os tráfegos utilizados nestas avaliações possuem 500 pacotes de 16 flits, sendo transmitidos a 240 Mbps.
+Foram realizadas cinco avaliações, em as quais se aumenta gradativamente a quantidade de fluxos injetados rede.
+O objetivo é avaliar o impacto do congestionamento nos modelos de estimativa de potência dissipada.
+Para apenas um fluxo injetado, é esperado que os modelos possuam a mesma precisão.
+Entretanto, na medida em que o número de colisões entre pacotes aumente, ocorrerá flutuação na carga injetada, e por conseqüência o erro do modelo baseado em volume deverá crescer.
+A Tabela 5 exibe o resultado desta avaliação.
+A primeira linha mostra a quantidade de fluxos injetados na rede, a segunda linha mostra a estimativa da potência média através da ferramenta PrimePower, a terceira linha exibe a estimativa da potência média utilizando o modelo de taxas proposto e a quarta linha mostra a potência média utilizando um modelo baseado em volume de dados transmitidos.
+A Tabela 6 exibe as avaliações de erro entre o modelo de estimativa de potência proposto baseado em taxas e o modelo baseado em volume de dados transmitidos em comparação a ferramenta PrimePower.
+A última linha da tabela se refere à diferença existente entre os dois modelos.
+A tabela mostra que para tráfegos com poucos fluxos injetados na rede, o modelo de estimativa baseado em volume de dados apresenta um erro de até 10% em comparação com a estimativa de uma ferramenta comercial.
+Porém para três ou mais fluxos o erro deste modelo aumenta.
+Isto ocorre devido a a colisão entre os pacotes na rede.
+Já o modelo de estimativa baseado em taxas se mantém abaixo de os 10% de erro, mesmo com mais fluxos sendo aplicados na rede.
+Isto ocorre, pois a inserção de mais fluxos de transmissão na rede afeta as taxas de recepção dos buffers de cada um dos roteadores, modificando o valor da estimativa de potência dissipada na NoC.
+PrimePower. A última linha é a diferença entre os dois modelos.
+Fluxos: Erro Taxas:
+Erro Volume:
+Diferença: A Tabela 7 exibe os tempos de execução de cada fluxo para a obtenção da estimativa da potência dissipada na NoC.
+Note que o modelo baseado em volume de dados obteve tempos de execução instantâneos, isto ocorre, pois o modelo somente avalia a potência baseado nos arquivos de tráfego disponíveis.
+O modelo baseado em taxas obteve tempos de execução menores que uma avaliação utilizando ferramentas comerciais.
+PrimePower. Em a tabela os tempos estão em minutos, e a sigla &quot;Inst.»
+demonstra que o tempo foi instantâneo.
+Fluxos: 1e2 1, 2 e 3 1, 2, 4 e 5 1, 2, 4, 5 e 6 PrimePower:
+Modelo Taxas:
+2 min..
+Modelo Volume: Inst.
+Inst. Inst.
+O próximo estudo de caso avalia um cenário com um maior número de iniciadores de tráfego.
+Em esta simulação todos os roteadores da rede transmitem pacotes para os demais roteadores, congestionando a rede.
+Foram simulados dois cenários de tráfegos:
+1000 pacotes de 16 flits por iniciador de tráfego, sendo transmitidos a 120 Mbps;
+5000 pacotes de 16 flits por iniciador de tráfego, sendo transmitidos a 400 Mbps.
+A mesma NoC do estudo de caso anterior foi utilizada.
+As Tabela 8 e Tabela 9 exibem os valores das estimativas e a avaliação de erro entre elas, respectivamente.
+Tabela 9 ­ Avaliação de erro entre os diferentes modelos quando aplicado cenários de tráfego mais intenso.
+Tráfego: 1000 pacotes a 120 Mbps 5000 pacotes a 120 Mbps Erro Taxas:
+Erro Volume:
+Diferença: Os resultados apresentados mostram que em simulações com tráfego mais intenso, o modelo baseado em taxas ainda mantém um erro inferior a 10% em relação a o PrimePower, enquanto que no modelo baseado em volume de dados este erro ultrapassa de 50% em relação a a ferramenta comercial de estimativa.
+A Tabela 10 exibe os tempos de execução para os testes acima, note que mesmo para tráfegos com muitos pacotes, o modelo baseado em volume gera resultados instantaneamente.
+Por outro lado, o modelo baseado em taxas reduziu significativamente o tempo de obtenção de uma estimativa, obtendo uma alta precisão nas estimativas.
+PrimePower para tráfegos com alta transmissão na rede.
+Em a tabela os tempos estão em minutos, e a sigla &quot;Inst.»
+demonstra que o tempo foi instantâneo.
+Tráfego: 1000 pacotes a 120 Mbps 5000 pacotes a 120 Mbps PrimePower:
+Modelo Taxas:
+10 min..
+Modelo Volume: Inst.
+Apesar de modelo baseado em volume gerar uma estimativa de consumo muito rápida, o projetista deve ter em mente que o mapeamento das tarefas, e os conseqüentes fluxos de dados, podem gerar variações muito grandes na potência em função de as colisões dos pacotes.
+Por esta razão, o modelo baseado em taxas permite uma estimativa precisa, num nível de abstração que ainda permite a obtenção de resultados num tempo aceitável.
+O módulo HEFESTUS, integrado ao framework Atlas, automatiza a etapa de aplicação do modelo proposto de estimativa da dissipação de potência em NoCs.
+Este módulo contém uma série de programas, transparentes ao usuário, que coletam, processam e exibem a dissipação de potência de uma NoC Hermes quando aplicado um padrão de tráfego.
+A Figura 19 mostra a janela principal do módulo HEFESTUS.
+O HEFESTUS possui quatro botões principais:
+Análise da dissipação de potência nos roteadores (Routers Power Dissipation Analisys), estimativa da dissipação de potência na rede baseada num modelo de volume de dados transmitidos (Pre Evaluation Average Dissipation), estimativa da dissipação de potência na rede baseada num modelo de taxas (NoC Average Power Dissipation), e análise da distribuição de potência sobre a rede (NoC Power Distribution).
+Em a Figura 19, o campo &quot;time «refere- se à janela de tempo para análise da distribuição de potência.
+O módulo HEFESTUS pode realizar estimativas de dissipação de potência antes e após a simulação da rede gerada no framework Atlas.
+Antes da simulação, no espaço denominado de &quot;Pre--Simulation Analisys «na Figura 19, o usuário pode visualizar os perfis de dissipação de potência dos roteadores da rede clicando no botão &quot;Routers Power Dissipation Analisys».
+Será exibido um gráfico da dissipação de potência de cada um dos tipos de roteadores presente na NoC gerada, como mostra a Figura 20.
+Observar nesta figura que a dissipação de potência nos diferentes roteadores é praticamente constante para esta rede.
+Devido a a alta atividade de chaveamento do sinal de relógio nos buffers, a dissipação de potência torna- se praticamente independente da taxa de recepção dos dados.
+Este fato aponta para potenciais vantagens de utilização de interfaces assíncronas e técnicas de clock-- gating.
+Ainda no espaço &quot;PréSimulation Analisys», o usuário poderá realizar uma rápida estimativa da dissipação de potência da rede quando submetida ao tráfego gerado na Atlas, clicando no botão &quot;Pre Evaluation Average Dissipation».
+Esta estimativa utiliza o modelo baseado no volume de dados transmitidos na rede, descrito na Seção 4.2.
+O módulo HEFESTUS, então, realiza a estimativa de potência numa NoC Hermes, seguindo os seguintes passos:
+Hermes, são aplicadas e a potência média dissipada (em cada janela de tempo) por cada um dos roteadores é extraída e armazenada em arquivos (um para cada roteador);
+Este processo é realizado uma vez ao abrir a janela principal do HEFESTUS, caso haja um registro de uma simulação da rede aplicada a um padrão de tráfego no framework Atlas.
+Se outra simulação for executada (mudanças no tempo de simulação ou padrão de tráfego), a avaliação será executada novamente ao abrir a janela principal do HEFESTUS.
+A o final da análise pode- se visualizar o gráfico da dissipação de potência média da NoC durante todo o tempo de simulação, clicando no botão &quot;NoC Average Power Dissipation».
+A Figura 22 mostra este gráfico.
+A o lado direito da janela principal do módulo HEFESTUS é apresentada a NoC graficamente.
+A o se clicar em algum dos rotedores presentes nesta representação gráfica, o usuário obtêm o gráfico da dissipação de potência média deste roteador durante todo o tempo de simulação.
+A Figura 23 exibe este gráfico, que somente é obtido após a simulação da NoC no framework Atlas.
+Estes gráficos podem ser utilizados para direcionar, por exemplo, decisões de mapeamento de tarefas ou roteamento adaptativo na rede.
+Um gráfico 3D com a distribuição da dissipação de potência nos diferentes roteadores da NoC pode ser visualizado inserindo- se o período tempo desejado no campo &quot;time», e clicando no botão &quot;NoC Power Distribution».
+A Figura 24 exibe este gráfico para um tempo de 440 us.
+Este tipo de análise é fundamental para avaliar como a dissipação de potência está distribuída na rede, ilustrando- se graficamente os pontos de maior dissipação de potência quando aplicado um determinado tráfego.
+Além de a apresentação gráfica dos resultados, o módulo HEFESTUS permite a visualização dos resultados na forma de relatórios ou tabelas de valores (Figura 25).
+Estes relatórios podem ser exportados para outras ferramentas (e.
+g Microsoft Excel) para cálculo da energia consumida por a rede ou a energia consumida na transmissão de um flit.
+O módulo HEFESTUS somente se aplica às NoCs Hermes geradas através do framework Atlas, pois somente estas NoCs foram calibradas.
+Porém, a inclusão dos demais tipos de NoCs (geradas através da Atlas) pode ser facilmente realizada, bastando calibrar a nova NoC e inserir suas equações de dissipação de potência no módulo HEFESTUS.
+JOSELITO é um modelo orientado a atores, implementado no ambiente PtolemyII, baseado na infra-estrutura da NoC Hermes.
+A orientação a atores foi, inicialmente, proposta como um modelo matemático de computação concorrente e, posteriormente, como um modelo de concorrência.
+Os principais componentes dessa abordagem são atores, que são elementos concorrentes que se comunicam entre si através da troca de fichas (do inglês, tokens) por meio de canais (do inglês, channel).
+As fichas transmitidas entre os atores podem encapsular um valor simples (e.
+g tipo inteiro) ou um conjunto de valores de diferentes tipos identificados por um nome (denominados de registro de tokens).
+JOSELITO é baseado na técnica de abstração de pacotes (do inglês, Packet Abstraction Techinque ou PAT).
+A principal idéia do PAT é diminuir o tempo total de simulação através da redução no número de eventos de comunicação, que ocorre devido a a abstração da carga útil dos pacotes transmitidos.
+A PAT consiste em:
+Abstração dos pacotes, contendo apenas cabeçalho e terminador;
+Abstração dos buffers, modelados como uma estrutura de FIFO;
+Um método analítico para estimar o tempo de liberação do terminador de um pacote.
+Estas abstrações eliminam a transferência, flit-a-flit, da carga útil dos pacotes.
+Os pacotes são encaminhados na NoC de acordo com o tempo de liberação do terminador do pacote (do inglês, packet trailer release time ou ptrt), conforme definido na Equação 11, ptrt $= hft+ pcksize* ctf onde:
+Ptrt é o tempo de liberação do terminador do pacote, hft é o tempo de encaminhamento do cabeçalho do pacote (do inglês, header forwarding time), pcksize é o tamanho em flits do pacote, e ctf é o número de ciclos de relógio para transmitir um flit (do inglês, clock cycles to transmit one flit).
+Para melhor exemplificar a técnica, considere um pacote de 21 flits sendo transmitido entre os roteadores R1 e R5 de uma NoC Hermes (Figura 26), sem congestionamento na rede, o ctf desta rede é igual a 1 (pois possui controle de fluxo baseado em créditos), e seu htf é igual a 7 (que é a quantidade de ciclos de relógio necessária para executar a arbitragem e roteamento).
+Em a Figura 26, o hft aumenta em 7 ciclos de relógio a cada salto (hop), e o ptrt é atualizado de acordo com a Equação 11.
+O último valor de ptrt, 56, corresponde à latência do pacote, e este valor é o mesmo que a implementação RTL da NoC.
+O PAT permite a simulação de cenários de transmissão de pacotes com ou sem bloqueios na rede.
+Se não houver conflito de recursos da rede (cenário sem bloqueios), os valores de latência e vazão da NoC podem ser avaliados sem perdas de precisão.
+Em um cenário com bloqueios, quando o cabeçalho de um pacote chega ao buffer de entrada, duas situações de bloqueio poderão ocorrer:
+A porta de saída destino está reservada para outra porta de entrada ou a porta de entrada de um roteador vizinho não está apta a receber o cabeçalho ou o terminador deste pacote.
+Em ambos os casos o cabeçalho fica bloqueado, e o terminador continua a seguir seu caminho de acordo com a profundidade do buffer.
+O JOSELITO possui dois tipos de atores principais:
+Buffers de entrada para receber os dados do pacote, e um árbitro, responsável por o roteamento dos dados do pacote recebido através dos canais ativos.
+O JOSELITO foi avaliado sob diferentes condições de tráfego, e os resultados mostram que o pior caso de vazão no JOSELITO possui 0.1% de erro quando comparado com o nível RTL.
+A integração do modelo proposto de estimativa da potência média dissipada numa NoC, ao JOSELITO necessitou três mudanças principais no ambiente original:
+T × sw de cada período de amostragem, o valor de avbrr é enviado ao PowerScope.
+O PowerScope é um ator parametrizável, ilustrado ao lado direito da Figura 27.
+Este ator exibe em tempo de execução a potência média dissipada em cada buffer de toda a NoC, aumentando a observabilidade do sistema.
+Esta característica pode ajudar os projetistas na detecção de pontos de alta dissipação de potência, permitindo, por exemplo, a avaliação de diferentes mapeamentos de aplicações na rede visando à baixa dissipação de potência.
+O PowerScope gera um relatório da dissipação de potência, com os valores máximo, mínimo e médio de potência dissipada por roteador.
+O PowerScope necessita dos seguintes parâmetros de potência do usuário:
+Dissipação base da lógica de controle e roteamento;
+Dissipação variável da lógica de controle e roteamento;
+Dissipação base do buffer de entrada;
+Dissipação variável do buffer de entrada.
+Estes parâmetros são adquiridos na etapa de calibração do modelo proposto.
+Note que as dissipações de potência do crossbar não estão citadas nos parâmetros acima, pois na etapa de calibração da NoC Hermes com controle de fluxo do tipo handshake (utilizada nesta versão do JOSELITO), as dissipações de potência do crossbar foram computadas juntamente com a lógica de controle e roteamento.
+Foi realizada uma série de testes utilizando o modelo sobre uma simulação RTL (utilizando o módulo HEFESTUS no framework Atlas) e uma simulação baseada em atores (JOSELITO no PtolemyII).
+A realização destes testes ocorreu sobre uma NoC Hermes 4x4 com topologia malha 2 D, 16 bits de tamanho de flit, 8 flits de profundidade de buffer, e algoritmo de roteamento XY.
+A taxa máxima nos enlaces desta rede é de 800 Mbps.
+Foram utilizados tráfegos com pacotes de tamanho fixo, de 32 flits, e os demais parâmetros variam entre:
+Distribuição temporal do tráfego:
+Uniforme, normal, e Pareto on/ off;
+Distribuição espacial do tráfego:
+Complemento e aleatório.
+Quantidade de pacotes transmitidos:
+100, 1000 e 10000.
+A Figura 28 apresenta a diferença da estimativa da potência dissipada entre as simulações realizadas no PtolemyII (JOSELITO) e no HEFESTUS.
+Note que os cenários de tráfego induzem congestionamento na rede, o que implica em pacotes bloqueados.
+Mesmo com taxas de injeção próximas ao ponto de saturação da rede, e admitindo colisões entre pacotes, a simulação baseada em atores mostrou resultados similares aos da simulação RTL.
+A diferença de pior caso é observada quando um número pequeno de pacotes é inserido na rede.
+Quando o número de pacotes inserido na rede aumenta, a diferença entre as duas simulações diminui.
+Ferramentas comerciais de estimativa da potência dissipada em circuitos integrados permitem uma avaliação precisa da potência dissipada, porém demandam alto poder de recursos computacionais e tempo de avaliação.
+O modelo de estimativa da dissipação em NoCs baseados no volume de dados transmitidos na rede permite uma rápida estimativa da potência dissipada, porém são imprecisos em comparação com as ferramentas comerciais.
+O modelo proposto baseado em taxas de recepção nos buffers de entrada dos roteadores permite uma avaliação mais precisa que o modelo baseado em volume de dados transmitidos, e é mais rápido que ferramentas comerciais.
+Estimativas de dissipação de potência podem ser geradas em diversos níveis de abstração, do RTL ao TLM temporal.
+O módulo de estimativa da dissipação de potência desenvolvido, HEFESTUS, tem o objetivo de suprir esta necessidade no framework Atlas, provendo condições para que o projetista avalie de forma rápida uma NoC gerada por o framework Atlas.
+O modelo JOSELITO permite gerar estimativas de potência de forma mais rápida, pois este modelo utiliza a técnica PAT para acelerar as simulações.
+Este Capítulo descreve a segunda contribuição do trabalho, os resultados de avaliações da dissipação de potência na NoC Hermes utilizando o módulo HEFESTUS.
+Foram realizadas avaliações de potência sobre a NoC Hermes de referência (sem a utilização de qualquer técnica de redução da dissipação de potência), com a utilização de clock-- gating em todo o roteador, automaticamente via ferramenta de síntese e com clock-- gating manual, inserido apenas nos buffers de entrada.
+Além de estas, realizou- se um estudo sobre a influência da atividade de chaveamento dos dados nos pacotes transmitidos na potência média dissipada por a NoC, e uma avaliação da dissipação de potência dos diversos algoritmos de roteamento adaptativos disponíveis na NoC Hermes.
+As Seções 5.1, 5.2 e 5.3 apresentam o estudo da dissipação de potência na NoC Hermes de referência, com a aplicação de clock-- gating automático e clock-- gating manual, respectivamente.
+A Seção 5.4 exibe um estudo sobre a influência da atividade de chaveamento dos dados nos pacotes transmitidos, e a Seção 5.5 descreve o impacto dos algoritmos adaptativos na dissipação de potência da NoC Hermes.
+Em a rede Hermes de referência, a dissipação de potência dos buffers é dominante devido a a atividade de chaveamento do sinal de relógio.
+A Figura 29 exibe a avaliação do percentual de contribuição dos buffers na dissipação de potência total dos roteadores.
+Estes dados foram extraídos de uma NoC Hermes com controle de fluxo baseado em créditos, e variando- se o tamanho de flit e profundidade dos buffers.
+A Figura 30 exibe a dissipação de potência dos roteadores da NoC Hermes de referência, variando- se o tamanho de flit, de 8 a 64 bits, e profundidade dos buffers de entrada, de 4 a 32 flits.
+Note que nesta figura existem roteadores que possuem diferentes tamanhos de flit e profundidade de buffer, porém possuem dissipação de potência similar.
+Isto ocorre, pois os roteadores podem ser divididos em regiões que possuem o mesmo dimensionamento total de buffer, este dimensionamento pode ser expresso por a multiplicação da profundidade de buffer por o tamanho de flit.
+Por exemplo, um roteador com flits de 16 bits e 8 posições no buffer, possui um dimensionamento total igual a 128 bits.
+O gráfico da Figura 30 pode ser condensado numa tabela, exibindo em valores a divisão da potência dissipada nos roteadores em regiões.
+A Tabela 11 mostra a dissipação de potência para uma NoC com controle de fluxo baseada em créditos, para cada um dos possíveis tamanhos de buffer.
+Esta tabela mostra que, roteadores de diferentes tamanhos de flit e profundidade de buffer, os quais possuem diferentes características como vazão e latência, podem dissipar a mesma potência média.
+Por exemplo, uma NoC Hermes com controle de fluxo baseado em créditos, com flits de 16 bits e 16 posições no buffer (tamanho do buffer igual a 256 bits), irá dissipar a mesma potência que uma NoC Hermes com controle de fluxo baseado em créditos, com flits de 64 bits e 4 posições no buffer.
+Esta avaliação permite explorar NoCs de diferentes características, porém com a mesma dissipação de potência.
+Tomando o exemplo acima citado, para um projeto que necessita de uma alta vazão na rede utiliza- se a primeira NoC citada, porém se o projeto utiliza o enlace de forma aperiódica e transmitindo grandes quantidades de dados, pode- se utilizar à segunda NoC citada (64 bits de tamanho de flit e 4 posições no buffer).
+Estas avaliações têm como único compromisso a dissipação média de potência por a rede, outros compromissos como área e desempenho não foram considerados nestas avaliações. (
+em bits), em conseqüência estas regiões possuem a mesma dissipação de potência.
+Tam. Flit/ Prof. Buffer O modelo de estimativa de potência demonstrou que a maior parcela da potência dissipada deve- se aos buffers, justificando o estudo de técnicas para reduzir esta dissipação de potência.
+De entre as técnicas utilizadas para redução de potência, destaca- se o clock-- gating.
+A técnica de clock-- gating está largamente difundida nas ferramentas comerciais de síntese, podendo ser aplicada automaticamente sobre o projeto.
+Em o fluxo de projeto da Synopsys, utilizado no escopo deste trabalho, a técnica de clockgating pode ser aplicada automaticamente através da diretiva &quot;insert_ clock_ gating «na ferramenta Design Compiler.
+A ferramenta de síntese, então, insere uma alternativa à lógica de controle tradicional dos registradores.
+A síntese passa de uma implementação utilizando lógica de controle (sinal de enable) por realimentação e multiplexadores, para uma implementação em a qual o sinal de controle dos registradores (enable) é embutido no sinal de relógio (Figura 31).
+Desta forma quando o sinal de enable estiver desativado, o sinal de relógio não é repassado adiante e o banco de registradores é desativado.
+Esta técnica permite a redução da dissipação de potência na árvore de distribuição de relógio, nos registradores e na lógica combinacional (multiplexadores).
+Além de a redução na dissipação de potência, o clock-- gating pode reduzir a área do projeto (reduzindo à lógica combinacional, retirando- se multiplexadores) e aumentar a freqüência máxima de operação.
+Espera- se que com a utilização de clock-- gating, via diretiva na ferramenta de síntese, a dissipação de potência da NoC Hermes seja reduzida.
+Para este experimento foi utilizada uma NoC Hermes 3x3, com 16 bits de tamanho de flit, buffer com profundidade de 16 posições, e com controle de fluxo variando entre handshake, baseado em créditos sem canais virtuais, baseado em créditos com dois e quatro canais virtuais.
+Hermes com controle de fluxo baseado em créditos sem canais virtuais.
+A potência dissipada nos roteadores centrais (com cinco portas) caiu de 37,8 mW para 7,04 mW, a uma taxa de recepção nos buffers de 50% do total de banda disponível.
+Em a Figura 32 os roteadores que utilizam a técnica de clock-- gating estão descritos como CKED.
+Além de a redução na potência dissipada nos roteadores da NoC, observou- se uma redução na área total dos roteadores e um aumento na sua freqüência de operação.
+Foram realizados testes utilizando a NoC citada acima, variando- se os algoritmos de roteamento entre XY, west-- first mínimo (WF) e negative-first mínimo (NF).
+A Figura 33 mostra graficamente a redução, em porcentagem, na dissipação de potência total, área consumida e o aumento da freqüência máxima de operação na NoC com e sem a aplicação de clock-- gating.
+A seguir fixou- se uma NoC 3x3, com 8 bits de tamanho de flit e 8 posições no buffer, variando- se o controle de fluxo entre handshake e baseado em créditos.
+Mediu- se a dissipação de potência para estas NoCs com e sem utilização de clock-- gating.
+Aplicou- se o mesmo tráfego em ambas as medições, a uma freqüência de 50 MHz e um tempo de simulação de 1 ms..
+A dissipação de potência da NoC, baseada em créditos, por exemplo, caiu de 246 mW médios para 53 mW médios quando aplicada a técnica de clock-- gating.
+A Tabela 12 exibe a dissipação média de potência para o teste acima.
+Nota- se a redução da dissipação de potência quando utilizada a técnica de clock-- gating. (
+HAN) e baseado em créditos (CRE), com e sem o uso de clock-- gating (CKED).
+NoC Potência Média (mW) Energia Média (mJ) A seguir, utilizando a mesma NoC do exemplo anterior, mediu- se a contribuição dos canais virtuais na dissipação de potência.
+Todas as simulações possuem o mesmo tráfego, mesma freqüência e tempo de simulação igual a 1 ms..
+Pode- se notar na Tabela 13 que a diferença na dissipação de potência entre as NoCs sem canais virtuais e com dois canais virtuais é menor que o dobro, porém esta diferença entre as NoCs com dois e quatro canais virtuais é praticamente o dobro. (
+CRE), variando- se a quantidade de canais virtuais (CV).
+Em todos os casos foi utilizada a técnica de clock-- gating (CKED).
+NoC Potência Média (mW) Energia Média (mJ) Os experimentos da Seção anterior confirmaram a importância da utilização de técnicas de clock-- gating no projeto de NoCs de baixa dissipação de potência.
+Porém estes experimentos utilizaram a inserção automática de clock-- gating por a ferramenta de síntese.
+Se esta opção não estiver disponível para o projetista, como em ferramentas de síntese para FPGAs, alternativa como a inserção de clock-- gating manual deve ser avaliada.
+O principal objetivo do clock-- gating manual é a aplicação da técnica de clock-- gating apenas nos buffers de entrada, através de uma alteração no código VHDL destes.
+Em a NoC Hermes, com controle de fluxo baseado em crédito, esta técnica pode ser aplicada modificando- se o código VHDL dos buffers de entrada para somente repassar o sinal de relógio aos buffers de entrada quando houverem dados a serem transmitidos para estes buffers.
+Desta forma, o sinal de relógio enviado aos buffers de entrada( «clock_ rx na Figura 34) estará sobre o controle do sinal de transmissão (rx na Figura 34) através da utilização de um multiplexador.
+Foram realizados testes com uma NoC Hermes 3x3, com 8 bits de tamanho de flit, profundidade de buffer de 8 posições, controle de fluxo baseado em créditos e roteamento do tipo XY.
+A NoC com clock-- gating manual foi submetida à calibração do modelo à tecnologia XL035 da X-FAB, resultando em equações de dissipação de potência para os seus roteadores.
+Foram simulados três tráfegos com distribuições temporais diferentes:
+Uniforme, Normal e Pareto On/ Off, cada um com 1000 pacotes de 16 flits transmitidos a uma taxa de 240 Mbps.
+A Tabela 14 mostra os resultados desta avaliação, comparados com avaliações com clock-- gating automático e sem clockgating (Hermes de referência).
+A partir de os dados da Tabela 14 pode- se notar uma redução de 48% na potência dissipada por a NoC com clock-- gating manual, nos tráfegos Uniforme e Normal, e 146% no tráfego Pareto On/ Off.
+Diferentemente do clock-- gating automático, a aplicação do clock-- gating manual aumenta em 3,33% a área total do circuito, referente a a lógica de controle (multiplexadores) adicionada aos buffers de entrada dos roteadores.
+O clock-- gating manual mantém a mesma freqüência máxima de operação da rede Hermes de referência, 195,31 MHz.
+Estes resultados, porém, foram obtidos apenas para NoC mapeadas na tecnologia XL035 da XFAB (ASIC), e futuros estudos sobre a eficiência desta técnica na redução da dissipação de potência em NoCs prototipadas em FPGAs deverão ser realizados.
+A atividade de chaveamento do circuito é um dos fatores principais no cálculo da dissipação de potência dinâmica deste.
+A atividade de chaveamento numa NoC, ocorre em ambos os enlaces de transmissão dos dados (links), quanto na lógica que compõe os roteadores.
+O modelo de estimativa da dissipação de potência em NoCs baseado em taxas desenvolvido neste trabalho, não avalia a dissipação de potência nos enlaces que conectam os roteadores.
+A adição da avaliação da dissipação de potência nos enlaces será realizada futuramente, aumentando a precisão do modelo baseado em taxas.
+Um enlace é um conjunto de fios que interconecta dois roteadores vizinhos, e a avaliação da potência dissipada nos enlaces está diretamente associada à atividade de chaveamento nos fios que os compõem.
+A atividade de chaveamento num enlace é a variação dos bits de um flit do pacote transmitido para outro, a porcentagem da atividade de chaveamento no enlace aumenta na medida em que mais bits variam de um flit para outro.
+A atividade de chaveamento nos roteadores é composta por a atividade de chaveamento em cada um dos elementos que os compõem (buffers de entrada, lógica de controle e roteamento e crossbar).
+De entre estes elementos formadores do roteador, destacam- se os buffers de entrada, responsáveis por cerca de 90% da dissipação total dos roteadores, desta forma a influência da atividade de chaveamento nos buffers de entrada deverá afetar diretamente a dissipação de potência do roteador.
+É necessário, porém, salientar que a atividade de chaveamento nos enlaces pode (ou não) afetar a atividade de chaveamento nos buffers de entrada, desta forma existe a necessidade de se avaliar independentemente a influência da atividade de chaveamento em cada estrutura.
+Primeiramente, será avaliado o impacto da atividade de chaveamento nos enlaces da NoC Hermes.
+A Tabela 15 mostra a atividade de chaveamento dos pacotes gerados por o framework Atlas nos enlaces.
+Note que na medida em que se aumenta o tamanho do pacote (em flits) a atividade de chaveamento diminui.
+Isto ocorre, pois os primeiros flits possuem variação elevada de conteúdo, enquanto que os demais flits apenas poucos bits mudam de estado (contador de seqüência em cada flit).
+Auto) e utilizando clock-- gating manual (CKED Manual).
+Em esta avaliação observou- se uma variação de 4,42% na potência dissipada por a NoC Hermes de referência, 26,13% na rede que utiliza clock-- gating automático e 7,33% na rede que utiliza clock-- gating manual.
+Em esta avaliação ocorreu pouco impacto da atividade de chaveamento na potência dissipada nas redes avaliadas.
+Isto ocorre, pois nestas simulações a relação entre o tamanho dos pacotes e o tamanho dos buffers de entrada proporcionou uma baixa atividade de chaveamento nos buffers, mesmo que exista uma alta atividade de chaveamento nos enlaces.
+Estas simulações foram específicas para avaliar o impacto da atividade de chaveamento nos enlaces, e não nos buffers de entrada.
+O objetivo da segunda avaliação é observar o impacto da atividade de chaveamento nos flits dos pacotes transmitidos na dissipação de potência dos buffers de entrada dos roteadores.
+A mesma rede da avaliação anterior foi utilizada, e foram desenvolvidos tráfegos controlados que forçam a escrita numa mesma posição dos buffers de entrada, variando os bits destas posições.
+Novamente foram utilizados pacotes com tamanho de 16 flits, porém foi utilizada uma taxa de transmissão de 800 Mbps.
+Esta taxa é necessária, pois para obter uma atividade de chaveamento de até 100% dos bits das posições do buffer, um único pacote controlado é enviado.
+Este pacote controlado permite variar a atividade de chaveamento nos buffers entre 5% e 100%.
+Foram realizadas avaliações com a rede Hermes de referência, e as redes que utilizam roteadores com a aplicação das técnicas de clock-- gating automática (CKED Auto) e manual (CKED Manual).
+A Figura 36 exibe graficamente os resultados desta avaliação.
+Auto) e utilizando clock-- gating manual (CKED Manual).
+Em esta avaliação observou- se uma variação de 23,58% na potência dissipada por a NoC Hermes de referência, 64,44% na rede que utiliza clock-- gating automático e 15,18% na rede que utiliza clock-- gating manual.
+Note que a potência dissipada na NoC com a aplicação de clock-- gating manual é maior que a NoC de referência.
+Isto ocorre, pois quando se aplica a taxa máxima de injeção da rede (taxa apenas teórica, porém necessária na realização desta avaliação) elimina- se a atuação da técnica de clock-- gating, pois os buffers sempre estarão recebendo dados (desta forma operando com seu sinal de relógio normalmente).
+A aplicação do clock-- gating manual aumenta a área do circuito (como visto na Seção 5.3), desta forma a dissipação de potência da NoC com clock-- gating manual será maior que a NoC de referência.
+Isto não ocorre com a aplicação de clock-- gating automático, pois existe uma redução na área do circuito em comparação com a NoC de referência (como descrito na Seção 5.2).
+Observa- se nos resultados desta avaliação um alto impacto da atividade de chaveamento nos buffer de entrada na dissipação de potência dos roteadores, principalmente na NoC com a aplicação da técnica de clock-- gating automático.
+Esta avaliação mostra que as equações do modelo proposto deverão ser ajustadas para considerar ambas as variações de dissipação de potência devido a a atividade de chaveamento nos enlaces e nos buffers de entrada dos roteadores.
+Um exemplo de tal ajuste seria a modificação da equação da dissipação de potência nos buffers, para um novo formato.
+Onde é o acréscimo de potência devido a a atividade de chaveamento nos buffers, Db é a dissipação de potência base do buffer, Dv é a dissipação de potência variável e tx é a taxa de recepção do buffer.
+Esta Seção realiza um estudo sobre a dissipação de potência de diferentes algoritmos de roteamento adaptativos aplicados na rede Hermes.
+A exploração de diferentes algoritmos de roteamento permite ao projetista avaliar um melhor compromisso entre grandezas como vazão e latência e a dissipação de potência da rede.
+Em esta Seção foram abordadas apenas avaliações de dissipação média de potência dos algoritmos adaptativos, e não se objetivou avaliar grandezas como vazão e latência média.
+As avaliações foram realizadas sobre uma NoC com dimensão de 3x3, flits de 16 bits, 16 flits de profundidade do buffer e controle de fluxo baseado em créditos.
+Foram avaliados os algoritmos adaptativos West--First (WF), North-Last (NL) e Negative-First (NF), em suas versões mínimas (M) e não-mínimas (NM), todos comparados com o algoritmo XY (que é o algoritmo de roteamento padrão na rede Hermes).
+Foram avaliadas duas distribuições espaciais do tipo:
+Aleatória (Random) e complemento (Complement), sobre cada distribuição espacial foram utilizados três distribuições temporais:
+Uniforme a uma taxa de 200 Mbps (25% da taxa máxima permitida nos enlaces), (ii) normal com taxa mínima de 150 Mbps, máxima de 250 Mbps e média de 200 Mbps, e Pareto On/ Off com taxa de 200 Mbps e rajadas de 10 flits.
+Sobre cada distribuição temporal foram simulados tráfegos que transmitiam 100, 1000 e 10000 pacotes com tamanho de 16 flits.
+A Tabela 16 exibe os resultados de todas as avaliações para simulações com 1000 pacotes de 16 flits por roteador sendo transmitidos na rede.
+Os melhores resultados de cada simulação estão destacados em negrito.
+Avaliando- se a tabela abaixo, verificou- se que ocorre pouca variação na potência média dissipada entre os algoritmos de roteamento.
+A maior diferença é uma redução de 2,24% observada na simulação presente na sétima linha da Tabela 16.
+A análise da Tabela 16 mostra que para padrões de tráfego que apresentam distribuição espacial do tipo aleatória (onde existe pouca colisão entre pacotes transmitidos), o algoritmo XY é a melhor opção de entre todos os algoritmos avaliados.
+De entre os algoritmos adaptativos, a melhor opção de escolha para a NoC Hermes é o algoritmo West--First (WF) mínimo.
+Já para padrões de tráfego que apresentam distribuição espacial do tipo complemento (onde existe um alto índice de colisão dos pacotes transmitidos), o algoritmo Negative-First (NF) mínimo é melhor que todos os demais algoritmos de roteamento, a exceção de tráfegos com distribuição temporal do tipo Pareto On/ Off.
+Em estes tráfegos algoritmo XY apresenta melhores resultados em comparação com os demais algoritmos de roteamento.
+A Figura 37 exibe graficamente os resultados dos algoritmos adaptativos mínimos para as simulações com tráfego que apresentam distribuição espacial do tipo aleatória e distribuição temporal normal, para 100, 1000 e 10000 pacotes com 16 flits sendo transmitidos na rede.
+Note neste gráfico que a dissipação de potência de todos os algoritmos de roteamento é similar, variando em no máximo 1,2 mW em relação a a dissipação de potência de melhor caso (algoritmo XY) para o pior caso (algoritmo North-Last).
+Figura 37 -- Simulações da transmissão de 100, 1000 e 10000 pacotes de 16 flits (distribuição espacial aleatória e temporal normal) para diferentes algoritmos adaptativos mínimos.
+A Figura 38 exibe graficamente os resultados das simulações dos algoritmos adaptativos mínimos para a distribuição espacial do tipo complemento e distribuição temporal uniforme.
+Note que para este tipo de tráfego, o algoritmo adaptativo que apresenta melhores resultados é o Negative-First (NF), chegando a obter uma redução na dissipação média de potência de até 19,64 mW.
+Em estas avaliações o algoritmo North-Last (NL) também reduziu a dissipação de potência na rede em até 19,16 mW.
+O algoritmo West--First (WF) se manteve similar ao algoritmo XY.
+Uma boa estimativa da dissipação de potência de uma NoC na fase de projeto permite explorar diversas arquiteturas de rede (com diferentes vazões e latências) que possuam a mesma dissipação de potência.
+Observou- se que no projeto de uma NoC, a utilização da técnica de clockgating de forma automática, via diretivas de síntese, é fundamental na redução de ambos a dissipação de potência e o consumo de energia.
+Se esta opção não estiver disponível ao projetista, como no projeto direcionado a FPGAs, alternativas de clock-- gating manual podem ser aplicadas, reduzindo a dissipação de potência e o consumo de energia.
+Verificou- se a importância da atividade de chaveamento em ambos os enlaces e buffers de entrada, direcionando futuras modificações no modelo proposto para que esta atividade de chaveamento seja considerada.
+A o se projetar uma NoC, um dos pontos de avaliação é o algoritmo de roteamento a ser empregado.
+A o se analisar apenas a dissipação de potência de todos os algoritmos de roteamento empregados na NoC Hermes, verificou- se que a melhor opção para tráfegos com distribuição espacial uniforme é o algoritmo XY.
+Porém, para tráfegos com distribuição espacial do tipo complemento, a melhor opção de algoritmo de roteamento é o Negative-First (NF) mínimo.
+Em o presente trabalho foi apresentado um modelo para estimativa da potência dissipada em NoCs, baseado nas taxas de recepção nos buffers dos roteadores.
+Adicionalmente ao modelo proposto, foi desenvolvido um fluxo genérico de aplicação do modelo, calibrando- o para a rede a ser avaliada.
+Diferentemente dos modelos propostos na literatura, os quais estimam a potência a partir de o grafo da aplicação e do volume de dados transmitido, este modelo requer a simulação RTL da NoC em análise para a obtenção das taxas de recepção nos buffers dos roteadores.
+O modelo proposto tem a vantagem de ser mais preciso que os modelos baseados em volume de comunicação, pois as taxas medidas nos buffers consideram os efeitos do congestionamento na rede.
+Entretanto, dependendo do tráfego a ser analisado a simulação RTL poderá apresentar um custo elevado de tempo de simulação.
+Para acelerar o processo de estimativa, o modelo pode ser implementado em níveis de abstração mais elevados.
+O modelo foi adicionado ao framework Atlas sob a forma do módulo HEFESTUS, o qual automatiza o processo de aplicação do modelo sobre as redes Hermes geradas no framework Atlas.
+Para avaliar a aceleração do modelo implementado num nível RTL (HEFESTUS) em relação a a implementação num nível mais elevado de abstração, o modelo proposto foi integrado ao modelo JOSELITO, o qual utiliza a técnica PAT e orientação a atores para reduzir o tempo de simulação da NoC Hermes.
+Verificou- se nesta comparação precisão similar nas duas implementações, com uma redução significativa no tempo de geração da estimativa devido a a simulação da rede.
+Este trabalho também apresentou um estudo da dissipação de potência da NoC Hermes, utilizando o módulo HEFESTUS.
+Avaliações mostraram que na rede Hermes de referência (sem a aplicação de qualquer técnica de redução da dissipação de potência), a dissipação de potência é definida por a atividade dos buffers de entrada nos roteadores.
+Observou- se a existência de grupos de dissipação de potência similar, divididos por o tamanho total dos buffers nos rotedores.
+Foi avaliada uma NoC que utiliza a técnica de clock-- gating de forma automática, via diretivas da ferramenta de síntese.
+Em esta avaliação observou- se uma grande redução na potência dissipada na rede, além de uma redução na área do circuito e um aumento na freqüência máxima de operação.
+Foi avaliada uma NoC Hermes que utiliza a técnica de clock-- gating inserida manualmente no seu código VHDL.
+Esta opção é utilizada em ferramentas de síntese que não possuam a aplicação da técnica de clock-- gating de forma automática.
+Resultados apontam uma redução na potência dissipada por a rede, porém observou- se um aumento na área do circuito (cerca de 3%) a não houve alteração na freqüência máxima de operação.
+Foram realizados testes para a verificação da dissipação de potência dos diversos algoritmos de roteamento disponibilizados por o framework Atlas.
+Resultados indicam que para tráfego com baixa colisão entre pacotes (exemplo, distribuição espacial aleatória) o melhor algoritmo é o XY, porém para tráfegos com muita colisão entre pacotes transmitidos (exemplo, distribuição espacial do tipo complemento) o melhor algoritmo de roteamento é o Negative-First.
+Citam- se como trabalhos futuro deste trabalho:
+O refinamento do modelo proposto inserindo- se as contribuições na dissipação de potência da rede gerada por a atividade de chaveamento nos enlaces e nos buffers de entrada;
+Comparação do modelo com outros modelos de estimativa da potência dissipada em NoCs;
+Aplicação do modelo proposto sobre a estrutura de um MPSoC;
+Desenvolvimento de uma arquitetura de roteador para baixa dissipação de potência.
+O refinamento do modelo proposto inserindo- se as parcelas de dissipação de potência referentes à atividade de chaveamento nos enlaces e buffers de entrada é a seqüência natural deste trabalho.
+A variação da atividade de chaveamento nos enlaces é responsável por até 27% de erro na estimativa da dissipação de potência num roteador.
+Já a variação da atividade de chaveamento no buffer de entrada é responsável por até 65% de erro na estimativa.
+O modelo proposto deverá ser refinado a fim de compensar estas fontes de erro na sua estimativa, tornando- o mais preciso.
+Após o refinamento do modelo, deve- se avaliar o modelo proposto em relação a os demais modelos de estimativa da potência dissipada em NoCs.
+A maioria dos modelos de estimativa disponíveis é baseado no volume de dados transmitidos.
+Desta forma, espera- se que o modelo proposto seja mais preciso em relação a os demais modelos.
+Outro trabalho futuro compreende a estimativa de potência dissipada num MPSoC completo, incluindo processadores, memórias e a NoC.
+Pode- se utilizar estimativa de potência em processadores a partir de o conjunto de instruções executadas e a estimativa em memória a partir no número de transações de leitura/ escrita realizadas.
+Assim poderia- se- integrar estes três modelos numa plataforma real, por exemplo, a plataforma HEMPS, para realizar estimativas da dissipação de potência desta plataforma ao executar diferentes conjuntos de aplicações.
+O quarto trabalho futuro compreende o desenvolvimento de uma arquitetura de roteador para baixa dissipação de potência.
+Em este trabalho observou- se que a utilização da técnica de clockgating de forma automática reduz, significativamente, a potência de uma rede intra-chip.
+A utilização desta técnica juntamente com o emprego do algoritmo de roteamento que apresenta melhores resultados de dissipação de potência poderá gerar uma arquitetura de roteador que apresenta dissipação de potência reduzida.
+Outras técnicas de redução como, power-- gating, deverão ser avaliadas e inseridas no roteador da rede Hermes a fim de desenvolver uma arquitetura de roteador que apresente a menor dissipação de potência, mantendo- se bons resultados de vazão e latência média.

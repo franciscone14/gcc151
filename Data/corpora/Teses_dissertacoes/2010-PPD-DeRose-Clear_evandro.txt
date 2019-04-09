@@ -1,0 +1,944 @@
+O crescente avanço na capacidade de processamento dos computadores fornece meios para projetar e executar aplicações com demandas cada vez maiores.
+Contudo, dependendo da aplicação, há também a necessidade de acessar e armazenar grandes porções de dados de forma eficiente.
+Aplicações voltadas à ciência, engenharia, mineração de dados e simulações de eventos naturais são alguns exemplos de aplicações que requerem alta vazão de dados.
+Clusters Linux e sistemas de arquivos distribuídos, geralmente são utilizados nestes cenários.
+Entretanto, sistemas de arquivos distribuídos ditos tradicionais, como NFS, não são adequados para aplicações intensivas em dados.
+A arquitetura centralizada limita o desempenho e escala da aplicação.
+Com base nisso, vários sistemas de arquivos paralelos foram concebidos com o objetivo de amenizar o gargalo criado no acesso aos dados.
+De entre esses sistemas, destaca- se o Lustre, sistema de arquivos paralelos amplamente utilizado por a comunidade de alto desempenho.
+Em este trabalho, realiza- se uma avaliação do Lustre sobre um cluster Linux de pequena escala.
+A avaliação tem por objetivo identificar quais fatores afetam o desempenho do sistema de arquivos, e como o mesmo se comporta sob cargas de trabalho típicas de aplicações paralelas.
+Os resultados obtidos mostraram que o Lustre é um sistema de arquivos adequado para todas as classes de aplicações avaliadas.
+Entretanto, para se obter bom desempenho é importante tornar os acessos, realizados por os processos, contíguos dentro de o arquivo.
+De essa forma, é possível aproveitar os recursos fornecidos por o Lustre, como cache cliente e read-ahead.
+Palavras-chave: Sistema de Arquivos Distribuído, Sistema de Arquivos Paralelos;
+Armazenamento. Sistemas de arquivos distribuídos ditos tradicionais, como NFS, não são capazes de fornecer os níveis de escalabilidade e throughput adequados.
+O gargalo no acesso aos dados ocasionado por a arquitetura do sistema de arquivos limita o desempenho de aplicações paralelas intensivas em dados.
+Para amenizar esses problemas surgiram os sistemas de arquivos paralelos.
+Entretanto, a arquitetura mais complexa e grau de dificuldade encontrado na instalação, configuração e gerenciamento desses sistemas, muitas vezes tornam árduo o uso em ambientes de produção.
+Por isso a importância em investigar tais sistemas, visando fornecer maiores informações de como utilizar- los de forma eficiente.
+De entre outros sistemas de arquivos paralelos, o que motiva o estudo do Lustre, se deve principalmente por a sua grande utilização entre os pesquisadores e centros de alto desempenho.
+Entre os dez primeiros supercomputadores da lista TOP500, seis utilizam o Lustre como sistema de arquivos.
+Vários trabalhos avaliaram o Lustre sobre clusters de grande escala,,, entretanto, o presente trabalho está voltado para clusters de pequena escala, que de certa forma representam a realidade de muitos centros de pesquisas nacionais.
+Além disso, ainda faltam muitas informações para os profissionais de Ti determinarem qual sistema de arquivos é mais adequado para a sua classe de aplicações.
+Esta dissertação tem como objetivo principal investigar e avaliar o Lustre sob cargas de trabalho de aplicações paralelas.
+Para tanto, os seguintes objetivos específicos foram traçados:·
+Realizar um estudo dos sistemas de arquivos distribuídos e paralelos, visando compreender melhor a arquitetura e funcionalidades fornecidas por esses sistemas.
+Em um segundo momento será realizado um estudo aprofundado do Lustre, discutindo detalhes da arquitetura, forma de armazenamento de arquivos, funcionalidades, características gerais e limitações.·
+Avaliar o Lustre através de benchmarks e pequenas aplicações paralelas a fim de verificar quais fatores tem influência no desempenho.·
+Avaliar o Lustre sob alguns padrões de acesso típicos de aplicações paralelas reais.
+O objetivo é verificar se o Lustre é um sistema de arquivos adequado para os padrões de acesso utilizados neste trabalho.·
+Por último, as avaliações realizadas neste trabalho visam fornecer maiores informações aos profissionais de Ti que pretendem usar o Lustre.
+Essas informações poderão ser utilizadas para auxiliar na escolha do sistema de arquivos mais adequado para a classe de aplicações alvo.
+O restante deste trabalho está organizado da seguinte forma:
+Em o próximo Capítulo será apresentado o embasamento teórico relativo à computação de alto desempenho e armazenamento de dados.
+Serão abordados conceitos sobre sistemas de arquivos centralizados, distribuídos e paralelos.
+Em o testes e configurações do Lustre é apresentada.
+A elaboração dos testes e resultados obtidos são apresentados no Capítulo 4.
+Por fim, no Capítulo 5 as conclusões.
+Este Capítulo tem como objetivo servir de embasamento teórico para o restante do trabalho.
+O mesmo está dividido em cinco seções, onde a primeira discute alguns aspectos relacionados à computação de alto desempenho.
+A seção 2.2 define conceitos básicos relativos ao armazenamento de arquivos.
+A seção 2.3 introduz conceitos de sistemas de arquivos distribuídos, características desej áveis e apresenta a arquitetura do NFS.
+A seção 2.4 conceitua sistemas de arquivos paralelos, comenta os tipos de arquiteturas utilizadas, forma de distribuição de dados e primitivas de acesso.
+Além disso, apresenta alguns sistemas de arquivos paralelos existentes.
+Por fim, na seção 2.5 serão apresentados conceitos sobre benchmarks, além de apresentar alguns benchmarks voltados para avaliar sistemas de armazenamento de dados.
+Aplicações de diversas áreas do conhecimento, incluindo física, química, biologia, astronomia e engenharias, entre outras, possuem fortes requisitos computacionais.
+Essas aplicações necessitam de máquinas paralelas capazes de resolver problemas de grande escala ou simular fenômenos naturais que não podem ser resolvidos em tempo hábil por um único computador.
+Geralmente, supercomputadores eram utilizados para executar essa classe de aplicações.
+Entretanto, na década de 90, o conceito de processamento paralelo começou a mudar este cenário.
+Em lugar de os supercomputadores (máquinas vetoriais e MPPs), com hardware proprietário e de alto custo, surgiram os clusters de computadores, que utilizam computadores tradicionais (PCs, Workstations, SMPs) interconectados em rede.
+Os clusters são computadores baseados em hardware de prateleira, de baixo custo.
+Contudo, a grande evolução da tecnologia de construção de processadores e memórias tornou essas máquinas uma alternativa interessante, que já se popularizaram como plataformas para computação de alto desempenho.
+Maiores detalhes sobre esse tipo de máquina paralela serão apresentados a seguir.
+De acordo com Buyya, cluster é um tipo de sistema de processamento distribuído ou paralelo, que consiste de uma coleção de computadores interconectados, trabalhando de forma cooperativa como um único recurso de computação integrado.
+Um cluster geralmente se refere a dois ou mais computadores conectados através de uma rede.
+A Figura 2.1 ilustra uma arquitetura genérica de cluster.
+Em máquinas paralelas os processos cooperam através de troca de mensagens.
+As mensagens podem ser dados necessários à computação ou pontos de sincronismos.
+MPI (Message Passing Interface) é a principal interface de troca de mensagens.
+Foi padronizado por um grupo de pesquisadores com intuito de se tornar um padrão para programas que utilizam troca de mensagem para se comunicar.
+A principal vantagem oferecida é a portabilidade sob máquinas distintas, ou seja, programas escritos com MPI são capazes de executar sem modificações em plataformas distintas desde que esteja disponível uma versão da biblioteca.
+Outro aspecto é a capacidade de executar de modo transparente em máquinas heterogêneas, com processadores de arquiteturas diversas.
+MPI oferece um conjunto de rotinas para envio e recebimento de mensagens de dados e sincronismo.
+As tarefas MPI podem executar num mesmo processador ou concorrentemente sobre diversos processadores.
+Em a segunda versão da biblioteca foi introduzido o suporte a E/ S paralela, também conhecida como MPI-IO.
+Essa extensão aproveita a analogia do envio e recebimento de mensagens para escrever e ler dados, respectivamente.
+O propósito da MPI-IO é melhorar o desempenho sobre a API Unix de acesso ao sistema de arquivos.
+A MPI-IO fornece suporte a acessos não contíguos em memória e arquivo, operações de E/ S coletivas, uso explícito de offsets para evitar seeks individuais, suporte a ponteiros de arquivos exclusivos e compartilhados, E/ S não bloqueante, possibilidade de criação de representações de dados portáveis e, por fim, suporte a hints (meios de fornecer informações sobre a aplicação, por exemplo, a forma como a aplicação irá interagir com o sistema de arquivos).
+Arquivos são abstrações utilizadas para armazenar dados sobre dispositivos que tipicamente utilizam meio magnético para manter as informações.
+Além disso, os arquivos têm um nome associado, frequentemente relacionado ao tipo de conteúdo armazenado.
+Os dois principais objetivos que levam ao uso de arquivos consistem em armazenar dados de forma persistente e permitir posterior compartilhamento entre usuários.
+Os arquivos são compostos por dados e atributos.
+Os dados consistem numa sequência de bytes, acessíveis através de operações de leitura e escrita.
+Os atributos mantêm informações como tamanho do arquivo, indicações de tempo, tipo de arquivo, proprietário e listas de controle de acesso.
+Tipicamente são organizados como um registro.
+O sistema de arquivos é um subsistema do sistema operacional, que tem por objetivo fornecer serviços relacionados ao gerenciamento de arquivos.
+É responsável por a organização, armazenamento, recuperação, atribuição de nomes, compartilhamento e proteção de arquivos.
+Grande parte dos sistemas de arquivos utiliza o conceito de diretórios para organizar os arquivos.
+Um diretório consiste num arquivo especial, responsável por armazenar informações sobre os arquivos que contém, por exemplo, o mapeamento dos nomes textuais de arquivos para referências internas de arquivos.
+Além disso, questões relacionadas ao controle de acesso sobre cada arquivo, como permissões dos usuários e o tipo de acesso requerido (leitura, escrita e execução), são de responsabilidade do sistema de arquivos.
+Todas as informações adicionais utilizadas para o gerenciamento dos arquivos, como atributos, diretórios e demais informações persistentes utilizadas por o sistema de arquivos são referenciadas por o termo metadados.
+O acesso aos arquivos é realizado através de um conjunto de primitivas fornecidas por o sistema de arquivos.
+Geralmente são implementadas como chamadas de sistema, localizadas no kernel do sistema operacional.
+A seguir as principais operações que podem ser executadas sobre arquivos:·
+Abrir: Abre um arquivo existente de acordo com o nome fornecido por parâmetro.·
+Criar: Cria um novo arquivo de acordo com o nome fornecido por parâmetro.·
+Fechar: Fecha o arquivo aberto.·
+Ler: Transfere n blocos de dados para local especificado na memória principal.·
+Escrever: Transfere n blocos de dados para o arquivo em disco.·
+Reposicionar: Desloca o ponteiro de leitura e escrita para determina região do arquivo (operação conhecida como seek).·
+Apagar: Remove o arquivo da estrutura de diretórios, de acordo com o nome fornecido por parâmetro.·
+Truncar: Apaga somente o conteúdo do arquivo, porém não altera os dados dos atributos.
+Considerando os conceitos básicos apresentados nesta seção sobre sistemas de arquivos centralizados, a seguir serão apresentados os sistemas de arquivos distribuídos, que têm por função prover serviços de arquivo compartilhado por a rede comunicações.
+Um sistema de arquivos distribuído tem por função compartilhar serviços de arquivo através de uma rede de comunicação, permitindo acesso a arquivos remotos de forma transparente.
+Para o usuário, o acesso a um arquivo remoto é realizado da mesma forma como são realizados os acessos num sistema de arquivos centralizado.
+Sistemas de arquivos distribuídos tipicamente fornecem três tipos de serviços:·
+Serviço de armazenamento:
+Trata do gerenciamento e alocação de espaço sobre dispositivos de armazenamento.
+Fornece uma camada de abstração para armazenar e recuperar dados do dispositivo.·
+Serviço de arquivos:
+Trata de operações relacionadas a arquivos individuais, como criação, alteração e remoção.
+Para executar essas primitivas são necessários mecanismos de acesso a arquivos, compartilhamento, cache, replicação, controle de concorrência, consistência de dados e controle de acesso.·
+Serviço de nomes:
+Fornece o mapeamento entre nomes de arquivos e identificadores de arquivos.
+Esse mecanismo facilita a localização do arquivo por parte de o usuário.
+A separação entre serviço de armazenamento e serviço de arquivos permite a utilização de vários tipos de dispositivos (discos, fitas, etc.) para armazenar arquivos.
+A implementação de um sistema de arquivos distribuído deve levar em consideração as seguintes características apresentadas a seguir:·
+Transparência: As seguintes formas de transparências são parcialmente, ou totalmente, tratadas por os serviços de arquivos atuais: --
+Transparência do acesso:
+Os programas clientes não devem conhecer a distribuição de arquivos.
+Um único conjunto de operações é fornecido para acesso a arquivos locais e remotos.
+Os programas escritos para operar sobre arquivos locais também estão aptos a operar arquivos remotos sem modificações. --
+Transparência de localização:
+Os programas clientes devem ver um espaço de nomes de arquivos uniforme.
+Os arquivos, ou grupos de arquivos, podem ser deslocados de um servidor a outro sem alteração de seus nomes de caminho, e os programas de usuário devem ver o mesmo espaço de nomes onde quer que sejam executados. --
+Transparência de mobilidade:
+Nem os programas clientes, nem as tabelas de administração de sistema nos nós clientes precisam ser alterados quando os arquivos são movidos.
+Isso permite a mobilidade do arquivo. --
+Transparência de desempenho:
+Os programas clientes devem continuar funcionando satisfatoriamente, enquanto a carga sobre o serviço varia dentro de um intervalo especificado. --
+Transparência de mudança de escala:
+O serviço pode ser expandido de forma a tratar com uma ampla variedade de cargas e tamanhos de rede.·
+Atualizações concorrentes de arquivos:
+As alterações feitas num arquivo por um único cliente não devem interferir na operação de outros clientes que estejam acessando, ou alterando, o mesmo arquivo simultaneamente.
+A maior parte dos serviços de arquivo atuais segue os padrões Unix modernos, fornecendo travamentos (locking) em nível de arquivo ou em nível de registro.·
+Replicação de arquivos:
+Em um serviço de arquivos que suporta replicação, um arquivo pode ser representado por várias cópias de seu conteúdo em diferentes locais.
+Isso tem duas vantagens, permitir que vários servidores compartilhem a carga do fornecimento de um serviço para clientes que acessam o mesmo conjunto de arquivos, melhorando a escalabilidade do serviço, e melhora a tolerância a falhas, permitindo que, em casos de falhas, os clientes localizem outro servidor que contenha uma cópia do arquivo.
+Poucos serviços de arquivos suportam replicação completa, mas a maioria suporta o armazenamento de arquivos, ou de porções de arquivos, em caches locais, que é uma forma limitada de replicação.·
+Heterogeneidade do hardware e do sistema operacional:
+As interfaces de serviço devem ser definidas de modo que o software cliente e servidor possam ser implementados para diferentes sistemas operacionais e computadores.·
+Tolerância a falhas:
+Por ser parte essencial nos sistemas distribuídos, é essencial que o serviço de arquivos distribuído continue a funcionar diante de falhas de clientes e servidores.
+Felizmente, um projeto moderadamente tolerante a falhas é fácil para servidores simples.
+Os servidores podem ser sem estado (stateless), para que após uma falha o serviço seja reiniciado e restaurado sem necessidade de recuperar o estado anterior.·
+Segurança: Em os sistemas de arquivos distribuídos, há necessidade de autenticar as requisições dos clientes para que o controle de acesso no servidor seja baseado nas identidades corretas de usuários e para proteger o conteúdo das mensagens de requisição e resposta com assinaturas digitais e criptografia de dados secretos.·
+Eficiência: Um serviço de arquivo distribuído deve oferecer recursos que tenham pelo menos o mesmo poder e generalidade daqueles encontrados nos sistemas de arquivos convencionais, e deve obter um nível de desempenho comparável.
+De entre os sistemas de arquivos distribuídos, o NFS da Sun Microsystem é um dos mais amplamente utilizados para sistemas baseados em clusters Linux.
+A arquitetura do NFS define a maioria dos serviços que um sistema de arquivos distribuído deve prover.
+A seguir, a arquitetura do NFS será apresentada.
+O papel do NFS é fornecer acesso remoto e transparente a arquivos compartilhados em rede.
+Foi projetado para ser independente de plataforma, arquitetura de rede e protocolos de comunicação.
+Isto se deve ao uso de mecanismos como RPC (Remote Procedure Call) e XDR (eXternal Data Representation).
+O protocolo RPC permite a execução de chamadas remotas de forma transparente, da mesma forma como chamadas locais são efetuadas.
+A XDR define a representação de dados utilizada na troca de mensagens entre diferentes arquiteturas e sistemas operacionais.
+Um cliente acessa o sistema de arquivos usando as chamadas de sistema fornecidas por o sistema operacional local (Figura 2.2).
+Essas chamadas são repassadas para a camada de sistema de arquivo virtual (Virtual File System -- VFS), que tem por função mascarar o sistema de arquivos adjacente.
+De essa forma é possível alterar o tipo do sistema de arquivos utilizado sem ter que reimplementar várias porções de código do sistema operacional.
+A ideia do VFS é ocultar as diferenças entre vários sistemas de arquivos e fornecer uma interface de acesso padrão.
+Com NFS, as operações na interface VFS são passadas para um sistema de arquivos local ou para um componente separado conhecido como cliente NFS, que se encarrega de manipular o acesso a arquivos localizado num servidor remoto.
+Em o lado do servidor podemos ver uma organização semelhante.
+As requisições chegam ao apêndice RPC que desmonta a mensagem e envia ao servidor NFS.
+O servidor NFS é responsável por converter as mensagens em operações comuns de arquivos VFS que, na seqstress uência, são passadas para a camada VFS.
+Mas uma vez, VFS transforma as operações em chamadas compreensíveis ao sistema de arquivo local.
+A grande vantagem do uso do VFS é o fato de tornar o NFS independente do sistema local de arquivos.
+Isso permite exportar sistemas de arquivos que estão sob sistemas operacionais baseados em Windows e Unix, por exemplo.
+O contínuo avanço na tecnologia de desenvolvimento de processadores permite a implementação de clusters com milhares de núcleos de processamento.
+Na medida em que o número de processadores aumenta, a demanda por E/ S também cresce.
+Em esses cenários, o modelo cliente-servidor do NFS não alcança a escalabilidade necessária.
+Em clusters com maiores dimensões, o acesso concorrente ao servidor de arquivos gera um gargalo no acesso aos dados.
+Além disso, a arquitetura centralizada torna o servidor o ponto central de falhas.
+Os sistemas de arquivos paralelos foram projetados para fornecer maior vazão de dados para aplicações paralelas.
+De a mesma forma que são utilizados vários processadores em conjunto para se obter maior poder computacional, os sistemas de arquivos paralelos utilizam vários discos, de forma a agregar a banda individual de cada dispositivo, fornecendo alta vazão de dados.
+O princípio básico desses sistemas é fracionar o arquivo e distribuir os blocos de dados resultantes entre nós de armazenamento conectados através de uma rede.
+Esse fracionamento possibilita o acesso em paralelo a diferentes partes do arquivo por os processos de uma aplicação paralela.
+Além de o fator desempenho, sistemas de arquivos paralelos podem fornecer grande capacidade de armazenamento, atendendo as crescentes demandas das aplicações científicas.
+Os usuários visualizam um arquivo paralelo como sendo um arquivo lógico único.
+Entretanto, o arquivo paralelo é composto por vários blocos de dados disjuntos fisicamente, também referenciados como stripes.
+Os blocos de dados são distribuídos entre os servidores de armazenamento seguindo um padrão pré-estabelecido.
+Um padrão comum de distribuição é o chamado striping.
+Em esse padrão, os blocos de dados são distribuídos de forma circular (round robin) entre os servidores.
+Tipicamente, todos os blocos de dados têm o mesmo tamanho, visando facilitar a manipulação do arquivo.
+O tamanho do bloco pode ser definido por o usuário no momento da criação do arquivo.
+A Figura 2.3 exibe a representação gráfica de um arquivo paralelo.
+Em esse caso, os blocos do arquivo paralelo estão distribuídos entre quatro discos.
+As primitivas de acesso fornecidas devem ser transparentes aos usuários.
+O usuário deve acessar um sistema de arquivos paralelos da mesma forma como são acessados sistemas de arquivos locais e centralizados.
+Primitivas como open, close, seek, rename e unlink devem ser fornecidas por esses sistemas.
+As operações de E/ S são executadas através das primitivas read e write.
+A transparência no acesso tem por objetivo facilitar a execução de aplicações que utilizam bibliotecas de acesso padronizadas sem a necessidade de recompilação.
+Entretanto, o programador pode requerer maior controle sobre a forma de fracionamento e distribuição dos dados.
+De essa forma é possível otimizar a aplicação para tirar proveito das características do sistema de arquivos alvo.
+A arquitetura mais simples é a descentralizada, onde existe apenas dois tipos de processos, clientes e servidores.
+Os processos servidores armazenam os blocos de dados de arquivos paralelos sobre um sistema de arquivos local.
+Enquanto que os processos clientes solicitam arquivos através de primitivas Unix para manipulação de arquivos.
+Em conjunto, ambos devem ser capazes de prover as funcionalidades de sistemas de arquivos paralelos.
+Em a arquitetura centralizada há um processo adicional responsável por gerenciar as operações de metadados do sistema de arquivos, chamado processo coordenador de serviços.
+Os metadados do arquivo incluem informações como, padrão de distribuição do arquivo entre os servidores, tamanho da unidade de distribuição, localização das unidades, entre outras.
+Operações como abertura, fechamento, remoção e renomeação são realizadas com intermédio do processo coordenador.
+Por exemplo, o cliente contata o processo coordenador de serviços, recebe as informações de metadados do arquivo, para então, acessar de forma direta os servidores de armazenamento.
+Essas duas arquiteturas são comumente utilizadas no projeto e desenvolvimento de sistemas de arquivos paralelos.
+Entretanto, novos processos podem ser adicionados de acordo com as características da aplicação alvo ou sistema em uso.
+Em esta seção são listados alguns sistemas de arquivos paralelos.
+Esses foram escolhidos para exemplificar os dois tipos de arquiteturas discutidas anteriormente, centralizada e descentralizada.
+Todavia, há vários sistemas de arquivos paralelos implementados e em produção.
+Para maiores informações, nos trabalhos e foram apresentados alguns sistemas de arquivos paralelos existentes.
+Expand O Expand utiliza um conjunto de servidores NFS para armazenar o arquivo paralelo.
+Todas as funcionalidades são implementadas nos clientes.
+Os metadados do arquivo são armazenados num dos servidores NFS, denominado nó mestre.
+O cliente localiza o nó mestre através de uma função hash que recebe o nome do arquivo e retorna um inteiro.
+Esse inteiro define qual servidor mantém os metadados.
+Esse mecanismo aumenta a confiabilidade do sistema de arquivos ao descentralizar os metadados, porém cria alguns problemas.
+Por exemplo, ao renomear o arquivo o valor retornado por a função hash pode não ser o mesmo.
+De essa forma, as informações de metadados devem ser migradas de servidor, alterando a localização do nó mestre.
+Scotch Parallel File System (SPFS) compartilha algumas características do Expand, como a distribuição das informações de metadados entre os servidores de armazenamento.
+Como diferencial, o SPFS utiliza de forma agressiva mecanismos de busca antecipada e escrita adiada de dados.
+Esses mecanismos são implementados através de buffers locais nos clientes.
+Galley Galley é outro exemplo de sistema de arquivos paralelos semelhante ao Expand e SPFS.
+Em adição, o sistema provê uma interface simples e genérica que possibilita aos processos clientes controlar de forma explícita o paralelismo no acesso aos arquivos.
+GlusterFS é um sistema de arquivos que agrega várias unidades de armazenamento interconectadas por redes Infiniband RDMA ou TCP/ IP.
+Seu objetivo é criar um sistema de arquivos paralelos com grande capacidade de armazenamento e vazão de dados.
+É um sistema de arquivos que executa no espaço do usuário, não sendo necessárias alterações no kernel do sistema operacional.
+Isso permite instalar o GlusterFS sobre várias distribuições Linux (Debian, Solaris, BSD, Fedora, etc).
+A arquitetura do GlusterFS é formada por dois tipos de componentes:
+Servidor e cliente.
+Não há um servidor de metadados dedicado.
+Para acessar os arquivos, os clientes executam algoritmos nativos do GlusterFS para obter os metadados sob demanda.
+Essa característica elimina o gargalo no acesso aos metadados em servidor centralizado, da mesma forma que elimina o ponto central de falhas do sistema.
+A arquitetura do GlusterFS pode ser visualizada na Figura 2.5.
+Em o lado servidor as unidades de armazenamento são chamadas de bricks.
+Tipicamente, umbrick é um nó do cluster que compartilha partições de dados ou discos inteiros.
+Um brick pode conter um ou mais volumes, apontando para partições ou discos formatados com um sistema de arquivos local.
+Em o lado cliente, utiliza- se a biblioteca FUSE para acessar os volumes compartilhados por os servidores de que informam quais volumes, forma de acesso e protocolo de comunicação serão utilizados para acessar os dados.
+O modo como o cliente acessa o sistema de arquivos é definido por componentes chamados translators.
+Os translators são objetos que implementam todas as operações de sistema de arquivos.
+GlusterFS através da implementação de novos translators.
+Os pontos fortes do GlusterFS são a ausência de servidor de metadados centralizado, facilidade de instalação e manutenção, esta devida ao baixo nível de intrusão sobre o sistema operacional (FUSE).
+A adição de um novo servidor de armazenamento acarreta na reconfiguração dos clientes, não sendo uma operação transparente.
+Parallel Virtual File System (PVFS) é um sistema de arquivos paralelos para clusters Linux.
+Tem como objetivo fornecer alta vazão de dados para aplicações paralelas.
+O PVFS é composto por:
+Servidores de E/ S, servidor de metadados e processos clientes.
+Todos os componentes podem estar localizados na mesma máquina.
+Entretanto, a distribuição destes em máquinas distintas trás benefícios como maior desempenho.
+A Figura 2.6 apresenta a arquitetura do PVFS.
+A aplicação cliente quando necessita ler ou escrever dados consulta o servidor de metadados.
+A resposta informa em quais servidores de E/ S os dados estão armazenados.
+De posse dessas informações, o acesso se dá de forma direta entre cliente e servidores de E/ S, não envolvendo o servidor de metadados.
+E/ S e tamanho da unidade de armazenamento em kilobytes.
+De essa forma é possível determinar qual servidor de E/ S armazena a primeira unidade de dados, por quantos servidores de E/ S o arquivo estará distribuído e qual o tamanho de cada unidade de armazenamento, respectivamente.
+O PVFS utiliza o sistema de arquivos local da máquina, não é necessária a instalação de um sistema de arquivos específico.
+Ambos, servidores de E/ S e metadados, executam um daemon do PVFS.
+Resumidamente, o daemon escuta requisições das aplicações cliente e lê ou escreve dados nos dispositivos de armazenamento existentes.
+Quando um cliente executa uma operação de leitura ou escrita sobre o ponto de montagem do PVFS, as chamadas de sistema são interceptadas e redirecionadas ao daemon, impedindo a execução sobre o sistema de arquivos local.
+Esse mecanismo de interceptação permite que aplicações façam uso do PVFS sem a necessidade de recompilar o código fonte.
+O PVFS fornece uma API (Application Programming Interface) nativa que permite acesso aos arquivos.
+Entretanto, também existe suporte para as Apis Unix/POSIX e MPI-IO.
+A API Unix/POSIX oferece suporte às funções read, write e comandos shell Unix como ls, cp e rm.
+O PVFS pode ser utilizado em conjunto com um sistema de replicação de dados para prover tolerância a falhas.
+Este mecanismo evita a perda de dados na ocorrência de problemas físicos em servidores.
+Porém, esse sistema puro de replicação não provê alta disponibilidade para o sistema de arquivos.
+Por exemplo, quando um servidor para de responder por problemas físicos ou problemas na rede, nenhum outro servidor toma o seu lugar para dar continuidade aos serviços de arquivo.
+De essa forma, um cliente pode acessar em paralelo vários servidores de E/ S. O pNFS permite a exportação de toda a hierarquia de diretórios ou parte de ela, assim como no NFS.
+A arquitetura do pNFS é composta por os componentes driver de layout, driver de E/ S e interface de recuperação de layouts.
+A Figura 2.7 ilustra a arquitetura do pNFS.
+Para realizar o acesso ao servidor pNFS, o cliente inicialmente solicita o layout do arquivo.
+Um layout consiste em toda informação necessária para acessar qualquer faixa de bytes dentro de o arquivo.
+Por exemplo, informações sobre tamanho do bloco de dados, deslocamento do primeiro bloco sobre cada dispositivo de armazenamento e número de blocos.
+De posse do layout do arquivo, o componente driver de layout traduz as requisições de leitura e escrita do cliente pNFS em operações de E/ S interpretáveis por os dispositivos de armazenamento.
+O componente driver de E/ S possui suporte a operações de E/ S sobre redes Myrinet, Infiniband e TCP/ IP.
+Como mencionado anteriormente, o pNFS é uma extensão do protocolo NFSv4.
+A semântica de acesso a arquivos é a mesma fornecida por o NFSv4.
+Em o momento da escrita deste trabalho, o pNFS não permite replicar o servidor de metadados.
+De essa forma, tolerância a falhas e escalabilidade está limitada por o servidor de metadados único.
+Lustre O Lustre tem arquitetura semelhante ao PVFS e pNFS.
+É composto por:
+Servidor de metadados (MDS), servidores de armazenamento (OSS) e processos clientes (OSC).
+Como PVFS e pNFS, os fluxos de dados e controle foram separados, permitindo o acesso em paralelo a partes distintas do arquivo.
+Em o próximo Capítulo, serão apresentadas maiores informações sobre a arquitetura e funcionamento do Lustre.
+Para fornecer uma ideia do quão rápido pode ser um sistema computacional, geralmente são utilizados benchmarks.
+Estes são capazes de imitar o comportamento de aplicações reais, fornecendo subsídios para medir o desempenho de software e hardware.
+De maneira ideal, para analisar o desempenho de um sistema deveria- se usar aplicações reais, com cargas de trabalhos reais, mas isso às vezes é impraticável, por consumir muito tempo.
+Isso implica no aprendizado da nova aplicação, envolvendo acerto de configurações, migração de dados para o novo ambiente, além de ser necessário tratar possíveis erros existentes no código.
+Por isso, benchmarks são ferramentas geralmente empregadas na avaliação de desempenho de sistemas.
+Entretanto, é preciso tomar cuidado na escolha de quais benchmarks serão utilizados.
+É importante compreender o funcionamento dessas ferramentas e como interpretar os resultados gerados, a fim de selecionar benchmarks que representem da melhor forma possível o comportamento de aplicações reais.
+Existem diversos benchmarks direcionados para analisar o comportamento e desempenho de sistemas computacionais.
+Em os benchmarks são classificados em três categorias:·
+Macrobenchmarks: Avaliação de desempenho através de cargas de trabalho reais, tipicamente se utiliza a carga de trabalho de uma aplicação real.·
+Trace Replays:
+A carga de trabalho de uma aplicação real é gravada para posterior execução.·
+Microbenchmarks: São projetados para medir o desempenho de partes específicas de um sistema, a fim de identificar possíveis gargalos.
+Em este trabalho, o Lustre será avaliado sob cargas de trabalho de aplicações paralelas reais.
+Para realizar essa tarefa é necessário selecionar um benchmark configurável e escalável, que possa avaliar diversos fatores relacionados as operações de E/ S, e que possa também, ser utilizado em ambientes com poucos ou muitos processadores/ nós.
+A seguir, são listados alguns benchmarks que visam simular o comportamento de E/ S de aplicações paralelas científicas:·
+Flash I/ O é um benchmark baseado numa aplicação real voltada para área de astrofísica termonuclear.
+Em intervalos regulares de tempo, todos os processos transferem dados ao sistema executa principalmente operações de escrita, usando a biblioteca paralela HDF5.·
+MADbench2 é derivado de uma aplicação paralela real, que analisa conjuntos de dados CMB (Cosmic Microware Background) provenientes de vários satélites.
+Essa análise sobre grandes massas de dados gera intensa atividade de E/ S. MADbench2 é um benchmark parametrizável, possibilita o uso de POSIX ou MPI-IO, acesso síncrono ou assíncrono, uso de arquivos exclusivos ou compartilhados entre os processos, além de os parâmetros relacionados à aplicação de análise de dados CMB.·
+Obenchmark BTIO é baseado num código para resolução de equações deNavier-- Stokes, através de um método de blocos tri-diagonais (BT).
+Cada nó processa uma grade de 5 x 5 blocos e armazena os resultados em disco.
+Isso gera um número significante de operações de E/ S. O BTIO faz parte do NASParallel Benchmarks (NPB), um conjunto de programas utilizados para avaliar o desempenho de máquinas paralelas, derivado de aplicações relacionadas à dinâmica de fluídos.·
+MPI Tile I/ O avalia o desempenho da biblioteca MPI-IO sob uma carga de trabalho com acessos não contíguos.
+Em este benchmark, os dados são divididos numa estrutura bidimensional, formando uma região ladrilhada (tiled), semelhante a um tabuleiro de xadrez.
+Essa carga de trabalho representa aplicações de visualização, onde a cena é dividida em vários tiles, que são processados em paralelo.·
+Effective I/ O benchmark (b eff io) faz uso de MPI para executar uma série de configurações pré-definidas, a fim de derivar um número que representa o desempenho de E/ S alcançado por o sistema.
+Usa três métodos de acesso para medir o desempenho do sistema:
+Escrita inicial, reescrita e leitura.
+Simula os padrões de acesso strided e segmented, com ou sem operações coletivas, para aplicações que acessam um arquivo compartilhado.
+E, simula acesso não coletivo para aplicações onde cada processo MPI acessa um arquivo exclusivo.
+Apesar de simular cinco tipos de padrões de acesso, não é um benchmark que fornece muitas opções de configuração.
+Alguns parâmetros não podem ser alterados, limitando o ajuste fino da carga de trabalho.·
+O Ior (Interleaved or Random) é um microbenchmark altamente configurável capaz de simular a maioria dos padrões de acesso de aplicações paralelas científicas.
+Permite simular aplicações que acessam arquivos compartilhados ou exclusivos, usando interfaces como POSIX, MPI-IO, HDF5 e parallelNetCDF para realizar E/ S. Este benchmark será apresentando em maiores detalhes a seguir.
+Os benchmarks Flash I/ O, MADbench2, BTIO e MPI Tile I/ O são derivados de aplicações paralelas reais.
+Alguns de eles são parametrizáveis, porém dentro de o escopo do padrão de acesso da aplicação alvo.
+O b eff io é capaz de simular cinco padrões de acesso, mas não oferece muitas opções para ajuste fino da carga de trabalho.
+No entanto, este trabalho visa avaliar o Lustre sob cargas de trabalho de aplicações paralelas reais, sendo necessário selecionar um benchmark flexível e altamente parametrizável.
+Entre as opções de benchmarks investigadas, selecionou- se o Ior (Interleaved or Random), por ser considerada a opção mais adequada.
+Maiores detalhes do Ior serão apresentados a seguir.
+O Ior (Interleaved or Random) possibilita a execução de operações de escrita e leitura em paralelo sobre arquivos de tamanhos diversos.
+Faz uso da biblioteca de passagem de mensagens MPI para sincronizar as operações entre processos.
+Possibilita definir o número de arquivos que cada processo acessa, ou se um arquivo compartilhado será acessado por todos os processos.
+Também fornece suporte as interfaces POSIX, MPI-IO, HDF5 e parallelNetCDF.
+A Figura 2.8 ilustra um exemplo de padrão de acesso que pode ser representado por o Ior.
+Em esse caso todos os processos acessam um arquivo compartilhado.
+O arquivo é dividido em segmentos e cada segmento é dividido em blocos.
+O número de blocos por segmento está relacionado ao número de processos envolvidos na execução.
+Os segmentos podem representar passos de uma simulação ou uma variável de dados da aplicação paralela.
+Por exemplo, na Figura 2.8 os segmentos possuem quatro blocos de dados.
+Cada processo faz acesso ao seu respectivo bloco.
+Somente após todos os processos concluírem o acesso ao segmento 1 os blocos do segmento 2 serão acessados.
+O Ior fornece parâmetros para definir o número de segmentos e tamanho dos blocos de dados, a combinação dos mesmos determina o tamanho do arquivo.
+Além disso, o Ior permite definir o tamanho das transferências de dados entre memória e arquivo.
+Tipicamente são necessárias várias transferências para escrever/ ler um bloco inteiro de dados.
+O exemplo anterior representa aplicações onde todos os processos acessam um arquivo compartilhado.
+Para aplicações onde existe um arquivo por processo, a forma de acesso é semelhante, porém cada processo escreve ou lê blocos de dados num arquivo exclusivo.
+O Ior é capaz de representar grande parte das operações de E/ S executadas por aplicações paralelas científicas.
+Além de ser uma ferramenta parametrizável, possibilita a automatização de testes, facilitando a comparação entre sistemas.
+De essa forma, não será necessário desenvolver um novo benchmark, o Ior será utilizado na avaliação do Lustre.
+Este Capítulo apresenta o sistema de arquivos paralelos Lustre.
+Por se tratar do objeto de estudo deste trabalho, aqui são apresentadas maiores informações sobre sua arquitetura, forma de armazenamento de arquivos e striping de arquivos, tipos de redes suportadas, interfaces de acesso e demais características gerais.
+A escolha do Lustre como objeto de estudo, se deve principalmente por a sua grande utilização entre os pesquisadores e centros de alto desempenho.
+Entre os dez primeiros supercomputadores da lista TOP500, seis utilizam o Lustre.
+Existem outros sistemas de arquivos paralelos, que inclusive, compartilham algumas características em termos de arquitetura com o Lustre.
+Porém, o Lustre é o que possui maior visibilidade, motivo que o torna um sistema de arquivos alvo de vários estudos.
+Lustre é um sistema de arquivos paralelos open source para clusters Linux com objetivo de prover alta escalabilidade, eficiência e redundância.
+Surgiu em 1999 como um projeto de pesquisa da Universidade de Carnegie Mellon, Usa.
+Entretanto, somente em 2003 a primeira versão foi liberada para clusters de produção.
+Atualmente, a Sun Microsystems é responsável por o desenvolvimento e suporte do Lustre, disponibilizando o mesmo sobre os termos e condições da Gnu General Public License (GPL).
+O Lustre visa atender as necessidades de aplicações intensivas em dados, permitindo criar sistemas de arquivos com grande capacidade de armazenamento e vazão de dados.
+Por ser um sistema escalável, tipicamente é utilizado como sistema de arquivos global para todos os clusters do site.
+Isso facilita as tarefas de gerenciamento, evitando a manutenção de várias cópias de dados distribuídas entre vários sistemas de arquivos.
+Este Capítulo está organizado da seguinte forma:
+A seção 3.1 apresenta a arquitetura do Lustre.
+A seção 3.2 comenta as principais características e limites do sistema de arquivos.
+Por fim, a seção 3.3 apresenta o cenário de estudo, onde serão realizados os testes sobre o Lustre.
+A arquitetura do Lustre é baseada em quatro componentes:·
+Metadata Server (MDS):
+Servidor responsável por gerenciar todas as operações relacionadas aos metadados do sistema de arquivos.
+Os metadados incluem informações sobre a estrutura de diretórios, tamanho de arquivos, atributos e permissões.
+Isso inclui também as informações sobre a localização dos objetos de dados, distribuídos entre os servidores de armazenamento do sistema de arquivos.
+Em adição, o MDS tem associado um componente MDT (Metadata Target), dispositivo responsável por persistir os metadados.·
+Object Storage Servers (OSS):
+Servidores responsáveis por fornecer serviços de arquivos.
+Isso inclui serviço de E/ S e manipulação das requisições sobre os OST locais.·
+Object Storage Target (OST):
+Dispositivos responsáveis por armazenar os objetos de dados.
+Tipicamente são utilizados discos magnéticos.
+Um servidor OSS pode gerenciar vários OSTs (geralmente entre dois e oito OSTs).·
+Object Storage Client (OSC):
+Biblioteca de software que permite acesso remoto ao sistema de arquivos Lustre por parte de os clientes.
+Em um sistema de arquivos Lustre, os clientes tipicamente são nós de computação, visualização ou estações de trabalho.
+Todos os clientes que montam o sistema de arquivos visualizam sempre um espaço de nomes único, coerente e sincronizado.
+A Figura 3.1 ilustra a arquitetura do Lustre.
+Todos os componentes são interconectados por uma rede de comunicação.
+Em o Lustre todos os arquivos são tratados como objetos.
+Dependendo do tamanho do arquivo e configurações de fracionamento e distribuição, um arquivo pode estar contido num ou mais objetos.
+Os objetos são responsáveis por armazenar os dados do arquivo e são distribuídos entre os servidores OSS.
+O Lustre utiliza o sistema de arquivos adjacente dos OSTs para armazenar os objetos, ou seja, os objetos na realidade são arquivos armazenados nos OSTs.
+Através do servidor MDS, os clientes são capazes de localizar todos os objetos do arquivo e, com posse dessas informações, podem contatar de forma direta os servidores OSS para executar operações de E/ S. Em sistemas de arquivos Unix são utilizados inodes para representar cada arquivo armazenado.
+Um inode é uma estrutura de dados que armazena informações sobre um arquivo, como permissões, atributos e localização física.
+Em o Lustre, o inode é utilizado de forma semelhante.
+Entretanto, em vez de apontar para blocos de dados, o inode aponta para os objetos que compõem o arquivo (Figura 3.2).
+A criação de arquivo causa a alocação e configuração de um inode.
+Em o Lustre, a responsabilidade de criar um novo arquivo é atribuída ao servidor MDS.
+O cliente envia a requisição para o MDS, que faz a criação do inode local e contata os servidores OSS ordenando a criação dos objetos do arquivo.
+A o concluir a operação, o MDS retorna as informações aos clientes, que a partir deste ponto, enviam os dados diretamente aos servidores OSS.
+A escrita e leitura de arquivos ocorrem de maneira semelhante.
+O cliente acessa o servidor MDS e recebe um inode.
+Este inode tem uma lista de objetos e servidores OSS responsáveis por o armazenamento do arquivo.
+De posse destas informações, o cliente passa a acessar diretamente os objetos.
+Caso o arquivo seja composto por apenas um objeto, significa que este objeto contém todos os dados do arquivo.
+Por outro lado, a existência de mais de um objeto significa que o arquivo está distribuído (striped) por vários OSS.
+Ostriping permite que partes do arquivo possam ser armazenadas em diversos OSTs.
+A Figura 3.3 ilustra a distribuição de arquivos sobre um certo número de objetos.
+O número de objetos é chamado de stripecount.
+Cada objeto contém blocos de dados.
+O tamanho do bloco é chamado de stripesize.
+Quando o tamanho dos dados excede o stripesize, o restante é armazenado no próximo OST.
+A Figura arquivos.
+Os servidores OSS manipulam as interações entre as requisições de clientes e os dispositivos físicos de armazenamento.
+Os dispositivos de armazenamento são referenciados como Object-Based Disks (OBDs), mas os dispositivos não estão limitados somente a discos rígidos.
+Em a realidade, os OBDs são representados por drivers de dispositivos.
+Desta forma é possível adicionar novos dispositivos de armazenamento facilmente ao Lustre.
+Toda a infraestrutura de comunicação necessária para conectar clientes e servidores de sistemas de arquivos Lustre é fornecida por a API LNET (Lustre Networking).
+Tipicamente, os dispositivos de armazenamento, discos magnéticos, por exemplo, são conectados aos servidores de MDS e OSS através da tecnologia SAN (Storage Area Network) tradicional.
+A LNET atua somente na conexão entre clientes e servidores, fornecendo interoperabilidade entre diversos tipos de redes, incluindo:·
+InfiniBand: OpenFabrics 1.0 e 1.2, Mellanox Gold, Cisco, Voltaire e Silverstorm.·
+TCP: Qualquer tecnologia com suporte a TCP, como GigE, 10 GigE e IPoIB.·
+Quadrics: Elan3 e Elan4.·
+Myricom: GM e MX.·
+Cray: Seastar, RapidArray.
+O suporte aos vários tipos de redes permite o uso do Lustre como sistema de arquivos global em grandes instalações.
+A Figura 3.4 ilustra o uso do Lustre como sistema de arquivos global para dois clusters com tecnologias de redes distintas.
+Em este caso, alguns nós atuam como roteadores.
+É possível configurar um servidor OSS para atuar também como roteador.
+A possibilidade de usar o Lustre como um sistema de arquivos global trás vantagens no gerenciamento de arquivos, quotas de usuários e permissões de acesso.
+Além disso, a LNET fornece suporte a channel bonding e balanceamento de carga.
+Toda a flexibilidade oferecida por a LNET tem por objetivo minimizar gargalos na comunicação entre clusters e sistemas de arquivos Lustre.
+Lustre segue as normas POSIX para manipular arquivos.
+POSIX (Portable Operating System Interface) é um conjunto de padrões e interfaces para acesso ao sistema operacional.
+Em o contexto de sistemas de arquivos, POSIX define que a maioria das operações devem ser atômicas, garantindo semântica no acesso aos dados.
+Sendo assim, o usuário tem a visão de estar operando um sistema de arquivos local.
+A forma de montar sistemas de arquivos Lustre é semelhante ao NFS.
+Após montar o sistema, o usuário visualiza um espaço de nomes único.
+A manipulação de arquivos pode ser realizada através de comandos shell Unix como ls, cp, rm, etc..
+Através das ACL (Access Control List) POSIX é possível definir as permissões de acesso aos arquivos e diretórios.
+O controle é semelhante ao utilizado em sistemas Unix, com três classes de usuários (proprietário, grupo e outros) e permissões para leitura (r), escrita (w) e execução (x).
+A documentação do Lustre trás as seguintes informações sobre os limites de arquivos e sistema de arquivos:·
+Número máximo de stripes:
+Um arquivo pode ser fracionado e distribuído por até 160 OST.·
+Tamanho do stripe:
+Para máquinas 64 bits, o tamanho mínimo do stripe é definido por o tamanho da página de memória, o mínimo padrão é de 64 kB.
+O tamanho máximo do stripe é de 2 Tb.
+Para máquinas de 32 bits, o resultado da expressão (stripe sizepause stripe count) deve ser menor que 4 GB.·
+Tamanho do arquivo:
+O tamanho máximo de um arquivo em máquinas 32 bits é de aproximadamente 16 Tb.
+Em plataformas de 64 bits o tamanho do arquivo está limitado a 216 bytes.
+Porém, existe a limitação do tamanho do stripe a 2 Tb e o número de stripes em 160, mesmo assim, isso permite arquivos de 320 Tb.·
+Tamanho máximo do sistema de arquivos:
+Sistemas operacionais Linux com kernel 2.6 limitam os dispositos de bloco a 8 Tb, ou seja, cada OST pode ter um sistema de arquivos de 8 Tb (limite imposto por o ext3).
+Sendo que o Lustre tem um limite definido no código fonte de 8150 OST por sistema de arquivos, é possível ter um sistema de arquivos teórico de 64 PB.·
+Número máximo de clientes:
+Atualmente o número máximo de clientes Lustre é de 131072.
+Alguns desses limites são definidos no código fonte do Lustre e são possíveis alterações, desde que o Lustre seja recompilado.
+Essas informações indicam que o Lustre é um sistema escalável, limitado ao hardware disponível.
+O Lustre provê utilitários via linha de comando para gerenciar o comportamento do sistema de arquivo e forma de distribuição de stripes entre os servidores de armazenamento.
+Dois utilitários utilizados com frequência são lctl e lfs.
+Utilitários de gerenciamento Através do utilitário lctl é possível executar tarefas administrativas, como configurar parâmetros do sistema de arquivos e depurar de erros.
+Por exemplo, o lctl provê meios de desativar determinado OSS para troca de hardware ou execução de backup e, ativar novamente após manutenção.
+Configurações de rede, timeouts e recuperação de informações sobre os componentes do Lustre são tarefas geralmente realizadas através dessa ferramenta.
+O utilitário lfs permite criar um novo arquivo ou diretório com um padrão específico de distribuição.
+De a mesma forma é possível consultar informações sobre os objetos do arquivo e sua localização entre os OSS.
+Também é possível definir o padrão de distribuição de diretórios, onde todos os subdiretórios e arquivos contidos adotarão o mesmo padrão.
+Por exemplo, no momento da criação do arquivo é possível definir os parâmetros stripesize, stripecount e index, que representam respectivamente, o tamanho dos stripes em que o arquivo será fracionado, o número de OSS em que serão distribuídos os stripes e, por fim, o índice do primeiro OSS a receber o primeiro stripe.
+Adição de OSS O Lustre permite a adição de novos OSS e OST ao sistema de arquivos sem interromper os serviços de arquivos aos clientes.
+O procedimento de adição de novos OSS ou OST é semelhante ao executado durante a criação do sistema de arquivos.
+Novos OST tornam a distribuição de espaço livre desbalanceada.
+Tarefas simples como copiar os arquivos antigos para nova localização dentro de o mesmo sistema de arquivos redistribuem os stripes sobre os novos OSTs.
+Esse tipo de tarefa pode facilmente ser realizada com auxílio de scripts.
+Gerenciamento do espaço livre O servidor de MDS usa duas formas para alocar os stripes entre os OSS:
+Forma circular ou ponderada de acordo com o espaço livre.
+A forma circular (round-robin) tem melhor desempenho por maximizar o uso da banda de rede agregada.
+Entretanto, a forma ponderada é utilizada quando a diferença de espaço de armazenamento entre servidores OSS é superior a 20%.
+O administrador do sistema pode alterar esse comportamento via utilitário lctl.
+Quotas O controle de quotas permite limitar a quantidade de disco que o usuário ou grupo pode usar num diretório.
+As quotas são configuradas por o usuário root.
+Além de a quota para espaço em disco existe o controle similar para o número de arquivos permitidos.
+As quotas no Lustre diferem do Linux em várias formas:·
+A administração das quotas é configurada através do comando lfs, após a montagem do diretório.·
+As quotas são distribuídas entre os componentes do Lustre (OSSs).·
+Quando uma quota é habilitada, automaticamente todos os clientes do sistema de arquivos estão sobre seu efeito.
+Vários trabalhos avaliaram o Lustre sobre clusters de grande escala[ 47],[ 46],[ 1],[ 37].
+Em este trabalho, o foco está voltado para clusters de pequena escala, que de certa forma representam a realidade de muitos centros de pesquisas nacionais.
+A infraestrutura para a realização deste trabalho foi cedida por o Laboratório de Alto Desempenho da PUCRS (LAD-PUCRS), que tem como objetivo desenvolver pesquisas na área de computação de alto desempenho.
+Em esta seção serão apresentadas as características físicas do ambiente de teste e configurações do Lustre.
+O ambiente de teste disponibilizado tem doze máquinas divididas em duas classes, de acordo com a configuração dos equipamentos.
+A primeira classe possui quatro máquinas com maior capacidade de processamento e armazenamento.
+Estas serão responsáveis por hospedar os sistemas de arquivos.
+As máquinas do experimento foram disponibilizadas para uso exclusivo dos testes, ou seja, não havia outros usuários compartilhando os mesmo recursos.
+Apenas os softwares necessários para simular a carga de aplicações paralelas foi instalado e configurado.
+Para fins comparativos, o NFS foi instalado em máquina da mesma classe de configuração do Lustre.
+Os softwares utilizados estão listados na Tabela 3.2.
+Assumindo que o Lustre se encontra instalado em todas as máquinas do ambiente, esta seção discute alguns detalhes de como a configuração do sistema de arquivos foi realizada.
+Informações mais detalhadas sobre o processo de instalação são encontradas no manual do Lustre.
+Um sistema de arquivos Lustre é composto por três componentes principais:
+MDS, OSS e clientes.
+Para configurar o sistema, esses três componentes foram distribuídos entre as máquinas da seguinte forma (Figura 3.5):·
+Um servidor de metadados (MDS).·
+Três servidores de armazenamento (OSS).·
+Oito clientes Lustre.
+Importante ressaltar que as máquinas servidoras (MDS e OSS) têm apenas um disco rígido.
+De essa forma, o sistema operacional e sistema de arquivos Lustre compartilharão o mesmo disco.
+Em o momento da instalação do Linux foram reservados aproximadamente 23 GB de espaço não par52 ticionado.
+O sistema de arquivos Lustre resultante tem aproximadamente 70 GB de capacidade de armazenamento (3pause 23 GB).
+O processo de criação do sistema de arquivos é realizado através da formatação dos dispositivos ou partições dos servidores MDS e OSS.
+Obrigatoriamente é preciso formatar o MDS primeiro.
+Em o momento da formatação de cada OSS é necessário informar qual o servidor MDS associado.
+Essa formatação é executada via comando mkfs do Linux.
+Após, os clientes Lustre podem montar o sistema de arquivos de forma semelhante à utilizada por o NFS.
+Nenhum mecanismo de tolerância a falhas pertencente ao Lustre foi utilizado no ambiente de teste.
+A avaliação experimental não tem como objetivo verificar o comportamento do Lustre na ocorrência de falhas.
+As configurações referentes ao fracionamento e distribuição dos arquivos foram definidas através do utilitário lfs no momento da criação dos diretórios de teste.
+Em a descrição dos experimentos serão apresentadas maiores informações sobre a forma de fracionamento e distribuição de arquivos.
+O uso do NFS visa permitir a comparação com o Lustre em alguns experimentos da avaliação.
+O servidor NFS foi configurado na mesma máquina onde reside o serviço de MDS do Lustre (Figura será considerada.
+O NFS permite tornar as operações de acesso assíncronas, melhorando o desempenho, mas não garantindo consistência no acesso aos dados.
+Visto que o Lustre faz uso de operações assíncronas, o NFS será configurado da mesma forma (uso do parâmetro async na instrução para exportar o sistema de arquivos).
+Conhecer as características e limitações da plataforma disponível têm grande importância no projeto e desenvolvimento de aplicações paralelas.
+Muitos desenvolvedores não conhecem as caracter ísticas e limites das máquinas utilizadas no dia-a-dia, e muitas vezes, detalhes importantes como padrão de acesso e frequência que operações de E/ S são executadas por as aplicações.
+A falta de conhecimento sobre esses aspectos resulta em implementações ineficientes e de baixo desempenho.
+Um dos aspectos que tem forte impacto no desempenho de aplicações paralelas é o acesso ao sistema de armazenamento.
+Esses sistemas são complexos, compostos por vários componentes, o que inclusive, torna a avaliação uma tarefa complicada.
+Há diversos fatores que influenciam no desempenho, como tipo de mídia de armazenamento utilizada (discos magnéticos, memória RAM volátil, memória RAM flash, unidades óticas, etc.), tipo do ambiente de armazenamento (LVM, Raid, etc.), rede de comunicação e demais componentes dos sistemas operacionais.
+Por isso a importância de avaliar esses sistemas, de forma a verificar como aplicações podem ser desenvolvidas para obter maior desempenho, ou mesmo, descobrir se o sistema de armazenamento é adequado para a classe de aplicações alvo.
+A fim de contribuir com esse processo, este Capítulo apresenta uma avaliação do sistema de arquivos paralelos Lustre sob cargas de trabalho de aplicações paralelas.
+O restante deste Capítulo está organizado da seguinte forma:
+A próxima seção discute a carga de trabalho de aplicações paralelas e padrões de acesso geralmente empregados.
+A seção 4.2 apresenta a metodologia utilizada na avaliação do Lustre.
+Por fim, nas seções 4.3 e 4.4 são apresentados os experimentos e resultados obtidos.
+A avaliação realizada neste trabalho, tem foco no comportamento de E/ S de aplicações paralelas intensivas em dados.
+Para reproduzir esse comportamento foram investigados alguns trabalhos que caracterizaram as operações de E/ S de aplicações paralelas reais.
+A carga de trabalho da avaliação é baseada nos resultados das caracterizações apresentadas nesta seção.
+Aplicações paralelas geralmente acessam um ou mais arquivos durante a execução.
+A Figura 4.1 mostra um modelo de entrada/ saída típico.
+Uma aplicação paralela pode ser dividida em várias fases, onde em determinada fase, um processo pode acessar um ou mais arquivos.
+Os arquivos podem ser acessados de forma exclusiva ou compartilhada.
+Quando vários processos acessam um arquivo é preciso definir o nível de compartilhamento, ou seja, se os processos acessam regiões sobrepostas ou não.
+Todas essas características desempenham papel importante na forma como a aplicação interage com o sistema de arquivos, influenciando no desempenho final.
+Em Miller e Katz, as operações de E/ S de aplicações de alto desempenho foram divididas em três categorias:
+Required, data staging e checkpoint.
+Em Required, as operações de E/ S consistem na leitura inicial dos dados para processamento e escrita dos resultados obtidos.
+Data staging fornece suporte a aplicações onde os dados não cabem na memória principal do nó, sendo necessário manter os dados em disco.
+Esse processo pode ser realizado automaticamente por o sistema operacional ou prevenir perda de dados ou possibilitar o reinício, em casos de falhas no sistema ou aplicação.
+Algumas aplicações científicas demoram semanas ou até meses para completar a execução.
+Checkpoint direta na confiabilidade e desempenho final, sendo o ajuste dependente da aplicação e ambiente de execução.
+Alguns estudos caracterizaram a carga de trabalho de aplicações paralelas.
+Em a década de 90, foram caracterizadas as operações de E/ S de máquinas de memória compartilhada executando aplicações científicas, e.
+O projeto foi chamado de CHARISMA.
+Os resultados obtidos permitiram concluir que o tamanho das requisições aos arquivos é relativamente constante em cada aplicação.
+A maior parte das requisições de E/ S são de tamanho pequeno, entretanto, 90% dos dados são transferidos através de requisições grandes.
+As operações de escrita são dominantes em relação a a leitura, sendo infrequente escritas a dados compartilhados entre processos.
+Além disso, foram abordados os padrões de acessos desempenhados por as aplicações avaliadas.
+Esses padrões de acesso serão utilizados na avaliação do Lustre e serão apresentados com maiores detalhes na próxima seção.
+Em 2004, um grupo de pesquisa da Universidade da Califórnia caracterizou a carga de trabalho de um cluster Linux de grande escala.
+Os resultados obtidos foram semelhantes aos apresentados em CHARISMA.
+Em adição, os resultados apontaram o uso comum de um nó mestre para receber to 4.1.
+Os padrões de acesso apresentados a seguir serão utilizados na avaliação do Lustre.
+A nomenclatura adotada aqui, será utilizada no restante do trabalho para referenciar os padrões de acesso.
+File-per-proc Em este padrão, cada processo (P) acessa um arquivo exclusivo, possibilitando a transferência de dados em paralelo.
+Como vantagem, essa abordagem possibilita realizar E/ S em paralelo através de bibliotecas sequenciais.
+A principal desvantagem é a criação de vários arquivos ao invés de um.
+Isso pode dificultar a junção dos arquivos para servir de entrada a outra aplicação, pode dificultar tarefas como cópia, movimentação ou envio dos arquivos por a rede.
+Além disso, o reinício após falhas no sistema ou aplicação requer número de processos igual ao número de arquivos gerados.
+Em clusters compartilhados isso pode ser um problema.
+Todos os processos acessam um arquivo compartilhado.
+As duas vantagens principais são a criação de apenas um arquivo e a manutenção do acesso em paralelo.
+Além disso, esse modelo não prejudica a escalabilidade e desempenho da aplicação.
+Em clusters de grandes dimensões, certas aplicações podem criar milhares de arquivos durante a execução, sobrecarregando o sistema de arquivos.
+Essa estratégia geralmente é implementada com uso de bibliotecas de acesso paralelo.
+MPI-IO geralmente é empregada.
+De a aplicação.
+Os acessos podem ser a regiões contíguas ou não contíguas do arquivo, os blocos de será subdividido nos três padrões de acesso a seguir:·
+Segmented access: O arquivo é dividido logicamente em segmentos de tamanho fixo.
+Cada processo (P) acessa um segmento do início ao fim.
+Por exemplo, um arquivo de 4096 bytes acessado por quatro processos.
+O processo 0 acessa o intervalo 0-1023, processo 1 o intervalo de 1024-2047, processo três o intervalo 2048-3071 e o processo quatro o intervalo de compartilhado sendo acessado.
+A Figura 4.3 mostra uma representação gráfica do padrão.·
+Simple strided: Esse padrão divide o arquivo logicamente em segmentos, onde cada processo (P) acessa um intervalo de bytes do segmento, de acordo com um deslocamento definido.
+O deslocamento tipicamente é calculado em função de o valor da variável rank do processo.
+Cada segmento do arquivo ocorre regularmente de acordo com um fator multiplicador.
+A soma de todas as regiões de dados dentro de o segmento é chamada de &quot;stride distance».
+Esse padrão é utilizado por várias aplicações paralelas.
+Como exemplo, pode- se citar a aplicação Flash, voltada para área de astrofísica termonuclear.
+Em intervalos regulares de tempo todos os processos gravam em disco um arquivo de checkpoint.
+A Figura 4.4 mostra uma representação gráfica do padrão.
+Para delimitar o escopo do presente trabalho, a avaliação do Lustre estará limitada aos quatro padrões de acesso citados anteriormente.
+A seleção dos mesmos se deve ao amplo uso em aplicações paralelas científicas (projeto CHARISMA).
+Esses padrões foram evidenciados em trabalhos que caracterizaram as operações de E/ S de aplicações paralelas reais.
+Todavia, existem outros padrões de acesso empregados em aplicações paralelas.
+Como exemplo de outros padrões, pode- se citar nested strided e tiled.
+Nested strided é um padrão de acesso complexo que combina múltiplos acessos do padrão simple strided.
+Em cada bloco de dados do segmento tem associado um ou mais blocos de dados simple strided.
+Esse padrão pode ser utilizado no acesso a elementos de uma estrutura tridimensional, como um cubo armazenando em arquivo.
+Em o padrão tiled, o arquivo é dividido logicamente na forma de um ladrilho, onde cada processo é responsável por processar determinada região da área ladrilhada.
+Esse padrão, geralmente é utilizado por aplicações de visualização, podendo ser decomposto nos padrões segmented access ou simple strided.
+Para avaliar sistemas computacionais é preciso definir uma metodologia de trabalho.
+É preciso definir quais serão os procedimentos, fatores e métricas que serão utilizados.
+Todo esse processo deve ser documentado, permitindo desta forma a reprodução dos experimentos e avaliações, fornecendo meios para que outros possam comparar os resultados obtidos.
+Assim, nesta seção serão apresentadas as métricas, procedimentos e também, como foram projetados e organizados os experimentos para avaliar o Lustre.
+A escolha de métricas depende dos objetivos que se deseja atingir.
+A seguir são apresentadas algumas métricas que podem ser usadas para avaliar sistemas de arquivos:·
+Throughput: Medida de velocidade ou, a taxa em a qual o sistema de arquivos entrega dados.
+O throughput pode ser medido de duas formas:
+Acessos/ segundo, quando o tamanho das requisições são pequenas, ou bytes/ segundo para requisições maiores.·
+Tempo de resposta:
+Tempo que o sistema demora a entregar dados.
+Pode ser medido através de vários pontos de vista, por exemplo, através da perspectiva do usuário, sistema operacional ou mesmo, através da perspectiva da controladora do disco.·
+Capacidade: A capacidade de armazenamento também pode ser considerada como métrica para comparar sistemas de arquivos.
+Por exemplo, é possível comparar sistemas através da facilidade e limites de expansão da capacidade de armazenamento.·
+Confiabilidade: Outra métrica importante na avaliação de sistemas de armazenamento em geral.
+Há grande preocupação por parte de os pesquisadores em aprimorar a confiabilidade dos sistemas de armazenamento.·
+Custo: O valor gasto para adquirir, instalar, configurar e manter sistemas de armazenamento é fundamental no momento de comparar soluções, muitas vezes determinante na escolha da solução de armazenamento.
+Throughput e tempo de resposta são métricas comuns usadas na avaliação de sistemas de arquivos.
+Como o objetivo principal da avaliação é medir o desempenho do Lustre e apontar possíveis gargalos, o throughput será a principal métrica utilizada.
+Os experimentos foram divididos em duas classes de testes, com foco no ambiente de teste e foco nos padrões de acesso de aplicações paralelas.
+Foco no Ambiente de Teste A avaliação sob a perspectiva do ambiente de teste visa investigar o comportamento do Lustre ao variar fatores como tamanho do arquivo, tamanho da unidade de transferência, número de clientes, número de servidores de armazenamento, distribuição da carga entre os servidores de armazenamento e acesso não alinhado ao tamanho do stripe.
+Os resultados são úteis para determinar os gargalos e limites do hardware e software do ambiente de teste.
+Foco nos Padrões de Acesso de Aplicações Paralelas O foco neste caso é o comportamento do Lustre sob alguns padrões de acesso utilizados por aplicações paralelas reais.
+Para maiores detalhes, na Seção 4.1.2 foram apresentados alguns padrões serão avaliados.
+Considerando acessos contíguos ou não contíguos por parte de os processos ao arquivo, Metodologia Usada na Execução dos Experimentos Em a maior parte dos experimentos utilizou- se o benchmark Ior para simular a carga de trabalho de aplicações paralelas.
+Em alguns casos foi necessário implementar pequenos programas MPI para representar determinado padrão de acesso ou compreender melhor o funcionamento do Lustre.
+Além disso, foram elaborados scripts para automatizar as tarefas e reduzir a ocorrência de erros durante as avaliações.
+Para fins estatísticos, os resultados apresentados são valores médios obtidos por a execução dos experimentos por no mínimo 20 vezes.
+O desvio padrão foi calculado e será exibido em conjunto com os resultados somente nos casos onde o mesmo foi superior ou inferior a 10% do valor médio.
+Nos demais casos deve- se considerar que não houve grandes variações nos resultados obtidos.
+Todas as máquinas do cluster foram utilizadas de modo exclusivo.
+Somente os processos básicos foram mantidos em execução, ou seja, após a instalação do sistema operacional e Lustre, somente os processos que por padrão são executados durante o boot foram mantidos.
+De a mesma forma, a rede de comunicação não estava sendo compartilhada por outros usuários ou processos.
+Devido a as complexidades dos componentes envolvidos num sistema de arquivos distribuído (disco, rede e componentes do sistema operacional), foi necessário preparar o ambiente a cada rodada de testes.
+Por exemplo, para eliminar o efeito do cache e garantir que o sistema de arquivos fosse exercitado, antes da execução das operações de escrita ou leitura, esvaziava- se o buffer cache das máquinas do cluster.
+Para monitorar o comportamento do sistema operacional e Lustre utilizou- se a ferramenta COLLECTL.
+Essa ferramenta permite monitorar o uso de CPU, disco, memória, rede e algumas informações fornecidas por os serviços do Lustre.
+De entre essas informações, pode- se citar a vazão de rede e disco de servidores de armazenamento e uso do cache e read-ahead nos clientes.
+A ferramenta COLLECTL auxiliou no entendimento da arquitetura do Lustre e análise dos dados obtidos nos experimentos.
+Entretanto, para não influenciar nos resultados a ferramenta não estava em execução durante as avaliações de desempenho.
+Em alguns experimentos o Lustre é comparado ao NFS.
+O motivo é por o simples fato que muitas instituições e grupos de pesquisa utilizam o NFS para manter os dados do cluster.
+De essa forma, em alguns experimentos, a mesma carga de trabalho será aplicada em ambos os sistemas para fins comparativos.
+A próxima seção apresenta os experimentos, como foram executados e resultados obtidos.
+Para verificar os gargalos e limites do ambiente de teste foram propostos alguns experimentos com o objetivo de exercitar todos os componentes do sistema de arquivos.
+Alguns experimentos serviram de base para os demais, ou seja, à medida que os resultados foram obtidos novos experimentos foram modelados.
+Os experimentos realizados e os resultados obtidos são apresentados a seguir.
+Durante a execução de aplicações paralelas vários arquivos são criados, acessados e removidos do sistema de arquivos.
+O tamanho dos arquivos pode variar de acordo com o tempo de execução, tamanho do problema e nível de detalhamento dos resultados gerados.
+Todos esses aspectos influenciam no desempenho final da aplicação.
+Para avaliar o impacto do tamanho do arquivo serão executadas operações de escrita e leitura em paralelo sobre o Lustre.
+A Tabela 4.1 lista os parâmetros e valores utilizados no experimento.
+Cada processo escreve/ lê em arquivo exclusivo usando transferências de 64 kB e biblioteca de acesso POSIX.
+Arquivos de 1 MB a 256 MB serão utilizados na avaliação.
+O Lustre está configurado para distribuir os arquivos entre todos os servidores de armazenamento em stripes de 1 MB.
+Todos os testes serão executados 20 vezes e os resultados representam a vazão média alcançada.
+Para fins comparativos o NFS será avaliado sob a mesma carga de trabalho.
+Resultados da Escrita A Figura 4.6 apresenta a vazão média obtida na escrita de arquivos de tamanhos diversos no Lustre e NFS.
+As barras representam o desvio padrão.
+Com base nos resultados é possível destacar três pontos discutidos a seguir.
+Primeiro, o Lustre apresentou desempenho superior ao NFS para todos os tamanhos de arquivos.
+Isso se deve a escrita de arquivos em paralelo.
+Mesmo sendo um cluster de pequena escala, com poucos processadores, a carga de trabalho simulada favorece o uso de um sistema de arquivos paralelos.
+RAM como buffer de E/ S e sabendo que as máquinas do cluster têm aproximadamente 128 MB de espaço livre, para arquivos pequenos, menores que 128 MB, a vazão atingiu taxas elevadas.
+Contudo, ao esgotar o espaço livre para buffer, os dados devem ser transferidos imediatamente para o sistema de arquivos, explicando a queda na vazão de dados para arquivos a partir de 128 MB.
+O mesmo efeito ocorre com o NFS à medida que o tamanho do arquivo aumenta.
+Reforçando a questão do buffer cache, no Lustre o parâmetro max cached mb define o tamanho da área de memória RAM livre da máquina que pode ser utilizada como cache cliente.
+Por padrão são destinados 75% da memória livre da máquina.
+Para visualizar o uso do buffer cache foram capturadas informações de uma das máquinas do experimento.
+As informações foram capturas através da ferramenta COLLECTL durante o teste de escrita de arquivo de 128 MB.
+O gráfico da Figura 4.7 exibe o uso da cache cliente.
+como se pode observar, a memória para cache rapidamente é utilizada durante toda a operação de escrita do arquivo, nesse caso aproximadamente 140 MB.
+Terceiro, para exercitar o sistema de arquivos é necessário utilizar arquivos com tamanho suficiente para ocupar toda a memória RAM livre do sistema.
+Caso contrário, o throughput aferido pode não representar o desempenho do sistema de arquivos, mas sim a velocidade de acesso a memória RAM.
+Em adição, o desvio padrão elevado para arquivos pequenos está relacionado ao estado atual do nó, onde o espaço livre em memória pode variar e afetar as medições.
+Observando a Figura 4.6 é possível verificar que a taxa de transferência sofre uma queda e estabiliza para arquivos maiores que 64 MB.
+De a mesma forma, o desvio padrão também diminui para arquivos maiores que 64 MB.
+Para evitar o efeito do cache cliente, nos próximos experimentos cada processo acessará no mínimo 256 MB de dados.
+Resultados da Leitura A Figura 4.8 exibe a vazão média e desvio padrão na leitura ao variar o tamanho do arquivo.
+como se pode observar, o NFS apresentou desempenho inferior ao Lustre para todos os tamanhos de arquivos, a arquitetura centralizada limita a vazão de dados que ficou abaixo de os 20 MB/ s.
+Em o Lustre a taxa de transferência agregada chegou próximo a os 90 MB/ s.
+Em as medições, os maiores valores para desvio padrão obtidos foram de 7,25 e 0,70 para Lustre e NFS, respectivamente.
+Para NFS e Lustre a vazão na leitura mostrou desempenho inferior em relação a as operações de escrita.
+Enquanto que a escrita pode ser assíncrona, a leitura envolve o envio da requisição ao servidor remoto, acesso aos dados em disco e envio dos dados por a rede.
+Além disso, no Lustre foram obtidas taxas de transferências maiores à medida que o tamanho do arquivo aumentava.
+Esse efeito está relacionado ao mecanismo de read-ahead implementado por o Lustre.
+O read-ahead armazena blocos contíguos de dados no cache cliente.
+Para visualizar o uso do read-ahead foram capturadas, com auxílio da ferramenta COLLECTL, informações como número de acertos na cache do Lustre, vazão em operações de leitura e rede de uma máquina do experimento.
+Devido a natureza sequencial das operações executadas, a taxa de acertos na cache ficou entre 98% e 100%.
+Este experimento investiga o impacto ao variar o tamanho da unidade de transferência.
+A unidade de transferência define o tamanho das rajadas de dados entre memória e arquivo.
+Os mesmos parâmetros do experimento anterior serão utilizados, ou seja, o mesmo número de processos e configurações do Lustre.
+A Tabela 4.1 pode ser consultada.
+Entretanto, o tamanho do arquivo será fixado em 256 MB.
+A definição do tamanho do arquivo tem por objetivo isolar o efeito do cache discutido anteriormente.
+Assim a vazão de dados obtida representará o desempenho do subsistema de E/ S. Resultados A Figura 4.10 apresenta os resultados obtidos para escrita e leitura.
+como se pode observar, variar o tamanho da unidade de transferência não impactou no desempenho do Lustre.
+O uso do cache cliente em operações de escrita, e na leitura o uso do read-ahead, suprimiu qualquer efeito relacionado ao tamanho da unidade de transferência.
+Somente em operações de escrita com transferências de 1 kB e 2 kB o desempenho sofreu queda, em torno de 12,7% inferior aos demais casos.
+A leitura não sofreu variações significativas.
+Com base nos resultados obtidos e visando reduzir o número de parâmetros avaliados, nos próximos experimentos o tamanho da unidade de transferência será fixado em 64 kB.
+Em este experimento o objetivo é verificar como o Lustre se comporta ao variar o número de processos clientes.
+Os testes serão realizados com número de processos entre 1 e 8.
+Cada processo estará alocado numa máquina e executará operações de escrita e leitura sobre um arquivo de 256 MB.
+Para tratar o efeito do cache, antes da execução das operações de escrita e leitura o buffer cache de todas as máquinas do cluster será esvaziado.
+Além disso, os processos utilizarão transferências de 64 kB e biblioteca de acesso POSIX.
+A Tabela 4.1 pode ser consultada.
+Resultados Para analisar os resultados considere os dados da Tabela 4.2.
+Esses dados representam a vazão média dos componentes do ambiente de teste.
+A vazão da rede entre servidores e clientes foi aferida através do benchmark Netperf.
+Para o disco rígido foi utilizado o comando dd do Linux.
+A coluna vazão agregada representa a vazão que teoricamente pode ser atingida considerando os três servidores de dados do Lustre.
+O cálculo não considera acesso concorrente aos discos e overheads inerentes na comunicação entre clientes e servidores.
+A Figura 4.11 apresenta os resultados obtidos ao variar o número de processos participantes do experimento.
+Comparando o gráfico da Figura 4.11 com os dados da Tabela 4.2 é possível destacar os seguintes aspectos:·
+A vazão alcançada no experimento é inferior a vazão agregada apresentada na Tabela 4.2.
+A diferença está relacionada ao overhead existente no acesso ao Lustre.
+O acesso paralelo aos discos e custo de comunicação influência na vazão final fornecida.
+É importante ressaltar que a vazão agregada (Tabela 4.2) é resultado da soma da vazão de cada disco, sem considerar acesso concorrente e custo de comunicação.·
+A rede também é um fator que afeta o desempenho do Lustre, porém, neste caso não está relacionada ao gargalo criado no acesso aos dados.
+De acordo com as informações da Tabela· O número de nós clientes disponível para o teste não chegou a saturar os servidores de armazenamento.
+A vazão média estabilizou a partir de 3 processos e não sofreu queda para escrita e leitura.·
+Outro fator que pode ser visualizado na Figura 4.11 é o baixo desempenho das máquinas clientes.
+Em o teste com um cliente, como o arquivo está distribuído entre todos os servidores de armazenamento, a vazão atingida exibe os limites do cliente e não do sistema de arquivos.
+O cliente não chega a sobrecarregar a rede Gigabit Ethernet.
+Esse comportamento era esperado devido a o hardware antigo dos clientes.
+Analisando esses aspectos é possível identificar quais componentes influenciam no desempenho do Lustre.
+Conhecer as limitações dos componentes possibilita, por exemplo, calcular a relação entre servidores de armazenamento e clientes necessários para se ter um sistema de arquivos balanceado.
+Em este experimento os resultados sugerem duas modificações que podem melhorar o desempenho do Lustre.
+A primeira baseia- se na adição de novos servidores de armazenamento aumentando dessa forma a vazão de dados agregada.
+Baseado no fato da rede não ser o gargalo, a segunda é aumentar o desempenho do subsistema de E/ S de cada servidor.
+Isso pode ser feito através do uso de matrizes de discos.
+De acordo com as considerações apontadas no experimento anterior, foram adicionados três servidores de armazenamento no sistema de arquivos Lustre.
+É importante ressaltar que as máquinas disponibilizadas são idênticas as já utilizadas no ambiente de teste como servidores de armazenamento.
+O objetivo é verificar se a adição de mais servidores aumenta a vazão do sistema.
+Para tanto, o experimento anterior foi executado novamente, porém, sobre um sistema de arquivos Lustre com maior número de servidores de armazenamento.
+As Figuras 4.12 e 4.13 mostram a vazão de dados ao adicionar novos servidores de armazenamento (3, 4, 5 e 6 OSS).
+como se pode observar, os resultados mostram que o desempenho pode ser melhorado ao adicionar novos servidores de armazenamento.
+Em os melhores casos observados, ao dobrar o número de OSS (de 3 para 6) se teve um ganho de aproximadamente 75% na escrita e 81% na leitura com 8 processos.
+De a mesma forma como no experimento anterior, o número de nós clientes não chegou a saturar os servidores de armazenamento.
+Um ponto interessante é a vazão média semelhante na leitura com 4 e 5 OSS.
+Em momento futuro é necessário investigar o motivo por o qual não houve melhora ao adicionar o quinto OSS.
+O objetivo deste experimento é analisar o impacto da distribuição de carga entre os servidores de armazenamento do Lustre.
+Levando em consideração o ambiente de teste apresentado na Seção 3.3.1, há três formas de distribuir os dados:·
+stripecount $= 3:
+Armazenamento do arquivo distribuído entre três servidores.
+Para exemplificar o experimento considere duas aplicações paralelas que escrevem dados no Lustre.
+A primeira com três processos e a segunda com quatro processos.
+Ambas as aplicações estão prontas para escrever dados no sistema de arquivos, cada processo escreve num arquivo exclusivo, não existindo acesso concorrente.
+A Figura 4.14 ilustra as formas possíveis de distribuição de dados entre processos e servidores de armazenamento.
+Quando o número de processos é múltiplo do número de servidores de armazenamento a distribuição dos dados pode ser facilmente balanceada, Figura 4.14 (a-c).
+Entretanto, quando não existe essa relação de multiplicidade a distribuição pode não ser equilibrada, Figuras 4.14 (d) e 4.14 (e).
+Para mostrar o impacto da distribuição de carga serão utilizados números de processos múltiplos (P $= 3 e P $= 6) e não múltiplos (P $= 4 e P $= 8) do número de servidores de armazenamento.
+O Lustre possibilita, no momento da criação de diretórios ou arquivos, a definição de como os dados serão distribuídos entre os servidores de armazenamento.
+Em este caso foram criados três diretórios configurados para representar as formas de distribuição descritas anteriormente.
+O benchmark Ior será utilizado para simular as operações de escrita.
+A Tabela 4.3 apresenta um resumo dos parâmetros utilizados neste experimento.
+Resultados Três formas de distribuir os dados foram avaliadas.
+Em este experimento foram criados diretórios configurados de forma que os arquivos fossem armazenados num, dois ou três servidores.
+Outro fator importante é o número de processos envolvidos no experimento.
+A definição do número de processos permite avaliar dois casos: (
+i) distribuição equilibrada (número de processos múltiplo do número de servidores de armazenamento) e (ii) distribuição não equilibrada (números não múltiplos) dos dados entre os servidores de armazenamento.
+C1 S1 1 1 3, 4, 6 e 8 256 MB/ proc 64 kB C1 S2 1 2 3, 4, 6 e 8 256 MB/ proc 64 kB C1 S4 1 4 3, 4, 6 e 8 256 MB/ proc 64 kB C2 S1 2 1 3, 4, 6 e 8 256 MB/ proc 64 kB C2 S2 2 2 3, 4, 6 e 8 256 MB/ proc 64 kB C2 S4 2 4 3, 4, 6 e 8 256 MB/ proc 64 kB C3 S1 3 1 3, 4, 6 e 8 256 MB/ proc 64 kB C3 S2 3 2 3, 4, 6 e 8 256 MB/ proc 64 kB C3 S4 3 4 3, 4, 6 e 8 256 MB/ proc 64 kB por processo e tamanho do bloco de transferência.
+Os parâmetros stripesize e stripecount definem a forma como os arquivos serão fracionados e distribuídos entre os servidores de armazenamento.
+Para exemplificar, a entrada C2 S4 significa stripecount $= 2 e stripesize $= 4.
+As Figuras 4.15 e 4.16 apresentam os resultados obtidos no experimento.
+Em a Figura 4.15 os gráficos mostram a vazão de dados obtida com P $= 3 e P $= 6.
+Como o número de processos é múltiplo do número de servidores, a carga de trabalho pode ser distribuída de forma equilibrada.
+Pode- se observar que todas as formas de distribuição de dados apresentam desempenho semelhante.
+Os resultados obtidos neste experimento indicam que casos onde os números de processos e servidores não são múltiplos, a melhor abordagem é distribuir os dados entre todos os servidores de armazenamento.
+A verificação da distribuição dos dados entre os servidores de armazenamento foi realizada com auxílio da ferramenta COLLECTL e ferramentas do próprio Lustre.
+O Lustre fornece semântica de acesso POSIX, garantindo consistência no acesso aos arquivos.
+Através do sistema de travas distribuídas cada servidor de armazenamento é responsável por gerenciar as travas dos stripes de arquivos que mantém.
+Esse mecanismo permite ao Lustre boa escalabilidade, permitindo acesso em paralelo ao arquivo.
+Em este experimento será investigado o impacto ocasionado quando o tamanho do bloco de dados, que um processo lê ou escreve, não está alinhado aos limites dos stripes do arquivo.
+A Figura 4.17 mostra um caso onde o tamanho do bloco de dados não está alinhado ao tamanho do stripe do arquivo.
+Em este caso, dois processos fazem acesso a regiões não sobrepostas do mesmo stripe, processos P0 e P1 acessam de forma concorrente o stripe 1.
+Durante a leitura dos demais segmentos do arquivo esse comportamento se repete.
+Para investigar o impacto gerado por o acesso não alinhado serão executados dois testes com três e seis processos lendo um arquivo compartilhado de aproximadamente 256 MB.
+O tamanho do bloco de leitura será definido de forma a representar duas situações:
+Acesso alinhado e acesso não alinhado com o tamanho do stripe.
+Considerando a configuração do Lustre apresentada na seção stripe igual a 1 MB.
+A Tabela 4.5 exibe os valores dos parâmetros de configuração utilizados neste experimento.
+Resultados Testes com quatro tamanhos de blocos de dados distintos foram executados a fim de representar acesso alinhado e não alinhado:·
+bloco de 512 kB:
+Acesso não alinhado, dois processos acessam o mesmo stripe.·
+bloco de 1024 kB:
+Acesso alinhado, um stripe por processo.·
+bloco de 1536 kB:
+Acesso não alinhado, o processo acessa umstripe inteiro e metade do próximo.·
+bloco de 2048 kB:
+Acesso alinhado, o processo acessa dois stripe consecutivos.
+A Tabela 4.6 lista os testes realizados neste experimento.
+Em essa tabela estão listadas as configurações do Lustre (stripecount e stripesize), número de processos envolvidos, número de segmentos e tamanho do bloco de dados por processo.
+O tamanho do bloco determina o número de bytes que cada processo lê.
+Por exemplo, com P $= 3 e bloco igual a 512 kB, cada processo lê um bloco contíguo de 512 kB, representando um segmento do arquivo.
+Em esse exemplo o arquivo é dividido em 170 segmentos de 1536 kB.
+Em a Figura 4.18 são apresentados os resultados obtidos.
+O acesso não alinhado impactou negativamente no desempenho do Lustre.
+Para P $= 3, os processos P0 e P1 fazem acesso ao stripe 1, enquanto que P2 faz acesso ao stripe 2.
+Em este caso, o mecanismo de travas distribuídas do Lustre serializa o acesso ao stripe 1 limitando o desempenho da aplicação.
+O mesmo comportamento é observado para P $= 6.
+Em o acesso alinhado cada processo faz acesso a um ou dois stripes distintos.
+Os processos solicitam as travas sobre os stripes e executam em paralelo a leitura do arquivo.
+como se pode observar, o acesso alinhado resulta em melhor desempenho.
+Em os casos onde o tamanho do bloco não é múltiplo do tamanho do stripe a vazão de dados atingiu no máximo 2,5 MB/ s para P $= 3 e 6,24 MB/ s para P $= 6.
+O fato de não alinhar o bloco de dados ao tamanho do stripe reduziu a vazão abaixo de 1 MB/ s no pior caso.
+Este experimento destaca a importância de projetar aplicações paralelas de acordo com as características fornecidas por o sistema de arquivos.
+Esta seção apresenta um resumo sobre os fatores avaliados nos experimentos da classe ambiente de teste.
+Os pontos observados são apresentados a seguir:·
+Tamanho do arquivo:
+Os resultados mostraram que a escolha do tamanho do arquivo é importante para avaliar de forma efetiva o Lustre.
+Os mecanismos de cache cliente e read-ahead são utilizados de maneira agressiva, sendo necessário selecionar o tamanho do arquivo com cuidado.
+Caso contrário, os resultados obtidos podem não representar o desempenho do sistema de arquivos, mas sim, a velocidade de acesso a memória dos nós, mascarando as limitações do ambiente de teste.
+Além disso, os resultados também mostraram que as operações de leitura tem desempenho inferior as operações de escrita.·
+Tamanho da unidade de transferência:
+Variar o tamanho da unidade de transferência não afetou de forma significativa o desempenho do Lustre.
+Os mecanismos de cache cliente e read-ahead suprimiram qualquer efeito relacionado ao tamanho das transferências ao sistema de arquivos.·
+Número de clientes e servidores de armazenamento:
+Esses experimentos permitiram verificar o quão escalável o Lustre pode ser e quais são os limites do ambiente de teste.
+A partir de a análise dos resultados, foi possível localizar os gargalos e sugerir modificações para melhorar o desempenho do subsistema de E/ S do ambiente de teste.·
+Distribuição de carga entre servidores de armazenamento:
+Os resultados deste experimento mostraram que o ideal é manter o número de nós clientes múltiplo dos nós de armazenamento.
+De essa maneira, os dados podem ser distribuídos de forma balanceada sobre os servidores de armazenamento, melhorando o desempenho.·
+Acesso não alinhado ao tamanho do stripe:
+O acesso não alinhado entre o tamanho do bloco que um processo escreve/ lê em relação a o tamanho do stripe no Lustre, pode serializar o acesso ao arquivo.
+Os resultados mostraram que o acesso alinhado é fundamental para se obter bom desempenho.
+A execução desses experimentos foi importante na compreensão do funcionamento do Lustre.
+As análises e resultados obtidos auxiliaram na definição de alguns fatores para a próxima classe de testes, voltada aos padrões de acesso.
+Em esta seção serão avaliados alguns padrões de acesso típicos de aplicações paralelas.
+O foco estar á voltado aos padrões de acesso, ou seja, a forma como os processos realizam as operações de E/ S. Em a seção anterior, a avaliação tinha como ponto de vista o ambiente de teste, permitindo configurar parâmetros do sistema de arquivos e adicionar novos servidores de armazenamento.
+Em muitos ambientes de produção, o usuário não tem permissão para alterar as configurações do sistema, nesses casos a aplicação é quem deve ser adaptada.
+Por isso a importância em compreender a arquitetura do sistema de arquivos e a influência dos padrões de acesso.
+Assim, os desenvolvedores podem projetar aplicações que se beneficiem das características do sistema de arquivos em questão.
+Os experimentos a seguir mostram como o Lustre se comporta sob os padrões de acesso discutidos na Seção 4.1.2.
+Todos os testes são baseados numa aplicação paralela com 8 processos executando simple-strided e random-strided.
+Para simular a carga de trabalho do experimento utilizou- se o benchmark Ior.
+O benchmark foi configurado de forma que cada processo escreva ou leia um arquivo exclusivo de 256 MB.
+O resultado final é o acesso a 2 GB de dados.
+A Tabela 4.7 resume os parâmetros e valores utilizados no experimento.
+O padrão de acesso segmented-access representa aplicações onde todos os processos acessam um arquivo compartilhado.
+Para simular a carga de trabalho do experimento utilizou- se o benchmark Ior.
+Em este experimento todos os processos irão escrever/ ler um bloco de dados de 256 MB no arquivo compartilhado.
+O resultado final é o acesso a 2 GB de dados.
+A Tabela 4.8 resume os parâmetros e valores utilizados no experimento.
+A Figura 4.20 apresenta a vazão de dados obtida.
+Em este padrão o Lustre apresentou desempenho superior ao NFS em aproximadamente 5 vezes na escrita e 15 vezes na leitura.
+Os padrões de acesso os padrões os processos acessam grandes blocos de dados contíguos.
+O padrão simple-strided pode ser empregado em aplicações paralelas de diversas áreas.
+Podem- se citar aplicações que simulam fenômenos naturais onde a cada passo algumas variáveis (temperatura, pressão, umidade, por exemplo) são acessadas.
+O padrão simple-strided difere de segmented-access por o fato de cada processo acessar vários blocos de dados dispersos por o arquivo de forma ordenada.
+Em simple-strided, todos os processos fazem acesso a blocos de dados de mesmo tamanho.
+Dependendo da aplicação, podem- se ter blocos grandes ou pequenos.
+Em este experimento será avaliada a influência que o tamanho do bloco pode gerar no desempenho de aplicações que usam o padrão simple-strided.
+A carga de trabalho será simulada através do benchmark Ior.
+Cada processo acessará blocos de dados de tamanho fixo obedecendo a um determinado deslocamento dentro de o arquivo.
+De qualquer maneira, cada processo escreve ou lê 256 MB.
+O tamanho do bloco define o número e tamanho dos segmentos do arquivo.
+Blocos pequenos tornam o acesso esparso, por exemplo, para bloco igual a 1 MB, todos os processos acessarão 256 blocos ordenados de forma circular.
+De a mesma forma, blocos grandes tornam o acesso menos esparso.
+Por exemplo, para bloco igual a 128 MB, todos os processos acessarão apenas dois blocos de dados.
+Para fins comparativos o Lustre e NFS serão submetidos à mesma carga de trabalho.
+A Tabela 4.9 resume os parâmetros e valores utilizados.
+A Figura 4.21 mostra a vazão alcançada ao variar o tamanho do bloco de dados que cada processo acessa.
+É interessante observar que o NFS apresentou melhor desempenho que o Lustre para blocos pequenos de dados em operações de leitura.
+Para blocos de tamanho pequeno a vazão na leitura com o Lustre não ultrapassou 4 MB/ s, cerca de 50% inferior a vazão obtida com o NFS.
+Em a escrita o NFS apresentou desempenho superior ao Lustre somente para blocos de 64 kB.
+Para blocos maiores o Lustre obteve desempenho superior ao NFS para escrita e leitura.
+Os mecanismos do Lustre, discutidos anteriormente, como cache cliente e read-ahead, se adaptam melhor com aplicações onde cada processo acessa grandes blocos de dados contíguos.
+Para aplicações onde o acesso não é contíguo, ou seja, os processos acessam regiões esparsas dentro de o arquivo, o desempenho geral sofre queda considerável.
+Com base nos resultados obtidos é possível concluir que, para aplicações que desempenham o padrão de acesso simple-strided, é interessante utilizar estratégias que transformem acessos não contíguos em acessos contíguos ao arquivo.
+Uma estratégia geralmente utilizada consiste no twophase I/ O e, onde inicialmente os processos redistribuem os dados entre si para, posteriormente, escrever os dados em grandes blocos contíguos.
+Em os padrões de acesso discutidos anteriormente, o tamanho do bloco de dados que cada processo acessa é fixo.
+Porém, algumas aplicações podem ter acessos a blocos de tamanhos diversos a cada fase de execução.
+O padrão random-strided representa essa classe de aplicações.
+O objetivo deste experimento é investigar o comportamento do Lustre simulando uma aplicação com padrão random-strided.
+Obenchmark Ior não possui tal padrão de acesso.
+Para tanto, tornou- se necessário desenvolver uma aplicação paralela MPI onde o tamanho do bloco de dados fosse aleatório.
+Para facilitar a implementação, todos os tamanhos de blocos sorteados são múltiplos de 2.
+A aplicação pára a execução quando o tamanho final do arquivo é maior ou igual a 2 GB.
+Os testes serão divididos em duas classes:
+Blocos de tamanho grande e blocos de tamanho pequeno.
+O número de processos da aplicação é igual a 8.
+Para fins comparativos o Lustre e NFS serão submetidos à mesma carga de trabalho.
+Em o Lustre, três tamanhos de stripes serão avaliados.
+As Figuras 4.22 e 4.23 mostram a vazão de dados obtida para escrita e leitura, respectivamente.
+como se pode observar, blocos de tamanho grande têm melhor desempenho.
+Em alguns casos o uso de blocos grandes apresentou o dobro de desempenho, os motivos estão relacionados ao uso agressivo do cache cliente.
+Além disso, como discutido anteriormente, devido a o controle de travas distribuídas utilizado no Lustre, a falta do alinhamento entre tamanho do bloco e stripe pode serializar o acesso reduzindo o desempenho.
+De forma geral, os resultados obtidos permitem destacar alguns pontos:·
+A leitura sofreu maior queda no desempenho com blocos pequenos do que a escrita.
+Em esse caso o Lustre apresentou desempenho semelhante ao NFS.·
+Blocos de tamanhos aleatórios não permitem a distribuição homogênea da carga de trabalho entre os processos.
+Alguns processos ficaram responsáveis por escrever ou ler porções maiores de dados do que outros.·
+O experimento também avaliou o impacto ao variar o valor do parâmetro stripesize do Lustre.
+Stripes pequenos (64 kB) e grandes (1 MB e 64 MB) foram utilizados.
+A relação stripes e blocos pequenos gera overhead maior no envio de dados por a rede, acarretando em queda no desempenho.
+O manual do Lustre recomenda o uso de stripes entre 1 MB e 4 MB.
+Esta seção apresenta uma comparação em termos de desempenho entre os padrões de acesso avaliados sob o Lustre.
+As seções anteriores têm maiores informações sobre como os valores foram obtidos.
+A Tabela 4.11 apresenta a vazão (MB/ s) da escrita e leitura para blocos de dados pequenos e grandes.
+Somente os melhores casos obtidos com cada padrão de acesso pequenos.
+Em esses dois casos cada processo escreve ou lê um bloco de dados de 256 MB, considerado bloco de tamanho grande neste trabalho.
+Para todos os padrões de acesso avaliados sob o Lustre os melhores casos foram obtidos com tamanho do bloco igual ou superior a 1 MB, considerado neste trabalho como bloco de tamanho grande.
+Para blocos pequenos o desempenho sofreu queda considerável, em alguns casos o desempenho do Lustre ficou abaixo de o obtido com o NFS.
+Os dados apresentados reforçam a ideia de que para se obter bom desempenho, independente do padrão de acesso, é necessário tornar os acessos que o processo realiza contíguos dentro de o arquivo.
+O contínuo avanço na tecnologia de desenvolvimento de processadores permite a implementação de clusters com milhares de núcleos de processamento.
+Na medida em que o número de processadores aumenta, a demanda por E/ S também cresce.
+Além disso, há um crescimento no número de aplicações intensivas em dados, corroborando com a demanda por sistemas de armazenamento eficientes.
+Como os dispositivos de armazenamento não evoluíram da mesma forma que os processadores e memórias em termos de throughput, uma alternativa é o uso de sistemas de arquivos paralelos, onde vários dispositivos de armazenamento são utilizados em conjunto para melhorar o desempenho final.
+Entretanto, esses sistemas são complexos, com vários componentes que influenciam no desempenho final, que inclusive, tornam o processo de avaliação uma tarefa complicada.
+Por isso a importância de avaliar esses sistemas, de forma a verificar como aplicações podem ser desenvolvidas para obter maior desempenho, ou mesmo, descobrir se o sistema de armazenamento é adequado para a classe de aplicações alvo.
+A fim de contribuir com esse processo, este trabalho realizou uma avaliação do sistema de arquivos paralelos Lustre.
+O objetivo foi investigar o Lustre de forma a compreender melhor sua arquitetura e funcionamento, e como o mesmo se comporta sob alguns padrões de acesso de aplicações paralelas científicas.
+Com base nas informações obtidas, usuários com demandas semelhantes podem planejar as operações de E/ S de suas aplicações para melhorar o desempenho.
+O processo de avaliação foi dividido em duas classes de testes.
+A primeira visava investigar o comportamento do Lustre ao variar fatores como tamanho do arquivo, tamanho da unidade de transfer ência, número de clientes, número de servidores de armazenamento, distribuição da carga entre os servidores de armazenamento e acesso não alinhado ao tamanho do stripe.
+Os resultados permitiram melhorar o entendimento da arquitetura e configuração do Lustre, além de auxiliar na identificação das limitações do ambiente de teste.
+A segunda classe estava voltada sobre os padrões de acesso desempenhados por aplicações paralelas reais.
+Alguns estudos investigaram a forma como aplicações paralelas científicas executam operações de E/ S sob máquinas paralelas (projeto CHARISMA).
+Essas informações foram utilizadas para elaborar as cargas de trabalho da avaliação.
+A seguir as conclusões obtidas após a execução dos experimentos da primeira classe de testes:·
+Tamanho do arquivo:
+Os resultados mostraram que a escolha do tamanho do arquivo é importante para avaliar de forma efetiva o Lustre.
+Os mecanismos de cache cliente e read-ahead são utilizados de maneira agressiva, sendo necessário selecionar o tamanho do arquivo com cuidado.
+Caso contrário os resultados obtidos podem não representar o desempenho do sistema de arquivos, mas sim a velocidade de acesso a memória dos nós, mascarando as limitações do ambiente de teste.
+Além disso, os resultados também mostraram que as operações de leitura tem desempenho inferior as operações de escrita.·
+Tamanho da unidade de transferência:
+Variar o tamanho da unidade de transferência não afetou de forma significativa o desempenho do Lustre.
+Os mecanismos de cache cliente e read-ahead suprimiram qualquer efeito relacionado ao tamanho das transferências ao sistema de arquivos.·
+Número de clientes e servidores de armazenamento:
+Esses experimentos permitiram verificar o quão escalável o Lustre pode ser e quais são os limites do ambiente de teste.
+A partir de a análise dos resultados foi possível localizar os gargalos e sugerir modificações para melhorar o desempenho do subsistema de E/ S do ambiente de teste.·
+Distribuição de carga entre servidores de armazenamento:
+Os resultados deste experimento mostraram que o ideal é manter o número de nós clientes múltiplo dos nós de armazenamento.
+De essa maneira os dados podem ser distribuídos de forma balanceada sobre os servidores de armazenamento, melhorando o desempenho.·
+Acesso não alinhado ao tamanho do stripe:
+O acesso não alinhado entre o tamanho do bloco que um processo escreve/ lê em relação a o tamanho do stripe no Lustre pode serializar o acesso ao arquivo.
+Os resultados mostraram que o acesso alinhado é fundamental para se obter bom desempenho.
+A execução desses experimentos foi importante na compreensão do funcionamento do Lustre.
+As análises e resultados obtidos auxiliaram na definição de alguns fatores para a próxima classe segmented-access, simple-strided e random-strided.
+Em todos os experimentos foram utilizados o mesmo número de processos e configurações do Lustre.
+Em simple-strided, cada processo faz acesso a blocos de dados de mesmo tamanho, porém esparsos dentro de o arquivo.
+Dependendo da aplicação podem- se ter blocos grandes ou pequenos.
+Foram simuladas aplicações com ambos os casos e quando o acesso do processo se dá em blocos pequenos o desempenho geral sofre queda considerável.
+Para blocos pequenos, em alguns casos o NFS apresentou desempenho superior ao Lustre.
+Em esses casos é interessante utilizar estratégias para transformar acessos não contíguos em acessos contíguos ao arquivo.
+Uma estratégia geralmente utilizada consiste no two-- phase I/ O e.
+O padrão random-strided é semelhante ao simple-strided, porém os acessos são a blocos de tamanhos diversos a cada fase de execução da aplicação.
+Para simular esse padrão foi necessário implementar uma aplicação MPI que, a cada fase de execução, acessava blocos de tamanhos diversos.
+Os resultados obtidos foram semelhantes aos obtidos com simple-strided, o tamanho do bloco tem forte influência na vazão de dados.
+Outra questão é o tamanho do bloco aleatório, que dificulta a questão de manter o tamanho do bloco alinhado ao tamanho do stripe.
+É provável que alguns acessos sejam serializados influenciando no desempenho da aplicação.
+Por fim, a avaliação teve como ambiente alvo um cluster Linux de pequena escala, onde o NFS é o padrão de fato.
+Mesmo nesse tipo de ambiente o uso do Lustre mostrou- se uma alternativa interessante.
+Para aplicações que fazem muita E/ S, o NFS cria um gargalo no acesso aos dados, prejudicando o desempenho final da aplicação.
+Outro fator que deve ser considerado ao usar um sistema de arquivos paralelos é a redução do número de nós de processamento, para servir como nós de armazenamento.
+Para não se ter reduzido esse poder de processamento, o Lustre permite a execução simultânea de software cliente e servidor no mesmo nó.
+De essa forma, clusters de pequena dimensão podem tirar benefício do Lustre, sem perder capacidade de processamento.
+Em termos gerais, o Lustre é um sistema de arquivos paralelos capaz de fornecer alta vazão de dados para as aplicações.
+Mostrou que pode ser adequado para todos os padrões de acesso avaliados neste trabalho.
+Entretanto, oferece um ganho maior quando a aplicação leva em consideração os aspectos de sua arquitetura.
+Por exemplo, aplicações onde o tamanho das requisições de E/ S estão alinhados ao tamanho do stripe apresentam bom desempenho.
+Por outro lado, quando os tamanhos não estão alinhados, o desempenho sofre grande impacto.
+Além disso, para aproveitar os recursos fornecidos por o Lustre, como cache cliente e read-ahead, os desenvolvedores devem, na medida do possível, tornar os acessos realizados por os processos contíguos dentro de o arquivo. Como
+trabalho futuro sugere- se avaliar outros padrões de acessos de aplicações paralelas, não limitando- se somente as de cunho científico.
+Além disso, sugere- se avaliar outras tecnologias de redes de interconexão e configurações do Lustre, a fim de verificar o impacto sobre o desempenho do sistema de arquivos e fornecer maiores informações para profissionais de Ti que pretendam usar- lo.
