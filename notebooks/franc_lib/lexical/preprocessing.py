@@ -20,7 +20,10 @@ class Preprocessing:
             os.makedirs(path)
         
         with open(os.path.join(path, file_name), 'a') as file:
-            file.write('%s \n' % data)  
+            file.write('%s \n' % data)
+    
+    def lowercase(self, text, save=False):
+        return text.lower()
 
     def remove_accents(self, text, save=False):
         text = unidecode.unidecode(text)
@@ -47,7 +50,7 @@ class Preprocessing:
         return text
 
     def tokenize_words(self, text, save=False):
-        tokens = [nltk.tokenize.word_tokenize(sentence) for sentence in text]
+        tokens = nltk.tokenize.word_tokenize(text)
         if save:
             path = os.path.join(self.save_path, 'tokenized_words')
             file_name = self.file_name + '_tokenized.txt'
