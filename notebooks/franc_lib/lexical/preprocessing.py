@@ -3,6 +3,10 @@ import unidecode
 import string
 import os
 
+from nltk.corpus import stopwords
+
+portuguese_stop_words = stopwords.words('portuguese')
+
 class Preprocessing:
 
     def __init__(self, save_path='../data/normilized/', file_name=None):
@@ -55,6 +59,13 @@ class Preprocessing:
             path = os.path.join(self.save_path, 'tokenized_words')
             file_name = self.file_name + '_tokenized.txt'
             self.save(path, file_name, tokens)
+        return tokens
+    
+    def remove_stopwords(self, tokens, save=False):
+        for token in tokens:
+            if token in portuguese_stop_words:
+                tokens.remove(token)
+
         return tokens
     
     def lemmatize(self, text, save=False):
