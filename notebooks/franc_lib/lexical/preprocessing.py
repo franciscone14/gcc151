@@ -38,7 +38,7 @@ class Preprocessing:
         return text
     
     def remove_punctuation(self, text, save=False):
-        text = [sentence.translate(str.maketrans('','', string.punctuation)) for sentence in text]
+        text = text.translate(str.maketrans('','', string.punctuation))
         if save:
             path = os.path.join(self.save_path, 'punctuation_removed')
             file_name = self.file_name + '_no_punct.txt'
@@ -96,4 +96,4 @@ class Preprocessing:
         text = self.lemmatize(text, False) if lemmatize else text
         text = self.stemmize(text, save) if stemmize else text
         
-        return text    
+        return text   

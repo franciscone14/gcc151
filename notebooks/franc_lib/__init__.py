@@ -1,1 +1,1 @@
-__all__ = ["lexical", "syntax", "morphosyntax"]
+__all__ = ["lexical", "syntax", "morphosyntax", "semantics"]
