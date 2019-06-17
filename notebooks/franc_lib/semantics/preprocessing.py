@@ -66,17 +66,49 @@ class Semantics:
         return pd.DataFrame(data=dataset)
 
     def preprocessing(self, text):
+        """ 
+            preprocessing -> returns processed text
+
+            Keywords args:
+
+            * text: string - Input text in form of string or list
+        """
+        # Lowercase the whole text
         text = self.normalizer.lowercase(text)
+        # Remove puntuation
         text = self.normalizer.remove_punctuation(text)
+        # Tokenize words
         tokens = self.normalizer.tokenize_words(text)
         tokens = [token for token in tokens if token not in self.stopwords]
         return ' '.join(tokens)
     
     def apply_preprocessing(self, dataframe):
+        """
+            Receives a dataframe and returns the same dataframe with a normalized_review column
+
+            Keywords Arguments:
+
+            * dataframe: pd.DataFrame - A Pandas DataFrame object
+
+            Returns:
+
+            dataframe
+        """
         dataframe['normalized_review'] = dataframe['review'].apply(self.preprocessing)
         return dataframe
     
     def feature_extraction(self, dataframe):
+        """
+            Extracts the main features in the text, which are the review itself and the text polarity
+
+            Keywords Arguments:
+
+            * dataframe: pd.DataFrame - A Pandas DataFrame object
+
+            Returns:
+
+            Tuple in form (X, X_test, train_classes, teste_classes), where X and X_test are tranformers objects
+        """
         train_reviews = dataframe[dataframe['set'] == 'train']['normalized_review'].values.tolist()
         train_classes = dataframe[dataframe['set'] == 'train']['polarity'].values.tolist()
         test_reviews = dataframe[dataframe['set'] == 'test']['normalized_review'].values.tolist()
@@ -95,7 +127,7 @@ class Semantics:
 
         self.X, self.X_test, self.train_classes, self.test_classes = self.feature_extraction(self.dataframe)
 
-        self.classifier = LogisticRegression(n_jobs=3, verbose=True)
+        self.classifier = LogisticRegression(solver='lbfgs', n_jobs=4, verbose=True)
         print("Trainning....")
         self.classifier.fit(self.X, self.train_classes)
         print("Finished !")
@@ -103,6 +135,11 @@ class Semantics:
         print(confusion_matrix(self.test_classes, self.classifier.predict(self.X_test)))
 
     def get_confusion_matrix(self):
+        """
+            Prints the confusion matrix on the screen, ordering by the lowest polarity through the highest
+
+            No arguments required
+        """
         m = confusion_matrix(self.test_classes, self.classifier.predict(self.X_test))
         print('v/v\t 0.0\t 1.0\t 2.0\t 3.0\t 4.0\t 5.0')
         print('0.0\t %d\t %d\t %d\t %d\t %d\t %d\t' % (m[0][0], m[0][1], m[0][2], m[0][3], m[0][4], m[0][5]))
@@ -112,18 +149,13 @@ class Semantics:
         print('4.0\t %d\t %d\t %d\t %d\t %d\t %d\t' % (m[4][0], m[4][1], m[4][2], m[4][3], m[4][4], m[4][5]))
         print('5.0\t %d\t %d\t %d\t %d\t %d\t %d\t' % (m[5][0], m[5][1], m[5][2], m[5][3], m[5][4], m[5][5]))
 
-    def save_model(self):
-        joblib.dump(self.classifier, 'saved_model.pkl') 
-
-    def load_model(self):
-        self.classifier = joblib.load('saved_model.pkl')
-
     def sentiment_analysis(self, text):
-        # if(not os.path.isfile('saved_model.pkl')):
-        self.train()
-        self.save_model()
-        # else:
-        #     self.load_model()
-        
+        """
+            Given an input text and a trained model, this functions returns the text polarity with a 55% acuracy
+
+            Keywords Arguments:
+
+            * text: string - A input String or list to be classified
+        """
         X = self.transformer.transform([self.preprocessing(text)])
         return self.classifier.predict(X)
